@@ -254,7 +254,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Npccontrol | `0x000b11f4` | not-started |
 | Gamecontrol | `0x000b15a0` | not-started |
 | Shopvalues | `0x000b49b4` | not-started |
-| Shopitem | `0x000b4a20` | not-started |
+| Shopitem | `0x000b4a20` | byte-exact |
 | Shopvalue | `0x000b546c` | not-started |
 | Shopcraft | `0x000b5500` | not-started |
 | Chestcontrol | `0x000b5bc4` | not-started |
@@ -397,6 +397,7 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Serial logic reconstructed | 1 | done | `DecodeString` + `Validate` + `GetDisplayCode` + `ReloadIni` and 6 accessors byte-exact (10/13) |
 | Serial remaining | 1 | partial | `SetIniPath` 155, `ReadKey` 254, ctor 246 — EH scope-structure only |
 | Weaponmap byte-exact | 1 | done | all 3 functions match (ctor 12, deleting-dtor 11, `Combat_IsRangedWeapon` 21) |
+| Shopitem byte-exact | 1 | done | both functions match (ctor 15, deleting-dtor 11) |
 | Full skeleton links | 1 | done | `make build`: 133 exports, working PE |
 | Full skeleton runs functionally | 1 | todo | launch and exercise |
 | All units C++-verified | 2 | todo | `make functions` at 100% |
