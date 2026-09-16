@@ -76,6 +76,33 @@ def print_markers(ref, our, force: bool) -> None:
             break
 
 
+def print_diff(ref, our, context: int = 3) -> None:
+    """Aligned diff of the two instruction streams.
+
+    The positional comparison cascades: one extra instruction shifts everything
+    after it, so every later line reports a mismatch. A sequence alignment shows
+    the real insertions/deletions instead, which is what identifies the source
+    construct to add or remove.
+    """
+    import difflib
+    sm = difflib.SequenceMatcher(None, ref, our, autojunk=False)
+    hunks = [op for op in sm.get_opcodes() if op[0] != "equal"]
+    if not hunks:
+        return
+    print(f"\naligned diff ({len(hunks)} hunk(s)):")
+    for tag, i1, i2, j1, j2 in hunks:
+        lo = max(0, i1 - context)
+        print(f"  @@ ref[{i1}:{i2}] our[{j1}:{j2}] {tag}")
+        for x in ref[lo:i1]:
+            print(f"     ref  {x}")
+        if tag in ("delete", "replace"):
+            for x in ref[i1:i2]:
+                print(f"   - ref  {x}")
+        if tag in ("insert", "replace"):
+            for x in our[j1:j2]:
+                print(f"   + our  {x}")
+
+
 def parse_our(path: str, mangled_prefix: str):
     txt = open(path, encoding="latin1").read()
     m = re.search(r"(?m)^" + re.escape(mangled_prefix) + r"\$q[^\n]*\n(.*?)endp", txt, re.S)
@@ -148,6 +175,8 @@ def main() -> int:
                     help="print the call symbol names in our listing")
     ap.add_argument("--markers", action="store_true",
                     help="always print the EH scope marker streams")
+    ap.add_argument("--diff", action="store_true",
+                    help="always print the aligned instruction diff")
     args = ap.parse_args()
 
     our, calls, our_mk = parse_our(args.asm, args.mangled_prefix)
@@ -186,6 +215,8 @@ def main() -> int:
         print("WARNING: array new/delete calls present (verify against the "
               "reference; scalar forms canonicalize identically): "
               + ", ".join(sorted(set(warn))))
+    if args.diff or mismatches > 0:
+        print_diff(ref, our)
     print_markers(ref_mk, our_mk, force=args.markers or mismatches > 0)
     return 0 if mismatches == 0 and len(ref) == len(our) else 1
 
