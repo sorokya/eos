@@ -75,6 +75,8 @@ String Serial::GetRegName(Serial *s)
 
 void Serial::SetIniPath(Serial *s, String path)
 {
+    try
+    {
     s->ini_file->Clear();
 
     String exe = Application->ExeName;
@@ -104,6 +106,10 @@ void Serial::SetIniPath(Serial *s, String path)
         tail = path;
 
     s->ini_file->LoadFromFile(exe + tail);
+    }
+    catch (...)
+    {
+    }
 }
 
 void Serial::ReloadIni(Serial *s)
@@ -115,6 +121,8 @@ String Serial::ReadKey(Serial *s, String key, String def)
 {
     String result = def;
     if (s->ini_file->Count >= 1)
+    {
+    try
     {
         for (int i = 0; i < s->ini_file->Count; i++)
         {
@@ -156,6 +164,10 @@ String Serial::ReadKey(Serial *s, String key, String def)
                 }
             }
         }
+    }
+    catch (...)
+    {
+    }
     }
     return result;
 }
