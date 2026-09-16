@@ -34,6 +34,9 @@ public:
     void LoadClasses();
 
     static ClassValue GetByIndex(Classvalues *self, int index);
+    static void AddClass(Classvalues *self, int id, int field_4, String name,
+                         short f0c, short f0e, short f10, short f12,
+                         short f14, short f16, short f18);
 };
 
 #endif

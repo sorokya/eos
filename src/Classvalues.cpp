@@ -20,6 +20,23 @@ ClassValue Classvalues::GetByIndex(Classvalues *self, int index)
     return self->values[index];
 }
 
+void Classvalues::AddClass(Classvalues *self, int id, int field_4, String name,
+                           short f0c, short f0e, short f10, short f12,
+                           short f14, short f16, short f18)
+{
+    ClassValue v(id);
+    v.name = name;
+    v.field_4 = field_4;
+    v.f0c = f0c;
+    v.f0e = f0e;
+    v.f10 = f10;
+    v.f12 = f12;
+    v.f14 = f14;
+    v.f16 = f16;
+    v.f18 = f18;
+    self->values.insert(self->values.end(), v);
+}
+
 Classvalues::Classvalues()
 {
     field_18 = operator new(8);
