@@ -1,5 +1,5 @@
-#ifndef ClassvaluesH
-#define ClassvaluesH
+#ifndef ClassValuesH
+#define ClassValuesH
 
 #include <vector>
 #include "Classvalue.h"
@@ -14,7 +14,7 @@
 //   +0x1c std::vector<ClassValue>   values
 //   +0x3c int                       field_3c = -1
 // The offsets 4 and 8 are unnamed padding pending evidence.
-class Classvalues
+class ClassValues
 {
 public:
     int field_0;
@@ -28,15 +28,16 @@ public:
     std::vector<ClassValue> values;
     int field_3c;
 
-    Classvalues();
-    ~Classvalues();
+    ClassValues();
+    ~ClassValues();
 
     void LoadClasses();
 
-    static ClassValue GetByIndex(Classvalues *self, int index);
-    static void AddClass(Classvalues *self, int id, int field_4, String name,
+    static ClassValue GetByIndex(ClassValues *self, int index);
+    static void AddClass(ClassValues *self, int id, int field_4, String name,
                          short f0c, short f0e, short f10, short f12,
                          short f14, short f16, short f18);
+    static int DecodeNumber(ClassValues *self, String s);
 };
 
 #endif

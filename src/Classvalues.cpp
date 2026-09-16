@@ -5,22 +5,22 @@
 
 #pragma package(smart_init)
 
-Classvalues::~Classvalues()
+ClassValues::~ClassValues()
 {
 }
 
-void Classvalues::LoadClasses()
+void ClassValues::LoadClasses()
 {
 }
 
-ClassValue Classvalues::GetByIndex(Classvalues *self, int index)
+ClassValue ClassValues::GetByIndex(ClassValues *self, int index)
 {
     if (index < 0 || (unsigned)index > self->values.size() - 1)
         index = 0;
     return self->values[index];
 }
 
-void Classvalues::AddClass(Classvalues *self, int id, int field_4, String name,
+void ClassValues::AddClass(ClassValues *self, int id, int field_4, String name,
                            short f0c, short f0e, short f10, short f12,
                            short f14, short f16, short f18)
 {
@@ -37,7 +37,7 @@ void Classvalues::AddClass(Classvalues *self, int id, int field_4, String name,
     self->values.insert(self->values.end(), v);
 }
 
-Classvalues::Classvalues()
+ClassValues::ClassValues()
 {
     field_18 = operator new(8);
     field_3c = -1;
@@ -45,4 +45,26 @@ Classvalues::Classvalues()
     field_0 = 0;
     field_14 = new TStringList;
     LoadClasses();
+}
+
+int ClassValues::DecodeNumber(ClassValues *self, String s)
+{
+    String t = s;
+    int result = 0;
+    for (int i = 1; i <= t.Length(); i++)
+    {
+        char ch = t[i];
+        if (ch == -2 || ch == 0)
+            break;
+        int c = (unsigned char)ch - 1;
+        if (i == 1)
+            result += c;
+        if (i == 2)
+            result += c * 0xfd;
+        if (i == 3)
+            result += c * 0xfa09;
+        if (i == 4)
+            result += c * 0xf71ae5;
+    }
+    return result;
 }
