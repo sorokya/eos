@@ -9,9 +9,9 @@ ClassValues::~ClassValues()
 {
 }
 
-void ClassValues::LoadClasses()
+void ClassValues::LoadClasses(ClassValues *self)
 {
-    if (field_10 == 0)
+    if (self->field_10 == 0)
     {
     int file = 1;
     int count = 0;
@@ -26,49 +26,60 @@ void ClassValues::LoadClasses()
         else
             path = path + "0" + IntToStr(file) + ".ecf";
 
-        int h = FileOpen(path.c_str(), 0);
-        int size = FileSeek(h, 0, 2);
-        FileSeek(h, 0, 0);
-        char *buf = new char[size + 1];
-        FileRead(h, buf, size);
-        FileClose(h);
-        data += buf;
-        data.SetLength(size);
-        delete[] buf;
-        if (data[1] != 'E' || data[2] != 'C' || data[3] != 'F')
-            return;
-        field_14->Add(data);
-        if (file == 1)
+        int h;
+        int size;
+        char *buf;
+        try
         {
-            rid_1 = DecodeInt(data.SubString(4, 2));
-            rid_2 = DecodeInt(data.SubString(6, 2));
-            total = DecodeInt(data.SubString(8, 2));
-            DecodeInt(data.SubString(10, 1));
-            num_classes = total;
+            h = FileOpen(path.c_str(), 0);
+            size = FileSeek(h, 0, 2);
+            FileSeek(h, 0, 0);
+            buf = new char[size + 1];
+            FileRead(h, buf, size);
+            FileClose(h);
+            data += buf;
+            data.SetLength(size);
+            delete[] buf;
+            if (data[1] != 'E' || data[2] != 'C' || data[3] != 'F')
+                return;
+            self->field_14->Add(data);
+            if (file == 1)
+            {
+                self->rid_1 = self->DecodeInt(data.SubString(4, 2));
+                self->rid_2 = self->DecodeInt(data.SubString(6, 2));
+                int parsed = self->DecodeInt(data.SubString(8, 2));
+                int version = self->DecodeInt(data.SubString(10, 1));
+                total = parsed;
+                self->num_classes = parsed;
+            }
+            data.Delete(1, 10);
+            for (int j = 0; count < total && j < 0xfa; j++)
+            {
+                int namelen = self->DecodeInt(data.SubString(1, 1));
+                AddClass(self, self->size() + 1,
+                    self->DecodeInt(data.SubString(namelen + 2, 1)),
+                    data.SubString(2, namelen),
+                    self->DecodeInt(data.SubString(namelen + 0x3, 1)),
+                    self->DecodeInt(data.SubString(namelen + 0x4, 2)),
+                    self->DecodeInt(data.SubString(namelen + 0x6, 2)),
+                    self->DecodeInt(data.SubString(namelen + 0x8, 2)),
+                    self->DecodeInt(data.SubString(namelen + 0xa, 2)),
+                    self->DecodeInt(data.SubString(namelen + 0xc, 2)),
+                    self->DecodeInt(data.SubString(namelen + 0xe, 2)));
+                count++;
+                data.Delete(1, namelen + 0xf);
+            }
         }
-        data.Delete(1, 10);
-        for (int j = 0; count < total && j < 0xfa; j++)
+        catch (...)
         {
-            int namelen = DecodeInt(data.SubString(1, 1));
-            short cha = DecodeInt(data.SubString(namelen + 0xe, 2));
-            short con = DecodeInt(data.SubString(namelen + 0xc, 2));
-            short agi = DecodeInt(data.SubString(namelen + 0xa, 2));
-            short wis = DecodeInt(data.SubString(namelen + 0x8, 2));
-            short intl = DecodeInt(data.SubString(namelen + 0x6, 2));
-            short str = DecodeInt(data.SubString(namelen + 0x4, 2));
-            short stat_group = DecodeInt(data.SubString(namelen + 0x3, 1));
-            String name = data.SubString(2, namelen);
-            int ptype = DecodeInt(data.SubString(namelen + 2, 1));
-            int id = values.size();
-            AddClass(this, id + 1, ptype, name, stat_group, str, intl, wis, agi, con, cha);
-            count++;
-            data.Delete(1, namelen + 0xf);
+            FileClose(h);
+            self->field_10 = 0;
         }
         file++;
     } while (count < total);
 
-    field_0 = file;
-    field_10 = 1;
+    self->field_0 = file - 1;
+    self->field_10 = 1;
     }
 }
 
@@ -103,7 +114,12 @@ ClassValues::ClassValues()
     field_10 = 0;
     field_0 = 0;
     field_14 = new TStringList;
-    LoadClasses();
+    LoadClasses(this);
+}
+
+int ClassValues::size()
+{
+    return values.size();
 }
 
 int ClassValues::DecodeInt(String value)

@@ -151,34 +151,25 @@ strings and vtables correctly once the source matches.
   stubs, and per-function scoring must use the compiler's `-S` output
   (`compare_asm.py`) rather than the linked image until the reference call graph
   is reproduced.
-- **`ClassValues::LoadClasses` (draft, 300 mismatches).** A ~600-instruction
-  function (`0x536100`), the ECF table parser. Proven and matching: the algorithm
-  and structure; the field map (`+4` `num_classes`, `+8` `rid_1`, `+0xc` `rid_2`,
-  `+0x10` loaded, `+0x14` `string_list`); the ECF layout (`"ECF"`, `short rid[2]`,
-  `short total_classes_count`, `char version`, records with a
-  `name_length + 15` stride); the literals (`"./pub/dat"`, `"00"`/`"0"`,
-  `".ecf"`); the file API (Delphi SysUtils `FileOpen`/`FileSeek`/`FileRead`/
-  `FileClose`, `__fastcall`, found in `Lib/Debug/vcl50.lib`); and the callees
-  `DecodeInt` (13 sites) and `AddClass`, both byte-exact. Three verified source
-  forms each moved it measurably: `FileOpen(path.c_str(), 0)` (reproduces the
-  `c_str` -> String temp -> `mov eax,[eax]` sequence), `data += buf` (546 -> 300;
-  makes the `AnsiString` ctor/dtor counts match at 23/32 exactly), and
-  `data.SetLength(size)` (the read buffer is not NUL-terminated). Measured
-  residual, all with the tooling: **stack slots are identical** (`--stack`: 1:1,
-  delta 0 across 33 slots), **object counts are identical**, and **per-statement
-  codegen is identical** (the filename expression and every record field are
-  instruction-for-instruction the same). What differs is the **EH cleanup-scope
-  structure**: the reference has 16 cleanup records to our ~22, and at
-  `int h = FileOpen(...)` it arms two adjacent scopes
-  (`mov word [ebp-0x8c], 0x44` then `0x50`) where we arm one. bcc32 emits no
-  arming for a bare block, so the reference's extra scope is an extra destructible
-  object at that level with the argument copy nested inside it. Tested and
-  rejected: whole-body and loop-level `try`/`catch`, `j` outside the `for`,
-  hoisting `String name`, block-wrapping (file-read; file-read + record loop),
-  `FileOpen(path,0)`, `FileOpen(String(path.c_str()),0)`, a named
-  `String f = path.c_str()`, and `data = data + buf`. Further work needs the
-  block/scope structure derived upward from the reference's marker stream rather
-  than C++ forms guessed downward.
+- **`ClassValues::LoadClasses` (byte-exact).** The ~600-instruction ECF table
+  parser (`0x536100`), now byte-identical (596/596). Root causes found by
+  deriving the scope structure upward from the reference's EH cleanup-record
+  table (`__InitExceptBlockLDTC` table at `0x581360`, 12-byte entries `outer`/
+  `kind`/`dtcMin`/`dtt`): (1) the file-read/parse region is wrapped in a
+  `try { … } catch (…) { FileClose(h); field_10 = 0; }` with `h`, `size`, `buf`
+  declared *outside* the `try` (the catch closes the handle, so `h` must be in
+  scope); (2) the record-loop fields are **inline `DecodeInt(...)` arguments** to
+  `AddClass` (one scope), not separate `short` locals (many scopes); (3) the
+  header's `total`/`version` live in a nested block with `total` carried by a
+  `int parsed = DecodeInt(…); total = parsed; num_classes = parsed;` temp (the
+  loop-carried `total` is what opens the extra "empty" cleanup scope 128); and
+  (4) `int version = DecodeInt(SubString(10,1))` is a dead store (`W8004`,
+  matches the reference's unused `[ebp-0xbc]`). Two other fixes were required:
+  `field_0 = file - 1` (not `file`), and a one-call `int size()` member returning
+  `values.size()` (the reference routes `values.size()` through a dedicated
+  accessor `0x53731c`, not an inline `add eax,0x1c`). The whole unit is now
+  byte-exact: ctor 43, dtor 26, LoadClasses 596, AddClass 66, GetByIndex 75,
+  `size` 9, DecodeInt 85 (all 0 mismatches).
 
 ## Confirmed target facts
 
@@ -299,7 +290,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Mysqltask | `0x001342bc` | not-started |
 | Innvalues | `0x00135d94` | not-started |
 | Innvalue | `0x00135ecc` | not-started |
-| Classvalues | `0x00137460` | in-progress |
+| ClassValues | `0x00137460` | byte-exact |
 | Classvalue | `0x00137510` | byte-exact |
 | Playerquest | `0x001375b4` | not-started |
 | Questtype | `0x001376a0` | not-started |
@@ -427,8 +418,8 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Serial remaining | 1 | partial | `SetIniPath` and `ReadKey` byte-exact (try/catch fingerprint); ctor remains |
 | Weaponmap byte-exact | 1 | done | all 3 functions match (ctor 12, deleting-dtor 11, `Combat_IsRangedWeapon` 21) |
 | Shopitem byte-exact | 1 | done | both functions match (ctor 15, deleting-dtor 11) |
-| ClassValues byte-exact (5/6 fns) | 1 | in-progress | ctor 43, dtor 26, GetByIndex 75, AddClass 66, DecodeInt 85 all match. `LoadClasses` is a ~600-instruction draft at 300 mismatches; see the LoadClasses finding below |
-| LoadClasses (state) | 1 | blocked | 546 -> 300 mismatches via 3 verified fixes. Frame/slots, object counts and per-statement codegen all match; residual is a cleanup-scope structure difference the current tools do not explain |
+| ClassValues byte-exact (6/6 fns) | 1 | done | ctor 43, dtor 26, GetByIndex 75, AddClass 66, DecodeInt 85 all match; `LoadClasses` 596/596 and `size` 9/9 now match too |
+| LoadClasses (state) | 1 | done | 546 -> 300 -> 0 mismatches. Root cause was the EH scope structure: a `try`/`catch` around the file-read with `h`/`size`/`buf` outside the `try`, inline `DecodeInt` fields in `AddClass`, a loop-carried `total` temp (nested block), a dead `int version` store, `field_0 = file - 1`, and a one-call `size()` accessor |
 | Shared value decoder found | 1 | todo | The same base-253 decoder (`(c-1) * {1, 253, 253^2, 253^3}`) appears once per `*values` unit - 10 sites with identical 16-byte multiplier spacing. It is shared source (header/base), so it must be reconstructed once and reused, not per unit |
 | Classvalue byte-exact | 1 | done | ctor 19 + dtor 24 match; ECF element layout (0x1C) pinned by the owning vector |
 | Ctor/dtor family byte-exact | 1 | done | `Itemground`, `Npcdrop`, `Playerskill`, `Playerinventory` — all ctors and deleting-dtors match (6 units total with `Weaponmap`/`Shopitem`) |

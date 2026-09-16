@@ -31,8 +31,9 @@ public:
     ClassValues();
     ~ClassValues();
 
-    void LoadClasses();
+    static void LoadClasses(ClassValues *self);
     int DecodeInt(String value);
+    int size();
 
     static ClassValue GetByIndex(ClassValues *self, int index);
     static void AddClass(ClassValues *self, int id, int field_4, String name,
