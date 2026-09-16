@@ -249,7 +249,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Logins | `0x000166ec` | not-started |
 | Packets | `0x00074648` | not-started |
 | Mysqlcontrols | `0x00078180` | not-started |
-| Itemvalue | `0x0007824c` | not-started |
+| Itemvalue | `0x0007824c` | byte-exact |
 | Itemvalues | `0x0007a848` | not-started |
 | Npc | `0x0007ab00` | not-started |
 | Mapchest | `0x0007ad1c` | not-started |
@@ -420,6 +420,7 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Shopitem byte-exact | 1 | done | both functions match (ctor 15, deleting-dtor 11) |
 | Shopcraft byte-exact | 1 | done | ctor 28, deleting-dtor 11 match; `ShopCraftVal` = crafted `id` + 4 ingredient id/amount `int[4]` arrays (layout confirmed by the ctor stores; field names from the `ShopCraftRecord` spec) |
 | Skillvalue byte-exact | 1 | done | ctor 23, deleting-dtor 29 match; `SkillValue` = `id` at 0, `String name`/`chant` at 4/8 (leading `EsfRecord` fields). Remaining `EsfRecord` fields pending the `Skillvalues` parser |
+| Itemvalue byte-exact | 1 | done | ctor 15, deleting-dtor 11 match; `ItemValue` = `id` at 0 and a self `ItemValue *` at 8 (EH table 0x5766f0, DTCVF_PTRVAL). Remaining `EifRecord` fields pending the `Itemvalues` parser |
 | eo-protocol reference | 0 | done | `ref/eo-protocol` submodule added; `xml/pub/server/protocol.xml` gives the pub record layouts/field names for the `*values` parsers |
 | ClassValues byte-exact (6/6 fns) | 1 | done | ctor 43, dtor 26, GetByIndex 75, AddClass 66, DecodeInt 85 all match; `LoadClasses` 596/596 and `size` 9/9 now match too |
 | LoadClasses (state) | 1 | done | 546 -> 300 -> 0 mismatches. Root cause was the EH scope structure: a `try`/`catch` around the file-read with `h`/`size`/`buf` outside the `try`, inline `DecodeInt` fields in `AddClass`, a loop-carried `total` temp (nested block), a dead `int version` store, `field_0 = file - 1`, and a one-call `size()` accessor |
