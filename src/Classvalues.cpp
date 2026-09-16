@@ -46,3 +46,25 @@ ClassValues::ClassValues()
     field_14 = new TStringList;
     LoadClasses();
 }
+
+int ClassValues::DecodeInt(String str)
+{
+    String t = str;
+    int result = 0;
+    for (int i = 1; i <= t.Length(); i++)
+    {
+        unsigned char ch = t[i];
+        if (ch == 0xFE || ch == 0)
+            break;
+        int c = ch - 1;
+        if (i == 1)
+            result += c;
+        if (i == 2)
+            result += c * 0xfd;
+        if (i == 3)
+            result += c * 0xfa09;
+        if (i == 4)
+            result += c * 0xf71ae5;
+    }
+    return result;
+}

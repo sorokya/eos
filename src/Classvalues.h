@@ -3,7 +3,6 @@
 
 #include <vector>
 #include "Classvalue.h"
-#include "IntDecoder.h"
 
 // The class table (ECF). Layout recovered from the reference constructor
 // (0x535eec); sizeof(std::vector<ClassValue>) is 32 and sizeof(ClassValue) is
@@ -33,6 +32,7 @@ public:
     ~ClassValues();
 
     void LoadClasses();
+    int DecodeInt(String str);
 
     static ClassValue GetByIndex(ClassValues *self, int index);
     static void AddClass(ClassValues *self, int id, int field_4, String name,
