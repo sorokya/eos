@@ -77,17 +77,22 @@ def marker_of(raw: str):
     return f"[ebp-{off}]={val}"
 
 
-def print_markers(ref, our, force: bool) -> None:
+def print_markers(ref, our, force: bool, our_lines=None) -> None:
     if not force and ref == our:
         return
     print("\nEH scope markers:")
     print(f"  ref ({len(ref)}): {' '.join(ref) or '(none)'}")
-    print(f"  our ({len(our)}): {' '.join(our) or '(none)'}")
+    if our_lines:
+        shown = [f"{m}(L{ln})" for m, ln in zip(our, our_lines)]
+        print(f"  our ({len(our)}): {' '.join(shown)}")
+    else:
+        print(f"  our ({len(our)}): {' '.join(our) or '(none)'}")
     for i in range(max(len(ref), len(our))):
         r = ref[i] if i < len(ref) else "<none>"
         o = our[i] if i < len(our) else "<none>"
         if r != o:
-            print(f"  first difference at marker {i}: ref {r} vs our {o}")
+            where = f" (our line L{our_lines[i]})" if our_lines and i < len(our_lines) else ""
+            print(f"  first difference at marker {i}: ref {r} vs our {o}{where}")
             break
 
 
@@ -135,7 +140,7 @@ def parse_our_lines(path: str, mangled_prefix: str):
     skip = {"dw", "dd", "db", "dt", "public", "extrn", "segment", "ends", "proc",
             "endp", "end", "align", "assume", "org", "equ", "_data", "_text",
             "_bss", "_tls", "_rdata"}
-    out, calls, mk, lines = [], [], [], []
+    out, calls, mk, lines, mk_lines = [], [], [], [], []
     cur = 0
     for line in m.group(1).split("\n"):
         s = line.strip()
@@ -153,9 +158,10 @@ def parse_our_lines(path: str, mangled_prefix: str):
         mm = marker_of(s)
         if mm:
             mk.append(mm)
+            mk_lines.append(cur)
         out.append(canon(s))
         lines.append(cur)
-    return out, calls, (mk, lines)
+    return out, calls, (mk, lines, mk_lines)
 
 
 def print_line_summary(ref, our, our_lines, context: int = 3) -> None:
@@ -191,11 +197,6 @@ def print_line_summary(ref, our, our_lines, context: int = 3) -> None:
     for ln in sorted(per_line):
         h, ro, oo = per_line[ln]
         print(f"  L{ln:<4} hunks={h:<3} ref_only={ro:<4} our_only={oo}")
-    src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                       "src")
-    return src
-
-
 STACK_RE = re.compile(r"\[ebp-(\d+)\]")
 
 
@@ -322,8 +323,9 @@ def main() -> int:
     args = ap.parse_args()
 
     our_lines = None
+    our_mk_lines = None
     if args.lines:
-        our, calls, (our_mk, our_lines) = parse_our_lines(args.asm, args.mangled_prefix)
+        our, calls, (our_mk, our_lines, our_mk_lines) = parse_our_lines(args.asm, args.mangled_prefix)
     else:
         our, calls, our_mk = parse_our(args.asm, args.mangled_prefix)
     if our is None:
@@ -367,7 +369,8 @@ def main() -> int:
         print_stack_map(ref, our)
     if our_lines is not None:
         print_line_summary(ref, our, our_lines)
-    print_markers(ref_mk, our_mk, force=args.markers or mismatches > 0)
+    print_markers(ref_mk, our_mk, force=args.markers or mismatches > 0,
+                  our_lines=our_mk_lines)
     return 0 if mismatches == 0 and len(ref) == len(our) else 1
 
 
