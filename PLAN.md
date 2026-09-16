@@ -271,7 +271,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Mysqltask | `0x001342bc` | not-started |
 | Innvalues | `0x00135d94` | not-started |
 | Innvalue | `0x00135ecc` | not-started |
-| Classvalues | `0x00137460` | not-started |
+| Classvalues | `0x00137460` | in-progress |
 | Classvalue | `0x00137510` | byte-exact |
 | Playerquest | `0x001375b4` | not-started |
 | Questtype | `0x001376a0` | not-started |
@@ -399,7 +399,8 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Serial remaining | 1 | partial | `SetIniPath` and `ReadKey` byte-exact (try/catch fingerprint); ctor remains |
 | Weaponmap byte-exact | 1 | done | all 3 functions match (ctor 12, deleting-dtor 11, `Combat_IsRangedWeapon` 21) |
 | Shopitem byte-exact | 1 | done | both functions match (ctor 15, deleting-dtor 11) |
-| ClassValues byte-exact (partial) | 1 | in-progress | ctor 43, dtor 26, GetByIndex 75, AddClass 66 match; `LoadClasses`/`DecodeNumber` remain. Member is std::vector<ClassValue> (Rogue Wave STL, sizeof 32) |
+| ClassValues byte-exact (5/6 fns) | 1 | in-progress | ctor 43, dtor 26, GetByIndex 75, AddClass 66, DecodeInt 85 all match. `LoadClasses` is a ~600-instruction draft at 300 mismatches; see the LoadClasses finding below |
+| LoadClasses (state) | 1 | blocked | 546 -> 300 mismatches via 3 verified fixes. Frame/slots, object counts and per-statement codegen all match; residual is a cleanup-scope structure difference the current tools do not explain |
 | Shared value decoder found | 1 | todo | The same base-253 decoder (`(c-1) * {1, 253, 253^2, 253^3}`) appears once per `*values` unit - 10 sites with identical 16-byte multiplier spacing. It is shared source (header/base), so it must be reconstructed once and reused, not per unit |
 | Classvalue byte-exact | 1 | done | ctor 19 + dtor 24 match; ECF element layout (0x1C) pinned by the owning vector |
 | Ctor/dtor family byte-exact | 1 | done | `Itemground`, `Npcdrop`, `Playerskill`, `Playerinventory` — all ctors and deleting-dtors match (6 units total with `Weaponmap`/`Shopitem`) |
