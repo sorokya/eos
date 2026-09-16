@@ -223,8 +223,8 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Mainform | `0x00007928` | not-started |
 | Players | `0x00010de4` | not-started |
 | Player | `0x00011f64` | not-started |
-| Playerskill | `0x00011fd0` | not-started |
-| Playerinventory | `0x0001203c` | not-started |
+| Playerskill | `0x00011fd0` | byte-exact |
+| Playerinventory | `0x0001203c` | byte-exact |
 | Serial | `0x00013b4c` | in-progress |
 | Settings | `0x00015d88` | not-started |
 | Logins | `0x000166ec` | not-started |
@@ -238,13 +238,13 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Mapobject | `0x00087dc4` | not-started |
 | Mapwarp | `0x00087e64` | not-started |
 | Map | `0x00088474` | not-started |
-| Itemground | `0x000884d8` | not-started |
+| Itemground | `0x000884d8` | byte-exact |
 | Itemchest | `0x000a2ff8` | not-started |
 | Skillvalues | `0x000a5400` | not-started |
 | Npcvalues | `0x000a8e90` | not-started |
 | Skillvalue | `0x000a8f64` | not-started |
 | Npcvalue | `0x000a9ac8` | not-started |
-| Npcdrop | `0x000a9b34` | not-started |
+| Npcdrop | `0x000a9b34` | byte-exact |
 | Jukeboxcontrol | `0x000aa9a8` | not-started |
 | Jukebox | `0x000aaa70` | not-started |
 | Newscontrol | `0x000aaf5c` | not-started |
@@ -398,6 +398,7 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Serial remaining | 1 | partial | `SetIniPath` 155, `ReadKey` 254, ctor 246 — EH scope-structure only |
 | Weaponmap byte-exact | 1 | done | all 3 functions match (ctor 12, deleting-dtor 11, `Combat_IsRangedWeapon` 21) |
 | Shopitem byte-exact | 1 | done | both functions match (ctor 15, deleting-dtor 11) |
+| Ctor/dtor family byte-exact | 1 | done | `Itemground`, `Npcdrop`, `Playerskill`, `Playerinventory` — all ctors and deleting-dtors match (6 units total with `Weaponmap`/`Shopitem`) |
 | Full skeleton links | 1 | done | `make build`: 133 exports, working PE |
 | Full skeleton runs functionally | 1 | todo | launch and exercise |
 | All units C++-verified | 2 | todo | `make functions` at 100% |
