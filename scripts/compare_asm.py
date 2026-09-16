@@ -43,6 +43,39 @@ def canon(ins: str) -> str:
     return s
 
 
+# EH scope markers are `mov word ptr [ebp-N], imm`, where imm is the current
+# cleanup scope's byte offset. The marker *sequence* encodes block nesting, so
+# printing it side by side is the quickest way to spot a missing/extra scope.
+# Match the raw text so the word-sized marker is not confused with a dword data
+# store to a local (canon drops the size).
+MARKER_RAW = re.compile(
+    r"^mov\s+word\s+ptr\s+\[ebp\s*-\s*(0x[0-9a-f]+|\d+)\]\s*,\s*(0x[0-9a-f]+|\d+)\s*$",
+    re.I)
+
+
+def marker_of(raw: str):
+    m = MARKER_RAW.match(raw.strip())
+    if not m:
+        return None
+    off = int(m.group(1), 0) if m.group(1).lower().startswith("0x") else int(m.group(1))
+    val = int(m.group(2), 0) if m.group(2).lower().startswith("0x") else int(m.group(2))
+    return f"[ebp-{off}]={val}"
+
+
+def print_markers(ref, our, force: bool) -> None:
+    if not force and ref == our:
+        return
+    print("\nEH scope markers:")
+    print(f"  ref ({len(ref)}): {' '.join(ref) or '(none)'}")
+    print(f"  our ({len(our)}): {' '.join(our) or '(none)'}")
+    for i in range(max(len(ref), len(our))):
+        r = ref[i] if i < len(ref) else "<none>"
+        o = our[i] if i < len(our) else "<none>"
+        if r != o:
+            print(f"  first difference at marker {i}: ref {r} vs our {o}")
+            break
+
+
 def parse_our(path: str, mangled_prefix: str):
     txt = open(path, encoding="latin1").read()
     m = re.search(r"(?m)^" + re.escape(mangled_prefix) + r"\$q[^\n]*\n(.*?)endp", txt, re.S)
@@ -53,6 +86,7 @@ def parse_our(path: str, mangled_prefix: str):
             "_bss", "_tls", "_rdata"}
     out = []
     calls = []
+    mk = []
     for line in m.group(1).split("\n"):
         s = line.strip()
         if not s or s[0] in ";?@":
@@ -62,8 +96,11 @@ def parse_our(path: str, mangled_prefix: str):
         cm = re.match(r"(?i)^call\s+(\S+)", s)
         if cm:
             calls.append(cm.group(1))
+        mm = marker_of(s)
+        if mm:
+            mk.append(mm)
         out.append(canon(s))
-    return out, calls
+    return out, calls, mk
 
 
 # Array forms call a different RTL routine than the scalar forms; because call
@@ -87,11 +124,16 @@ def parse_ref(ref_bin: str, start: int, end: int):
         ["objdump", "-d", "-M", "intel", f"--start-address={start}", f"--stop-address={end}", ref_bin],
         stderr=subprocess.DEVNULL).decode("latin1")
     out = []
+    mk = []
     for line in txt.split("\n"):
         m = re.match(r"^\s*[0-9a-f]+:\s+(?:[0-9a-f]{2}\s+)+(\S+)\s*(.*)$", line)
         if m:
-            out.append(canon(f"{m.group(1)} {m.group(2)}"))
-    return out
+            raw = f"{m.group(1)} {m.group(2)}"
+            mm = marker_of(raw)
+            if mm:
+                mk.append(mm)
+            out.append(canon(raw))
+    return out, mk
 
 
 def main() -> int:
@@ -104,13 +146,15 @@ def main() -> int:
     ap.add_argument("--ref-bin", default="GameServer.exe")
     ap.add_argument("--calls", action="store_true",
                     help="print the call symbol names in our listing")
+    ap.add_argument("--markers", action="store_true",
+                    help="always print the EH scope marker streams")
     args = ap.parse_args()
 
-    our, calls = parse_our(args.asm, args.mangled_prefix)
+    our, calls, our_mk = parse_our(args.asm, args.mangled_prefix)
     if our is None:
         print(f"function {args.mangled_prefix} not found in {args.asm}")
         return 2
-    ref = parse_ref(args.ref_bin, args.ref_start, args.ref_end)
+    ref, ref_mk = parse_ref(args.ref_bin, args.ref_start, args.ref_end)
     while our and our[-1] == "nop":
         our.pop()
     while ref and ref[-1] == "nop":
@@ -142,6 +186,7 @@ def main() -> int:
         print("WARNING: array new/delete calls present (verify against the "
               "reference; scalar forms canonicalize identically): "
               + ", ".join(sorted(set(warn))))
+    print_markers(ref_mk, our_mk, force=args.markers or mismatches > 0)
     return 0 if mismatches == 0 and len(ref) == len(our) else 1
 
 
