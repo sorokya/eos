@@ -204,6 +204,45 @@ def stack_offsets(ins: str):
     return STACK_RE.findall(ins)
 
 
+def print_ref_markers_by_line(ref, our, our_lines, ref_mk) -> None:
+    """Annotate the *reference's* scope markers with our source lines.
+
+    The reference has no debug info, but the alignment maps each of its
+    instructions to one of ours (and therefore to a source line). That shows
+    which of our lines the reference's scope armings belong to, and whether it
+    has armings on lines where ours has none.
+    """
+    import difflib
+    sm = difflib.SequenceMatcher(None, ref, our, autojunk=False)
+    # ref index -> our index
+    ref2our = {}
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == "equal":
+            for k in range(i2 - i1):
+                ref2our[i1 + k] = j1 + k
+        elif tag == "replace":
+            for k in range(min(i2 - i1, j2 - j1)):
+                ref2our[i1 + k] = j1 + k
+    # ref indices that are markers
+    mk_idx = [i for i, ins in enumerate(ref) if MARKER_RE_MATCH(ins)]
+    if not mk_idx:
+        return
+    print("\nreference scope armings vs our lines:")
+    by_line = {}
+    for i in mk_idx:
+        val = MARKER_RE_MATCH(ref[i]).group(2)
+        j = ref2our.get(i)
+        ln = our_lines[j] if (j is not None and j < len(our_lines)) else None
+        by_line.setdefault(ln, []).append(val)
+    for ln in sorted(by_line, key=lambda x: (x is None, x)):
+        vals = " ".join(by_line[ln])
+        print(f"  L{ln if ln is not None else '?':<5} ref arms: {vals}")
+
+
+def MARKER_RE_MATCH(ins: str):
+    return re.match(r"^mov\[ebp-(\d+)\],(\d+)$", ins)
+
+
 def print_stack_map(ref, our) -> None:
     """Map reference stack slots to ours (a stackcmp-style comparison).
 
@@ -367,6 +406,8 @@ def main() -> int:
         print_diff(ref, our)
     if args.stack:
         print_stack_map(ref, our)
+    if our_lines is not None:
+        print_ref_markers_by_line(ref, our, our_lines, our_mk)
     if our_lines is not None:
         print_line_summary(ref, our, our_lines)
     print_markers(ref_mk, our_mk, force=args.markers or mismatches > 0,
