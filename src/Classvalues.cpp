@@ -11,6 +11,65 @@ ClassValues::~ClassValues()
 
 void ClassValues::LoadClasses()
 {
+    if (field_10 == 0)
+    {
+    int file = 1;
+    int count = 0;
+    int total = 1;
+
+    do
+    {
+        String data;
+        String path = "./pub/dat";
+        if (file < 10)
+            path = path + "00" + IntToStr(file) + ".ecf";
+        else
+            path = path + "0" + IntToStr(file) + ".ecf";
+
+        int h = FileOpen(path.c_str(), 0);
+        int size = FileSeek(h, 0, 2);
+        FileSeek(h, 0, 0);
+        char *buf = new char[size + 1];
+        FileRead(h, buf, size);
+        FileClose(h);
+        data += buf;
+        data.SetLength(size);
+        delete[] buf;
+        if (data[1] != 'E' || data[2] != 'C' || data[3] != 'F')
+            return;
+        field_14->Add(data);
+        if (file == 1)
+        {
+            rid_1 = DecodeInt(data.SubString(4, 2));
+            rid_2 = DecodeInt(data.SubString(6, 2));
+            total = DecodeInt(data.SubString(8, 2));
+            DecodeInt(data.SubString(10, 1));
+            num_classes = total;
+        }
+        data.Delete(1, 10);
+        for (int j = 0; count < total && j < 0xfa; j++)
+        {
+            int namelen = DecodeInt(data.SubString(1, 1));
+            short cha = DecodeInt(data.SubString(namelen + 0xe, 2));
+            short con = DecodeInt(data.SubString(namelen + 0xc, 2));
+            short agi = DecodeInt(data.SubString(namelen + 0xa, 2));
+            short wis = DecodeInt(data.SubString(namelen + 0x8, 2));
+            short intl = DecodeInt(data.SubString(namelen + 0x6, 2));
+            short str = DecodeInt(data.SubString(namelen + 0x4, 2));
+            short stat_group = DecodeInt(data.SubString(namelen + 0x3, 1));
+            String name = data.SubString(2, namelen);
+            int ptype = DecodeInt(data.SubString(namelen + 2, 1));
+            int id = values.size();
+            AddClass(this, id + 1, ptype, name, stat_group, str, intl, wis, agi, con, cha);
+            count++;
+            data.Delete(1, namelen + 0xf);
+        }
+        file++;
+    } while (count < total);
+
+    field_0 = file;
+    field_10 = 1;
+    }
 }
 
 ClassValue ClassValues::GetByIndex(ClassValues *self, int index)

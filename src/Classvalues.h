@@ -18,9 +18,9 @@ class ClassValues
 {
 public:
     int field_0;
-    int field_4;
-    int field_8;
-    int field_c;
+    int num_classes;
+    int rid_1;
+    int rid_2;
     char field_10;
     char pad_11[3];
     TStringList *field_14;
