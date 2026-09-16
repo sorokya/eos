@@ -47,24 +47,28 @@ ClassValues::ClassValues()
     LoadClasses();
 }
 
-int ClassValues::DecodeInt(String str)
+int ClassValues::DecodeInt(String value)
 {
-    String t = str;
+    String value_copy = value;
     int result = 0;
-    for (int i = 1; i <= t.Length(); i++)
+    int byte_index = 1;
+    while (true)
     {
-        unsigned char ch = t[i];
+        if (value_copy.Length() < byte_index)
+            break;
+        unsigned char ch = value_copy[byte_index];
         if (ch == 0xFE || ch == 0)
             break;
         int c = ch - 1;
-        if (i == 1)
-            result += c;
-        if (i == 2)
-            result += c * 0xfd;
-        if (i == 3)
-            result += c * 0xfa09;
-        if (i == 4)
-            result += c * 0xf71ae5;
+        if (byte_index == 1)
+            result = result + c;
+        if (byte_index == 2)
+            result = result + c * 0xfd;
+        if (byte_index == 3)
+            result = result + c * 0xfa09;
+        if (byte_index == 4)
+            result = result + c * 0xf71ae5;
+        byte_index = byte_index + 1;
     }
     return result;
 }

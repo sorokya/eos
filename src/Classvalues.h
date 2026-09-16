@@ -32,7 +32,7 @@ public:
     ~ClassValues();
 
     void LoadClasses();
-    int DecodeInt(String str);
+    int DecodeInt(String value);
 
     static ClassValue GetByIndex(ClassValues *self, int index);
     static void AddClass(ClassValues *self, int id, int field_4, String name,
