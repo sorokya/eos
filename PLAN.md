@@ -250,7 +250,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Packets | `0x00074648` | not-started |
 | Mysqlcontrols | `0x00078180` | not-started |
 | Itemvalue | `0x0007824c` | byte-exact |
-| Itemvalues | `0x0007a848` | not-started |
+| Itemvalues | `0x0007a848` | byte-exact |
 | Npc | `0x0007ab00` | not-started |
 | Mapchest | `0x0007ad1c` | not-started |
 | Mapcontrol | `0x00087d38` | not-started |
@@ -259,7 +259,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Map | `0x00088474` | not-started |
 | Itemground | `0x000884d8` | byte-exact |
 | Itemchest | `0x000a2ff8` | not-started |
-| Skillvalues | `0x000a5400` | not-started |
+| Skillvalues | `0x000a5400` | byte-exact |
 | Npcvalues | `0x000a8e90` | not-started |
 | Skillvalue | `0x000a8f64` | byte-exact |
 | Npcvalue | `0x000a9ac8` | not-started |
@@ -420,10 +420,12 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Shopitem byte-exact | 1 | done | both functions match (ctor 15, deleting-dtor 11) |
 | Shopcraft byte-exact | 1 | done | ctor 28, deleting-dtor 11 match; `ShopCraftVal` = crafted `id` + 4 ingredient id/amount `int[4]` arrays (layout confirmed by the ctor stores; field names from the `ShopCraftRecord` spec) |
 | Skillvalue byte-exact | 1 | done | ctor 23, deleting-dtor 29 match; `SkillValue` = `id` at 0, `String name`/`chant` at 4/8 (leading `EsfRecord` fields). Remaining `EsfRecord` fields pending the `Skillvalues` parser |
-| Itemvalue byte-exact | 1 | done | ctor 15, deleting-dtor 11 match; `ItemValue` = `id` at 0 and a self `ItemValue *` at 8 (EH table 0x5766f0, DTCVF_PTRVAL). Remaining `EifRecord` fields pending the `Itemvalues` parser |
+| Itemvalue byte-exact | 1 | done | ctor 15, deleting-dtor 11 match; `ItemValue` = `id` at 0 plus the widened `EifRecord` fields in memory (`sizeof` 0x58, see `src/Itemvalue.h`), offsets pinned by the `Itemvalues` parser stores and `Eif_Get*` accessors. The earlier "self `ItemValue *` at 8" reading was wrong: offset 8 is `special` |
 | eo-protocol reference | 0 | done | `ref/eo-protocol` submodule added; `xml/pub/server/protocol.xml` gives the pub record layouts/field names for the `*values` parsers |
 | ClassValues byte-exact (6/6 fns) | 1 | done | ctor 43, dtor 26, GetByIndex 75, AddClass 66, DecodeInt 85 all match; `LoadClasses` 596/596 and `size` 9/9 now match too |
 | LoadClasses (state) | 1 | done | 546 -> 300 -> 0 mismatches. Root cause was the EH scope structure: a `try`/`catch` around the file-read with `h`/`size`/`buf` outside the `try`, inline `DecodeInt` fields in `AddClass`, a loop-carried `total` temp (nested block), a dead `int version` store, `field_0 = file - 1`, and a one-call `size()` accessor |
+| Itemvalues byte-exact (21/21 fns) | 1 | done | ctor 47, `LoadItems` 1243 (includes the `try`/`catch` file read, `field_14->Clear()` + `Clear(self)` reset, `namelen+off` inline `DecodeNumber` record args), `AddItem` 167, `Clear` 40, `GetRecordSlot`/`GetByIndex`/`GetCount`, 11 `Eif_Get*` accessors, `DecodeNumber` 85 — all 0 mismatches. `values` is `std::vector<ItemValue *>`; the two result-pair structs need an empty user ctor plus a single anonymous aggregate member to reproduce the folded ctor (0x44f58c) and the memcpy-style return |
+| Skillvalues byte-exact (13/13 fns) | 1 | done | ctor 43, deleting-dtor 26, `LoadSpells` 1053 (ESF parser, `try`/`catch` file read), `AddRecord` 121, `GetDamage`/`GetElement` 48 (pair structs need an empty user ctor + single anonymous aggregate member), `GetTargetType`/`GetSkillType`/`GetTpCost`/`GetHpHeal` 30, `GetCastTime` 32, `GetCount` 9, `DecodeNumber` 85 - all 0 mismatches. `values` is `std::vector<SkillValue>` |
 | Shared value decoder found | 1 | todo | The same base-253 decoder (`(c-1) * {1, 253, 253^2, 253^3}`) appears once per `*values` unit - 10 sites with identical 16-byte multiplier spacing. It is shared source (header/base), so it must be reconstructed once and reused, not per unit |
 | Classvalue byte-exact | 1 | done | ctor 19 + dtor 24 match; ECF element layout (0x1C) pinned by the owning vector |
 | Ctor/dtor family byte-exact | 1 | done | `Itemground`, `Npcdrop`, `Playerskill`, `Playerinventory` — all ctors and deleting-dtors match (6 units total with `Weaponmap`/`Shopitem`) |
