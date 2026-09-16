@@ -126,6 +126,20 @@ strings and vtables correctly once the source matches.
   Remaining for Phase 2: the exact library *order* and reproducing the two-group
   placement, since the refcount counters split into two arrays (units 1–39 vs
   40–65) with a 300 KB library block between the groups.
+- **Library placement (mechanism resolved).** `ilink32` places a library member at
+  the position where the library is listed among the object arguments, not always
+  at the end: inserting `cw32mt.lib` after the 39th object in a scratch link moved
+  its members from the tail to immediately after unit 39 (verified with
+  `scripts/unitmap.py --map`). The reference's layout — a ~300 KB VCL/BDE block
+  between units 39 and 40, then units 40–65, then a ~98 KB RTL/VCL tail —
+  therefore records where the original link listed each library: VCL/BDE after
+  unit 39, RTL after unit 65. Reproducing it means listing libraries among the
+  objects at those positions rather than only in the `libfiles` slot.
+- **Components used (from the DFM resources).** The three forms reference
+  `TServerSocket` (`scktcomp`), `TDatabase`/`TQuery`/`TSession` (BDE/DB) and
+  `TApplicationEvents`, plus `StdCtrls`/`ExtCtrls` controls — consistent with the
+  `vcl50` + `vcldb50` + `vclbde50` set. The two `unknown` modules match no
+  Borland lib, so they are genuine application code, not library members.
 - **Function linking (resolved).** bcc32 emits every function as a COMDAT
   (`virtual(_TEXT)` under `tdump -o`), so `ilink32` discards unit functions that
   nothing references. The skeleton therefore contains only the Initialize/Finalize
