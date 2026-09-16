@@ -274,7 +274,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Gamecontrol | `0x000b15a0` | not-started |
 | Shopvalues | `0x000b49b4` | not-started |
 | Shopitem | `0x000b4a20` | byte-exact |
-| Shopvalue | `0x000b546c` | not-started |
+| Shopvalue | `0x000b546c` | in-progress |
 | Shopcraft | `0x000b5500` | byte-exact |
 | Chestcontrol | `0x000b5bc4` | not-started |
 | Weaponmap | `0x000b5c60` | byte-exact |
