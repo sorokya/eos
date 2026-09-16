@@ -196,6 +196,50 @@ def print_line_summary(ref, our, our_lines, context: int = 3) -> None:
     return src
 
 
+STACK_RE = re.compile(r"\[ebp-(\d+)\]")
+
+
+def stack_offsets(ins: str):
+    return STACK_RE.findall(ins)
+
+
+def print_stack_map(ref, our) -> None:
+    """Map reference stack slots to ours (a stackcmp-style comparison).
+
+    When a function's instruction shapes match but the frame differs, the cause
+    is stack-slot ordering: the compiler assigned the same objects to different
+    offsets. Aligning the two streams pairs each reference [ebp-N] access with the
+    ours it corresponds to, which shows both the constant delta (a frame-size
+    difference) and any reordering (declaration order).
+    """
+    import difflib
+    sm = difflib.SequenceMatcher(None, ref, our, autojunk=False)
+    pairs = {}
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag not in ("equal", "replace"):
+            continue
+        for k in range(min(i2 - i1, j2 - j1)):
+            for a, b in zip(stack_offsets(ref[i1 + k]), stack_offsets(our[j1 + k])):
+                pairs.setdefault(int(a), {}).setdefault(int(b), 0)
+                pairs[int(a)][int(b)] += 1
+    if not pairs:
+        return
+    print("\nstack map (ref [ebp-N] -> our [ebp-N], by frequency):")
+    deltas = {}
+    for ro in sorted(pairs):
+        best = sorted(pairs[ro].items(), key=lambda kv: -kv[1])
+        ours = ", ".join(f"{oo}({n})" for oo, n in best[:3])
+        if len(best) == 1:
+            deltas[best[0][0] - ro] = deltas.get(best[0][0] - ro, 0) + 1
+        print(f"  ref -{ro:<4} -> {ours}")
+    if len(deltas) == 1:
+        d = next(iter(deltas))
+        print(f"  consistent delta: our = ref + {d} "
+              f"(frame {d} bytes larger)" if d else "  consistent delta: 0")
+    else:
+        print(f"  deltas present: {sorted(deltas.items())} -> slot ordering differs")
+
+
 def parse_our(path: str, mangled_prefix: str):
     txt = open(path, encoding="latin1").read()
     m = re.search(r"(?m)^" + re.escape(mangled_prefix) + r"\$q[^\n]*\n(.*?)endp", txt, re.S)
@@ -270,6 +314,8 @@ def main() -> int:
                     help="always print the EH scope marker streams")
     ap.add_argument("--diff", action="store_true",
                     help="always print the aligned instruction diff")
+    ap.add_argument("--stack", action="store_true",
+                    help="print the reference-to-ours stack slot mapping")
     ap.add_argument("--lines", action="store_true",
                     help="annotate the diff with our source lines and summarise "
                          "mismatches per source line")
@@ -317,6 +363,8 @@ def main() -> int:
               + ", ".join(sorted(set(warn))))
     if args.diff or mismatches > 0:
         print_diff(ref, our)
+    if args.stack:
+        print_stack_map(ref, our)
     if our_lines is not None:
         print_line_summary(ref, our, our_lines)
     print_markers(ref_mk, our_mk, force=args.markers or mismatches > 0)
