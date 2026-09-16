@@ -109,11 +109,16 @@ strings and vtables correctly once the source matches.
   exported as `@@Unit@Initialize`; units compiled without
   `#pragma package(smart_init)` are invisible to it. Scanning the stubs
   (`scripts/unitmap.py --pe … --stubs`) finds **8 unexported modules, all inside
-  `Banned`'s span**. Byte-matching their functions against the Borland libraries
-  classifies **6 as `library`** (`Banned`'s real code is therefore only its last
-  ~64 KB, 508 functions, not 487 KB) and **2 as `unknown`** (`0x51a598..0x51ae78`,
-  2,272 B, 8 fns; `0x51ae88..0x51b1e4`, 860 B, 3 fns) — the only candidate
-  unexported source units so far. The other 64 unit spans are exact.
+  `Banned`'s span**. Classifying them by byte-matching their functions against the
+  Borland libraries — with the reference's relocation slots masked, since library
+  code is relocation-heavy — marks **all 8 as `library`**. `Banned`'s real code is
+  therefore only its last ~64 KB (508 functions), not 487 KB. The two smallest
+  were initially misread as `unknown`; decompilation identifies them as the VCL
+  units **MultiMon** (delay-loaded `GetMonitorInfo`/`MonitorFromWindow`, a
+  USER32.DLL thunk) and **FlatSB** (comctl32 `FlatSB_*` thunks), both present as
+  `multimon.pas`/`flatsb.pas` in `ref/Borland5/Source/Vcl/`: they are library
+  members, not application units. No genuine unexported source unit has been
+  found, and the other 64 unit spans are exact.
 - **Library linkage (Debug confirmed, order open).** Byte-signature matching of
   the reference's library-region code against the Borland libs gives **0
   Release-only matches vs 65+ Debug-only** (500 code samples), and the reference

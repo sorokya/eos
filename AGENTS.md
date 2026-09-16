@@ -273,8 +273,11 @@ is the read-only Ghidra function inventory.
   non-exported module stub and is invisible to it, so a neighbouring unit's span
   can straddle it. Scan stubs with `scripts/unitmap.py --pe … --stubs`, which also
   classifies each unnamed module: `library` if its bytes match a Borland lib
-  member (do **not** reconstruct those), else `unknown`. Only `unknown` modules
-  are candidate source units, and even those must not be given invented names.
+  member (with the reference's relocation slots masked, since library code is
+  relocation-heavy), else `unknown`. **Do not reconstruct `library` members**;
+  only `unknown` modules are candidate source units, and even those must not be
+  given invented names. (Every unexported module in this image classifies as
+  `library`.)
 - **Functions are COMDATs.** bcc32 emits each function as a COMDAT, so `ilink32`
   discards unit functions nothing references; the linked skeleton therefore holds
   only the Initialize/Finalize stubs. Score functions from the compiler's `-S`

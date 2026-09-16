@@ -195,14 +195,40 @@ def load_libs(root: str) -> bytes:
     return blob
 
 
+def _masked_pattern(addr: int, sig: bytes, relocs: set):
+    """Regex for `sig` at `addr` with the reference's relocation slots masked.
+
+    Library code is relocation-heavy, so an exact 16-byte signature often misses
+    even when the bytes are identical modulo the linker's absolute fixups. Masking
+    each 4-byte relocation slot recovers the match. Returns None if there are no
+    relocations to mask.
+    """
+    parts = []
+    i = 0
+    masked = False
+    while i < len(sig):
+        if addr + i in relocs:
+            parts.append(b".{4}")
+            i += 4
+            masked = True
+        else:
+            parts.append(re.escape(sig[i:i + 1]))
+            i += 1
+    if not masked:
+        return None
+    return re.compile(b"".join(parts), re.DOTALL)
+
+
 def classify_modules(pe: PE, modules, funcs, lib_blob: bytes, sample: int = 60) -> None:
     """Tag each unnamed module `library` if its code matches the Borland libs.
 
     A module whose bytes appear in the libraries is a statically linked library
     member and is not reconstructed; anything else is a genuine unknown unit.
-    Signatures are sampled evenly across the module so a run of wrappers at the
-    start cannot bias the verdict.
+    Signatures are sampled evenly across the module (so a run of wrappers at the
+    start cannot bias the verdict) and are matched with the reference's relocation
+    slots masked, since library code is relocation-heavy.
     """
+    relocs = {rva + IMAGE_BASE for rva, _t in pe.relocations()}
     for mod in modules:
         if mod["name"]:
             continue
@@ -212,15 +238,22 @@ def classify_modules(pe: PE, modules, funcs, lib_blob: bytes, sample: int = 60) 
                     and size >= SIG_LEN:
                 off = _va_to_off(pe, addr)
                 if off is not None:
-                    cand.append(pe.data[off:off + SIG_LEN])
+                    cand.append((addr, pe.data[off:off + SIG_LEN]))
         if not cand:
             mod["class"] = "unknown"
             continue
         if len(cand) > sample:
             stride = len(cand) / sample
             cand = [cand[int(i * stride)] for i in range(sample)]
-        hits = sum(1 for s in cand if s in lib_blob)
-        mod["class"] = "library" if hits >= 3 and hits * 2 >= len(cand) else "unknown"
+        hits = 0
+        for addr, sig in cand:
+            if sig in lib_blob:
+                hits += 1
+                continue
+            pat = _masked_pattern(addr, sig, relocs)
+            if pat is not None and pat.search(lib_blob):
+                hits += 1
+        mod["class"] = "library" if hits >= 2 and hits * 2 >= len(cand) else "unknown"
 
 
 def _va_to_off(pe: PE, va: int):
