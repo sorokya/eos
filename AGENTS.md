@@ -432,3 +432,10 @@ reports thousands of bogus mismatches.
 - `calling_conventions.pdf` — Agner Fog: register/stack rules, Borland name
   mangling (section 8.2), 32-bit memory models, object formats, and unwinding.
 - `Borland5/Source/RTL/` — RTL and startup sources, including `c0nt.asm`.
+- `eo-protocol/` — git submodule (cirras/eo-protocol): the XML specification of
+  the Endless Online pub file formats. Use it for record layouts and field names
+  when reconstructing the `*values`/pub parsers: `xml/pub/server/protocol.xml`
+  documents `ECF`/`EIF`/`ESF`/`EMF`/`EID`/`EDF`/`ETF` records (for example
+  `ShopCraftRecord` = `short item_id, ShopCraftIngredientRecord ingredients[4]`).
+  The XML layout is the on-disk format; the in-memory classes may expand fields
+  (e.g. `ShopCraftVal` stores the four ingredients as two `int[4]` arrays).

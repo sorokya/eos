@@ -275,7 +275,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Shopvalues | `0x000b49b4` | not-started |
 | Shopitem | `0x000b4a20` | byte-exact |
 | Shopvalue | `0x000b546c` | not-started |
-| Shopcraft | `0x000b5500` | not-started |
+| Shopcraft | `0x000b5500` | byte-exact |
 | Chestcontrol | `0x000b5bc4` | not-started |
 | Weaponmap | `0x000b5c60` | byte-exact |
 | Banned | `0x0012cb2c` | not-started |
@@ -418,6 +418,8 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Serial remaining | 1 | partial | `SetIniPath` and `ReadKey` byte-exact (try/catch fingerprint); ctor remains |
 | Weaponmap byte-exact | 1 | done | all 3 functions match (ctor 12, deleting-dtor 11, `Combat_IsRangedWeapon` 21) |
 | Shopitem byte-exact | 1 | done | both functions match (ctor 15, deleting-dtor 11) |
+| Shopcraft byte-exact | 1 | done | ctor 28, deleting-dtor 11 match; `ShopCraftVal` = crafted `id` + 4 ingredient id/amount `int[4]` arrays (layout confirmed by the ctor stores; field names from the `ShopCraftRecord` spec) |
+| eo-protocol reference | 0 | done | `ref/eo-protocol` submodule added; `xml/pub/server/protocol.xml` gives the pub record layouts/field names for the `*values` parsers |
 | ClassValues byte-exact (6/6 fns) | 1 | done | ctor 43, dtor 26, GetByIndex 75, AddClass 66, DecodeInt 85 all match; `LoadClasses` 596/596 and `size` 9/9 now match too |
 | LoadClasses (state) | 1 | done | 546 -> 300 -> 0 mismatches. Root cause was the EH scope structure: a `try`/`catch` around the file-read with `h`/`size`/`buf` outside the `try`, inline `DecodeInt` fields in `AddClass`, a loop-carried `total` temp (nested block), a dead `int version` store, `field_0 = file - 1`, and a one-call `size()` accessor |
 | Shared value decoder found | 1 | todo | The same base-253 decoder (`(c-1) * {1, 253, 253^2, 253^3}`) appears once per `*values` unit - 10 sites with identical 16-byte multiplier spacing. It is shared source (header/base), so it must be reconstructed once and reused, not per unit |
