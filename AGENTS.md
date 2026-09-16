@@ -33,6 +33,10 @@ MD5 (GameServer.exe) = 075fb5db1d6369bf488cd2ad0c715ddd
    fidelity fact. Keep the code free of speculative annotation.
 7. **Do not fabricate progress.** If a phase is partial, say so and leave evidence
    of what remains.
+8. **The Ghidra project is read-only.** Use it for function boundaries,
+   signatures, decompilation and cross-references, but do not rename, retype,
+   comment, or otherwise modify the database. Its names are ad hoc and only ~14%
+   populated; treat them as hints and verify against the reference bytes.
 
 ## Environment and toolchain
 
@@ -144,6 +148,27 @@ the linked object set. The three `-L` directories mirror the paths in
 `ilink32.cfg`; `Lib/Obj` is required for the VCL `.res` files (for example
 `Controls.res`).
 
+### Compiler flags
+
+Three flags are required for byte fidelity, all passed by `scripts/build.sh`
+and `make unit`/`unit-asm` (`CFLAGS`):
+
+- **`-D__CODEGUARD__`** (CodeGuard compile-time checks). Without it bcc32 inlines
+  the `dstring.h` methods; with it they become out-of-line RTL calls
+  (`@@System@AnsiString@Length$xqqrv`). The reference has 1,726 such calls and
+  zero inline length reads. It affects only `dstring.h`, `stdio.h`, `stdlib.h`
+  and adds no CodeGuard runtime imports (no `cg32.dll` in the reference).
+- **`-v`** (source-level debug info). Per the RAD documentation, debug info also
+  changes C++ inline expansion: with `-v` bcc32 does **not** expand inline
+  functions, so trivial RTL methods (such as the `AnsiString()` default
+  constructor) are called out-of-line, exactly as in the reference (3,008
+  default-ctor calls). `ilink32 -v` writes the debug data to a `.tds` side file
+  and leaves the exe stripped (no debug directory; characteristic `0x010e`).
+- **`-Od`** (disable optimizations). The reference is unoptimized: parameters are
+  reloaded from the stack rather than cached in callee-saved registers.
+
+Codegen otherwise matches the reference (`__cdecl` members, RTTI on).
+
 ## Verification protocol
 
 Fidelity is proven at three levels, from cheapest to most expensive. Always run the
@@ -184,18 +209,28 @@ documented build, not a manual fix-up.
 ## Harness
 
 `scripts/` and the `Makefile` provide the measurement pipeline; see
-`scripts/README.md` for the full list. Make targets: `image`, `analyze`,
-`disasm`, `sanity`, `compare`, `normalize`, `clean`.
+`scripts/README.md` for the full list. Make targets: `image`, `analyze`, `units`,
+`functions`, `struct`, `disasm`, `sanity`, `compare`, `normalize`, `unit`,
+`unit-asm`, `clean`.
 
 - `scripts/borland.sh '<command>'` — run a tool in the container (exports `$B`,
   `$BZ`).
 - `scripts/pe.py`, `scripts/extract_target.py` — dependency-free PE metadata and
   resource/DFM extraction.
-- `scripts/compare_pe.py` — three-level comparison; exits non-zero on any diff.
+- `scripts/units.py` — translation-unit table (order, end addresses, refcount).
+- `scripts/compare_pe.py` — whole-file/header/section comparison, plus
+  `--struct` for imports, exports and relocations.
+- `scripts/compare_functions.py` — per-function byte scoring against the Ghidra
+  inventory (`--mask-reloc` for layout-independent scoring).
+- `scripts/compare_asm.py` — diff one function from a bcc32 `-S` listing against a
+  reference address range; registers/offsets/constants must match, addresses and
+  branch targets are canonicalized. Use this to drive a function to byte-match
+  before moving on.
 - `scripts/normalize_pe.py` — deterministic timestamp/header normalization.
 - `scripts/disasm.sh` — linear `.text` disassembly.
 
-`analysis/` and `build/` are generated and gitignored.
+`analysis/` and `build/` are generated and gitignored. `analysis/ghidra/functions.tsv`
+is the read-only Ghidra function inventory.
 
 ## Source and reconstruction conventions
 
@@ -203,9 +238,14 @@ documented build, not a manual fix-up.
   names recovered from the export table (lowercase file base, e.g. unit `Players`
   becomes `Players.cpp` / `Players.h`). The file base name must match the original,
   because it drives exported symbol names and therefore `.edata`.
-- Keep the Borland dialect and ABI: 32-bit, `__fastcall`/register conventions as
-  the original used, VCL types (`AnsiString`, `TForm`, etc.) rather than STL
-  substitutes.
+- Keep the Borland dialect and ABI: 32-bit, `__cdecl` by default (`this` at
+  `[ebp+8]`, matching the reference), VCL types (`AnsiString`, `TForm`, etc.)
+  rather than STL substitutes.
+- Unit operations compile in the **free-function form** in the reference: model
+  them as `static` members (scoped name, no implicit `this`) or free functions
+  taking an explicit object pointer. Constructors/destructors are members (the
+  call site is `operator new` followed by a ctor call), so a unit mixes a member
+  constructor with free-function-style operations.
 - Reconstruct forms from the embedded DFM resources, not by hand-guessing layout.
   The `TGUI`, `TLoginDialog`, and `TPasswordDialog` resources are available in the
   reference `.rsrc`.
@@ -214,20 +254,104 @@ documented build, not a manual fix-up.
 - Keep generated artifacts out of version control (see `.gitignore`); commit only
   source, forms, resources, and build scripts when asked.
 
+### String/AnsiString ABI (verified)
+
+`String` is `typedef AnsiString String` (sysmac.h), and the two compile to
+identical code (verified with `tests/string_types.cpp`; 0 normalized instruction
+differences). Write natural `String` operations; they lower to the RTL primitives
+the reference uses. Operation -> bcc32 symbol (`@System@AnsiString@...`):
+
+| Operation | Symbol | Notes |
+| --- | --- | --- |
+| `s = x` | `$basg$qqrrx17System@AnsiString` | assignment |
+| `s = "lit"` | `$bctr$qqrpxc` + `$basg` | temp + assign |
+| `s += x` | `$badd$xqqrrx17System@AnsiString` | append |
+| `s + x` | `$brplu$qqrrx17System@AnsiString` | concat (hidden ret ptr) |
+| `s == x` | `$beql$xqqrrx17System@AnsiString` | equals |
+| `String s = x` | `$bctr$qqrrx17System@AnsiString` | copy ctor |
+| `String s = "lit"` | `$bctr$qqrpxc` | cstr ctor |
+| `String s = c` (char) | `$bctr$qqrc` | char ctor |
+| `String s = i` (int) | `$bctr$qqri` | int ctor |
+| scope end | `$bdtr$qqrv` | destructor |
+| `s.SubString(i,n)` | `SubString$xqqrii` | |
+| `s.LowerCase()` | `LowerCase$xqqrv` | |
+| `s.Trim()` | `Trim$xqqrv` | |
+| `s.Pos(x)` | `Pos$xqqrrx17System@AnsiString` | |
+| `s.Insert(x,i)` / `s.Delete(i,n)` | `Insert$qqrrx17System@AnsiStringi` / `Delete$qqrii` | |
+| `s.SetLength(n)` | `SetLength$qqri` | |
+| `s.ToInt()` | `ToInt$xqqrv` | |
+| `s[i]` (read) | `ThrowIfOutOfRange$xqi` (or inlined) | **1-based** |
+| `s[i] = c` | `ThrowIfOutOfRange` + `Unique$qqrv` | 1-based |
+| `s.Length()` | inlined: `cmp Data,0` / `mov edx,[Data-4]` | no call |
+| `IntToStr(i)` / `IntToHex(i,n)` | `@Sysutils@IntToStr$qqri` / `IntToHex$qqrii` | |
+| exception frame | `@__InitExceptBlockLDTC` | same symbol in reference |
+
+Ghidra's ad-hoc names (`AnsiString_Append`, `AnsiString_CharPtr`,
+`AnsiString_Length`, `AnsiString_AppendDecimal`, ...) do not map one-to-one to
+these; identify operations from the disassembly, not the name.
+
+### Codegen fingerprints (verified while converging `Serial`)
+
+These byte-level features distinguish source forms that look equivalent; use
+them to pick the form that matches the reference.
+
+- **Appending a single `char` to a `String`.** Write the cast explicitly, for
+  example `s = s + String(ch)` (or `String(line[j])`). `s + ch` emits a
+  `char`-constructor temporary that does not match; the explicit `String(...)`
+  lets bcc32 reuse the constructor's `eax`, which is what the reference does
+  (verified in `Serial::DecodeString`).
+- **Positive-count guards lower two ways.** `if (n > 0)` compiles to
+  `test eax,eax` / `jle`, while `if (n >= 1)` compiles to `dec eax` / `jl`. Same
+  semantics, different bytes — the reference uses the `dec`/`jl` form, so write
+  `>= 1` (verified in `Serial::Validate`, `Serial::ReadKey`).
+- **EH scope markers are a structural fingerprint.** bcc32 emits
+  `mov word ptr [ebp-N], imm` before EH-protected constructions and
+  destructions; `imm` is the current cleanup scope's byte offset. The marker
+  *sequence* encodes block nesting, so comparing marker streams is the quickest
+  way to tell whether an `if`/`for`/block structure matches. Braces on an
+  otherwise single-statement `if` add a scope (and a marker).
+- **Parentheses can add a temporary.** `String x = (expr);` may introduce an
+  EH-recorded temporary that `String x = expr;` does not (the frame grows), so
+  expression parenthesization is observable in codegen.
+- **Frame size is a fast filter.** A source-form guess that changes `add esp,-N`
+  or the `[ebp-N]` offsets is wrong even if the instruction count looks close.
+- **Encoded strings.** Where the reference carries an obfuscated literal (decoded
+  through `Serial::DecodeString`), name a macro after the decoded text so intent
+  is legible, e.g.
+  `#define SERIAL_ENC_STR_CONFIG_SERIAL_INI "d1dqa>d-h,B8d9_0jpC"` (decodes to
+  `./config/serial.ini`).
+
 ## Workflow for a single translation unit
 
-1. Identify the unit's symbol range from the export table and its code/data extents
-   in the disassembly.
-2. Produce the TASM representation and prove it assembles to the reference bytes
-   for that unit.
-3. Derive the header (class layout, member offsets, virtual table order) and the
-   `.cpp` from the proven assembly.
-4. Compile with `bcc32` and compare the object/`.text` bytes to the assembly
-   baseline.
-5. Link into the full image and re-check the affected sections; run the MD5
-   comparison.
-6. Update the unit's status in [PLAN.md](PLAN.md#translation-unit-inventory) and
+1. Identify the unit's address range from `analysis/target/units.tsv` (the unit
+   code ends at its `Initialize` stub) and its functions from the Ghidra
+   inventory.
+2. Reconstruct the header (class layout, member offsets, virtual table order) and
+   the `.cpp` in Borland C++. Derive function order from the reference addresses.
+3. Compile with `make unit UNIT=<Unit>` and inspect codegen with
+   `make unit-asm UNIT=<Unit>`; resolve the source form per function by matching
+   the reference bytes (see the codegen pitfall below).
+4. Score progress with `make functions` (per-function, layout independent) once a
+   linkable image exists.
+5. Update the unit's status in [PLAN.md](PLAN.md#translation-unit-inventory) and
    stop.
+
+### Driving one function to byte-match
+
+`compare_asm.py ASM FUNC MANGLED_PREFIX REF_START REF_END` diffs a single bcc32
+`-S` function against a reference address range. Registers, stack offsets and
+small constants must match; relocated addresses and branch targets are
+canonicalized, and callee-saved pushes plus trailing `nop` padding are trimmed.
+
+```sh
+make unit-asm UNIT=Serial
+python3 scripts/compare_asm.py build/Serial.asm SetIniPath \
+    '@Serial@SetIniPath' 0x41250c 0x41278c
+```
+
+Take `REF_END` from the next function's start; the unit's last function ends at
+its `@@Unit@Initialize` stub. A `REF_END` that overlaps the following function
+reports thousands of bogus mismatches.
 
 ## Pitfalls to avoid
 
@@ -248,6 +372,18 @@ documented build, not a manual fix-up.
 - **Assuming file names.** Only `GUI` (main unit) and the 65 units in the export
   inventory are confirmed. Do not assume a unit exists because a feature suggests
   it.
+- **Source form changes codegen.** An instance method and a free function with an
+  explicit object pointer are not byte-equivalent for assignments: bcc32 emits the
+  mirror register order. The reference's unit operations match the free-function
+  form (verify with `make unit-asm`), so write them as `static` members/free
+  functions; keep constructors as members.
+- **`s + ch` vs `s + String(ch)`.** Appending a bare `char` produces a
+  `char`-ctor temporary that the reference does not use; cast with `String(...)`.
+- **`n > 0` vs `n >= 1`.** Both are correct C++ but compile to different bytes
+  (`test`/`jle` vs `dec`/`jl`); the reference uses `>= 1`.
+- **Synthetic Ghidra blocks.** The database contains `*_reasm` functions at
+  `0x60000000+` that are not part of the PE; reference comparisons must ignore
+  them.
 
 ## Reference docs in `ref/`
 

@@ -77,7 +77,7 @@ class PE:
         return self.data[off:end].decode("latin1")
 
     def _rva_to_off(self, rva: int) -> int:
-        for s in self._sections:
+        for s in self.sections:
             if s.virtual_address <= rva < s.virtual_address + s.extent:
                 return rva - s.virtual_address + s.raw_pointer
         raise ValueError(f"RVA {rva:#x} is not mapped by any section")
@@ -281,6 +281,31 @@ class PE:
             if data_val & 0x80000000:
                 self._walk_resources(root + (data_val & 0x7FFFFFFF), type_id, type_name, [])
         return self._resources
+
+    # -- relocations -------------------------------------------------------
+
+    def relocations(self) -> list[tuple[int, int]]:
+        """Return (absolute address, type) for every base-relocation entry."""
+        rva, size = self.data_directory(5)
+        if rva == 0 or size == 0:
+            return []
+        off = self._rva_to_off(rva)
+        end = off + size
+        out: list[tuple[int, int]] = []
+        while off + 8 <= end:
+            page = self._u32(off)
+            block = self._u32(off + 4)
+            if block < 8:
+                break
+            count = (block - 8) // 2
+            for i in range(count):
+                entry = self._u16(off + 8 + i * 2)
+                rtype = entry >> 12
+                if rtype == 0:  # IMAGE_REL_BASED_ABSOLUTE padding
+                    continue
+                out.append((page + (entry & 0x0FFF), rtype))
+            off += block
+        return out
 
     # -- summaries ---------------------------------------------------------
 

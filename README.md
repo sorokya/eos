@@ -136,7 +136,8 @@ See [AGENTS.md](AGENTS.md) for the full command reference and link configuration
 
 ## Status
 
-Phase 0 (toolchain and harness) complete: the reference binary is analyzed, the
-link configuration and deterministic timestamp step are verified, and the
-measurement pipeline is in place. No translation units have been reconstructed
-yet. See [PLAN.md](PLAN.md#milestones) for progress.
+Phase 1 in progress. The toolchain, unit table, per-function comparator and build
+driver are in place; `make build` compiles every unit and links a working
+`build/GameServer.exe` whose export table matches the reference. Units are
+currently stubs except `Serial`, which is the pilot; reconstruction is C++-first
+with TASM as a surgical fallback. See [PLAN.md](PLAN.md) for progress.

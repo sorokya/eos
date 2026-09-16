@@ -27,23 +27,58 @@ imports, exports, resource tree). No `pip` packages required.
 - **`extract_target.py PE -o DIR`** — write `headers.txt`, `sections.txt`,
   `imports.txt`, `exports.txt`, `resources.txt`, `metadata.json`, and the raw
   `dfm/*.dfm` payloads.
-- **`compare_pe.py REF CANDIDATE [--ignore-timestamp]`** — whole-file hash,
-  header-field diffs, per-section geometry/hash diff, and the first differing
-  byte offset. Exits non-zero on any difference.
+- **`units.py PE`** — derive the translation-unit table from the exported
+  `@@Unit@Initialize`/`@Finalize` pairs (order, code-end addresses, module
+  refcount addresses) into `analysis/target/units.tsv`.
+- **`compare_pe.py REF CANDIDATE [--ignore-timestamp] [--struct]`** — whole-file
+  hash, header-field diffs, per-section geometry/hash diff, and the first
+  differing byte offset; `--struct` adds imports/exports/relocations diffs. Exits
+  non-zero on any difference.
+- **`compare_functions.py FUNCTIONS_TSV REF CANDIDATE [--mask-reloc] [--list N]`**
+  — per-function byte comparison using the Ghidra inventory; masks base-relocation
+  words when layouts are not yet identical.
 - **`normalize_pe.py PE [--timestamp V] [--characteristics V] [-o OUT]`** — the
   documented deterministic post-link step: rewrite the volatile `TimeDateStamp`
   (at `e_lfanew + 8`) and optionally the COFF characteristics word.
 - **`disasm.sh [PE] [OUT]`** — linear Intel-syntax disassembly of `.text` via
   host `objdump`.
 
+The Ghidra function inventory (`analysis/ghidra/functions.tsv`) is exported from
+the read-only Ghidra project; see [AGENTS.md](../AGENTS.md) for how it is
+produced.
+
+## Build
+
+- **`mkstubs.py`** — create a stub `src/<Unit>.cpp` for every unit in
+  `units.tsv` (skips existing files). Ordinary units get
+  `#pragma package(smart_init)`; `GUI` gets the main-unit form/global/WinMain
+  shell.
+- **`build.sh`** — compile every unit in `src/` (main unit first, then
+  `units.tsv` order) and link `build/GameServer.exe`, then apply the timestamp
+  normalization.
+
 ## Make targets
 
 ```sh
 make image     # build the docker/Wine image
-make analyze   # extract reference metadata into analysis/target/
-make disasm    # linear .text disassembly into analysis/target/disasm.txt
+make analyze   # extract reference metadata + unit table into analysis/target/
+make units     # rebuild the unit table only
+make functions # per-function byte score vs the Ghidra inventory
+make struct    # structural diff (imports/exports/relocations)
+make disasm    # linear .text disassembly into analysis/target/
 make sanity    # compile+link a minimal VCL+BDE app to validate the toolchain
+make stubs     # generate stub units for units not yet reconstructed
+make build     # build build/GameServer.exe from src/
+make unit UNIT=Serial     # compile one reconstructed unit
+make unit-asm UNIT=Serial # emit bcc32 assembly for one unit
 make compare   # compare build/GameServer.exe against the reference
 make normalize # apply the deterministic timestamp step
 make clean     # remove build/
 ```
+
+## Function-level diff
+
+- **`compare_asm.py ASM FUNCTION MANGLED_PREFIX REF_START REF_END`** — diff one
+  bcc32 `-S` function against a reference address range, canonicalizing relocated
+  addresses and branch targets while requiring registers, stack offsets and small
+  constants to match exactly. The per-function byte-fidelity loop.

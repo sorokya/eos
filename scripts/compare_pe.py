@@ -31,6 +31,8 @@ def main() -> int:
     ap.add_argument("candidate")
     ap.add_argument("--ignore-timestamp", action="store_true",
                     help="do not treat the PE TimeDateStamp as a difference")
+    ap.add_argument("--struct", action="store_true",
+                    help="also diff imports, exports and base relocations")
     args = ap.parse_args()
 
     ref = PE.from_file(args.reference)
@@ -77,6 +79,30 @@ def main() -> int:
               f"raw {r.raw_size:#08x}/{c.raw_size:#08x} md5 {rmd5[:12]}/{cmd5[:12]}")
         if not ok:
             different = True
+
+    # Structural tables ----------------------------------------------------
+    if args.struct:
+        ri = [(i.dll, i.name or f"#{i.ordinal}") for i in ref.imports]
+        ci = [(i.dll, i.name or f"#{i.ordinal}") for i in cand.imports]
+        re = [(e.ordinal, e.name) for e in ref.exports]
+        ce = [(e.ordinal, e.name) for e in cand.exports]
+        rr = ref.relocations()
+        cr = cand.relocations()
+        print(f"\nimports     : ref={len(ri)} cand={len(ci)} "
+              f"{'identical' if ri == ci else 'DIFFER'}")
+        print(f"exports     : ref={len(re)} cand={len(ce)} "
+              f"{'identical' if re == ce else 'DIFFER'}")
+        print(f"relocations : ref={len(rr)} cand={len(cr)} "
+              f"{'identical' if rr == cr else 'DIFFER'}")
+        for label, a, b in (("import", ri, ci), ("export", re, ce), ("reloc", rr, cr)):
+            if a != b:
+                different = True
+                sa, sb = set(a), set(b)
+                only_a, only_b = sorted(sa - sb)[:5], sorted(sb - sa)[:5]
+                if only_a:
+                    print(f"  {label} only in reference: {only_a}")
+                if only_b:
+                    print(f"  {label} only in candidate: {only_b}")
 
     # First differing byte -------------------------------------------------
     if len(ref.data) == len(cand.data):

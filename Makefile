@@ -7,6 +7,11 @@ IMAGE     ?= gameserver-borland-wine
 PYTHON    ?= python3
 REF       ?= GameServer.exe
 
+# The reference was compiled with CodeGuard compile-time checks
+# (__CODEGUARD__), source-level debug info (-v, which also disables C++ inline
+# expansion), and no optimization (-Od). Keep this in sync with scripts/build.sh.
+CFLAGS    ?= -D__CODEGUARD__ -v -Od
+
 # Link configuration validated in Phase 0 against the reference header and
 # section geometry (see PLAN.md). -v is required for header characteristic
 # 0x010e; the static VCL+BDE library set covers the components observed in the
@@ -14,13 +19,26 @@ REF       ?= GameServer.exe
 LINKFLAGS ?= -Tpe -aa -c -Gn -j -v
 VLIB      ?= import32.lib cw32mt.lib vcl50.lib vcldb50.lib vclbde50.lib
 
-.PHONY: image analyze disasm sanity compare normalize clean
+.PHONY: image analyze units functions struct disasm sanity compare normalize build stubs unit unit-asm clean
 
 image:
 	docker build -t $(IMAGE) docker
 
 analyze:
 	$(PYTHON) scripts/extract_target.py $(REF) -o analysis/target
+	$(PYTHON) scripts/units.py $(REF)
+
+units:
+	$(PYTHON) scripts/units.py $(REF)
+
+# Per-function byte comparison against the Ghidra inventory (layout independent).
+# Informational: differences are expected until reconstruction converges.
+functions:
+	-$(PYTHON) scripts/compare_functions.py analysis/ghidra/functions.tsv $(REF) build/GameServer.exe --mask-reloc
+
+# Structural comparison (imports/exports/relocations).
+struct:
+	-$(PYTHON) scripts/compare_pe.py $(REF) build/GameServer.exe --ignore-timestamp --struct
 
 disasm:
 	scripts/disasm.sh
@@ -38,6 +56,22 @@ compare:
 # Documented deterministic post-link step (see AGENTS.md).
 normalize:
 	$(PYTHON) scripts/normalize_pe.py build/GameServer.exe
+
+# Generate stub units for every translation unit (skips existing sources).
+stubs:
+	$(PYTHON) scripts/mkstubs.py
+
+# Build the full application: compile all src/ units, link, normalize timestamp.
+build:
+	scripts/build.sh
+
+# Compile one reconstructed unit to an object:  make unit UNIT=Serial
+unit:
+	scripts/borland.sh 'wine "$$B\Bin\bcc32.exe" $(CFLAGS) -c -obuild/$(UNIT).obj src/$(UNIT).cpp'
+
+# Emit bcc32 assembly for one unit (codegen inspection):  make unit-asm UNIT=Serial
+unit-asm:
+	scripts/borland.sh 'wine "$$B\Bin\bcc32.exe" $(CFLAGS) -S -obuild/$(UNIT).asm src/$(UNIT).cpp'
 
 clean:
 	rm -rf build

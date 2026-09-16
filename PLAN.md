@@ -18,22 +18,84 @@ Success is a single, reproducible `make`-style command (running in the Docker/Wi
 container) that emits `build/GameServer.exe` matching the reference, with no manual
 byte patching other than an explicitly documented deterministic timestamp step.
 
-## Strategy: TASM-first
+## Strategy: C++-first, TASM fallback
 
-The reconstruction is authored as assembly before C++:
+Reconstruction is C++-first, with byte-exactness as a final convergence phase:
 
-1. Each application translation unit is first expressed as Turbo Assembler source
-   that produces **byte-identical object content** to the reference's slice of the
-   image (code, data, relocations, symbol names).
-2. That assembly is the reference against which the C++ version is judged. The C++
-   form is derived from the proven assembly and must compile, with `bcc32`, to the
-   same object bytes.
-3. Library code (RTL, VCL, BDE) is not reimplemented. It is supplied by the
-   unmodified `.lib`/`.obj` files in `ref/Borland5/Lib`. The whole-image MD5 is the
-   final arbiter.
+1. Each translation unit is reconstructed in Borland C++ from the Ghidra
+   decompilation and the reference disassembly, then compiled with `bcc32`.
+2. Functional equivalence (a linkable, runnable server) comes first; per-function
+   byte convergence follows, unit by unit.
+3. TASM is used surgically: as a byte-fidelity fallback for individual functions
+   the compiler cannot be coaxed to reproduce, and as stubs that keep the build
+   linkable while units are partially reconstructed.
+4. Library code (RTL, VCL, BDE) is not reimplemented; it comes from the unmodified
+   `.lib`/`.obj` files in `ref/Borland5/Lib`. The whole-image MD5 is the final
+   arbiter.
 
-This order front-loads the hard, unambiguous work (exact bytes) and makes the
-high-level reconstruction measurable at every step.
+Rationale: C++ exception handling is lowered onto SEH and is pervasive in this
+image (the `FS:[0x0]` frame pattern appears in well over a thousand functions), so
+hand-authoring EH frames in TASM is impractical. The compiler emits EH, RTTI,
+strings and vtables correctly once the source matches.
+
+## Findings (Phase 0/1)
+
+- **Unit table.** The 65 `@@Unit@Initialize`/`@Finalize` pairs give the unit link
+  order, and each `Initialize` stub sits at the **end** of its unit's code segment
+  (the preceding function ends in `ret` + `90 90` padding). Units are contiguous in
+  the observed range. `scripts/units.py` emits the table.
+- **Symbol-name freedom.** The shipped image is stripped, so internal function
+  symbol names are not observable. Only the 133 export names, RTTI/type-name
+  strings, and DFM method names must match for byte-exactness. C++/TASM interop can
+  therefore use arbitrary internal names as long as our declarations agree.
+- **Calling convention and unit structure (resolved).** bcc32's default member
+  convention is `__cdecl` with `this` at `[ebp+8]`, matching the reference. But
+  **source form is visible in codegen**: an instance method and a free function
+  with an explicit object pointer are not byte-equivalent (the assignment register
+  order mirrors). The reference's unit operations match the **free-function form**,
+  so model them as `static` members (scoped name, no `this`) or free functions
+  taking an explicit object pointer. `Serial`'s constructor *is* a member (the
+  call site is `operator new` then a ctor call), so a unit mixes a member
+  constructor with free-function-style operations.
+- **Ghidra database.** Read-only. 7,425 functions exported; ~14% carry non-default
+  names, so names are hints only. The project also contains synthetic analysis
+  blocks at `0x60000000+` (`*_reasm`) that are not part of the PE and must be
+  ignored by reference comparisons.
+- **`String` == `AnsiString`.** `String` is `typedef AnsiString` (sysmac.h) and
+  the two compile to identical code (`tests/string_types.cpp`, 0 normalized
+  instruction differences). Natural `String` operations lower to the RTL
+  primitives the reference calls; the operation-to-symbol mapping is recorded in
+  [AGENTS.md](AGENTS.md#stringansistring-abi-verified).
+- **Compiler flags (resolved).** The reference build uses `-D__CODEGUARD__`
+  (CodeGuard compile-time checks, which disables the `dstring.h` inlines so
+  `AnsiString::Length()` is an out-of-line call — 1,726 sites), `-v` (debug info,
+  which also disables C++ inline expansion so trivial RTL methods such as the
+  `AnsiString()` default constructor are called out-of-line — 3,008 sites; the
+  debug data goes to a `.tds` and the exe stays stripped), and `-Od` (no
+  optimization). Recorded in [AGENTS.md](AGENTS.md#compiler-flags).
+- **Candidate units.** Spans between `Initialize` stubs are not unit sizes: large
+  gaps contain real code (e.g. `Packets`) and possibly interleaved library objects,
+  to be resolved with a linker map.
+- **Skeleton build.** `make build` compiles all 66 units (currently stubs) and
+  links a working PE whose export table has the same 133 names as the reference.
+  Unit order follows `units.tsv`, but the linker places one unit (`Quest`)
+  differently while code segments are empty; this placement artifact is to be
+  re-checked once units carry real code.
+- **Main unit.** `GUI.cpp` is the project main: it defines the `TGUI` form class,
+  a `PACKAGE` global `TGUI *GUI`, and `WinMain`. With `PACKAGE` on the global (but
+  not the class) the linker emits exactly the reference's `_GUI` export and no
+  extra class ctor/RTTI exports. Ordinary units use `#pragma package(smart_init)`
+  to emit their `@@Unit@Initialize`/`@Finalize` pair.
+- **`Serial` convergence (Phase 1 pilot).** 10 of 13 `Serial` functions are
+  byte-exact, including `Validate` (467/467) and `DecodeString` (290/290). The
+  remaining three (`SetIniPath` 155, `ReadKey` 254, ctor 246 mismatches) differ
+  only in **EH scope structure**: the reference's `mov word ptr [ebp-N], imm`
+  marker stream nests one more scope than our source reproduces, and its
+  per-statement `AnsiString` temporaries occupy distinct slots. The source-form
+  rules learned here (explicit `String(ch)` casts, `n >= 1` guards, EH marker
+  streams as a nesting fingerprint, parenthesization adding temporaries, named
+  macros for encoded literals) are recorded in
+  [AGENTS.md](AGENTS.md#codegen-fingerprints-verified-while-converging-serial).
 
 ## Confirmed target facts
 
@@ -97,7 +159,7 @@ because those names drive the exported symbols in `.edata`.
 65 units expose module `Initialize`/`Finalize` exports; `GUI` is the main unit.
 Each `Finalize` RVA is `Initialize + 0x10`. `GUI` has no module initializer export,
 so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
-`asm-verified`, `cpp-verified`.
+`in-progress`, `functional`, `byte-exact`.
 
 | Unit | Init RVA | Status |
 | --- | --- | --- |
@@ -107,7 +169,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Player | `0x00011f64` | not-started |
 | Playerskill | `0x00011fd0` | not-started |
 | Playerinventory | `0x0001203c` | not-started |
-| Serial | `0x00013b4c` | not-started |
+| Serial | `0x00013b4c` | in-progress |
 | Settings | `0x00015d88` | not-started |
 | Logins | `0x000166ec` | not-started |
 | Packets | `0x00074648` | not-started |
@@ -180,10 +242,15 @@ Delivered:
   (`bcc32`, `tasm32`, `ilink32`, `brcc32`) verified under Wine.
 - `scripts/`: `borland.sh` container wrapper (exports `$B`/`$BZ`), `pe.py` and
   `extract_target.py` for metadata and DFM extraction, `compare_pe.py` for
-  three-level comparison, `normalize_pe.py` for timestamp/header normalization,
-  and `disasm.sh` for a linear disassembly.
-- `Makefile` targets `image`, `analyze`, `disasm`, `sanity`, `compare`,
-  `normalize`, `clean`.
+  three-level comparison plus structural (imports/exports/relocations) diffs,
+  `normalize_pe.py` for timestamp/header normalization, `disasm.sh` for a linear
+  disassembly, `units.py` for the translation-unit table, and
+  `compare_functions.py` for per-function byte scoring against the Ghidra
+  inventory.
+- Ghidra inventory exported read-only to `analysis/ghidra/functions.tsv`
+  (7,425 functions; synthetic `0x60000000+` blocks ignored).
+- `Makefile` targets `image`, `analyze`, `units`, `functions`, `struct`,
+  `disasm`, `sanity`, `compare`, `normalize`, `unit`, `unit-asm`, `clean`.
 - Target metadata archived under `analysis/target/` (regenerable, gitignored):
   headers, sections, imports, exports, resources, the `TGUI`, `TLoginDialog`,
   `TPasswordDialog`, and `DVCLAL` payloads, and a 452,937-line linear `.text`
@@ -206,41 +273,35 @@ Exit criteria: tools run reproducibly; the harness reports per-section and
 whole-file diffs; a documented draft link line yields the reference header
 (`0x010e`, timestamp normalized) and section geometry. Met.
 
-### Phase 1 — Disassembly and TASM scaffold
+### Phase 1 — C++ reconstruction and linkable skeleton
 
-Goal: reassemble every application unit to its reference object content.
+Goal: a buildable C++ project that grows unit by unit toward the reference.
 
-- Recover function boundaries, call targets, and data references; map code/data
-  extents to units using export RVAs and the linker's object ordering.
-- Emit TASM source per unit, preserving original mangled symbol names and segment
-  placement.
-- Reconstruct read-only data: string literals, virtual tables, RTTI, form class
-  tables, and static initializer/finalizer tables.
+- Reconstruct each unit in C++ (`src/Unit.cpp` / `Unit.h`) from the Ghidra
+  decompilation and reference disassembly, resolving the exact source form per
+  function by matching codegen.
+- Use link-driven stub generation to keep the build linkable: link, collect the
+  unresolved externals, stub them, and record what remains.
 - Reconstruct forms (`forms/*.dfm`) from the `TGUI`, `TLoginDialog`, and
-  `TPasswordDialog` RCDATA payloads, and the resource script/`res`.
-- Assemble each unit and compare object bytes to the reference slice; refine until
-  they match.
-- Link the full TASM scaffold and drive `.text`, `.data`, `.edata`, and `.rsrc`
-  toward byte-equality.
+  `TPasswordDialog` RCDATA payloads and the resource script/`.res`.
+- Track per-unit progress in the inventory below.
 
-Exit criteria: the scaffold links to a binary whose sections match the reference
-byte-for-byte (timestamp aside), or all remaining differences are isolated and
-documented as library-provided.
+Exit criteria: a full C++ build links against the validated library set and runs
+(functionally equivalent), with any remaining gaps explicitly stubbed.
 
-### Phase 2 — C++ lifting, unit by unit
+### Phase 2 — Byte convergence, unit by unit
 
-Goal: replace each TASM unit with C++ that compiles to the same bytes.
+Goal: drive every function to the reference bytes.
 
-- Derive headers: class layouts, member offsets, virtual table order, and
-  `__published` declarations, from the proven assembly.
-- Reconstruct `Unit.cpp`; compile with `bcc32` and compare object bytes to the
-  assembly baseline.
-- Flip units from `asm/` to `src/` one at a time, keeping the whole-image diff
-  clean after each flip.
-- Determine compiler options (optimization, register conventions, RTTI/exceptions)
-  by matching code generation.
+- Use `scripts/compare_functions.py` to score functions, and a linker map
+  (`ilink32 -s`) to attribute objects to addresses and confirm the original
+  library set and order.
+- Converge through source changes; where a function resists, inject TASM sourced
+  from the reference disassembly.
+- Confirm `.text`, `.data`, `.edata`, and `.reloc` equality.
 
-Exit criteria: every unit is `cpp-verified`; the linked image still matches.
+Exit criteria: all functions byte-identical; the linked image matches the
+reference apart from the timestamp.
 
 ### Phase 3 — Resources, forms, and application glue
 
@@ -272,11 +333,15 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Harness reports section diffs | 0 | done | `compare_pe.py` on self/perturbed images |
 | Reference header reproduced | 0 | done | `make sanity`: `0x010e`, section geometry |
 | Deterministic timestamp | 0 | done | `normalize_pe.py` restores reference MD5 |
-| First unit assembles identically | 1 | todo | object byte diff |
-| All units assemble identically | 1 | todo | aggregate diff |
-| Scaffold links to reference sections | 1 | todo | section diff |
-| First unit compiles identically | 2 | todo | object byte diff |
-| All units C++-verified | 2 | todo | aggregate diff |
+| Unit table recovered | 0 | done | `scripts/units.py` -> `units.tsv` (65 + GUI) |
+| Per-function diff tooling | 1 | done | `compare_functions.py` self-test 7384/7384 |
+| Serial skeleton compiles | 1 | done | `make unit UNIT=Serial` |
+| Serial accessors byte-exact | 1 | done | 6 accessors + `ReloadIni` + `GetDisplayCode` (54/54) match |
+| Serial logic reconstructed | 1 | done | `DecodeString` + `Validate` + `GetDisplayCode` + `ReloadIni` and 6 accessors byte-exact (10/13) |
+| Serial remaining | 1 | partial | `SetIniPath` 155, `ReadKey` 254, ctor 246 — EH scope-structure only |
+| Full skeleton links | 1 | done | `make build`: 133 exports, working PE |
+| Full skeleton runs functionally | 1 | todo | launch and exercise |
+| All units C++-verified | 2 | todo | `make functions` at 100% |
 | `.rsrc`/`.reloc` match | 3 | todo | section diff |
 | Full MD5 match, reproducible | 4 | todo | `md5 -q` from clean tree |
 
@@ -284,16 +349,19 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 
 These require evidence and must not be answered by guessing:
 
-- Exact compiler options (optimization level, `-O`/`-Od`, RTTI, exception handling)
-  used for the original build.
+- Source form per function: instance method vs free function with explicit object
+  pointer (the reference `SetCounter` matches the latter). Must be resolved by
+  matching codegen before byte convergence.
+- Exact compiler options (optimization level, RTTI/exception settings) used for the
+  original build; current evidence favours defaults, but `SetCounter` shows source
+  form, not flags, is the first-order difference.
 - Exact library set and link order (VCL, BDE, OLE, sockets) that reproduces the
   reference's statically included objects, and whether the reference's `.tds`
   debug side-effect of `-v` was discarded.
 - Whether the `GUI` unit itself defines `TGUI` or whether the form lives in
   `Mainform`; the DFM is named `TGUI` and both units exist.
-- Whether the reference link used `-v` with debug-stripped objects, or a separate
-  strip step (the observed header `0x010e` matches `ilink32 -v` with no debug
-  directory).
+- Whether units are contiguous or library objects interleave between them; resolve
+  with the `ilink32 -s` detailed map.
 
 ## Risks and mitigations
 
@@ -303,4 +371,5 @@ These require evidence and must not be answered by guessing:
 | Linker nondeterminism | Fix timestamp and compare sections; treat whole-file MD5 as the final gate |
 | Resource/DFM mismatch | Reconstruct from the embedded payloads, byte-diff `.rsrc` |
 | Scale (65 units, 1.7 MB image) | Unit inventory + per-unit status; smallest-falsifiable-test discipline |
-| Hidden data dependencies | TASM-first scaffold forces every relocated reference to be accounted for |
+| EH pervasive in TASM | C++-first; use TASM only for EH-free functions or last-resort fidelity |
+| Source-form ambiguity | Match codegen per function; record the form in the header |
