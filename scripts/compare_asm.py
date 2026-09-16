@@ -47,19 +47,39 @@ def parse_our(path: str, mangled_prefix: str):
     txt = open(path, encoding="latin1").read()
     m = re.search(r"(?m)^" + re.escape(mangled_prefix) + r"\$q[^\n]*\n(.*?)endp", txt, re.S)
     if not m:
-        return None
+        return None, []
     skip = {"dw", "dd", "db", "dt", "public", "extrn", "segment", "ends", "proc",
             "endp", "end", "align", "assume", "org", "equ", "_data", "_text",
             "_bss", "_tls", "_rdata"}
     out = []
+    calls = []
     for line in m.group(1).split("\n"):
         s = line.strip()
         if not s or s[0] in ";?@":
             continue
         if s.split()[0].lower() in skip:
             continue
+        cm = re.match(r"(?i)^call\s+(\S+)", s)
+        if cm:
+            calls.append(cm.group(1))
         out.append(canon(s))
-    return out
+    return out, calls
+
+
+# Array forms call a different RTL routine than the scalar forms; because call
+# targets are canonicalized they compare equal, so a wrong choice only shows up
+# at link time. Flag the family explicitly.
+ARRAY_NEW_DELETE = ("$bnwa$", "$bnw$", "$bdea$", "$bde$", "operator_new_",
+                    "@$bnwa", "@$bdea")
+
+
+def call_warnings(calls):
+    warn = []
+    for c in calls:
+        low = c.lower()
+        if any(tok in low for tok in ("bnwa", "bnw$", "bdea", "bde$")):
+            warn.append(c)
+    return warn
 
 
 def parse_ref(ref_bin: str, start: int, end: int):
@@ -82,9 +102,11 @@ def main() -> int:
     ap.add_argument("ref_start", type=lambda v: int(v, 0))
     ap.add_argument("ref_end", type=lambda v: int(v, 0))
     ap.add_argument("--ref-bin", default="GameServer.exe")
+    ap.add_argument("--calls", action="store_true",
+                    help="print the call symbol names in our listing")
     args = ap.parse_args()
 
-    our = parse_our(args.asm, args.mangled_prefix)
+    our, calls = parse_our(args.asm, args.mangled_prefix)
     if our is None:
         print(f"function {args.mangled_prefix} not found in {args.asm}")
         return 2
@@ -110,6 +132,16 @@ def main() -> int:
         print(f"{mark} {i:3d} ref: {r:44s} our: {o}")
     print(f"\n{args.function}: {len(ref)} ref / {len(our)} our instructions, "
           f"{mismatches} mismatched")
+    # Call symbols are visible only on our side (the reference is stripped), so
+    # print them and flag the array new/delete family, whose wrong choice
+    # canonicalizes away.
+    warn = call_warnings(calls)
+    if args.calls:
+        print("calls: " + (", ".join(sorted(set(calls))) or "(none)"))
+    if warn:
+        print("WARNING: array new/delete calls present (verify against the "
+              "reference; scalar forms canonicalize identically): "
+              + ", ".join(sorted(set(warn))))
     return 0 if mismatches == 0 and len(ref) == len(our) else 1
 
 
