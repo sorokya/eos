@@ -151,6 +151,34 @@ strings and vtables correctly once the source matches.
   stubs, and per-function scoring must use the compiler's `-S` output
   (`compare_asm.py`) rather than the linked image until the reference call graph
   is reproduced.
+- **`ClassValues::LoadClasses` (draft, 300 mismatches).** A ~600-instruction
+  function (`0x536100`), the ECF table parser. Proven and matching: the algorithm
+  and structure; the field map (`+4` `num_classes`, `+8` `rid_1`, `+0xc` `rid_2`,
+  `+0x10` loaded, `+0x14` `string_list`); the ECF layout (`"ECF"`, `short rid[2]`,
+  `short total_classes_count`, `char version`, records with a
+  `name_length + 15` stride); the literals (`"./pub/dat"`, `"00"`/`"0"`,
+  `".ecf"`); the file API (Delphi SysUtils `FileOpen`/`FileSeek`/`FileRead`/
+  `FileClose`, `__fastcall`, found in `Lib/Debug/vcl50.lib`); and the callees
+  `DecodeInt` (13 sites) and `AddClass`, both byte-exact. Three verified source
+  forms each moved it measurably: `FileOpen(path.c_str(), 0)` (reproduces the
+  `c_str` -> String temp -> `mov eax,[eax]` sequence), `data += buf` (546 -> 300;
+  makes the `AnsiString` ctor/dtor counts match at 23/32 exactly), and
+  `data.SetLength(size)` (the read buffer is not NUL-terminated). Measured
+  residual, all with the tooling: **stack slots are identical** (`--stack`: 1:1,
+  delta 0 across 33 slots), **object counts are identical**, and **per-statement
+  codegen is identical** (the filename expression and every record field are
+  instruction-for-instruction the same). What differs is the **EH cleanup-scope
+  structure**: the reference has 16 cleanup records to our ~22, and at
+  `int h = FileOpen(...)` it arms two adjacent scopes
+  (`mov word [ebp-0x8c], 0x44` then `0x50`) where we arm one. bcc32 emits no
+  arming for a bare block, so the reference's extra scope is an extra destructible
+  object at that level with the argument copy nested inside it. Tested and
+  rejected: whole-body and loop-level `try`/`catch`, `j` outside the `for`,
+  hoisting `String name`, block-wrapping (file-read; file-read + record loop),
+  `FileOpen(path,0)`, `FileOpen(String(path.c_str()),0)`, a named
+  `String f = path.c_str()`, and `data = data + buf`. Further work needs the
+  block/scope structure derived upward from the reference's marker stream rather
+  than C++ forms guessed downward.
 
 ## Confirmed target facts
 
