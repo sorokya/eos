@@ -289,7 +289,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Mysqlthread | `0x00133818` | not-started |
 | Mysqltask | `0x001342bc` | not-started |
 | Innvalues | `0x00135d94` | not-started |
-| Innvalue | `0x00135ecc` | not-started |
+| Innvalue | `0x00135ecc` | byte-exact |
 | ClassValues | `0x00137460` | byte-exact |
 | Classvalue | `0x00137510` | byte-exact |
 | Playerquest | `0x001375b4` | not-started |
