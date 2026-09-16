@@ -395,7 +395,7 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Serial skeleton compiles | 1 | done | `make unit UNIT=Serial` |
 | Serial accessors byte-exact | 1 | done | 6 accessors + `ReloadIni` + `GetDisplayCode` (54/54) match |
 | Serial logic reconstructed | 1 | done | `DecodeString` + `Validate` + `GetDisplayCode` + `ReloadIni` and 6 accessors byte-exact (10/13) |
-| Serial remaining | 1 | partial | `SetIniPath` 155, `ReadKey` 254, ctor 246 — EH scope-structure only |
+| Serial remaining | 1 | partial | `SetIniPath` and `ReadKey` byte-exact (try/catch fingerprint); ctor remains |
 | Weaponmap byte-exact | 1 | done | all 3 functions match (ctor 12, deleting-dtor 11, `Combat_IsRangedWeapon` 21) |
 | Shopitem byte-exact | 1 | done | both functions match (ctor 15, deleting-dtor 11) |
 | ClassValues byte-exact (partial) | 1 | in-progress | ctor 43, dtor 26, GetByIndex 75, AddClass 66 match; `LoadClasses`/`DecodeNumber` remain. Member is std::vector<ClassValue> (Rogue Wave STL, sizeof 32) |

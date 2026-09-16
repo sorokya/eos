@@ -75,18 +75,21 @@ String Serial::GetRegName(Serial *s)
 
 void Serial::SetIniPath(Serial *s, String path)
 {
-    try
-    {
     s->ini_file->Clear();
 
+    try
+    {
     String exe = Application->ExeName;
     int last_slash_pos = 0;
-    for (int i = exe.Length(); i >= 1; i--)
+    if (exe.Length() >= 1)
     {
-        if (exe[i] == '\\')
+        for (int i = exe.Length(); i >= 1; i--)
         {
-            last_slash_pos = i;
-            break;
+            if (exe[i] == '\\')
+            {
+                last_slash_pos = i;
+                break;
+            }
         }
     }
 
@@ -131,29 +134,28 @@ String Serial::ReadKey(Serial *s, String key, String def)
             bool after_eq = true;
             String ini_name = "";
             String value = "";
-            if (line.Length() > 0)
+            if (line.Length() >= 1)
             {
                 for (int j = 1; j <= line.Length(); j++)
                 {
-                    char ch = line[j];
-                    if (ch == '=')
+                    if (line[j] == '=')
                         before_eq = false;
                     if (before_eq)
                     {
-                        if (ch != ' ' && ch != '=')
-                            ini_name = ini_name + String(line[j]);
+                        if (line[j] != ' ' && line[j] != '=')
+                            ini_name = ini_name + line[j];
                     }
                     else if (after_eq)
                     {
-                        if (ch != ' ' && ch != '=')
+                        if (line[j] != ' ' && line[j] != '=')
                         {
                             after_eq = false;
-                            value = value + String(line[j]);
+                            value = value + line[j];
                         }
                     }
                     else
                     {
-                        value = value + String(line[j]);
+                        value = value + line[j];
                     }
                 }
                 if (ini_name.LowerCase() == key.LowerCase())
