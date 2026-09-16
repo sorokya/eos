@@ -261,7 +261,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Itemchest | `0x000a2ff8` | not-started |
 | Skillvalues | `0x000a5400` | not-started |
 | Npcvalues | `0x000a8e90` | not-started |
-| Skillvalue | `0x000a8f64` | not-started |
+| Skillvalue | `0x000a8f64` | byte-exact |
 | Npcvalue | `0x000a9ac8` | not-started |
 | Npcdrop | `0x000a9b34` | byte-exact |
 | Jukeboxcontrol | `0x000aa9a8` | not-started |
@@ -419,6 +419,7 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Weaponmap byte-exact | 1 | done | all 3 functions match (ctor 12, deleting-dtor 11, `Combat_IsRangedWeapon` 21) |
 | Shopitem byte-exact | 1 | done | both functions match (ctor 15, deleting-dtor 11) |
 | Shopcraft byte-exact | 1 | done | ctor 28, deleting-dtor 11 match; `ShopCraftVal` = crafted `id` + 4 ingredient id/amount `int[4]` arrays (layout confirmed by the ctor stores; field names from the `ShopCraftRecord` spec) |
+| Skillvalue byte-exact | 1 | done | ctor 23, deleting-dtor 29 match; `SkillValue` = `id` at 0, `String name`/`chant` at 4/8 (leading `EsfRecord` fields). Remaining `EsfRecord` fields pending the `Skillvalues` parser |
 | eo-protocol reference | 0 | done | `ref/eo-protocol` submodule added; `xml/pub/server/protocol.xml` gives the pub record layouts/field names for the `*values` parsers |
 | ClassValues byte-exact (6/6 fns) | 1 | done | ctor 43, dtor 26, GetByIndex 75, AddClass 66, DecodeInt 85 all match; `LoadClasses` 596/596 and `size` 9/9 now match too |
 | LoadClasses (state) | 1 | done | 546 -> 300 -> 0 mismatches. Root cause was the EH scope structure: a `try`/`catch` around the file-read with `h`/`size`/`buf` outside the `try`, inline `DecodeInt` fields in `AddClass`, a loop-carried `total` temp (nested block), a dead `int version` store, `field_0 = file - 1`, and a one-call `size()` accessor |
