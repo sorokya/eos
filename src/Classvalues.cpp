@@ -52,22 +52,21 @@ int ClassValues::DecodeInt(String value)
     String value_copy = value;
     int result = 0;
     int byte_index = 1;
-    while (true)
+    while (value_copy.Length() >= byte_index)
     {
-        if (value_copy.Length() < byte_index)
-            break;
-        unsigned char ch = value_copy[byte_index];
+        char c = value_copy[byte_index];
+        unsigned char ch = c;
         if (ch == 0xFE || ch == 0)
             break;
-        int c = ch - 1;
+        int n = ch - 1;
         if (byte_index == 1)
-            result = result + c;
+            result = result + n;
         if (byte_index == 2)
-            result = result + c * 0xfd;
+            result = result + n * 0xfd;
         if (byte_index == 3)
-            result = result + c * 0xfa09;
+            result = result + n * 0xfa09;
         if (byte_index == 4)
-            result = result + c * 0xf71ae5;
+            result = result + n * 0xf71ae5;
         byte_index = byte_index + 1;
     }
     return result;
