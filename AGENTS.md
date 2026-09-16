@@ -345,6 +345,16 @@ them to pick the form that matches the reference.
   expression parenthesization is observable in codegen.
 - **Frame size is a fast filter.** A source-form guess that changes `add esp,-N`
   or the `[ebp-N]` offsets is wrong even if the instruction count looks close.
+- **A `try`/`catch` around a body is a fingerprint, not an optional style.**
+  A function that raises and catches inside itself emits extra EH scope markers
+  (`mov word ptr [ebp-N], imm` armings the source form cannot otherwise produce)
+  *and* an extra cleanup-table entry with flags `3` (typed, pointing at an RTTI
+  descriptor) alongside the flags-`5` destructor entries for its locals — with
+  the handler body appearing as a detached block (`result = 0; call ...`).
+  Without the `try`, the scope ids stop short of the handler's and the frame is
+  byte-identical, so the difference is invisible except in the marker stream.
+  This is what closed `ClassValues::DecodeInt`; suspect it for any function whose
+  marker stream ends one scope short and whose record lacks a flags-3 entry.
 - **Encoded strings.** Where the reference carries an obfuscated literal (decoded
   through `Serial::DecodeString`), name a macro after the decoded text so intent
   is legible, e.g.

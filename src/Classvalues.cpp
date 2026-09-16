@@ -51,6 +51,7 @@ int ClassValues::DecodeInt(String value)
 {
     String value_copy = value;
     int result = 0;
+    try {
     int byte_index = 1;
     while (value_copy.Length() >= byte_index)
     {
@@ -58,7 +59,8 @@ int ClassValues::DecodeInt(String value)
         unsigned char ch = c;
         if (ch == 0xFE || ch == 0)
             break;
-        int n = ch - 1;
+        int n = ch;
+        n = n - 1;
         if (byte_index == 1)
             result = result + n;
         if (byte_index == 2)
@@ -69,5 +71,6 @@ int ClassValues::DecodeInt(String value)
             result = result + n * 0xf71ae5;
         byte_index = byte_index + 1;
     }
+    } catch (...) { result = 0; }
     return result;
 }
