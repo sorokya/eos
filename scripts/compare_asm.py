@@ -19,6 +19,18 @@ import subprocess
 import sys
 
 
+# Mnemonic aliases for the same opcode: objdump and bcc32 name some conditions
+# differently (both encode 0x9D), which would otherwise show as a mismatch.
+MNEMONIC_ALIASES = {
+    "setnl": "setge", "setnle": "setg", "setnb": "setae", "setnbe": "seta",
+    "setnge": "setl", "setng": "setle", "setnae": "setb", "setna": "setbe",
+    "setpe": "setp", "setpo": "setnp",
+    "jge": "jnl", "jg": "jnle", "jae": "jnb", "ja": "jnbe",
+    "jbe": "jna", "jb": "jnae", "jl": "jnge", "jle": "jng",
+    "cmovnl": "cmovge", "cmovnle": "cmovg", "cmovae": "cmovnb",
+}
+
+
 def canon(ins: str) -> str:
     s = ins.lower().strip()
     s = re.sub(r"<[^>]*>", "", s)
@@ -40,6 +52,9 @@ def canon(ins: str) -> str:
     s = re.sub(r"\s*([+\-])\s*", r"\1", s)
     s = re.sub(r"\s+", " ", s).strip()
     s = re.sub(r"^(j\w+|loop)\s+.*$", r"\1 ADDR", s)
+    parts = s.split(" ", 1)
+    if parts[0] in MNEMONIC_ALIASES:
+        s = MNEMONIC_ALIASES[parts[0]] + (" " + parts[1] if len(parts) > 1 else "")
     return s
 
 

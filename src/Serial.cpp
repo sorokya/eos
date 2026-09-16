@@ -17,27 +17,18 @@ Serial::Serial()
     counter = 10;
     ini_file = new TStringList;
 
-    String enc1 = SERIAL_ENC_STR_CONFIG_SERIAL_INI;
-    String dec1 = DecodeString(this, enc1);
-    SetIniPath(this, dec1);
+    SetIniPath(this, DecodeString(this, SERIAL_ENC_STR_CONFIG_SERIAL_INI));
 
-    String enc2 = SERIAL_ENC_STR_NAME;
-    key_base = ReadKey(this, DecodeString(this, enc2), key_base);
-
-    String enc3 = SERIAL_ENC_STR_MKEY;
-    unlock_code = ReadKey(this, DecodeString(this, enc3), unlock_code);
-
-    String enc4 = SERIAL_ENC_STR_SKEY;
-    serial_code = ReadKey(this, DecodeString(this, enc4), serial_code);
+    key_base = ReadKey(this, DecodeString(this, SERIAL_ENC_STR_NAME), key_base);
+    unlock_code = ReadKey(this, DecodeString(this, SERIAL_ENC_STR_MKEY), unlock_code);
+    serial_code = ReadKey(this, DecodeString(this, SERIAL_ENC_STR_SKEY), serial_code);
 
     ReloadIni(this);
     Validate(this);
 
-    String enc5 = SERIAL_ENC_STR_PUB_DVF001_EVF;
-    String dec5 = DecodeString(this, enc5);
-    SetIniPath(this, dec5);
+    SetIniPath(this, DecodeString(this, SERIAL_ENC_STR_PUB_DVF001_EVF));
 
-    if (ini_file->Text.Length() > 11)
+    if (ini_file->Text.Length() >= 12)
         reg_name += ini_file->Text.SubString(1, 12);
 
     ReloadIni(this);

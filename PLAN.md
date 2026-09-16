@@ -225,7 +225,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Player | `0x00011f64` | not-started |
 | Playerskill | `0x00011fd0` | byte-exact |
 | Playerinventory | `0x0001203c` | byte-exact |
-| Serial | `0x00013b4c` | in-progress |
+| Serial | `0x00013b4c` | byte-exact |
 | Settings | `0x00015d88` | not-started |
 | Logins | `0x000166ec` | not-started |
 | Packets | `0x00074648` | not-started |
@@ -394,6 +394,7 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Per-function diff tooling | 1 | done | `compare_functions.py` self-test 7384/7384 |
 | Serial skeleton compiles | 1 | done | `make unit UNIT=Serial` |
 | Serial accessors byte-exact | 1 | done | 6 accessors + `ReloadIni` + `GetDisplayCode` (54/54) match |
+| Serial byte-exact | 1 | done | all 13 functions match (ctor 271, SetIniPath 177, ReadKey 291, Validate 467, DecodeString 290, ...) |
 | Serial logic reconstructed | 1 | done | `DecodeString` + `Validate` + `GetDisplayCode` + `ReloadIni` and 6 accessors byte-exact (10/13) |
 | Serial remaining | 1 | partial | `SetIniPath` and `ReadKey` byte-exact (try/catch fingerprint); ctor remains |
 | Weaponmap byte-exact | 1 | done | all 3 functions match (ctor 12, deleting-dtor 11, `Combat_IsRangedWeapon` 21) |
