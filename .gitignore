@@ -2,3 +2,17 @@
 
 # Borland5 source/bin
 ref/Borland5
+ref/*.pdf
+
+# Build artifacts
+build/
+*.obj
+*.tds
+*.map
+
+# Generated analysis (regenerate with `make analyze`)
+analysis/
+
+# Python bytecode
+__pycache__/
+*.pyc
