@@ -30,6 +30,21 @@ imports, exports, resource tree). No `pip` packages required.
 - **`units.py PE`** — derive the translation-unit table from the exported
   `@@Unit@Initialize`/`@Finalize` pairs (order, code-end addresses, module
   refcount addresses) into `analysis/target/units.tsv`.
+- **`unitmap.py`** — attribute code addresses to modules, three modes:
+  - `--map FILE` parses an `ilink32 -s` map (`MAP=1 scripts/build.sh`) and names
+    the object or library member behind every range. This is how the link layout
+    was established: explicit objects are contiguous in command-line order and
+    library members follow.
+  - `--pe FILE --stubs --units FILE [--functions FILE] [--libs DIR]` segments a
+    PE at every module initializer stub, including modules `units.py` cannot see
+    (no `@@Unit@Initialize` export), and classifies each unnamed module by
+    byte-matching its functions against the Borland libraries (`--libs`, default
+    `ref/Borland5/Lib`): `library` if it matches a lib member, `unknown`
+    otherwise. Writes `analysis/target/modules.tsv`.
+  - `--units FILE --functions FILE [--modules FILE]` splits the reference `.text`
+    into per-unit function inventories (`analysis/target/unit_functions.tsv`),
+    excluding the `library`/`unknown` module ranges listed in `--modules` so a
+    unit's span cannot absorb a neighbouring module.
 - **`compare_pe.py REF CANDIDATE [--ignore-timestamp] [--struct]`** — whole-file
   hash, header-field diffs, per-section geometry/hash diff, and the first
   differing byte offset; `--struct` adds imports/exports/relocations diffs. Exits
@@ -55,7 +70,8 @@ produced.
   shell.
 - **`build.sh`** — compile every unit in `src/` (main unit first, then
   `units.tsv` order) and link `build/GameServer.exe`, then apply the timestamp
-  normalization.
+  normalization. `MAP=1` adds `ilink32 -s` and writes `build/GameServer.map`
+  (the detailed segment map that `unitmap.py --map` consumes).
 
 ## Make targets
 
@@ -63,6 +79,7 @@ produced.
 make image     # build the docker/Wine image
 make analyze   # extract reference metadata + unit table into analysis/target/
 make units     # rebuild the unit table only
+make unitmap   # attribute reference code to units + list module boundaries
 make functions # per-function byte score vs the Ghidra inventory
 make struct    # structural diff (imports/exports/relocations)
 make disasm    # linear .text disassembly into analysis/target/

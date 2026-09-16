@@ -96,6 +96,39 @@ strings and vtables correctly once the source matches.
   streams as a nesting fingerprint, parenthesization adding temporaries, named
   macros for encoded literals) are recorded in
   [AGENTS.md](AGENTS.md#codegen-fingerprints-verified-while-converging-serial).
+- **Unit boundaries (resolved).** `MAP=1 scripts/build.sh` runs `ilink32 -s` and
+  writes `build/GameServer.map`, whose "Detailed map of segments" section names
+  the object or library member behind every range
+  (`scripts/unitmap.py --map`). This established the layout rule: explicitly
+  listed objects are laid out contiguously in command-line order (startup
+  `c0w32.obj`, then the units in link order) and **library members are appended
+  after them**. Units are therefore contiguous and a unit's `code_span` is its
+  real code size, confirmed on `Serial`: our linked `SERIAL.OBJ` is `0x1A94`
+  bytes against a reference span of `0x1AF0`. **Caveat:** every linked module
+  emits a refcount-guarded initializer stub, but `units.py` sees only modules
+  exported as `@@Unit@Initialize`; units compiled without
+  `#pragma package(smart_init)` are invisible to it. Scanning the stubs
+  (`scripts/unitmap.py --pe … --stubs`) finds **8 unexported modules, all inside
+  `Banned`'s span**. Byte-matching their functions against the Borland libraries
+  classifies **6 as `library`** (`Banned`'s real code is therefore only its last
+  ~64 KB, 508 functions, not 487 KB) and **2 as `unknown`** (`0x51a598..0x51ae78`,
+  2,272 B, 8 fns; `0x51ae88..0x51b1e4`, 860 B, 3 fns) — the only candidate
+  unexported source units so far. The other 64 unit spans are exact.
+- **Library linkage (open, likely correction).** Byte-signature matching of the
+  reference's library-region code against the Borland libs gives **0 Release-only
+  matches vs 65+ Debug-only** (500 samples against `Lib/Release` and `Lib/Debug`
+  blobs); `TStringList::GetText` matches `Lib/Debug/vcl50.lib` exactly and is
+  absent from `Lib/Release/vcl50.lib`. Together with the debug compile flags
+  (`-v -Od -D__CODEGUARD__`) this indicates the original link used the **Debug**
+  VCL/BDE libraries, not `Lib/Release`. Phase 2 must confirm and switch the link
+  set. The refcount counters also split into two arrays (units 1–39 vs 40–65),
+  indicating two compilation groups whose placement must be reproduced.
+- **Function linking (resolved).** bcc32 emits every function as a COMDAT
+  (`virtual(_TEXT)` under `tdump -o`), so `ilink32` discards unit functions that
+  nothing references. The skeleton therefore contains only the Initialize/Finalize
+  stubs, and per-function scoring must use the compiler's `-S` output
+  (`compare_asm.py`) rather than the linked image until the reference call graph
+  is reproduced.
 
 ## Confirmed target facts
 

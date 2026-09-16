@@ -19,7 +19,7 @@ CFLAGS    ?= -D__CODEGUARD__ -v -Od
 LINKFLAGS ?= -Tpe -aa -c -Gn -j -v
 VLIB      ?= import32.lib cw32mt.lib vcl50.lib vcldb50.lib vclbde50.lib
 
-.PHONY: image analyze units functions struct disasm sanity compare normalize build stubs unit unit-asm clean
+.PHONY: image analyze units unitmap functions struct disasm sanity compare normalize build stubs unit unit-asm clean
 
 image:
 	docker build -t $(IMAGE) docker
@@ -30,6 +30,13 @@ analyze:
 
 units:
 	$(PYTHON) scripts/units.py $(REF)
+
+# Attribute reference code to units and list every module boundary, classifying
+# unexported modules as library (byte-matched against the Borland libs) or
+# unknown. See scripts/README.md.
+unitmap:
+	$(PYTHON) scripts/unitmap.py --pe $(REF) --stubs --units analysis/target/units.tsv --functions analysis/ghidra/functions.tsv -o analysis/target/modules.tsv
+	$(PYTHON) scripts/unitmap.py --units analysis/target/units.tsv --functions analysis/ghidra/functions.tsv --modules analysis/target/modules.tsv -o analysis/target/unit_functions.tsv
 
 # Per-function byte comparison against the Ghidra inventory (layout independent).
 # Informational: differences are expected until reconstruction converges.

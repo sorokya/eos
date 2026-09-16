@@ -218,6 +218,13 @@ documented build, not a manual fix-up.
 - `scripts/pe.py`, `scripts/extract_target.py` — dependency-free PE metadata and
   resource/DFM extraction.
 - `scripts/units.py` — translation-unit table (order, end addresses, refcount).
+- `scripts/unitmap.py` — attribute code addresses to modules. `--map` parses an
+  `ilink32 -s` map (produced with `MAP=1 scripts/build.sh`) to name the object or
+  library member behind each range; `--pe … --stubs` segments a PE at every
+  module initializer stub and classifies unnamed modules as `library` (their
+  bytes match the Borland libs) or `unknown`; `--units --functions --modules`
+  turns the reference unit table into per-unit function inventories, excluding
+  library/unknown module ranges.
 - `scripts/compare_pe.py` — whole-file/header/section comparison, plus
   `--struct` for imports, exports and relocations.
 - `scripts/compare_functions.py` — per-function byte scoring against the Ghidra
@@ -253,6 +260,23 @@ is the read-only Ghidra function inventory.
   Do not "improve" code; match it.
 - Keep generated artifacts out of version control (see `.gitignore`); commit only
   source, forms, resources, and build scripts when asked.
+- **Link layout.** `ilink32` lays out explicitly listed objects contiguously in
+  command-line order (startup `c0w32.obj`, then the units in link order) and
+  appends library members *after* them, so unit code is contiguous and a unit's
+  `code_span` is its real size. Confirm against a build with
+  `MAP=1 scripts/build.sh` and `scripts/unitmap.py --map`.
+- **Unexported units.** `units.py` recognises only modules exported as
+  `@@Unit@Initialize`; a unit compiled without `#pragma package(smart_init)` has a
+  non-exported module stub and is invisible to it, so a neighbouring unit's span
+  can straddle it. Scan stubs with `scripts/unitmap.py --pe … --stubs`, which also
+  classifies each unnamed module: `library` if its bytes match a Borland lib
+  member (do **not** reconstruct those), else `unknown`. Only `unknown` modules
+  are candidate source units, and even those must not be given invented names.
+- **Functions are COMDATs.** bcc32 emits each function as a COMDAT, so `ilink32`
+  discards unit functions nothing references; the linked skeleton therefore holds
+  only the Initialize/Finalize stubs. Score functions from the compiler's `-S`
+  listing (`compare_asm.py`), not the linked image, until the call graph is
+  reproduced.
 
 ### String/AnsiString ABI (verified)
 

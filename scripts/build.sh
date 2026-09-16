@@ -11,9 +11,14 @@ cd "$REPO_ROOT"
 
 UNITS_TSV="${UNITS_TSV:-analysis/target/units.tsv}"
 OUT="${OUT:-build/GameServer.exe}"
+MAP="${MAP:-}"
 CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od}"
 VLIB="${VLIB:-import32.lib cw32mt.lib vcl50.lib vcldb50.lib vclbde50.lib}"
 LINKFLAGS="${LINKFLAGS:--Tpe -aa -c -Gn -j -v}"
+if [ -n "$MAP" ]; then
+  LINKFLAGS="$LINKFLAGS -s"
+fi
+MAPARG=""
 
 UNITS=()
 while IFS= read -r u; do
@@ -34,7 +39,7 @@ mkdir -p build/obj
   for u in "${UNITS[@]}"; do
     OBJS+=" \"Z:\\work\\build\\obj\\$u.obj\""
   done
-  echo "wine \"\$B\\Bin\\ilink32.exe\" $LINKFLAGS \$L \"\$BZ\\Lib\\c0w32.obj\" $OBJS, \"Z:\\work\\build\\GameServer.exe\",, $VLIB"
+  echo "wine \"\$B\\Bin\\ilink32.exe\" $LINKFLAGS \$L \"\$BZ\\Lib\\c0w32.obj\" $OBJS, \"Z:\\work\\build\\GameServer.exe\", $MAPARG, $VLIB"
 } > build/build_inner.sh
 
 echo "building ${#UNITS[@]} units + GUI ..."
