@@ -8,12 +8,12 @@
 // non-virtual destructor that lowers to the deleting form.
 // The class name is a Ghidra hint; internal names are unobservable in the
 // stripped image. Member semantics are unverified.
-struct ShopTradeItem
+struct ShopItemVal
 {
     int item_id;
 
-    ShopTradeItem(int item_id);
-    ~ShopTradeItem();
+    ShopItemVal(int item_id);
+    ~ShopItemVal();
 };
 
 #endif

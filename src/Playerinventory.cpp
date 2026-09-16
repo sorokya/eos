@@ -5,11 +5,11 @@
 
 #pragma package(smart_init)
 
-Playerinventory::Playerinventory(int value)
+PlayerInventory::PlayerInventory(int value)
 {
     field_0 = value;
 }
 
-Playerinventory::~Playerinventory()
+PlayerInventory::~PlayerInventory()
 {
 }

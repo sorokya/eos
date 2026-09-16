@@ -5,11 +5,11 @@
 
 #pragma package(smart_init)
 
-Npcdrop::Npcdrop(int value)
+NpcDropItem::NpcDropItem(int value)
 {
     field_0 = value;
 }
 
-Npcdrop::~Npcdrop()
+NpcDropItem::~NpcDropItem()
 {
 }

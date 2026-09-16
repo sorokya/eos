@@ -272,7 +272,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Innvalues | `0x00135d94` | not-started |
 | Innvalue | `0x00135ecc` | not-started |
 | Classvalues | `0x00137460` | not-started |
-| Classvalue | `0x00137510` | not-started |
+| Classvalue | `0x00137510` | byte-exact |
 | Playerquest | `0x001375b4` | not-started |
 | Questtype | `0x001376a0` | not-started |
 | Quest | `0x00137ac0` | not-started |
@@ -398,6 +398,7 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Serial remaining | 1 | partial | `SetIniPath` 155, `ReadKey` 254, ctor 246 — EH scope-structure only |
 | Weaponmap byte-exact | 1 | done | all 3 functions match (ctor 12, deleting-dtor 11, `Combat_IsRangedWeapon` 21) |
 | Shopitem byte-exact | 1 | done | both functions match (ctor 15, deleting-dtor 11) |
+| Classvalue byte-exact | 1 | done | ctor 19 + dtor 24 match; ECF element layout (0x1C) pinned by the owning vector |
 | Ctor/dtor family byte-exact | 1 | done | `Itemground`, `Npcdrop`, `Playerskill`, `Playerinventory` — all ctors and deleting-dtors match (6 units total with `Weaponmap`/`Shopitem`) |
 | Full skeleton links | 1 | done | `make build`: 133 exports, working PE |
 | Full skeleton runs functionally | 1 | todo | launch and exercise |
