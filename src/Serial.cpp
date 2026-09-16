@@ -158,7 +158,7 @@ String Serial::ReadKey(Serial *s, String key, String def)
                         value = value + line[j];
                     }
                 }
-                if (ini_name.LowerCase() == key.LowerCase())
+                if (AnsiLowerCase(ini_name) == AnsiLowerCase(key))
                 {
                     if (value.Length() >= 1)
                         result = value;
