@@ -13,6 +13,13 @@ void Classvalues::LoadClasses()
 {
 }
 
+ClassValue Classvalues::GetByIndex(Classvalues *self, int index)
+{
+    if (index < 0 || (unsigned)index > self->values.size() - 1)
+        index = 0;
+    return self->values[index];
+}
+
 Classvalues::Classvalues()
 {
     field_18 = operator new(8);

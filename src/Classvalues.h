@@ -32,6 +32,8 @@ public:
     ~Classvalues();
 
     void LoadClasses();
+
+    static ClassValue GetByIndex(Classvalues *self, int index);
 };
 
 #endif
