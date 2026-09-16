@@ -118,6 +118,84 @@ def print_diff(ref, our, context: int = 3) -> None:
                 print(f"   + our  {x}")
 
 
+def parse_our_lines(path: str, mangled_prefix: str):
+    """Like parse_our but also returns the source line for each instruction.
+
+    bcc32's -S listing interleaves `?debug L n` directives before the code a
+    source line produced, so the listing alone attributes every instruction to a
+    source line. Aligning that against the reference shows which line's code the
+    reference has and we do not (or vice versa) - the missing lens for functions
+    with many temporaries.
+    """
+    txt = open(path, encoding="latin1").read()
+    m = re.search(r"(?m)^" + re.escape(mangled_prefix) + r"\$q[^\n]*\n(.*?)endp",
+                  txt, re.S)
+    if not m:
+        return None, [], []
+    skip = {"dw", "dd", "db", "dt", "public", "extrn", "segment", "ends", "proc",
+            "endp", "end", "align", "assume", "org", "equ", "_data", "_text",
+            "_bss", "_tls", "_rdata"}
+    out, calls, mk, lines = [], [], [], []
+    cur = 0
+    for line in m.group(1).split("\n"):
+        s = line.strip()
+        lm = re.match(r"\?debug\s+L\s+(\d+)", s)
+        if lm:
+            cur = int(lm.group(1))
+            continue
+        if not s or s[0] in ";?@":
+            continue
+        if s.split()[0].lower() in skip:
+            continue
+        cm = re.match(r"(?i)^call\s+(\S+)", s)
+        if cm:
+            calls.append(cm.group(1))
+        mm = marker_of(s)
+        if mm:
+            mk.append(mm)
+        out.append(canon(s))
+        lines.append(cur)
+    return out, calls, (mk, lines)
+
+
+def print_line_summary(ref, our, our_lines, context: int = 3) -> None:
+    """Report, per source line, the alignment hunks that involve it.
+
+    Runs the same difflib alignment as print_diff but folds the ref-only
+    instructions back onto the source line of the neighbouring our-instruction,
+    so each 'the reference has code here that we do not' gap names a line.
+    """
+    import difflib
+    sm = difflib.SequenceMatcher(None, ref, our, autojunk=False)
+    per_line = {}
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == "equal":
+            continue
+        # the source line this hunk sits at is the line of the our-instruction
+        # just before it (or after, if the hunk is a pure deletion)
+        if j1 > 0:
+            ln = our_lines[j1 - 1]
+        elif j1 < len(our_lines):
+            ln = our_lines[j1]
+        else:
+            ln = 0
+        ref_only = i2 - i1 if tag in ("delete", "replace") else 0
+        our_only = j2 - j1 if tag in ("insert", "replace") else 0
+        e = per_line.setdefault(ln, [0, 0, 0])
+        e[0] += 1
+        e[1] += ref_only
+        e[2] += our_only
+    if not per_line:
+        return
+    print("\nby source line (line: hunks, ref-only instrs, our-only instrs):")
+    for ln in sorted(per_line):
+        h, ro, oo = per_line[ln]
+        print(f"  L{ln:<4} hunks={h:<3} ref_only={ro:<4} our_only={oo}")
+    src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                       "src")
+    return src
+
+
 def parse_our(path: str, mangled_prefix: str):
     txt = open(path, encoding="latin1").read()
     m = re.search(r"(?m)^" + re.escape(mangled_prefix) + r"\$q[^\n]*\n(.*?)endp", txt, re.S)
@@ -192,9 +270,16 @@ def main() -> int:
                     help="always print the EH scope marker streams")
     ap.add_argument("--diff", action="store_true",
                     help="always print the aligned instruction diff")
+    ap.add_argument("--lines", action="store_true",
+                    help="annotate the diff with our source lines and summarise "
+                         "mismatches per source line")
     args = ap.parse_args()
 
-    our, calls, our_mk = parse_our(args.asm, args.mangled_prefix)
+    our_lines = None
+    if args.lines:
+        our, calls, (our_mk, our_lines) = parse_our_lines(args.asm, args.mangled_prefix)
+    else:
+        our, calls, our_mk = parse_our(args.asm, args.mangled_prefix)
     if our is None:
         print(f"function {args.mangled_prefix} not found in {args.asm}")
         return 2
@@ -232,6 +317,8 @@ def main() -> int:
               + ", ".join(sorted(set(warn))))
     if args.diff or mismatches > 0:
         print_diff(ref, our)
+    if our_lines is not None:
+        print_line_summary(ref, our, our_lines)
     print_markers(ref_mk, our_mk, force=args.markers or mismatches > 0)
     return 0 if mismatches == 0 and len(ref) == len(our) else 1
 
