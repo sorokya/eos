@@ -125,28 +125,31 @@ against the reference header and section table:
   base `0x00400000`).
 - Startup object is `c0w32.obj` (Windows GUI startup; built from
   `ref/Borland5/Source/RTL/source/startup/c0ntw.asm`, which includes `c0nt.asm`).
-- The application is multithreaded and statically linked, using `cw32mt.lib`
-  (multithreaded static RTL) plus the release-mode VCL/BDE libraries in
-  `ref/Borland5/Lib/Release`.
+- The application is multithreaded and statically linked, using the C/C++ RTL
+  (`cw32mt.lib`, `cp32mt.lib`) plus the **Debug** VCL/BDE libraries in
+  `ref/Borland5/Lib/Debug`. Byte-signature matching showed the reference's
+  library code matches `Lib/Debug` (`vcl50`, `vcldb50`, `vclbde50`) and not
+  `Lib/Release` across every library module, and the reference carries Debug-only
+  strings with zero Release-only ones — consistent with the debug compile flags.
+  `Lib/Debug` therefore precedes `Lib/Release` on the search path.
 
 The Phase 0 harness validated this link line against the reference header and
 section geometry (`make sanity`):
 
 ```sh
 ilink32 -Tpe -aa -c -Gn -j -v \
-    -L"$BZ\Lib" -L"$BZ\Lib\Obj" -L"$BZ\Lib\Release" \
+    -L"$BZ\Lib" -L"$BZ\Lib\Obj" -L"$BZ\Lib\Debug" -L"$BZ\Lib\Release" \
     "$BZ\Lib\c0w32.obj" <objects>,
     GameServer.exe,,
-    import32.lib cw32mt.lib vcl50.lib vcldb50.lib vclbde50.lib
+    import32.lib cw32mt.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib
 ```
 
 The library set covers the components observed in the target (`vcl50.lib` for
 VCL/forms/sockets, `vcldb50.lib` for the `Db` unit, `vclbde50.lib` for
 `DBTables`). Library objects are pulled on demand, so unused libraries do not
-affect the bytes; the exact set and order are finalized in Phase 1 by matching
-the linked object set. The three `-L` directories mirror the paths in
-`ilink32.cfg`; `Lib/Obj` is required for the VCL `.res` files (for example
-`Controls.res`).
+affect the bytes; the exact set and order are finalized in Phase 2 by matching
+the linked object set. The `-L` directories mirror the paths in `ilink32.cfg`;
+`Lib/Obj` is required for the VCL `.res` files (for example `Controls.res`).
 
 ### Compiler flags
 

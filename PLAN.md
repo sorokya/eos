@@ -114,15 +114,18 @@ strings and vtables correctly once the source matches.
   ~64 KB, 508 functions, not 487 KB) and **2 as `unknown`** (`0x51a598..0x51ae78`,
   2,272 B, 8 fns; `0x51ae88..0x51b1e4`, 860 B, 3 fns) — the only candidate
   unexported source units so far. The other 64 unit spans are exact.
-- **Library linkage (open, likely correction).** Byte-signature matching of the
-  reference's library-region code against the Borland libs gives **0 Release-only
-  matches vs 65+ Debug-only** (500 samples against `Lib/Release` and `Lib/Debug`
-  blobs); `TStringList::GetText` matches `Lib/Debug/vcl50.lib` exactly and is
-  absent from `Lib/Release/vcl50.lib`. Together with the debug compile flags
-  (`-v -Od -D__CODEGUARD__`) this indicates the original link used the **Debug**
-  VCL/BDE libraries, not `Lib/Release`. Phase 2 must confirm and switch the link
-  set. The refcount counters also split into two arrays (units 1–39 vs 40–65),
-  indicating two compilation groups whose placement must be reproduced.
+- **Library linkage (Debug confirmed, order open).** Byte-signature matching of
+  the reference's library-region code against the Borland libs gives **0
+  Release-only matches vs 65+ Debug-only** (500 code samples), and the reference
+  carries **22 Debug-only strings vs 0 Release-only**; every one of the six
+  library modules matches `Lib/Debug` far better than `Lib/Release` (e.g. 27 vs 3
+  for one module). The original link therefore used the **Debug** VCL/BDE
+  libraries (`vcl50`, `vcldb50`, `vclbde50`), consistent with the debug compile
+  flags. `scripts/build.sh` and the `Makefile` now put `Lib/Debug` before
+  `Lib/Release` and add `cp32mt.lib`; `make sanity` and `make build` pass.
+  Remaining for Phase 2: the exact library *order* and reproducing the two-group
+  placement, since the refcount counters split into two arrays (units 1–39 vs
+  40–65) with a 300 KB library block between the groups.
 - **Function linking (resolved).** bcc32 emits every function as a COMDAT
   (`virtual(_TEXT)` under `tdump -o`), so `ilink32` discards unit functions that
   nothing references. The skeleton therefore contains only the Initialize/Finalize
@@ -142,7 +145,7 @@ method used to establish it.
 | Format | PE32 GUI, `coff-i386` | `objdump`, `pefile` |
 | Linker | 5.0, PE executable, GUI subsystem | PE header fields |
 | Link flags | `-Tpe -aa -c -Gn -j -v` | scratch link reproduces header `0x010e` and section geometry |
-| Static libraries | `import32.lib cw32mt.lib vcl50.lib vcldb50.lib vclbde50.lib` | minimal VCL+BDE link resolves; set/order finalized in Phase 1 |
+| Static libraries | `import32.lib cw32mt.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib` (from `Lib/Debug`) | minimal VCL+BDE link resolves; Debug variant byte-matched; order finalized in Phase 2 |
 | Header characteristic | `0x010e` | PE header; reproduced with `ilink32 -v` |
 | Timestamp | `0x50CBB124` at file offset `0x208` | PE header (`e_lfanew + 8`) |
 | Entry point | `0x00401000` | PE header |
@@ -164,7 +167,8 @@ Windows GUI object and a minimal VCL+BDE app and linking them with
 - `-v` produced header characteristic `0x010e`; omitting it produced `0x030e`.
 - No debug directory was emitted, matching the reference.
 - The minimal VCL+BDE link resolved with `import32.lib cw32mt.lib vcl50.lib
-  vcldb50.lib vclbde50.lib` and the three `Lib` search paths, reproducing every
+  vcldb50.lib vclbde50.lib` (later corrected to the Debug set — see the
+  library-linkage finding) and the three `Lib` search paths, reproducing every
   reference header field.
 
 The exact object selection from those libraries is validated in Phase 1 by
@@ -289,10 +293,11 @@ Delivered:
   `TPasswordDialog`, and `DVCLAL` payloads, and a 452,937-line linear `.text`
   disassembly.
 - Link configuration verified: `-Tpe -aa -c -Gn -j -v`, startup `c0w32.obj`,
-  search paths `Lib;Lib/Obj;Lib/Release`, libraries `import32.lib cw32mt.lib
-  vcl50.lib vcldb50.lib vclbde50.lib`. A minimal VCL+BDE link (`make sanity`)
-  reproduces every reference header field (`0x010e`, subsystem, base,
-  alignments, stack/heap) and the section order.
+  search paths `Lib;Lib/Obj;Lib/Debug;Lib/Release`, libraries `import32.lib
+  cw32mt.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib` (the Debug VCL/BDE
+  set was established later — see the library-linkage finding above). A minimal
+  VCL+BDE link (`make sanity`) reproduces every reference header field (`0x010e`,
+  subsystem, base, alignments, stack/heap) and the section order.
 - Deterministic timestamp: `normalize_pe.py` rewrites `TimeDateStamp` at
   `e_lfanew + 8` (`0x208`); verified to restore the reference MD5 from a copy
   differing only in that field. Clock control (`libfaketime`) remains an

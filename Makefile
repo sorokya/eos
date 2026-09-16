@@ -12,12 +12,12 @@ REF       ?= GameServer.exe
 # expansion), and no optimization (-Od). Keep this in sync with scripts/build.sh.
 CFLAGS    ?= -D__CODEGUARD__ -v -Od
 
-# Link configuration validated in Phase 0 against the reference header and
-# section geometry (see PLAN.md). -v is required for header characteristic
-# 0x010e; the static VCL+BDE library set covers the components observed in the
-# target. Exact library order is finalized in Phase 1.
+# Link configuration. The reference's library code byte-matches the Debug VCL/BDE
+# libraries, not Release (see PLAN.md), so Lib/Debug precedes Lib/Release on the
+# search path; same-named .libs there win. Exact library order is finalized in
+# Phase 2.
 LINKFLAGS ?= -Tpe -aa -c -Gn -j -v
-VLIB      ?= import32.lib cw32mt.lib vcl50.lib vcldb50.lib vclbde50.lib
+VLIB      ?= import32.lib cw32mt.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib
 
 .PHONY: image analyze units unitmap functions struct disasm sanity compare normalize build stubs unit unit-asm clean
 
@@ -54,7 +54,7 @@ disasm:
 sanity:
 	mkdir -p build
 	scripts/borland.sh 'wine "$$B\Bin\bcc32.exe" -c -obuild/vcl_link.obj tests/vcl_link.cpp'
-	scripts/borland.sh 'L="-L$$BZ\Lib -L$$BZ\Lib\Obj -L$$BZ\Lib\Release"; wine "$$B\Bin\ilink32.exe" $(LINKFLAGS) $$L "$$BZ\Lib\c0w32.obj" "Z:\work\build\vcl_link.obj", "Z:\work\build\vcl_link.exe",, $(VLIB)'
+	scripts/borland.sh 'L="-L$$BZ\Lib -L$$BZ\Lib\Obj -L$$BZ\Lib\Debug -L$$BZ\Lib\Release"; wine "$$B\Bin\ilink32.exe" $(LINKFLAGS) $$L "$$BZ\Lib\c0w32.obj" "Z:\work\build\vcl_link.obj", "Z:\work\build\vcl_link.exe",, $(VLIB)'
 
 # Level-3 comparison of a rebuilt image against the reference.
 compare:

@@ -350,7 +350,7 @@ def main() -> int:
             named = sum(1 for m in modules if m["name"])
             print(f"stubs {args.pe}: {n} modules ({named} exported units, "
                   f"{n - named} unexported)", file=sys.stderr)
-        if args.units and args.functions:
+        if args.units and args.functions and not args.stubs:
             units = load_units(args.units)
             funcs = load_functions(args.functions)
             excl = load_modules(args.modules) if args.modules else []
@@ -358,7 +358,7 @@ def main() -> int:
             print(f"units {args.units}: {covered} reference functions attributed "
                   f"to {len(units)} units ({len(excl)} excluded module ranges)",
                   file=sys.stderr)
-        elif args.units and not args.stubs:
+        elif args.units and not args.stubs and not args.functions:
             print("--units needs --functions (or use --stubs)", file=sys.stderr)
             return 2
     finally:
