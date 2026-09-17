@@ -1,3 +1,9 @@
 [submodule "ref/eo-protocol"]
 	path = ref/eo-protocol
 	url = https://github.com/cirras/eo-protocol
+[submodule "ref/reoserv"]
+	path = ref/reoserv
+	url = https://github.com/sorokya/reoserv
+[submodule "ref/eolib-rs"]
+	path = ref/eolib-rs
+	url = https://github.com/sorokya/eolib-rs
