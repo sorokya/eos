@@ -55,6 +55,10 @@ def canon(ins: str) -> str:
     parts = s.split(" ", 1)
     if parts[0] in MNEMONIC_ALIASES:
         s = MNEMONIC_ALIASES[parts[0]] + (" " + parts[1] if len(parts) > 1 else "")
+    # String-op operands are implicit: bcc32's listing prints a bare `rep movsd`
+    # while objdump spells out `rep movsd es:[edi],ds:[esi]`. They are the same
+    # instruction, so drop the operand text.
+    s = re.sub(r"^(rep\s+(?:movs|stos|lods|scas|cmp)s?[bwd]?)\b.*$", r"\1", s)
     return s
 
 

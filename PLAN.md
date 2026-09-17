@@ -272,9 +272,9 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Msgboard | `0x000ae35c` | not-started |
 | Npccontrol | `0x000b11f4` | not-started |
 | Gamecontrol | `0x000b15a0` | not-started |
-| Shopvalues | `0x000b49b4` | not-started |
+| Shopvalues | `0x000b49b4` | byte-exact |
 | Shopitem | `0x000b4a20` | byte-exact |
-| Shopvalue | `0x000b546c` | in-progress |
+| Shopvalue | `0x000b546c` | byte-exact |
 | Shopcraft | `0x000b5500` | byte-exact |
 | Chestcontrol | `0x000b5bc4` | not-started |
 | Weaponmap | `0x000b5c60` | byte-exact |
@@ -283,12 +283,12 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Eventcontrol | `0x0012e204` | not-started |
 | Wedding | `0x0012e35c` | not-started |
 | Weddings | `0x001303d0` | not-started |
-| Learnvalue | `0x00130e78` | not-started |
-| Learnvalues | `0x0013326c` | not-started |
+| Learnvalue | `0x00130e78` | byte-exact |
+| Learnvalues | `0x0013326c` | byte-exact |
 | Learnitem | `0x00133300` | not-started |
 | Mysqlthread | `0x00133818` | not-started |
 | Mysqltask | `0x001342bc` | not-started |
-| Innvalues | `0x00135d94` | not-started |
+| Innvalues | `0x00135d94` | byte-exact |
 | Innvalue | `0x00135ecc` | byte-exact |
 | ClassValues | `0x00137460` | byte-exact |
 | Classvalue | `0x00137510` | byte-exact |
@@ -426,6 +426,8 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | LoadClasses (state) | 1 | done | 546 -> 300 -> 0 mismatches. Root cause was the EH scope structure: a `try`/`catch` around the file-read with `h`/`size`/`buf` outside the `try`, inline `DecodeInt` fields in `AddClass`, a loop-carried `total` temp (nested block), a dead `int version` store, `field_0 = file - 1`, and a one-call `size()` accessor |
 | Itemvalues byte-exact (21/21 fns) | 1 | done | ctor 47, `LoadItems` 1243 (includes the `try`/`catch` file read, `field_14->Clear()` + `Clear(self)` reset, `namelen+off` inline `DecodeNumber` record args), `AddItem` 167, `Clear` 40, `GetRecordSlot`/`GetByIndex`/`GetCount`, 11 `Eif_Get*` accessors, `DecodeNumber` 85 — all 0 mismatches. `values` is `std::vector<ItemValue *>`; the two result-pair structs need an empty user ctor plus a single anonymous aggregate member to reproduce the folded ctor (0x44f58c) and the memcpy-style return |
 | Skillvalues byte-exact (13/13 fns) | 1 | done | ctor 43, deleting-dtor 26, `LoadSpells` 1053 (ESF parser, `try`/`catch` file read), `AddRecord` 121, `GetDamage`/`GetElement` 48 (pair structs need an empty user ctor + single anonymous aggregate member), `GetTargetType`/`GetSkillType`/`GetTpCost`/`GetHpHeal` 30, `GetCastTime` 32, `GetCount` 9, `DecodeNumber` 85 - all 0 mismatches. `values` is `std::vector<SkillValue>` |
+| Shopvalues byte-exact (15/15 fns) | 1 | done | ctor 30, `LoadShops` 605 (ESF `./pub/dts001.esf`, `try`/`catch` file read, inline `DecodeNumber` record args), `Clear` 43, `GetCraftIngredient1..4` 81 each, `GetBuyPrice`/`GetSellPrice` 75 each, `BuildOpenData` 500, `GetRecordCount` 9, `EncodeNumber` 134, `DecodeNumber` 85, `AddTrade` 11, `AddCraft` 16 - all 0 mismatches. Added `ShopValue::AddTrade`/`AddCraft` (Shopvalue unit, 43/53, 0 mismatches). `ShopItemVal` extended to the 16-byte trade record (`item_id`/`buy_price`/`sell_price`/`max_amount`) without changing its ctor/dtor (15/11); `ShopValue` header fields pinned to `short min_level`(8)/`max_level`(0xa)/`class_requirement`(0xc) |
+| Innvalues byte-exact (15/15 fns) | 1 | done | ctor 30, deleting-dtor 26, `LoadInns` 533 (`./pub/din001.eid`; single-file EID parser: behavior_id[short], namelen[char], name, spawn/sleep/alt fields, then 3 `InnQuestionRecord` question/answer pairs; `do { ... } while (data.Length() > 0xf)`, `try`/`catch` file read), `GetName` 51, `GetSleepMap` 21 / `GetSleepX` 11 / `GetSleepY` 11, `GetSpawnMap` 48 / `GetSpawnX` 40 / `GetSpawnY` 40 (alternate-spawn threshold logic), `GetQuestion` 98 (separator is the implicit `char`->`String` conversion `Insert((char)0xff, ...)`, not `String((char)0xff)`), `GetAnswer` 54, `Clear` 16, `GetCount` 9 (`unsigned`), `DecodeNumber` 83 - all 0 mismatches. `record_list` is `std::vector<InnValue>` (`loaded` at 0, `field_24` at 0x24); all `vector<InnValue>` helpers (`$bctr`, `__init`, `insert`/`__insert_aux`, `__construct`, `copy_backward`, `copy`, `allocate`, `uninitialized_copy`, `clear`/`erase`, `__rw_basis`) also match |
 | Shared value decoder found | 1 | todo | The same base-253 decoder (`(c-1) * {1, 253, 253^2, 253^3}`) appears once per `*values` unit - 10 sites with identical 16-byte multiplier spacing. It is shared source (header/base), so it must be reconstructed once and reused, not per unit |
 | Classvalue byte-exact | 1 | done | ctor 19 + dtor 24 match; ECF element layout (0x1C) pinned by the owning vector |
 | Ctor/dtor family byte-exact | 1 | done | `Itemground`, `Npcdrop`, `Playerskill`, `Playerinventory` — all ctors and deleting-dtors match (6 units total with `Weaponmap`/`Shopitem`) |
