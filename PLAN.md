@@ -207,8 +207,17 @@ strings and vtables correctly once the source matches.
   `s.Insert(x, s.Length()+1)` (bcc32 lowers `s += x` to `$brplu`, which is not
   the reference's sequence). A `FILE *fp;` **declaration separate from its
   assignment** avoids an extra EH scope marker at the `fopen` site.
-  Six of the eight handlers are byte-exact (see milestones); `FormCreate`
-  (4160 bytes) and `timerTimer` (1519 bytes) remain.
+  `FormCreate` assigns the controllers directly (`field = new T(...)`), not via
+  named locals (a local adds a temporary and an EH scope marker); the
+  `server->Active = true` activation is wrapped in a `try`/`catch (...)` that
+  calls `Application->Terminate()`. `timerTimer` is `void` (the event
+  signature), not the `int` Ghidra inferred, and its GUI block passes the
+  `FUN_004762c8` string arguments inline (right-to-left evaluation orders the
+  pushes). Controller/subsystem classes with reconstructed headers
+  (`ItemValues`, `NpcValues`, `SkillValues`, `LearnValues`, `ShopValues`,
+  `InnValues`, `ClassValues`, `Jukeboxcontrol`, `Serial`) are included from
+  their real units; the rest are size-and-ctor stubs in `Mainform.cpp`.
+  **All eight handlers are byte-exact** (see milestones).
 
 - **`ClassValues::LoadClasses` (byte-exact).** The ~600-instruction ECF table
   parser (`0x536100`), now byte-identical (596/596). Root causes found by
@@ -501,7 +510,7 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Jukeboxcontrol ctor byte-exact + disassembly partition | 2 | progress | `Jukeboxcontrol()` matches 0 mismatches; source is just `{ field_0 = operator new(8); recent_plays.clear(); }`. This resolved the InitStub puzzle: `InitStub`, `InitRecentPlays`, `ClearRecentPlays`, `InitBox`, `ComputeInitialCapacity`, `GrowCapacity` are the `std::vector<JukeBox>` member's own construction internals (library COMDATs the compiler emits for free), NOT source functions. Of the unit's 33 reference functions, 14 are such COMDATs already covered by the ctor alone; 19 real source functions remain (the `0x4a9e14`-`0x4aa534` group, `BuildRecentTracksString` 382, `TryPlayTrack` 299, and its own base-253 `EncodeNumber` 323) |
 | Jukebox byte-exact (2/2 fns) | 1 | done | `JukeBox(short)` and `~JukeBox()` both 0 mismatches. `JukeBox` (RTTI name) = `short id`(+0), `char playing`(+2), `TDateTime timer`(+8), `AnsiString name`(+0x10); the ctor zero-inits the `TDateTime` via its out-of-line `__fastcall` default ctor (called with `this` in EAX - an inline `double` store or a `__cdecl` wrapper both fail) and the dtor destroys only the `AnsiString`, confirming the `TDateTime` is the unmanaged 8-byte member |
 | Mainform/TGUI form located; method table corrected | 2 | done | Class RTTI (`VA 0x4042b4`) names unit `MainForm`; VMT `VA 0x55c380`, size `0x378`. Field table (`VA 0x55c460`) and method table (`VA 0x55c513`, format per `TObject::MethodAddress`) decoded; corrected the shifted handler addresses (`FormCreate` `0x4015c8`, `serverClientConnect` `0x4027c4`, `serverClientError` `0x4028e8`, `serverClientDisconnect` `0x402938`, `serverClientRead` `0x402988`, `timerTimer` `0x402a20`, `FormClose` `0x4036c8`, `ApplicationEvents1Exception` `0x4036f0`). `src/Mainform.h`/`.cpp` carry the `TGUI` class and handlers |
-| Mainform handlers byte-exact (6/8) | 2 | progress | `FormClose` 15, `serverClientError` 26, `serverClientConnect` 83, `serverClientDisconnect` 25, `serverClientRead` 43, `ApplicationEvents1Exception` 202 - all 0 mismatches. Remaining: `FormCreate` (`0x4015c8`, 4160 B boot sequence) and `timerTimer` (`0x402a20`, 1519 B master tick) |
+| Mainform handlers byte-exact (8/8) | 2 | done | `FormCreate` 885 (`0x4015c8`, boot sequence), `timerTimer` 424 (`0x402a20`, master tick), `FormClose` 15, `serverClientError` 26, `serverClientConnect` 83, `serverClientDisconnect` 25, `serverClientRead` 43, `ApplicationEvents1Exception` 202 - all 0 mismatches. Class layout (published fields + private controllers) pinned by the reference field table; `Mainform` unit now defines the whole `TGUI` surface |
 | *values family byte-exact (13 units) | 2 | done | `Classvalues`/`Classvalue`, `Itemvalues`/`Itemvalue`, `Skillvalues`/`Skillvalue`, `Npcvalues`/`Npcvalue`, `Shopvalues`/`Shopvalue`/`Shopcraft`, `Learnvalues`/`Learnvalue`/`Learnitem`, `Innvalues`/`Innvalue` — every source function scores 0 mismatches (parsers, ctors/dtors, accessors, encode/decode). Most were reconstructed in parallel by subagents; the shared idioms are the try/catch file read, inline `DecodeNumber` record arguments, and the empty-ctor + anonymous-aggregate result-pair shape |
 | Shared value decoder done | 1 | done | The base-253 decoder is reconstructed per unit (each *values class has its own DecodeNumber, 83-85 instrs) and the base-253 encoder per container (EncodeNumber, 134 instrs) - all byte-exact. The decoder is per-class source (not one shared function), confirmed by the distinct mangled names and identical 287-byte bodies with 16-byte multiplier spacing |
 | Classvalue byte-exact | 1 | done | ctor 19 + dtor 24 match; ECF element layout (0x1C) pinned by the owning vector |

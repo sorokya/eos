@@ -25,13 +25,13 @@ class Chestcontrol;
 class Doorcontrol;
 class Effectcontrol;
 class Eventcontrol;
-class Itemvalues;
-class Npcvalues;
-class Skillvalues;
-class Learnvalues;
-class Shopvalues;
-class Innvalues;
-class Classvalues;
+class ItemValues;
+class NpcValues;
+class SkillValues;
+class LearnValues;
+class ShopValues;
+class InnValues;
+class ClassValues;
 class Msgboardcontrol;
 class Jukeboxcontrol;
 class Weddings;
@@ -73,13 +73,13 @@ class TGUI : public TForm
     int version_minor;                 // +0x32c
     int version_major;                 // +0x330
     int tick_counter;                  // +0x334
-    Itemvalues *item_values;           // +0x338
-    Npcvalues *npc_values;             // +0x33c
-    Skillvalues *skill_values;         // +0x340
-    Learnvalues *learn_values;         // +0x344
-    Shopvalues *shop_values;           // +0x348
-    Innvalues *inn_values;             // +0x34c
-    Classvalues *class_values;         // +0x350
+    ItemValues *item_values;           // +0x338
+    NpcValues *npc_values;             // +0x33c
+    SkillValues *skill_values;         // +0x340
+    LearnValues *learn_values;         // +0x344
+    ShopValues *shop_values;           // +0x348
+    InnValues *inn_values;             // +0x34c
+    ClassValues *class_values;         // +0x350
     Msgboardcontrol *msgboard_control; // +0x354
     Jukeboxcontrol *jukebox_control;   // +0x358
     Weddings *weddings;                // +0x35c
