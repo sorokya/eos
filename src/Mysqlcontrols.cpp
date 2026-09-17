@@ -32,10 +32,16 @@ void Mysqlcontrols::Free(Mysqlcontrols *self, unsigned char free_flags)
 
 bool Mysqlcontrols::TestConnection(Mysqlcontrols *self)
 {
-    GUI->mysql->Params->Clear();
-    GUI->mysql->Params->Add(FUN_00477a00(self, "xxz_hhvowmv=vnzmivhf"));
-    GUI->mysql->Params->Add(FUN_00477a00(self, "5pz0agrc=wildhhzk"));
-    GUI->mysql->Connected = true;
+    try
+    {
+        GUI->mysql->Params->Clear();
+        GUI->mysql->Params->Add(FUN_00477a00(self, "xxz_hhvowmv=vnzmivhf"));
+        GUI->mysql->Params->Add(FUN_00477a00(self, "5pz0agrc=wildhhzk"));
+        GUI->mysql->Connected = true;
+    }
+    catch (...)
+    {
+    }
     return GUI->mysql->Connected;
 }
 
@@ -146,22 +152,23 @@ void Mysqlcontrols::FUN_004762c8(
     Mysqlcontrols *self, int refresh, int conn, int idle, int stat, String a, String b)
 {
     TTimeStamp now_stamp = DateTimeToTimeStamp(Now());
-    int elapsed = (now_stamp.Time - self->last_query_time.Time) / 1000 +
-                  (now_stamp.Date - self->last_query_time.Date) * 0x15180;
-    if (refresh <= elapsed)
+    int date_diff = now_stamp.Date - self->last_query_time.Date;
+    int time_diff = now_stamp.Time - self->last_query_time.Time;
+    int elapsed = time_diff / 1000 + date_diff * 0x15180;
+    if (elapsed >= refresh)
     {
-        self->connected_time = DateTimeToTimeStamp(Now());
+        self->last_query_time = DateTimeToTimeStamp(Now());
         TTimeStamp stamp = DateTimeToTimeStamp(Now());
-        int uptime = (stamp.Time - self->connected_time.Time) / 1800000 +
-                     (stamp.Date - self->connected_time.Date) * 0x30;
+        int up_date_diff = stamp.Date - self->connected_time.Date;
+        int up_time_diff = stamp.Time - self->connected_time.Time;
+        int uptime = up_time_diff / 1800000 + up_date_diff * 0x30;
         String s = "UPDATE endl_server SET ";
-        s = s + "uptime = " + IntToStr(uptime);
-        s = s + ", connections = " + IntToStr(conn);
-        s = s + ", players = " + IntToStr(idle);
-        s = s + ", most = " + IntToStr(stat);
-        s = s + ", upload = '" + a;
-        s = s + "', download = '" + b;
-        s = s + "'";
+        s = s + "uptime = " + IntToStr(uptime) + ",";
+        s = s + "connections = " + IntToStr(conn) + ",";
+        s = s + "players = " + IntToStr(idle) + ",";
+        s = s + "most = " + IntToStr(stat) + ",";
+        s = s + "upload = '" + a + "',";
+        s = s + "download = '" + b + "'";
         Mysql_ExecDirect(self, 0, s);
     }
 }
@@ -296,7 +303,6 @@ bool Mysqlcontrols::Database_CanReconnect(Mysqlcontrols *db)
         db->worker_thread->Terminate();
         return true;
     }
-    return false;
 }
 
 void Mysqlcontrols::FUN_004772a0(Mysqlcontrols *self, int value)
@@ -345,21 +351,17 @@ Mysqlcontrols::Mysql_SanitizeString(Mysqlcontrols *db, String value, bool upperc
         {
             if ((unsigned char)value[i] != ' ')
             {
-                if ((unsigned char)value[i] < '[' || (unsigned char)value[i] > '`')
-                {
-                    if ((unsigned char)value[i] <= '@' || (unsigned char)value[i] >= '{')
-                        value.Delete(i, 1);
-                }
-                else
-                {
+                if ((unsigned char)value[i] >= '[' && (unsigned char)value[i] <= '`')
                     value.Delete(i, 1);
-                }
+                else if ((unsigned char)value[i] <= '@' || (unsigned char)value[i] >= '{')
+                    value.Delete(i, 1);
             }
         }
     }
-    if (uppercase)
-        return value.UpperCase();
-    return value.LowerCase();
+    if (!uppercase)
+        return AnsiLowerCase(value);
+    else
+        return AnsiUpperCase(value);
 }
 
 String Mysqlcontrols::Db_SanitizeString(Mysqlcontrols *db, String in)
@@ -376,7 +378,7 @@ String Mysqlcontrols::Db_SanitizeString(Mysqlcontrols *db, String in)
                 in.Delete(i, 1);
         }
     }
-    return in.LowerCase();
+    return AnsiLowerCase(in);
 }
 
 void Mysqlcontrols::Chat_HasBadWords(Mysqlcontrols *ctx, String &message)
@@ -400,7 +402,7 @@ void Mysqlcontrols::Chat_HasBadWords(Mysqlcontrols *ctx, String &message)
         }
     }
     if (caps > 0x28)
-        message = message.LowerCase();
+        message = AnsiLowerCase(message);
 }
 
 TTimeStamp Mysqlcontrols::Server_GetUptime(Mysqlcontrols *db)
@@ -411,18 +413,39 @@ TTimeStamp Mysqlcontrols::Server_GetUptime(Mysqlcontrols *db)
 String Mysqlcontrols::FUN_00477a00(Mysqlcontrols *db, String value)
 {
     String reversed = "";
-    for (int i = value.Length(); i >= 1; i--)
-        reversed = reversed + String(value[i]);
     String result = "";
-    for (int j = 1; j <= value.Length(); j++)
+    try
     {
-        char c = reversed[j];
-        if (c > '/' && c < ':')
-            result.Insert(String((char)('i' - c)), result.Length() + 1);
-        else if (c > '`' && c < '{')
-            result.Insert(String((char)(0xdb - c)), result.Length() + 1);
-        else
-            result.Insert(String(c), result.Length() + 1);
+        for (int i = value.Length(); i >= 1; i--)
+            reversed = reversed + value[i];
+        for (int j = 1; j <= value.Length(); j++)
+        {
+            char a = reversed[j];
+            unsigned char b = a;
+            int u = b;
+            bool done = false;
+            if (!done && u >= '0' && u <= '9')
+            {
+                u = '9' - u + '0';
+                b = u;
+                a = b;
+                result.Insert(String(a), result.Length() + 1);
+                done = true;
+            }
+            if (!done && u >= 'a' && u <= 'z')
+            {
+                u = 'z' - u + 'a';
+                b = u;
+                a = b;
+                result.Insert(String(a), result.Length() + 1);
+                done = true;
+            }
+            if (!done)
+                result.Insert(String(a), result.Length() + 1);
+        }
+    }
+    catch (...)
+    {
     }
     return result;
 }
