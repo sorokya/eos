@@ -6,11 +6,11 @@
 #pragma package(smart_init)
 
 #define SERIAL_ENC_STR_CONFIG_SERIAL_INI "d1dqa>d-h,B8d9_0jpC"
-#define SERIAL_ENC_STR_NAME              "h2l1"
-#define SERIAL_ENC_STR_MKEY              "T:b2"
-#define SERIAL_ENC_STR_SKEY              "T:b,"
-#define SERIAL_ENC_STR_PUB_DVF001_EVF    "g)hq@oA9W;B=X/Bq"
-#define SERIAL_ENC_STR_NOT_LICENCED      "i:j1h<d3 +^1"
+#define SERIAL_ENC_STR_NAME "h2l1"
+#define SERIAL_ENC_STR_MKEY "T:b2"
+#define SERIAL_ENC_STR_SKEY "T:b,"
+#define SERIAL_ENC_STR_PUB_DVF001_EVF "g)hq@oA9W;B=X/Bq"
+#define SERIAL_ENC_STR_NOT_LICENCED "i:j1h<d3 +^1"
 
 Serial::Serial()
 {
@@ -70,36 +70,36 @@ void Serial::SetIniPath(Serial *s, String path)
 
     try
     {
-    String exe = Application->ExeName;
-    int last_slash_pos = 0;
-    if (exe.Length() >= 1)
-    {
-        for (int i = exe.Length(); i >= 1; i--)
+        String exe = Application->ExeName;
+        int last_slash_pos = 0;
+        if (exe.Length() >= 1)
         {
-            if (exe[i] == '\\')
+            for (int i = exe.Length(); i >= 1; i--)
             {
-                last_slash_pos = i;
-                break;
+                if (exe[i] == '\\')
+                {
+                    last_slash_pos = i;
+                    break;
+                }
             }
         }
-    }
 
-    String dir = "";
-    if (exe.Length() >= 1 && last_slash_pos >= 1)
-    {
-        for (int p = 1; p < last_slash_pos; p++)
-            dir = dir + exe[p];
-    }
+        String dir = "";
+        if (exe.Length() >= 1 && last_slash_pos >= 1)
+        {
+            for (int p = 1; p < last_slash_pos; p++)
+                dir = dir + exe[p];
+        }
 
-    exe = dir;
+        exe = dir;
 
-    String tail;
-    if (exe[exe.Length()] != '\\')
-        tail = "\\" + path;
-    else
-        tail = path;
+        String tail;
+        if (exe[exe.Length()] != '\\')
+            tail = "\\" + path;
+        else
+            tail = path;
 
-    s->ini_file->LoadFromFile(exe + tail);
+        s->ini_file->LoadFromFile(exe + tail);
     }
     catch (...)
     {
@@ -116,51 +116,51 @@ String Serial::ReadKey(Serial *s, String key, String def)
     String result = def;
     if (s->ini_file->Count >= 1)
     {
-    try
-    {
-        for (int i = 0; i < s->ini_file->Count; i++)
+        try
         {
-            String line = s->ini_file->Strings[i];
-            bool before_eq = true;
-            bool after_eq = true;
-            String ini_name = "";
-            String value = "";
-            if (line.Length() >= 1)
+            for (int i = 0; i < s->ini_file->Count; i++)
             {
-                for (int j = 1; j <= line.Length(); j++)
+                String line = s->ini_file->Strings[i];
+                bool before_eq = true;
+                bool after_eq = true;
+                String ini_name = "";
+                String value = "";
+                if (line.Length() >= 1)
                 {
-                    if (line[j] == '=')
-                        before_eq = false;
-                    if (before_eq)
+                    for (int j = 1; j <= line.Length(); j++)
                     {
-                        if (line[j] != ' ' && line[j] != '=')
-                            ini_name = ini_name + line[j];
-                    }
-                    else if (after_eq)
-                    {
-                        if (line[j] != ' ' && line[j] != '=')
+                        if (line[j] == '=')
+                            before_eq = false;
+                        if (before_eq)
                         {
-                            after_eq = false;
+                            if (line[j] != ' ' && line[j] != '=')
+                                ini_name = ini_name + line[j];
+                        }
+                        else if (after_eq)
+                        {
+                            if (line[j] != ' ' && line[j] != '=')
+                            {
+                                after_eq = false;
+                                value = value + line[j];
+                            }
+                        }
+                        else
+                        {
                             value = value + line[j];
                         }
                     }
-                    else
+                    if (AnsiLowerCase(ini_name) == AnsiLowerCase(key))
                     {
-                        value = value + line[j];
+                        if (value.Length() >= 1)
+                            result = value;
+                        break;
                     }
-                }
-                if (AnsiLowerCase(ini_name) == AnsiLowerCase(key))
-                {
-                    if (value.Length() >= 1)
-                        result = value;
-                    break;
                 }
             }
         }
-    }
-    catch (...)
-    {
-    }
+        catch (...)
+        {
+        }
     }
     return result;
 }
@@ -254,7 +254,14 @@ void Serial::Validate(Serial *s)
         String cn = computer_name;
 
         (void)filesystem_name;
-        GetVolumeInformationA("c:\\", volume_name, 1000, &volserial, &maxcomp, &flags, filesystem_name, 1000);
+        GetVolumeInformationA("c:\\",
+                              volume_name,
+                              1000,
+                              &volserial,
+                              &maxcomp,
+                              &flags,
+                              filesystem_name,
+                              1000);
         String vs = volserial;
         if (vs.Length() >= 0x21)
             vs += vs.SubString(1, 0x20);

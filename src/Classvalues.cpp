@@ -13,73 +13,74 @@ void ClassValues::LoadClasses(ClassValues *self)
 {
     if (self->field_10 == 0)
     {
-    int file = 1;
-    int count = 0;
-    int total = 1;
+        int file = 1;
+        int count = 0;
+        int total = 1;
 
-    do
-    {
-        String data;
-        String path = "./pub/dat";
-        if (file < 10)
-            path = path + "00" + IntToStr(file) + ".ecf";
-        else
-            path = path + "0" + IntToStr(file) + ".ecf";
-
-        int h;
-        int size;
-        char *buf;
-        try
+        do
         {
-            h = FileOpen(path.c_str(), 0);
-            size = FileSeek(h, 0, 2);
-            FileSeek(h, 0, 0);
-            buf = new char[size + 1];
-            FileRead(h, buf, size);
-            FileClose(h);
-            data += buf;
-            data.SetLength(size);
-            delete[] buf;
-            if (data[1] != 'E' || data[2] != 'C' || data[3] != 'F')
-                return;
-            self->field_14->Add(data);
-            if (file == 1)
-            {
-                self->rid_1 = self->DecodeInt(data.SubString(4, 2));
-                self->rid_2 = self->DecodeInt(data.SubString(6, 2));
-                int parsed = self->DecodeInt(data.SubString(8, 2));
-                int version = self->DecodeInt(data.SubString(10, 1));
-                total = parsed;
-                self->num_classes = parsed;
-            }
-            data.Delete(1, 10);
-            for (int j = 0; count < total && j < 0xfa; j++)
-            {
-                int namelen = self->DecodeInt(data.SubString(1, 1));
-                AddClass(self, self->size() + 1,
-                    self->DecodeInt(data.SubString(namelen + 2, 1)),
-                    data.SubString(2, namelen),
-                    self->DecodeInt(data.SubString(namelen + 0x3, 1)),
-                    self->DecodeInt(data.SubString(namelen + 0x4, 2)),
-                    self->DecodeInt(data.SubString(namelen + 0x6, 2)),
-                    self->DecodeInt(data.SubString(namelen + 0x8, 2)),
-                    self->DecodeInt(data.SubString(namelen + 0xa, 2)),
-                    self->DecodeInt(data.SubString(namelen + 0xc, 2)),
-                    self->DecodeInt(data.SubString(namelen + 0xe, 2)));
-                count++;
-                data.Delete(1, namelen + 0xf);
-            }
-        }
-        catch (...)
-        {
-            FileClose(h);
-            self->field_10 = 0;
-        }
-        file++;
-    } while (count < total);
+            String data;
+            String path = "./pub/dat";
+            if (file < 10)
+                path = path + "00" + IntToStr(file) + ".ecf";
+            else
+                path = path + "0" + IntToStr(file) + ".ecf";
 
-    self->field_0 = file - 1;
-    self->field_10 = 1;
+            int h;
+            int size;
+            char *buf;
+            try
+            {
+                h = FileOpen(path.c_str(), 0);
+                size = FileSeek(h, 0, 2);
+                FileSeek(h, 0, 0);
+                buf = new char[size + 1];
+                FileRead(h, buf, size);
+                FileClose(h);
+                data += buf;
+                data.SetLength(size);
+                delete[] buf;
+                if (data[1] != 'E' || data[2] != 'C' || data[3] != 'F')
+                    return;
+                self->field_14->Add(data);
+                if (file == 1)
+                {
+                    self->rid_1 = self->DecodeInt(data.SubString(4, 2));
+                    self->rid_2 = self->DecodeInt(data.SubString(6, 2));
+                    int parsed = self->DecodeInt(data.SubString(8, 2));
+                    int version = self->DecodeInt(data.SubString(10, 1));
+                    total = parsed;
+                    self->num_classes = parsed;
+                }
+                data.Delete(1, 10);
+                for (int j = 0; count < total && j < 0xfa; j++)
+                {
+                    int namelen = self->DecodeInt(data.SubString(1, 1));
+                    AddClass(self,
+                             self->size() + 1,
+                             self->DecodeInt(data.SubString(namelen + 2, 1)),
+                             data.SubString(2, namelen),
+                             self->DecodeInt(data.SubString(namelen + 0x3, 1)),
+                             self->DecodeInt(data.SubString(namelen + 0x4, 2)),
+                             self->DecodeInt(data.SubString(namelen + 0x6, 2)),
+                             self->DecodeInt(data.SubString(namelen + 0x8, 2)),
+                             self->DecodeInt(data.SubString(namelen + 0xa, 2)),
+                             self->DecodeInt(data.SubString(namelen + 0xc, 2)),
+                             self->DecodeInt(data.SubString(namelen + 0xe, 2)));
+                    count++;
+                    data.Delete(1, namelen + 0xf);
+                }
+            }
+            catch (...)
+            {
+                FileClose(h);
+                self->field_10 = 0;
+            }
+            file++;
+        } while (count < total);
+
+        self->field_0 = file - 1;
+        self->field_10 = 1;
     }
 }
 
@@ -90,9 +91,17 @@ ClassValue ClassValues::GetByIndex(ClassValues *self, int index)
     return self->values[index];
 }
 
-void ClassValues::AddClass(ClassValues *self, int id, int field_4, String name,
-                           short f0c, short f0e, short f10, short f12,
-                           short f14, short f16, short f18)
+void ClassValues::AddClass(ClassValues *self,
+                           int id,
+                           int field_4,
+                           String name,
+                           short f0c,
+                           short f0e,
+                           short f10,
+                           short f12,
+                           short f14,
+                           short f16,
+                           short f18)
 {
     ClassValue v(id);
     v.name = name;
@@ -126,26 +135,31 @@ int ClassValues::DecodeInt(String value)
 {
     String value_copy = value;
     int result = 0;
-    try {
-    int byte_index = 1;
-    while (value_copy.Length() >= byte_index)
+    try
     {
-        char c = value_copy[byte_index];
-        unsigned char ch = c;
-        if (ch == 0xFE || ch == 0)
-            break;
-        int n = ch;
-        n = n - 1;
-        if (byte_index == 1)
-            result = result + n;
-        if (byte_index == 2)
-            result = result + n * 0xfd;
-        if (byte_index == 3)
-            result = result + n * 0xfa09;
-        if (byte_index == 4)
-            result = result + n * 0xf71ae5;
-        byte_index = byte_index + 1;
+        int byte_index = 1;
+        while (value_copy.Length() >= byte_index)
+        {
+            char c = value_copy[byte_index];
+            unsigned char ch = c;
+            if (ch == 0xFE || ch == 0)
+                break;
+            int n = ch;
+            n = n - 1;
+            if (byte_index == 1)
+                result = result + n;
+            if (byte_index == 2)
+                result = result + n * 0xfd;
+            if (byte_index == 3)
+                result = result + n * 0xfa09;
+            if (byte_index == 4)
+                result = result + n * 0xf71ae5;
+            byte_index = byte_index + 1;
+        }
     }
-    } catch (...) { result = 0; }
+    catch (...)
+    {
+        result = 0;
+    }
     return result;
 }

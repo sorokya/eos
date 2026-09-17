@@ -13,113 +13,136 @@ void SkillValues::LoadSpells(SkillValues *self)
 {
     if (self->loaded == 0)
     {
-    int file = 1;
-    int count = 0;
-    int total = 1;
+        int file = 1;
+        int count = 0;
+        int total = 1;
 
-    do
-    {
-        String data;
-        String path = "./pub/dsl";
-        if (file < 10)
-            path = path + "00" + IntToStr(file) + ".esf";
-        else
-            path = path + "0" + IntToStr(file) + ".esf";
-
-        int h;
-        int size;
-        char *buf;
-        try
+        do
         {
-            h = FileOpen(path.c_str(), 0);
-            size = FileSeek(h, 0, 2);
-            FileSeek(h, 0, 0);
-            buf = new char[size + 1];
-            FileRead(h, buf, size);
-            FileClose(h);
-            data += buf;
-            data.SetLength(size);
-            delete[] buf;
-            if (data[1] != 'E' || data[2] != 'S' || data[3] != 'F')
-                return;
-            self->string_list->Add(data);
-            if (file == 1)
-            {
-                self->rid1 = self->DecodeNumber(data.SubString(4, 2));
-                self->rid2 = self->DecodeNumber(data.SubString(6, 2));
-                int parsed = self->DecodeNumber(data.SubString(8, 2));
-                int version = self->DecodeNumber(data.SubString(10, 1));
-                total = parsed;
-                self->num_skills = parsed;
-            }
-            data.Delete(1, 10);
-            for (int j = 0; count < total && j < 900; j++)
-            {
-                int namelen = self->DecodeNumber(data.SubString(1, 1));
-                int chantlen = self->DecodeNumber(data.SubString(2, 1));
-                int base = namelen + chantlen + 2;
-                AddRecord(self, self->GetCount() + 1,
-                    data.SubString(3, namelen),
-                    data.SubString(namelen + 3, chantlen),
-                    self->DecodeNumber(data.SubString(base + 1, 2)),
-                    self->DecodeNumber(data.SubString(base + 3, 2)),
-                    self->DecodeNumber(data.SubString(base + 5, 2)),
-                    self->DecodeNumber(data.SubString(base + 7, 2)),
-                    self->DecodeNumber(data.SubString(base + 9, 1)),
-                    self->DecodeNumber(data.SubString(base + 0xa, 1)),
-                    self->DecodeNumber(data.SubString(base + 0xb, 1)),
-                    self->DecodeNumber(data.SubString(base + 0xc, 3)),
-                    self->DecodeNumber(data.SubString(base + 0xf, 1)),
-                    self->DecodeNumber(data.SubString(base + 0x10, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x12, 1)),
-                    self->DecodeNumber(data.SubString(base + 0x13, 1)),
-                    self->DecodeNumber(data.SubString(base + 0x14, 1)),
-                    self->DecodeNumber(data.SubString(base + 0x15, 1)),
-                    self->DecodeNumber(data.SubString(base + 0x16, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x18, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x1a, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x1c, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x1e, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x20, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x22, 1)),
-                    self->DecodeNumber(data.SubString(base + 0x23, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x25, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x27, 1)),
-                    self->DecodeNumber(data.SubString(base + 0x28, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x2a, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x2c, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x2e, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x30, 2)),
-                    self->DecodeNumber(data.SubString(base + 0x32, 2)));
-                count++;
-                data.Delete(1, base + 0x33);
-            }
-        }
-        catch (...)
-        {
-            FileClose(h);
-            self->loaded = 0;
-        }
-        file++;
-    } while (count < total);
+            String data;
+            String path = "./pub/dsl";
+            if (file < 10)
+                path = path + "00" + IntToStr(file) + ".esf";
+            else
+                path = path + "0" + IntToStr(file) + ".esf";
 
-    self->field_0 = file - 1;
-    self->loaded = 1;
+            int h;
+            int size;
+            char *buf;
+            try
+            {
+                h = FileOpen(path.c_str(), 0);
+                size = FileSeek(h, 0, 2);
+                FileSeek(h, 0, 0);
+                buf = new char[size + 1];
+                FileRead(h, buf, size);
+                FileClose(h);
+                data += buf;
+                data.SetLength(size);
+                delete[] buf;
+                if (data[1] != 'E' || data[2] != 'S' || data[3] != 'F')
+                    return;
+                self->string_list->Add(data);
+                if (file == 1)
+                {
+                    self->rid1 = self->DecodeNumber(data.SubString(4, 2));
+                    self->rid2 = self->DecodeNumber(data.SubString(6, 2));
+                    int parsed = self->DecodeNumber(data.SubString(8, 2));
+                    int version = self->DecodeNumber(data.SubString(10, 1));
+                    total = parsed;
+                    self->num_skills = parsed;
+                }
+                data.Delete(1, 10);
+                for (int j = 0; count < total && j < 900; j++)
+                {
+                    int namelen = self->DecodeNumber(data.SubString(1, 1));
+                    int chantlen = self->DecodeNumber(data.SubString(2, 1));
+                    int base = namelen + chantlen + 2;
+                    AddRecord(self,
+                              self->GetCount() + 1,
+                              data.SubString(3, namelen),
+                              data.SubString(namelen + 3, chantlen),
+                              self->DecodeNumber(data.SubString(base + 1, 2)),
+                              self->DecodeNumber(data.SubString(base + 3, 2)),
+                              self->DecodeNumber(data.SubString(base + 5, 2)),
+                              self->DecodeNumber(data.SubString(base + 7, 2)),
+                              self->DecodeNumber(data.SubString(base + 9, 1)),
+                              self->DecodeNumber(data.SubString(base + 0xa, 1)),
+                              self->DecodeNumber(data.SubString(base + 0xb, 1)),
+                              self->DecodeNumber(data.SubString(base + 0xc, 3)),
+                              self->DecodeNumber(data.SubString(base + 0xf, 1)),
+                              self->DecodeNumber(data.SubString(base + 0x10, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x12, 1)),
+                              self->DecodeNumber(data.SubString(base + 0x13, 1)),
+                              self->DecodeNumber(data.SubString(base + 0x14, 1)),
+                              self->DecodeNumber(data.SubString(base + 0x15, 1)),
+                              self->DecodeNumber(data.SubString(base + 0x16, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x18, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x1a, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x1c, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x1e, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x20, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x22, 1)),
+                              self->DecodeNumber(data.SubString(base + 0x23, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x25, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x27, 1)),
+                              self->DecodeNumber(data.SubString(base + 0x28, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x2a, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x2c, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x2e, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x30, 2)),
+                              self->DecodeNumber(data.SubString(base + 0x32, 2)));
+                    count++;
+                    data.Delete(1, base + 0x33);
+                }
+            }
+            catch (...)
+            {
+                FileClose(h);
+                self->loaded = 0;
+            }
+            file++;
+        } while (count < total);
+
+        self->field_0 = file - 1;
+        self->loaded = 1;
     }
 }
 
-void SkillValues::AddRecord(SkillValues *self, int id, String name, String chant,
-                            short icon_id, short graphic_id, short tp_cost,
-                            short sp_cost, short cast_time, short nature,
-                            short unknown1, short skill_type, short element,
-                            short element_power, short target_restrict,
-                            short target_type, short target_time,
-                            short skill_range_area, short max_skill_level,
-                            short min_damage, short max_damage, short accuracy,
-                            short evade, short armor, short return_damage,
-                            short hp_heal, short tp_heal, short sp_heal,
-                            short str, short intl, short wis, short agi,
-                            short con, short cha)
+void SkillValues::AddRecord(SkillValues *self,
+                            int id,
+                            String name,
+                            String chant,
+                            short icon_id,
+                            short graphic_id,
+                            short tp_cost,
+                            short sp_cost,
+                            short cast_time,
+                            short nature,
+                            short unknown1,
+                            short skill_type,
+                            short element,
+                            short element_power,
+                            short target_restrict,
+                            short target_type,
+                            short target_time,
+                            short skill_range_area,
+                            short max_skill_level,
+                            short min_damage,
+                            short max_damage,
+                            short accuracy,
+                            short evade,
+                            short armor,
+                            short return_damage,
+                            short hp_heal,
+                            short tp_heal,
+                            short sp_heal,
+                            short str,
+                            short intl,
+                            short wis,
+                            short agi,
+                            short con,
+                            short cha)
 {
     SkillValue v(id);
     v.name = name;
@@ -284,26 +307,31 @@ int SkillValues::DecodeNumber(String value)
 {
     String value_copy = value;
     int result = 0;
-    try {
-    int byte_index = 1;
-    while (value_copy.Length() >= byte_index)
+    try
     {
-        char c = value_copy[byte_index];
-        unsigned char ch = c;
-        if (ch == 0xFE || ch == 0)
-            break;
-        int n = ch;
-        n = n - 1;
-        if (byte_index == 1)
-            result = result + n;
-        if (byte_index == 2)
-            result = result + n * 0xfd;
-        if (byte_index == 3)
-            result = result + n * 0xfa09;
-        if (byte_index == 4)
-            result = result + n * 0xf71ae5;
-        byte_index = byte_index + 1;
+        int byte_index = 1;
+        while (value_copy.Length() >= byte_index)
+        {
+            char c = value_copy[byte_index];
+            unsigned char ch = c;
+            if (ch == 0xFE || ch == 0)
+                break;
+            int n = ch;
+            n = n - 1;
+            if (byte_index == 1)
+                result = result + n;
+            if (byte_index == 2)
+                result = result + n * 0xfd;
+            if (byte_index == 3)
+                result = result + n * 0xfa09;
+            if (byte_index == 4)
+                result = result + n * 0xf71ae5;
+            byte_index = byte_index + 1;
+        }
     }
-    } catch (...) { result = 0; }
+    catch (...)
+    {
+        result = 0;
+    }
     return result;
 }

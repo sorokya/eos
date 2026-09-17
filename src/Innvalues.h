@@ -12,7 +12,7 @@
 //   +0x24 int                        field_24 = -1
 class InnValues
 {
-public:
+  public:
     char loaded;
     char pad_1[3];
     std::vector<InnValue> record_list;

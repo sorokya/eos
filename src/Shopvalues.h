@@ -11,8 +11,14 @@
 // two registers; the same shape the Itemvalues pair records use.
 struct ShopCraftIngredient
 {
-    struct { int item_id; int amount; };
-    ShopCraftIngredient() {}
+    struct
+    {
+        int item_id;
+        int amount;
+    };
+    ShopCraftIngredient()
+    {
+    }
 };
 
 // The shop table (ESF). Layout recovered from the reference constructor
@@ -22,7 +28,7 @@ struct ShopCraftIngredient
 //   +0x24 int                         field_24 = -1
 class ShopValues
 {
-public:
+  public:
     char loaded;
     char pad_1[3];
     std::vector<ShopValue> record_list;
@@ -37,22 +43,36 @@ public:
     static void Clear(ShopValues *self);
     static int GetRecordCount(ShopValues *self);
 
-    static ShopCraftIngredient GetCraftIngredient1(ShopValues *self, int shop_id, int craft_id);
-    static ShopCraftIngredient GetCraftIngredient2(ShopValues *self, int shop_id, int craft_id);
-    static ShopCraftIngredient GetCraftIngredient3(ShopValues *self, int shop_id, int craft_id);
-    static ShopCraftIngredient GetCraftIngredient4(ShopValues *self, int shop_id, int craft_id);
+    static ShopCraftIngredient
+    GetCraftIngredient1(ShopValues *self, int shop_id, int craft_id);
+    static ShopCraftIngredient
+    GetCraftIngredient2(ShopValues *self, int shop_id, int craft_id);
+    static ShopCraftIngredient
+    GetCraftIngredient3(ShopValues *self, int shop_id, int craft_id);
+    static ShopCraftIngredient
+    GetCraftIngredient4(ShopValues *self, int shop_id, int craft_id);
 
     static int GetBuyPrice(ShopValues *self, int shop_id, int item_id, int amount);
     static int GetSellPrice(ShopValues *self, int shop_id, int item_id, int amount);
     static String BuildOpenData(ShopValues *self, int behavior_id);
 
-    static void AddTrade(ShopValues *self, ShopValue *shop, int item_id, int buy_price,
-                         int sell_price, int max_amount);
-    static void AddCraft(ShopValues *self, ShopValue *shop, int item_id,
-                         int ingredient_item_id_1, int ingredient_amount_1,
-                         int ingredient_item_id_2, int ingredient_amount_2,
-                         int ingredient_item_id_3, int ingredient_amount_3,
-                         int ingredient_item_id_4, int ingredient_amount_4);
+    static void AddTrade(ShopValues *self,
+                         ShopValue *shop,
+                         int item_id,
+                         int buy_price,
+                         int sell_price,
+                         int max_amount);
+    static void AddCraft(ShopValues *self,
+                         ShopValue *shop,
+                         int item_id,
+                         int ingredient_item_id_1,
+                         int ingredient_amount_1,
+                         int ingredient_item_id_2,
+                         int ingredient_amount_2,
+                         int ingredient_item_id_3,
+                         int ingredient_amount_3,
+                         int ingredient_item_id_4,
+                         int ingredient_amount_4);
 };
 
 #endif

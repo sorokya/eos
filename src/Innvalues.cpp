@@ -52,10 +52,14 @@ void InnValues::LoadInns(InnValues *self)
                 v.sleep_map = self->DecodeNumber(data.SubString(namelen + 8, 2));
                 v.sleep_x = self->DecodeNumber(data.SubString(namelen + 0xa, 1));
                 v.sleep_y = self->DecodeNumber(data.SubString(namelen + 0xb, 1));
-                v.alternate_spawn_enabled = self->DecodeNumber(data.SubString(namelen + 0xc, 1));
-                v.alternate_spawn_map = self->DecodeNumber(data.SubString(namelen + 0xd, 2));
-                v.alternate_spawn_x = self->DecodeNumber(data.SubString(namelen + 0xf, 1));
-                v.alternate_spawn_y = self->DecodeNumber(data.SubString(namelen + 0x10, 1));
+                v.alternate_spawn_enabled =
+                    self->DecodeNumber(data.SubString(namelen + 0xc, 1));
+                v.alternate_spawn_map =
+                    self->DecodeNumber(data.SubString(namelen + 0xd, 2));
+                v.alternate_spawn_x =
+                    self->DecodeNumber(data.SubString(namelen + 0xf, 1));
+                v.alternate_spawn_y =
+                    self->DecodeNumber(data.SubString(namelen + 0x10, 1));
                 for (int i = 0; i < 3; i++)
                 {
                     int qlen = self->DecodeNumber(data.SubString(namelen + 0x11, 1));
@@ -179,26 +183,31 @@ int InnValues::DecodeNumber(String value)
 {
     String value_copy = value;
     int result = 0;
-    try {
-    int byte_index = 1;
-    while (value_copy.Length() >= byte_index)
+    try
     {
-        char c = value_copy[byte_index];
-        unsigned char ch = c;
-        if (ch == 0xFE)
-            break;
-        int n = ch;
-        n = n - 1;
-        if (byte_index == 1)
-            result = result + n;
-        if (byte_index == 2)
-            result = result + n * 0xfd;
-        if (byte_index == 3)
-            result = result + n * 0xfa09;
-        if (byte_index == 4)
-            result = result + n * 0xf71ae5;
-        byte_index = byte_index + 1;
+        int byte_index = 1;
+        while (value_copy.Length() >= byte_index)
+        {
+            char c = value_copy[byte_index];
+            unsigned char ch = c;
+            if (ch == 0xFE)
+                break;
+            int n = ch;
+            n = n - 1;
+            if (byte_index == 1)
+                result = result + n;
+            if (byte_index == 2)
+                result = result + n * 0xfd;
+            if (byte_index == 3)
+                result = result + n * 0xfa09;
+            if (byte_index == 4)
+                result = result + n * 0xf71ae5;
+            byte_index = byte_index + 1;
+        }
     }
-    } catch (...) { result = 0; }
+    catch (...)
+    {
+        result = 0;
+    }
     return result;
 }

@@ -30,10 +30,15 @@ struct ShopValue
     ~ShopValue();
 
     void AddTrade(int item_id, int buy_price, int sell_price, int max_amount);
-    void AddCraft(int item_id, int ingredient_item_id_1, int ingredient_amount_1,
-                  int ingredient_item_id_2, int ingredient_amount_2,
-                  int ingredient_item_id_3, int ingredient_amount_3,
-                  int ingredient_item_id_4, int ingredient_amount_4);
+    void AddCraft(int item_id,
+                  int ingredient_item_id_1,
+                  int ingredient_amount_1,
+                  int ingredient_item_id_2,
+                  int ingredient_amount_2,
+                  int ingredient_item_id_3,
+                  int ingredient_amount_3,
+                  int ingredient_item_id_4,
+                  int ingredient_amount_4);
 };
 
 #endif

@@ -14,14 +14,26 @@
 // different, member-wise copy).
 struct ItemElement
 {
-    struct { int element; int element_damage; };
-    ItemElement() {}
+    struct
+    {
+        int element;
+        int element_damage;
+    };
+    ItemElement()
+    {
+    }
 };
 
 struct ItemSpecXY
 {
-    struct { int spec2; int spec3; };
-    ItemSpecXY() {}
+    struct
+    {
+        int spec2;
+        int spec3;
+    };
+    ItemSpecXY()
+    {
+    }
 };
 
 // The item table (EIF). Layout recovered from the reference constructor
@@ -38,7 +50,7 @@ struct ItemSpecXY
 //   +0x3c int                         field_3c = -1
 class ItemValues
 {
-public:
+  public:
     int field_0;
     int num_items;
     int rid_1;
@@ -60,21 +72,49 @@ public:
     static int GetCount(ItemValues *self);
     static ItemValue *GetByIndex(ItemValues *self, int index);
     static ItemValue **GetRecordSlot(std::vector<ItemValue *> *values, int index);
-    static void AddItem(ItemValues *self, int id, String name, int graphic_id,
-                        short type, short subtype, short special, short hp, short tp,
-                        short min_damage, short max_damage, short accuracy, short evade,
-                        short armor, short return_damage, short strength,
-                        short intelligence, short wisdom, short agility,
-                        short constitution, short charisma, short light_resistance,
-                        short dark_resistance, short earth_resistance,
-                        short air_resistance, short water_resistance,
-                        short fire_resistance, int spec1, short spec2, short spec3,
-                        short level_requirement, short class_requirement,
-                        short strength_requirement, short intelligence_requirement,
-                        short wisdom_requirement, short agility_requirement,
-                        short constitution_requirement, short charisma_requirement,
-                        short element, short element_damage, short weight,
-                        short unused, short size);
+    static void AddItem(ItemValues *self,
+                        int id,
+                        String name,
+                        int graphic_id,
+                        short type,
+                        short subtype,
+                        short special,
+                        short hp,
+                        short tp,
+                        short min_damage,
+                        short max_damage,
+                        short accuracy,
+                        short evade,
+                        short armor,
+                        short return_damage,
+                        short strength,
+                        short intelligence,
+                        short wisdom,
+                        short agility,
+                        short constitution,
+                        short charisma,
+                        short light_resistance,
+                        short dark_resistance,
+                        short earth_resistance,
+                        short air_resistance,
+                        short water_resistance,
+                        short fire_resistance,
+                        int spec1,
+                        short spec2,
+                        short spec3,
+                        short level_requirement,
+                        short class_requirement,
+                        short strength_requirement,
+                        short intelligence_requirement,
+                        short wisdom_requirement,
+                        short agility_requirement,
+                        short constitution_requirement,
+                        short charisma_requirement,
+                        short element,
+                        short element_damage,
+                        short weight,
+                        short unused,
+                        short size);
 
     static int Eif_GetType(ItemValues *self, int item_id);
     static int Eif_GetSubtype(ItemValues *self, int item_id);

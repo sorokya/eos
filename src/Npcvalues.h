@@ -14,16 +14,28 @@ int RandRange(int max);
 // records use.
 struct NpcTypeInfo
 {
-    struct { int type; int behavior_id; };
-    NpcTypeInfo() {}
+    struct
+    {
+        int type;
+        int behavior_id;
+    };
+    NpcTypeInfo()
+    {
+    }
 };
 
 // The two-int result returned by Npc_GetDrop: {item_id, amount}. Same empty
 // user constructor / by-value return shape as NpcTypeInfo.
 struct NpcDropInfo
 {
-    struct { int item_id; int amount; };
-    NpcDropInfo() {}
+    struct
+    {
+        int item_id;
+        int amount;
+    };
+    NpcDropInfo()
+    {
+    }
 };
 
 // The npc table (ENF/EDF/ETF). Layout recovered from the reference constructor
@@ -41,7 +53,7 @@ struct NpcDropInfo
 //   +0x3c int                       field_3c = -1
 class NpcValues
 {
-public:
+  public:
     int field_0;
     int count;
     int rid1;
@@ -63,17 +75,37 @@ public:
     static void Pub_LoadNpcs(NpcValues *self);
     static void Pub_LoadDrops(NpcValues *self);
     static void Pub_LoadTalk(NpcValues *self);
-    static void AddDrop(NpcValues *self, int npc_id, int item_id, int min_amount,
-                        int max_amount, int rate);
+    static void AddDrop(NpcValues *self,
+                        int npc_id,
+                        int item_id,
+                        int min_amount,
+                        int max_amount,
+                        int rate);
     static void SetTalk(NpcValues *self, int npc_id, int rate, String message);
     static String RollTalk(NpcValues *self, int enf_id);
-    static void AddNpc(NpcValues *self, int id, String name, short graphic_id,
-                       short race, short boss, short child, short type,
-                       short behavior_id, int hp, short tp, short min_damage,
-                       short max_damage, short accuracy, short evade, short armor,
-                       short return_damage, short element, short element_damage,
-                       short element_weakness, short element_weakness_damage,
-                       short level, int experience);
+    static void AddNpc(NpcValues *self,
+                       int id,
+                       String name,
+                       short graphic_id,
+                       short race,
+                       short boss,
+                       short child,
+                       short type,
+                       short behavior_id,
+                       int hp,
+                       short tp,
+                       short min_damage,
+                       short max_damage,
+                       short accuracy,
+                       short evade,
+                       short armor,
+                       short return_damage,
+                       short element,
+                       short element_damage,
+                       short element_weakness,
+                       short element_weakness_damage,
+                       short level,
+                       int experience);
     static int GetCount(NpcValues *self);
     static NpcValue GetNpc(NpcValues *self, int id);
     static NpcTypeInfo GetType(NpcValues *self, int enf_id);

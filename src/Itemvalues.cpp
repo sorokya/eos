@@ -25,126 +25,156 @@ void ItemValues::LoadItems(ItemValues *self)
 {
     if (self->loaded == 0)
     {
-    self->field_14->Clear();
-    Clear(self);
-    int file = 1;
-    int count = 0;
-    int total = 1;
+        self->field_14->Clear();
+        Clear(self);
+        int file = 1;
+        int count = 0;
+        int total = 1;
 
-    do
-    {
-        String path;
-        String data;
-        path.Insert("./pub/", 0);
-        path.Insert("dat", path.Length() + 1);
-        if (file < 10)
-            path = path + "00" + IntToStr(file) + ".eif";
-        else
-            path = path + "0" + IntToStr(file) + ".eif";
-
-        int h;
-        int size;
-        char *buf;
-        try
+        do
         {
-            h = FileOpen(path.c_str(), 0);
-            size = FileSeek(h, 0, 2);
-            FileSeek(h, 0, 0);
-            buf = new char[size + 1];
-            FileRead(h, buf, size);
-            FileClose(h);
-            data += buf;
-            data.SetLength(size);
-            delete[] buf;
-            if (data[1] != 'E' || data[2] != 'I' || data[3] != 'F')
-                return;
-            self->field_14->Add(data);
-            if (file == 1)
-            {
-                self->rid_1 = self->DecodeNumber(data.SubString(4, 2));
-                self->rid_2 = self->DecodeNumber(data.SubString(6, 2));
-                int parsed = self->DecodeNumber(data.SubString(8, 2));
-                int version = self->DecodeNumber(data.SubString(10, 1));
-                total = parsed;
-                self->num_items = parsed;
-            }
-            data.Delete(1, 10);
-            for (int j = 0; count < total && j < 900; j++)
-            {
-                int namelen = self->DecodeNumber(data.SubString(1, 1)) + 1;
-                AddItem(self, GetCount(self) + 1, data.SubString(2, namelen - 1),
-                    self->DecodeNumber(data.SubString(namelen + 1, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 3, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 4, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 5, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 6, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 8, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0xa, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0xc, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0xe, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0x10, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0x12, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0x14, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x15, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x16, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x17, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x18, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x19, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x1a, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x1b, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x1c, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x1d, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x1e, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x1f, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x20, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x21, 3)),
-                    self->DecodeNumber(data.SubString(namelen + 0x24, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x25, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x26, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0x28, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0x29, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0x2c, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0x2e, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0x30, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0x32, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0x34, 2)),
-                    self->DecodeNumber(data.SubString(namelen + 0x36, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x37, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x38, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x39, 1)),
-                    self->DecodeNumber(data.SubString(namelen + 0x3a, 1)));
-                count++;
-                data.Delete(1, namelen + 0x3a);
-            }
-        }
-        catch (...)
-        {
-            FileClose(h);
-            self->loaded = 0;
-        }
-        file++;
-    } while (count < total);
+            String path;
+            String data;
+            path.Insert("./pub/", 0);
+            path.Insert("dat", path.Length() + 1);
+            if (file < 10)
+                path = path + "00" + IntToStr(file) + ".eif";
+            else
+                path = path + "0" + IntToStr(file) + ".eif";
 
-    self->field_0 = file - 1;
-    self->loaded = 1;
+            int h;
+            int size;
+            char *buf;
+            try
+            {
+                h = FileOpen(path.c_str(), 0);
+                size = FileSeek(h, 0, 2);
+                FileSeek(h, 0, 0);
+                buf = new char[size + 1];
+                FileRead(h, buf, size);
+                FileClose(h);
+                data += buf;
+                data.SetLength(size);
+                delete[] buf;
+                if (data[1] != 'E' || data[2] != 'I' || data[3] != 'F')
+                    return;
+                self->field_14->Add(data);
+                if (file == 1)
+                {
+                    self->rid_1 = self->DecodeNumber(data.SubString(4, 2));
+                    self->rid_2 = self->DecodeNumber(data.SubString(6, 2));
+                    int parsed = self->DecodeNumber(data.SubString(8, 2));
+                    int version = self->DecodeNumber(data.SubString(10, 1));
+                    total = parsed;
+                    self->num_items = parsed;
+                }
+                data.Delete(1, 10);
+                for (int j = 0; count < total && j < 900; j++)
+                {
+                    int namelen = self->DecodeNumber(data.SubString(1, 1)) + 1;
+                    AddItem(self,
+                            GetCount(self) + 1,
+                            data.SubString(2, namelen - 1),
+                            self->DecodeNumber(data.SubString(namelen + 1, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 3, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 4, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 5, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 6, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 8, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0xa, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0xc, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0xe, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0x10, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0x12, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0x14, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x15, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x16, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x17, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x18, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x19, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x1a, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x1b, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x1c, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x1d, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x1e, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x1f, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x20, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x21, 3)),
+                            self->DecodeNumber(data.SubString(namelen + 0x24, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x25, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x26, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0x28, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0x29, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0x2c, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0x2e, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0x30, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0x32, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0x34, 2)),
+                            self->DecodeNumber(data.SubString(namelen + 0x36, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x37, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x38, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x39, 1)),
+                            self->DecodeNumber(data.SubString(namelen + 0x3a, 1)));
+                    count++;
+                    data.Delete(1, namelen + 0x3a);
+                }
+            }
+            catch (...)
+            {
+                FileClose(h);
+                self->loaded = 0;
+            }
+            file++;
+        } while (count < total);
+
+        self->field_0 = file - 1;
+        self->loaded = 1;
     }
 }
 
-void ItemValues::AddItem(ItemValues *self, int id, String name, int graphic_id,
-                         short type, short subtype, short special, short hp, short tp,
-                         short min_damage, short max_damage, short accuracy, short evade,
-                         short armor, short return_damage, short strength,
-                         short intelligence, short wisdom, short agility,
-                         short constitution, short charisma, short light_resistance,
-                         short dark_resistance, short earth_resistance,
-                         short air_resistance, short water_resistance,
-                         short fire_resistance, int spec1, short spec2, short spec3,
-                         short level_requirement, short class_requirement,
-                         short strength_requirement, short intelligence_requirement,
-                         short wisdom_requirement, short agility_requirement,
-                         short constitution_requirement, short charisma_requirement,
-                         short element, short element_damage, short weight,
-                         short unused, short size)
+void ItemValues::AddItem(ItemValues *self,
+                         int id,
+                         String name,
+                         int graphic_id,
+                         short type,
+                         short subtype,
+                         short special,
+                         short hp,
+                         short tp,
+                         short min_damage,
+                         short max_damage,
+                         short accuracy,
+                         short evade,
+                         short armor,
+                         short return_damage,
+                         short strength,
+                         short intelligence,
+                         short wisdom,
+                         short agility,
+                         short constitution,
+                         short charisma,
+                         short light_resistance,
+                         short dark_resistance,
+                         short earth_resistance,
+                         short air_resistance,
+                         short water_resistance,
+                         short fire_resistance,
+                         int spec1,
+                         short spec2,
+                         short spec3,
+                         short level_requirement,
+                         short class_requirement,
+                         short strength_requirement,
+                         short intelligence_requirement,
+                         short wisdom_requirement,
+                         short agility_requirement,
+                         short constitution_requirement,
+                         short charisma_requirement,
+                         short element,
+                         short element_damage,
+                         short weight,
+                         short unused,
+                         short size)
 {
     ItemValue *value = new ItemValue(id);
     value->type = type;
@@ -251,7 +281,8 @@ ItemElement ItemValues::Eif_GetElement(ItemValues *self, int item_id)
             if ((*GetRecordSlot(&self->values, item_id - 1))->type == 10)
             {
                 result.element = (*GetRecordSlot(&self->values, item_id - 1))->element;
-                result.element_damage = (*GetRecordSlot(&self->values, item_id - 1))->element_damage;
+                result.element_damage =
+                    (*GetRecordSlot(&self->values, item_id - 1))->element_damage;
             }
         }
     }
@@ -432,26 +463,31 @@ int ItemValues::DecodeNumber(String value)
 {
     String value_copy = value;
     int result = 0;
-    try {
-    int byte_index = 1;
-    while (value_copy.Length() >= byte_index)
+    try
     {
-        char c = value_copy[byte_index];
-        unsigned char ch = c;
-        if (ch == 0xFE || ch == 0)
-            break;
-        int n = ch;
-        n = n - 1;
-        if (byte_index == 1)
-            result = result + n;
-        if (byte_index == 2)
-            result = result + n * 0xfd;
-        if (byte_index == 3)
-            result = result + n * 0xfa09;
-        if (byte_index == 4)
-            result = result + n * 0xf71ae5;
-        byte_index = byte_index + 1;
+        int byte_index = 1;
+        while (value_copy.Length() >= byte_index)
+        {
+            char c = value_copy[byte_index];
+            unsigned char ch = c;
+            if (ch == 0xFE || ch == 0)
+                break;
+            int n = ch;
+            n = n - 1;
+            if (byte_index == 1)
+                result = result + n;
+            if (byte_index == 2)
+                result = result + n * 0xfd;
+            if (byte_index == 3)
+                result = result + n * 0xfa09;
+            if (byte_index == 4)
+                result = result + n * 0xf71ae5;
+            byte_index = byte_index + 1;
+        }
     }
-    } catch (...) { result = 0; }
+    catch (...)
+    {
+        result = 0;
+    }
     return result;
 }

@@ -16,7 +16,7 @@
 //   +0x24 int                         field_24 = -1
 class LearnValues
 {
-public:
+  public:
     char loaded;
     char pad_01[3];
     std::vector<LearnValue> record_list;
@@ -30,14 +30,24 @@ public:
     static LearnItemVal GetSkill(LearnValues *self, int master_id, int skill_id);
     static String BuildOpenData(LearnValues *self, int behavior_id);
     static unsigned int GetRecordCount(LearnValues *self);
-    static void AddSkill(LearnValues *self, LearnValue *record, int skill_id,
-                         int level_requirement, int class_requirement, int price,
-                         int skill_requirement_1, int skill_requirement_2,
-                         int skill_requirement_3, int skill_requirement_4,
-                         int str_requirement, int int_requirement,
-                         int wis_requirement, int agi_requirement,
-                         int con_requirement, int cha_requirement);
-    static String Pub_EncodeNumber_Learn(LearnValues *self, unsigned int value, int width);
+    static void AddSkill(LearnValues *self,
+                         LearnValue *record,
+                         int skill_id,
+                         int level_requirement,
+                         int class_requirement,
+                         int price,
+                         int skill_requirement_1,
+                         int skill_requirement_2,
+                         int skill_requirement_3,
+                         int skill_requirement_4,
+                         int str_requirement,
+                         int int_requirement,
+                         int wis_requirement,
+                         int agi_requirement,
+                         int con_requirement,
+                         int cha_requirement);
+    static String
+    Pub_EncodeNumber_Learn(LearnValues *self, unsigned int value, int width);
     static int Pub_DecodeNumber_Learn(LearnValues *self, String value);
 };
 

@@ -9,14 +9,26 @@
 // layouts are fixed by the accessors' stores.
 struct SkillDamage
 {
-    struct { int min_damage; int max_damage; };
-    SkillDamage() {}
+    struct
+    {
+        int min_damage;
+        int max_damage;
+    };
+    SkillDamage()
+    {
+    }
 };
 
 struct SkillElement
 {
-    struct { int element; int element_power; };
-    SkillElement() {}
+    struct
+    {
+        int element;
+        int element_power;
+    };
+    SkillElement()
+    {
+    }
 };
 
 // The skill table (ESF). Layout recovered from the reference constructor
@@ -33,7 +45,7 @@ struct SkillElement
 //   +0x3c int                        field_3c = -1
 class SkillValues
 {
-public:
+  public:
     int field_0;
     int num_skills;
     int rid1;
@@ -52,18 +64,40 @@ public:
     int DecodeNumber(String value);
     int GetCount();
 
-    static void AddRecord(SkillValues *self, int id, String name, String chant,
-                          short icon_id, short graphic_id, short tp_cost,
-                          short sp_cost, short cast_time, short nature,
-                          short unknown1, short skill_type, short element,
-                          short element_power, short target_restrict,
-                          short target_type, short target_time,
-                          short skill_range_area, short max_skill_level,
-                          short min_damage, short max_damage, short accuracy,
-                          short evade, short armor, short return_damage,
-                          short hp_heal, short tp_heal, short sp_heal,
-                          short str, short intl, short wis, short agi,
-                          short con, short cha);
+    static void AddRecord(SkillValues *self,
+                          int id,
+                          String name,
+                          String chant,
+                          short icon_id,
+                          short graphic_id,
+                          short tp_cost,
+                          short sp_cost,
+                          short cast_time,
+                          short nature,
+                          short unknown1,
+                          short skill_type,
+                          short element,
+                          short element_power,
+                          short target_restrict,
+                          short target_type,
+                          short target_time,
+                          short skill_range_area,
+                          short max_skill_level,
+                          short min_damage,
+                          short max_damage,
+                          short accuracy,
+                          short evade,
+                          short armor,
+                          short return_damage,
+                          short hp_heal,
+                          short tp_heal,
+                          short sp_heal,
+                          short str,
+                          short intl,
+                          short wis,
+                          short agi,
+                          short con,
+                          short cha);
 
     static SkillDamage GetDamage(SkillValues *self, int skill_id);
     static SkillElement GetElement(SkillValues *self, int skill_id);

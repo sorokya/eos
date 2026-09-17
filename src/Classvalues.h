@@ -16,7 +16,7 @@
 // The offsets 4 and 8 are unnamed padding pending evidence.
 class ClassValues
 {
-public:
+  public:
     int field_0;
     int num_classes;
     int rid_1;
@@ -36,9 +36,17 @@ public:
     int size();
 
     static ClassValue GetByIndex(ClassValues *self, int index);
-    static void AddClass(ClassValues *self, int id, int field_4, String name,
-                         short f0c, short f0e, short f10, short f12,
-                         short f14, short f16, short f18);
+    static void AddClass(ClassValues *self,
+                         int id,
+                         int field_4,
+                         String name,
+                         short f0c,
+                         short f0e,
+                         short f10,
+                         short f12,
+                         short f14,
+                         short f16,
+                         short f18);
 };
 
 #endif

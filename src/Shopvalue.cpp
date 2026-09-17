@@ -25,10 +25,15 @@ void ShopValue::AddTrade(int item_id, int buy_price, int sell_price, int max_amo
     trades.insert(trades.end(), val);
 }
 
-void ShopValue::AddCraft(int item_id, int ingredient_item_id_1, int ingredient_amount_1,
-                         int ingredient_item_id_2, int ingredient_amount_2,
-                         int ingredient_item_id_3, int ingredient_amount_3,
-                         int ingredient_item_id_4, int ingredient_amount_4)
+void ShopValue::AddCraft(int item_id,
+                         int ingredient_item_id_1,
+                         int ingredient_amount_1,
+                         int ingredient_item_id_2,
+                         int ingredient_amount_2,
+                         int ingredient_item_id_3,
+                         int ingredient_amount_3,
+                         int ingredient_item_id_4,
+                         int ingredient_amount_4)
 {
     ShopCraftVal val(item_id);
     val.ingredient_item_ids[0] = ingredient_item_id_1;

@@ -36,12 +36,20 @@ struct LearnValue
     LearnValue(int id);
     ~LearnValue();
 
-    void AddSkill(int skill_id, int level_requirement, int class_requirement,
-                  int price, int skill_requirement_1, int skill_requirement_2,
-                  int skill_requirement_3, int skill_requirement_4,
-                  int str_requirement, int int_requirement,
-                  int wis_requirement, int agi_requirement,
-                  int con_requirement, int cha_requirement);
+    void AddSkill(int skill_id,
+                  int level_requirement,
+                  int class_requirement,
+                  int price,
+                  int skill_requirement_1,
+                  int skill_requirement_2,
+                  int skill_requirement_3,
+                  int skill_requirement_4,
+                  int str_requirement,
+                  int int_requirement,
+                  int wis_requirement,
+                  int agi_requirement,
+                  int con_requirement,
+                  int cha_requirement);
 };
 
 #endif

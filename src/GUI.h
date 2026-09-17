@@ -8,10 +8,7 @@
 
 class TGUI : public TForm
 {
-__published:
-private:
-public:
-    __fastcall TGUI(TComponent* Owner);
+  __published : private : public : __fastcall TGUI(TComponent *Owner);
 };
 
 extern PACKAGE TGUI *GUI;

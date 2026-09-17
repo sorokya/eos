@@ -5,7 +5,7 @@
 
 TGUI *GUI;
 
-__fastcall TGUI::TGUI(TComponent* Owner) : TForm(Owner)
+__fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
 {
 }
 
