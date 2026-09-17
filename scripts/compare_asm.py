@@ -286,9 +286,12 @@ def print_stack_map(ref, our) -> None:
 
 def parse_our(path: str, mangled_prefix: str):
     txt = open(path, encoding="latin1").read()
-    m = re.search(r"(?m)^" + re.escape(mangled_prefix) + r"\$q[^\n]*\n(.*?)endp", txt, re.S)
+    esc = re.escape(mangled_prefix)
+    m = re.search(r"(?m)^" + esc + r"\s+proc[^\n]*\n(.*?)endp", txt, re.S)
     if not m:
-        return None, []
+        m = re.search(r"(?m)^" + esc + r"\$q[^\n]*\n(.*?)endp", txt, re.S)
+    if not m:
+        return None, [], None
     skip = {"dw", "dd", "db", "dt", "public", "extrn", "segment", "ends", "proc",
             "endp", "end", "align", "assume", "org", "equ", "_data", "_text",
             "_bss", "_tls", "_rdata"}
