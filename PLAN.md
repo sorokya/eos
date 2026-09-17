@@ -322,8 +322,8 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Npc | `0x0007ab00` | byte-exact |
 | Mapchest | `0x0007ad1c` | not-started |
 | Mapcontrol | `0x00087d38` | not-started |
-| Mapobject | `0x00087dc4` | not-started |
-| Mapwarp | `0x00087e64` | not-started |
+| Mapobject | `0x00087dc4` | byte-exact |
+| Mapwarp | `0x00087e64` | byte-exact |
 | Map | `0x00088474` | not-started |
 | Itemground | `0x000884d8` | byte-exact |
 | Itemchest | `0x000a2ff8` | not-started |
@@ -349,7 +349,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Banned | `0x0012cb2c` | not-started |
 | Effectcontrol | `0x0012db00` | not-started |
 | Eventcontrol | `0x0012e204` | not-started |
-| Wedding | `0x0012e35c` | not-started |
+| Wedding | `0x0012e35c` | byte-exact |
 | Weddings | `0x001303d0` | not-started |
 | Learnvalue | `0x00130e78` | byte-exact |
 | Learnvalues | `0x0013326c` | byte-exact |
@@ -360,14 +360,14 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Innvalue | `0x00135ecc` | byte-exact |
 | ClassValues | `0x00137460` | byte-exact |
 | Classvalue | `0x00137510` | byte-exact |
-| Playerquest | `0x001375b4` | not-started |
-| Questtype | `0x001376a0` | not-started |
-| Quest | `0x00137ac0` | not-started |
+| Playerquest | `0x001375b4` | byte-exact |
+| Questtype | `0x001376a0` | byte-exact |
+| Quest | `0x00137ac0` | byte-exact |
 | Questengine | `0x0013c7fc` | not-started |
 | Queststate | `0x0013cd28` | byte-exact |
 | Filecache | `0x0013e248` | byte-exact |
 | Killcounter | `0x0013e3a0` | byte-exact |
-| Playercommand | `0x0013e494` | not-started |
+| Playercommand | `0x0013e494` | byte-exact |
 | Killcounters | `0x0013f5e4` | not-started |
 | Questcounter | `0x001406d4` | not-started |
 | Questcounterlist | `0x0014082c` | not-started |
@@ -524,6 +524,8 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Filecache byte-exact (18/18) | 2 | done | ctor 57, dtor 38, `CheckCacheFile` 35, `FUN_0053d0e8` 134, `LoadPlayerCache` 192 (`./cache/players.chk`), `LoadGuildCache` 157 (`./cache/guilds.chk`), `FUN_0053d754` 68, `Database_FlushCache` 541, plus `FilecacheEntry`/`FilecacheEntryB` ctors/dtors and the 6 vector COMDATs - all 0 mismatches. `Filecache` owns `FilecacheEntry`/`FilecacheEntryB` (0x18/0x14); `Database_FlushCache` is a free function. `Mysqlcontrols` now includes `Filecache.h` and calls `Filecache::{CheckCacheFile,LoadPlayerCache,LoadGuildCache}`. |
 | Queststate byte-exact (12/12) | 2 | done | `QuestState` ctor 65 / deleting dtor 43, `QuestAction` ctor 27 / dtor 29, `QuestRule` ctor 40 / dtor 34, plus the `std::vector<QuestAction*>`/`<QuestRule*>` COMDATs - all 0 mismatches. RTTI names are `QuestState`/`QuestAction`/`QuestRule`; the `QuestAction`/`QuestRule` ctors/dtors are emitted in this unit's span (Questengine only references them). |
 | Npc byte-exact (2/2) | 2 | done | `Npc(short,short,short,short,short,int,short)` 115 (Ghidra `Npc_Init`) and the deleting dtor 34 - 0 mismatches. sizeof 0x94; a user-declared empty `~Npc()` is required (the implicit one omits the EH scope marker). `Npc_Init` derives `act_ticks` from `spawn_type` and needs `TDateTime now = Now(); nDeath_ms = DateTimeToTimeStamp(now);` (the inline form emits `fstp [esp]` and the wrong frame). |
+| Small record units byte-exact (Mapobject, Mapwarp, Questtype, Playerquest, Playercommand, Wedding) | 2 | done | `Mapobject` {short x,y,value,ticks} sizeof 8; `Mapwarp` {short from_x,from_y; int dest_map,level; short to_x,to_y} sizeof 0x10; `Questtype` {int value; String name} size 8; `PlayerQuest` (0x14); `PlayerCommand` {int action,arg; String text} size 12; `Wedding` sizeof 0x28. Each is a trivial ctor + user destructor; all 2/2 byte-exact. |
+| Quest byte-exact (14/14) | 2 | done | `Quest(int)` ctor 35 and `~Quest` 31 plus the 12 `std::vector<QuestState*>`/allocator COMDATs emitted from the `states` member - all 0 mismatches. Layout (0x34): `quest_id`@0, `String name`@4, `version`@8, `field_0xc`@0xc, `char loaded`@0x10, `std::vector<QuestState*> states`@0x14. No Quest methods beyond ctor/dtor. |
 | Mainform wired to the reconstructed controllers | 2 | done | `Mainform.cpp` includes `Settings.h`/`Gamecontrol.h`/`Logins.h`/`Newscontrol.h`/`Mysqlcontrols.h` and drops all five stubs; call sites become `Settings::Get*`, `Mysqlcontrols::{TestConnection,Connect,Free,FUN_004762c8,Db_GetActiveConnectionCount}`, `Logins::{HandleAddress,Tick}`. All 8 handlers re-verified (0 mismatches) and `make build` links |
 | compare_asm canonicalizes package symbols | 1 | tool | `canon()` now maps a bare-symbol memory operand (bcc32 emits `[_GUI]` for a `__declspec(package)` global; the reference shows the resolved address) to `[ADDR]`. This unblocked scoring `Mysqlcontrols` (10/28 -> 19/28 reported) and is a no-op for register/offset operands |
 | *values family byte-exact (13 units) | 2 | done | `Classvalues`/`Classvalue`, `Itemvalues`/`Itemvalue`, `Skillvalues`/`Skillvalue`, `Npcvalues`/`Npcvalue`, `Shopvalues`/`Shopvalue`/`Shopcraft`, `Learnvalues`/`Learnvalue`/`Learnitem`, `Innvalues`/`Innvalue` — every source function scores 0 mismatches (parsers, ctors/dtors, accessors, encode/decode). Most were reconstructed in parallel by subagents; the shared idioms are the try/catch file read, inline `DecodeNumber` record arguments, and the empty-ctor + anonymous-aggregate result-pair shape |

@@ -1,0 +1,29 @@
+#ifndef QuestH
+#define QuestH
+
+#include <Classes.hpp>
+#include <vector>
+#include "Queststate.h"
+
+// Layout recovered from the reference constructor (0x5376c0), the deleting
+// destructor (0x5378a4) and the Questengine parser (0x5397c8); the class name is
+// the RTTI type name.
+//
+// Quest (0x34): int quest_id (+0), String name (+4), int version (+8),
+//               int field_0xc (+0xc), char loaded (+0x10),
+//               std::vector<QuestState *> states (+0x14)
+class Quest
+{
+  public:
+    int quest_id;
+    String name;
+    int version;
+    int field_0xc;
+    char loaded;
+    std::vector<QuestState *> states;
+
+    Quest(int id);
+    ~Quest();
+};
+
+#endif
