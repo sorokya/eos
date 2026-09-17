@@ -11,10 +11,9 @@
 //   +0x00 TStringList *                             field_0 = new TStringList
 //   +0x04 String                                    name
 //   +0x08 DynamicArray< std::vector<KillCounter> >   buckets, Length = 27
-// The dynamic-array element is the std::vector itself (size 0x20), not a
-// wrapper; 0x53e4b4 is the RTL's per-slot default-construction helper, which is
-// why it has no `mov eax,[ebp+8]` return-this. IncrementAndGet maps name[1] to
-// `c - 'a'` clamped to 26 and pushes into that bucket.
+// The element is the std::vector itself (size 0x20); 0x53e4b4 is its per-slot
+// constructor (no return-this). IncrementAndGet pushes into bucket
+// (name[1] - 'a') clamped to 26.
 struct Killcounters
 {
     TStringList *field_0;
