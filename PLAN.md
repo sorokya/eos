@@ -285,7 +285,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Weddings | `0x001303d0` | not-started |
 | Learnvalue | `0x00130e78` | byte-exact |
 | Learnvalues | `0x0013326c` | byte-exact |
-| Learnitem | `0x00133300` | not-started |
+| Learnitem | `0x00133300` | byte-exact |
 | Mysqlthread | `0x00133818` | not-started |
 | Mysqltask | `0x001342bc` | not-started |
 | Innvalues | `0x00135d94` | byte-exact |
