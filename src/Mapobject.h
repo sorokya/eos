@@ -15,7 +15,7 @@ struct MapObject
     short value;
     short ticks;
 
-    MapObject(short x, short y, short value);
+    MapObject(int x, int y, int value);
     ~MapObject();
 };
 

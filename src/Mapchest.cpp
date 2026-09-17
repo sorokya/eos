@@ -5,7 +5,7 @@
 
 #pragma package(smart_init)
 
-MapChest::MapChest(short x, short y, short key_id)
+MapChest::MapChest(int x, int y, int key_id)
 {
     this->x = x;
     this->y = y;

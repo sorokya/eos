@@ -17,7 +17,7 @@ struct MapWarp
     unsigned short to_x;
     unsigned short to_y;
 
-    MapWarp(short from_x, short from_y, int dest_map, int level, short to_x, short to_y);
+    MapWarp(int from_x, int from_y, int dest_map, int level, int to_x, int to_y);
     ~MapWarp();
 };
 

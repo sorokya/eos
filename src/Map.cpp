@@ -5,7 +5,7 @@
 
 #pragma package(smart_init)
 
-MapContainer::MapContainer(short map_id, int width, int height)
+MapContainer::MapContainer(int map_id, int width, int height)
 {
     rid = map_id;
     this->width = width;

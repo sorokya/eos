@@ -16,7 +16,7 @@ struct MapChest
     char updated;
     std::vector<MapItem> slots;
 
-    MapChest(short x, short y, short key_id);
+    MapChest(int x, int y, int key_id);
     ~MapChest();
 };
 

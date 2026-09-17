@@ -54,6 +54,9 @@ UNIT_CLASS_ALIASES = {
     "Filecache": ["FileCache"],
     "Killcounters": ["KillCounters"],
     "Questtype": ["QuestType"],
+    "Questcounter": ["QuestCounter"],
+    "Questcounterlist": ["QuestCounterList"],
+    "Questcounters": ["QuestCounters"],
 }
 
 

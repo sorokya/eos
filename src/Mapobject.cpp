@@ -5,7 +5,7 @@
 
 #pragma package(smart_init)
 
-MapObject::MapObject(short x, short y, short value)
+MapObject::MapObject(int x, int y, int value)
 {
     this->x = x;
     this->y = y;

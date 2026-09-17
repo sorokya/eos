@@ -62,7 +62,7 @@ struct MapContainer
     int player_count;            // +0x12c
     std::vector<bool> tile_bits; // +0x130
 
-    MapContainer(short map_id, int width, int height);
+    MapContainer(int map_id, int width, int height);
     ~MapContainer();
 };
 

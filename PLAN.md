@@ -308,7 +308,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | --- | --- | --- |
 | GUI (main) | `_GUI@0x18bb70` | not-started |
 | Mainform | `0x00007928` | in-progress |
-| Players | `0x00010de4` | not-started |
+| Players | `0x00010de4` | in-progress |
 | Player | `0x00011f64` | byte-exact |
 | Playerskill | `0x00011fd0` | byte-exact |
 | Playerinventory | `0x0001203c` | byte-exact |
@@ -321,7 +321,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Itemvalues | `0x0007a848` | byte-exact |
 | Npc | `0x0007ab00` | byte-exact |
 | Mapchest | `0x0007ad1c` | byte-exact |
-| Mapcontrol | `0x00087d38` | not-started |
+| Mapcontrol | `0x00087d38` | in-progress |
 | Mapobject | `0x00087dc4` | byte-exact |
 | Mapwarp | `0x00087e64` | byte-exact |
 | Map | `0x00088474` | byte-exact |
@@ -363,15 +363,15 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Playerquest | `0x001375b4` | byte-exact |
 | Questtype | `0x001376a0` | byte-exact |
 | Quest | `0x00137ac0` | byte-exact |
-| Questengine | `0x0013c7fc` | not-started |
+| Questengine | `0x0013c7fc` | in-progress |
 | Queststate | `0x0013cd28` | byte-exact |
 | Filecache | `0x0013e248` | byte-exact |
 | Killcounter | `0x0013e3a0` | byte-exact |
 | Playercommand | `0x0013e494` | byte-exact |
 | Killcounters | `0x0013f5e4` | byte-exact |
-| Questcounter | `0x001406d4` | not-started |
-| Questcounterlist | `0x0014082c` | not-started |
-| Questcounters | `0x00141e84` | not-started |
+| Questcounter | `0x001406d4` | byte-exact |
+| Questcounterlist | `0x0014082c` | byte-exact |
+| Questcounters | `0x00141e84` | byte-exact |
 
 ## Phases
 

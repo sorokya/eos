@@ -67,6 +67,13 @@ def canon(ins: str) -> str:
     # while objdump spells out `rep movsd es:[edi],ds:[esi]`. They are the same
     # instruction, so drop the operand text.
     s = re.sub(r"^(rep\s+(?:movs|stos|lods|scas|cmp)s?[bwd]?)\b.*$", r"\1", s)
+    # `xchg` is symmetric: bcc32 and objdump may print the two operands in
+    # either order (`xchg edx,eax` vs `xchg eax,edx`), and they are the same
+    # one-byte instruction. Sort the operands so the order is not compared.
+    m = re.match(r"^(xchg)\s+([^,]+),(.+)$", s)
+    if m:
+        a, b = sorted((m.group(2).strip(), m.group(3).strip()))
+        s = f"{m.group(1)} {a},{b}"
     return s
 
 
