@@ -319,7 +319,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Mysqlcontrols | `0x00078180` | in-progress |
 | Itemvalue | `0x0007824c` | byte-exact |
 | Itemvalues | `0x0007a848` | byte-exact |
-| Npc | `0x0007ab00` | not-started |
+| Npc | `0x0007ab00` | byte-exact |
 | Mapchest | `0x0007ad1c` | not-started |
 | Mapcontrol | `0x00087d38` | not-started |
 | Mapobject | `0x00087dc4` | not-started |
@@ -364,8 +364,8 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Questtype | `0x001376a0` | not-started |
 | Quest | `0x00137ac0` | not-started |
 | Questengine | `0x0013c7fc` | not-started |
-| Queststate | `0x0013cd28` | not-started |
-| Filecache | `0x0013e248` | not-started |
+| Queststate | `0x0013cd28` | byte-exact |
+| Filecache | `0x0013e248` | byte-exact |
 | Killcounter | `0x0013e3a0` | byte-exact |
 | Playercommand | `0x0013e494` | not-started |
 | Killcounters | `0x0013f5e4` | not-started |
@@ -521,6 +521,9 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Mysqlthread + Mysqltask reconstructed | 2 | in-progress | `Mysqltask` object (0x533838..0x5342bc): `mySQLtask` ctor/dtor and `mySQLbuffer` ctor/dtor/`EnqueueTask`/`HasPendingTask` plus all 16 `std::vector<mySQLtask*>`/allocator COMDATs - 21/21 byte-exact. `Mysqlthread` object (0x533320..0x533818): the TThread-derived `MySQLthread` ctor 44, `OnResult` 18, deleting dtor 23 and the vector COMDATs match; `Execute` (179) remains (field-store operand order + ebx/esi/edi frame). Real class names are `MySQLthread`, `mySQLtask`, `mySQLbuffer` (RTTI, capital SQL). |
 | Mysqlcontrols ctor byte-exact | 2 | done | The ctor needed a user-declared (empty) `~Mysqlcontrols()`: that is what arms the function-body EH scope `8` at entry and reproduces the reference's 5-marker stream. With it, and `Free` calling `::operator delete(self)` directly (the reference deleting-dtor shape), both the ctor (79/79) and `Free` (11/11) are exact. `connect_string` is built in one expression `... + "'" + IntToStr(version_major) + "." + ... + "',0,0,0,0,'no data','no data')"`, and each `SHOW TABLE STATUS` table check sits in its own `try`/`catch(...)`. `Connect`'s code is instruction-for-instruction identical (605/605); only one EH cleanup record differs (111 marker-level mismatches). |
 | Mysql code reconciled and linked | 2 | done | `Mysqlcontrols.h` now includes `Mysqltask.h`/`Mysqlthread.h` and uses `mySQLbuffer *thread_queue` / `MySQLthread *worker_thread`; the ctor uses `new MySQLthread(GUI->mysession, GUI->mysql, GUI->myquery, thread_queue, false)` (which emits the class VMT load), SubmitQuery/ExecDirect call `thread_queue->EnqueueTask`, IsTaskPending calls `thread_queue->HasPendingTask`; `Mysqlthread.cpp` dropped its `mySQLtask`/`mySQLbuffer` shims and includes `Mysqltask.h`. `make build` links. Full verify 242/246. |
+| Filecache byte-exact (18/18) | 2 | done | ctor 57, dtor 38, `CheckCacheFile` 35, `FUN_0053d0e8` 134, `LoadPlayerCache` 192 (`./cache/players.chk`), `LoadGuildCache` 157 (`./cache/guilds.chk`), `FUN_0053d754` 68, `Database_FlushCache` 541, plus `FilecacheEntry`/`FilecacheEntryB` ctors/dtors and the 6 vector COMDATs - all 0 mismatches. `Filecache` owns `FilecacheEntry`/`FilecacheEntryB` (0x18/0x14); `Database_FlushCache` is a free function. `Mysqlcontrols` now includes `Filecache.h` and calls `Filecache::{CheckCacheFile,LoadPlayerCache,LoadGuildCache}`. |
+| Queststate byte-exact (12/12) | 2 | done | `QuestState` ctor 65 / deleting dtor 43, `QuestAction` ctor 27 / dtor 29, `QuestRule` ctor 40 / dtor 34, plus the `std::vector<QuestAction*>`/`<QuestRule*>` COMDATs - all 0 mismatches. RTTI names are `QuestState`/`QuestAction`/`QuestRule`; the `QuestAction`/`QuestRule` ctors/dtors are emitted in this unit's span (Questengine only references them). |
+| Npc byte-exact (2/2) | 2 | done | `Npc(short,short,short,short,short,int,short)` 115 (Ghidra `Npc_Init`) and the deleting dtor 34 - 0 mismatches. sizeof 0x94; a user-declared empty `~Npc()` is required (the implicit one omits the EH scope marker). `Npc_Init` derives `act_ticks` from `spawn_type` and needs `TDateTime now = Now(); nDeath_ms = DateTimeToTimeStamp(now);` (the inline form emits `fstp [esp]` and the wrong frame). |
 | Mainform wired to the reconstructed controllers | 2 | done | `Mainform.cpp` includes `Settings.h`/`Gamecontrol.h`/`Logins.h`/`Newscontrol.h`/`Mysqlcontrols.h` and drops all five stubs; call sites become `Settings::Get*`, `Mysqlcontrols::{TestConnection,Connect,Free,FUN_004762c8,Db_GetActiveConnectionCount}`, `Logins::{HandleAddress,Tick}`. All 8 handlers re-verified (0 mismatches) and `make build` links |
 | compare_asm canonicalizes package symbols | 1 | tool | `canon()` now maps a bare-symbol memory operand (bcc32 emits `[_GUI]` for a `__declspec(package)` global; the reference shows the resolved address) to `[ADDR]`. This unblocked scoring `Mysqlcontrols` (10/28 -> 19/28 reported) and is a no-op for register/offset operands |
 | *values family byte-exact (13 units) | 2 | done | `Classvalues`/`Classvalue`, `Itemvalues`/`Itemvalue`, `Skillvalues`/`Skillvalue`, `Npcvalues`/`Npcvalue`, `Shopvalues`/`Shopvalue`/`Shopcraft`, `Learnvalues`/`Learnvalue`/`Learnitem`, `Innvalues`/`Innvalue` — every source function scores 0 mismatches (parsers, ctors/dtors, accessors, encode/decode). Most were reconstructed in parallel by subagents; the shared idioms are the try/catch file read, inline `DecodeNumber` record arguments, and the empty-ctor + anonymous-aggregate result-pair shape |

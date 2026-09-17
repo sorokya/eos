@@ -9,66 +9,7 @@
 
 #include "Mysqltask.h"
 #include "Mysqlthread.h"
-
-// Cross-unit classes (reconstructed separately). Only the layouts and the
-// members used by this unit are declared here; their method code lives in their
-// own translation units.
-class FilecacheEntry;
-class FilecacheEntryB;
-
-// Element records held (by pointer) in the Filecache write queues. sizeof is
-// pinned by the `operator new` arguments in LoadCachedPlayers (0x18) and
-// LoadCachedGuilds (0x14); the field names are the SELECT column names the
-// loaders read.
-class FilecacheEntry
-{
-  public:
-    int privilege;  // +0x00
-    String name;    // +0x04
-    String title;   // +0x08
-    int level;      // +0x0c
-    int experience; // +0x10
-    int gender;     // +0x14
-
-    FilecacheEntry();
-};
-
-class FilecacheEntryB
-{
-  public:
-    String ident_guild; // +0x00
-    String guild;       // +0x04
-    int exptotal;       // +0x08
-    int exphigh;        // +0x0c
-    int members;        // +0x10
-
-    FilecacheEntryB();
-};
-
-// Filecache (unit Filecache) is 0x5c bytes; layout recovered from its ctor
-// 0x53cd48 and the pending-write loaders 0x53d2a8/0x53d53c:
-//   +0x00 char  dirty                     +0x04 int accounts_count
-//   +0x08 int   characters_count          +0x0c int guilds_count
-//   +0x10 std::vector<FilecacheEntry *>   pending_player_writes
-//   +0x30 std::vector<FilecacheEntryB *>  pending_guild_writes
-//   +0x50 TStringList * string_list       +0x54 String field_54
-//   +0x58 int   field_58
-class Filecache
-{
-  public:
-    char dirty; // +0x00
-    char pad_01[3];
-    int accounts_count;                                  // +0x04
-    int characters_count;                                // +0x08
-    int guilds_count;                                    // +0x0c
-    std::vector<FilecacheEntry *> pending_player_writes; // +0x10
-    std::vector<FilecacheEntryB *> pending_guild_writes; // +0x30
-    TStringList *string_list;                            // +0x50
-    String field_54;                                     // +0x54
-    int field_58;                                        // +0x58
-
-    Filecache();
-};
+#include "Filecache.h"
 
 // Mysqlcontrols is the DB layer root (0x28 bytes). Layout from the reference
 // constructor 0x474668 and the status refresh 0x4762c8:

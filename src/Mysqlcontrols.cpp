@@ -7,9 +7,6 @@
 #pragma package(smart_init)
 
 // Cross-unit helpers whose units are reconstructed separately.
-extern void Filecache_CheckCacheFile(Filecache *cache);
-extern void Filecache_LoadPlayerCache(int cache);
-extern void Filecache_LoadGuildCache(int cache);
 
 // Connection parameters are stored obfuscated; DecodeString reverses them and
 // maps digits/letters back (see Serial::DecodeString). Decoded:
@@ -70,7 +67,7 @@ void Mysqlcontrols::Connect(Mysqlcontrols *self,
                             int version_minor,
                             int version_patch)
 {
-    Filecache_CheckCacheFile(self->file_cache);
+    Filecache::CheckCacheFile(self->file_cache);
     if (self->file_cache->dirty == false)
         ExecDrop(self, "UPDATE endl_characters SET online = 0 WHERE online = 1");
     ExecDrop(self, "DELETE FROM endl_server");
@@ -134,7 +131,7 @@ void Mysqlcontrols::Connect(Mysqlcontrols *self,
     }
     else
     {
-        Filecache_LoadPlayerCache((int)self->file_cache);
+        Filecache::LoadPlayerCache(self->file_cache);
     }
 
     if (self->file_cache->dirty == false)
@@ -149,7 +146,7 @@ void Mysqlcontrols::Connect(Mysqlcontrols *self,
     }
     else
     {
-        Filecache_LoadGuildCache((int)self->file_cache);
+        Filecache::LoadGuildCache(self->file_cache);
     }
 }
 
