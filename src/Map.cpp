@@ -1,1 +1,42 @@
+#include <vcl.h>
+#pragma hdrstop
+
+#include "Map.h"
+
 #pragma package(smart_init)
+
+Map::Map(short map_id, int width, int height)
+{
+    rid = map_id;
+    this->width = width;
+    this->height = height;
+    field_0x4c = 0;
+    buf_copied = false;
+    field_0x123 = 0;
+    boss_alive = false;
+    chests_dirty = 0;
+    has_open_doors = 0;
+    can_scroll = false;
+    arena_enabled = 0;
+    child_npc_id = 0;
+    player_count = 0;
+    npc_act_ticks = 0;
+    next_ground_item_id = 0;
+    field_0x1c = 0;
+    evac_countdown = 0;
+    has_quakes = false;
+    has_hp_drain = false;
+    has_tp_drain = false;
+    has_spikes = false;
+    relog_x = 0;
+    relog_y = 0;
+    field_0x58 = 0;
+    field_0x54 = "";
+    tile_bits.resize(this->width * this->height * 2);
+    legacy_door_key_list.clear();
+    chest_list.clear();
+}
+
+Map::~Map()
+{
+}

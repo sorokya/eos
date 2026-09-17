@@ -309,7 +309,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | GUI (main) | `_GUI@0x18bb70` | not-started |
 | Mainform | `0x00007928` | in-progress |
 | Players | `0x00010de4` | not-started |
-| Player | `0x00011f64` | not-started |
+| Player | `0x00011f64` | byte-exact |
 | Playerskill | `0x00011fd0` | byte-exact |
 | Playerinventory | `0x0001203c` | byte-exact |
 | Serial | `0x00013b4c` | byte-exact |
@@ -324,7 +324,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Mapcontrol | `0x00087d38` | not-started |
 | Mapobject | `0x00087dc4` | byte-exact |
 | Mapwarp | `0x00087e64` | byte-exact |
-| Map | `0x00088474` | not-started |
+| Map | `0x00088474` | byte-exact |
 | Itemground | `0x000884d8` | byte-exact |
 | Itemchest | `0x000a2ff8` | not-started |
 | Skillvalues | `0x000a5400` | byte-exact |
@@ -335,8 +335,8 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Jukeboxcontrol | `0x000aa9a8` | in-progress |
 | Jukebox | `0x000aaa70` | byte-exact |
 | Newscontrol | `0x000aaf5c` | byte-exact |
-| Doorcontrol | `0x000ab108` | not-started |
-| Msgboardcontrol | `0x000ae180` | not-started |
+| Doorcontrol | `0x000ab108` | byte-exact |
+| Msgboardcontrol | `0x000ae180` | in-progress |
 | Msgboard | `0x000ae35c` | byte-exact |
 | Npccontrol | `0x000b11f4` | in-progress |
 | Gamecontrol | `0x000b15a0` | byte-exact |
@@ -344,11 +344,11 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Shopitem | `0x000b4a20` | byte-exact |
 | Shopvalue | `0x000b546c` | byte-exact |
 | Shopcraft | `0x000b5500` | byte-exact |
-| Chestcontrol | `0x000b5bc4` | not-started |
+| Chestcontrol | `0x000b5bc4` | byte-exact |
 | Weaponmap | `0x000b5c60` | byte-exact |
 | Banned | `0x0012cb2c` | not-started |
 | Effectcontrol | `0x0012db00` | byte-exact |
-| Eventcontrol | `0x0012e204` | not-started |
+| Eventcontrol | `0x0012e204` | byte-exact |
 | Wedding | `0x0012e35c` | byte-exact |
 | Weddings | `0x001303d0` | in-progress |
 | Learnvalue | `0x00130e78` | byte-exact |
@@ -531,6 +531,12 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Effectcontrol byte-exact (4/4) | 2 | done | ctor 46, `$bdtr` 11, `Tick` 945, `AppendEncoded` 100. Layout (0x48): `aState_countdown[4]`/`aState_value[4]`/`aState_extra[4]` + broadcast gate + `char *encode_scratch` + Settings/Mapcontrol/Players/Server. Ctor order `(Mapcontrol*,Players*,Server*,Settings*)`. `AppendEncoded` returns String by value. |
 | Npccontrol partial (8/13) | 2 | in-progress | Byte-exact: ctor 49, `$bdtr` 26, `Npc_GetDistance` 43, `Npc_IsWithinRange` 41, `Npc_DoMove` 84, `Npc_ValidateMove` 86, `Npc_Wander` 253, `Packet_AppendEncoded` 100. Remaining: `NpcControl_Tick` (6064 B), `Npc_AttackPlayer` (converged except local-slot order and an 8-byte pair push), `Npc_ChaseTarget`. Layout (0x44). |
 | Weddings partial (7/8; class is WeddingController) | 2 | in-progress | RTTI class name is `WeddingController` (unit/file `Weddings`). Byte-exact: ctor 34, dtor 26, `Has` 36, `Add` 78, `Confirm` 295, `BroadcastPriestLine` 52, `BothPresent` 40, `AppendEncoded` 100, plus 21 vector COMDATs. `Tick` (1071) differs in 4 hunks (510 marker-equal mismatches) - dead `sete` sequences bcc32 emits that our structurally-identical source does not. Layout (0x2c): `char *encode_scratch` + `Players*` + `Server*` + `std::vector<Wedding*>`. Mainform now uses `WeddingController`. |
+| Map byte-exact (8/8) | 2 | done | `Map(short,int,int)` ctor 204 + deleting dtor 85 + 5 element-vector ctors + `std::vector<bool> tile_bits` ctor - all 0 mismatches. sizeof 0x160. RTTI names the class `MapContainer` (and elements `MapWarp`/`MapObject`/`MapChest`) where the repo spells `Map`/`Mapwarp`/... - a `.data`/RTTI-spelling item for the final MD5, not codegen. |
+| Doorcontrol byte-exact (3/3) | 2 | done | ctor 15, dtor 11, `Tick` 97. Layout 0x0c: `TTimeStamp last_tick` + `Mapcontrol *`. Tick iterates `map_control->maps`/`map->tile_specs` (`std::vector` begin/end emit naturally) and closes doors (spec 9->7, 0xb->10). |
+| Chestcontrol byte-exact (5/5) | 2 | done | ctor 29, dtor 11, `Tick` 338, `AppendEncoded` 100, `InRange` 29. sizeof 0x14. |
+| Eventcontrol byte-exact (4/4) | 2 | done | ctor 29, dtor 11, `Tick` 401, `AppendEncoded` 100. sizeof 0x14. `Player_Warp`'s position is a by-value `TPoint` (8 bytes), not two shorts. |
+| Player byte-exact (9/9 source + 17 COMDATs) | 2 | done | `Player(void*)` 388, `~Player` 173, `HpPercent` 35, `CountPartyMembers` 20, `AddPartyMember` 27, `IsPartyMember` 21, `ClearPartyRoster` 22, `UpdateBaseStats` 40, `CalculateHP_TP_SP` 130, plus the `vector<PlayerInventory/PlayerSkill/PlayerQuest/PlayerCommand>` COMDATs. sizeof 0x3f8. `CountPartyMembers` is the one non-static operation. |
+| Msgboardcontrol partial (10/19) | 2 | in-progress | Byte-exact: ctor 80, dtor 72, `AppendEncoded` 100, `ClearBoard` 19, `DeletePost` 48, `CountPosts` 56, `SetPostLimit` 63, `GetBoard` 51, `SetDecodeSource` 33, `DecodeNumber` 75, plus ~48 vector COMDATs. Remaining: `AddPost`, `GetPost`, `BuildBoardName`, `BuildBoardData`, `LoadBoard`, `ReadToken`, `ReadRest`, `LoadBoards`, `SaveBoards`. `Msgboard`'s ctor first param must become `int` (not `short`) to unblock `AddPost`/`LoadBoard`. sizeof 0x3c4 (inline `vector<Msgboard> boards[8]` + `String[8]` + int[32] arrays). |
 | Quest byte-exact (14/14) | 2 | done | `Quest(int)` ctor 35 and `~Quest` 31 plus the 12 `std::vector<QuestState*>`/allocator COMDATs emitted from the `states` member - all 0 mismatches. Layout (0x34): `quest_id`@0, `String name`@4, `version`@8, `field_0xc`@0xc, `char loaded`@0x10, `std::vector<QuestState*> states`@0x14. No Quest methods beyond ctor/dtor. |
 | Mainform wired to the reconstructed controllers | 2 | done | `Mainform.cpp` includes `Settings.h`/`Gamecontrol.h`/`Logins.h`/`Newscontrol.h`/`Mysqlcontrols.h` and drops all five stubs; call sites become `Settings::Get*`, `Mysqlcontrols::{TestConnection,Connect,Free,FUN_004762c8,Db_GetActiveConnectionCount}`, `Logins::{HandleAddress,Tick}`. All 8 handlers re-verified (0 mismatches) and `make build` links |
 | compare_asm canonicalizes package symbols | 1 | tool | `canon()` now maps a bare-symbol memory operand (bcc32 emits `[_GUI]` for a `__declspec(package)` global; the reference shows the resolved address) to `[ADDR]`. This unblocked scoring `Mysqlcontrols` (10/28 -> 19/28 reported) and is a no-op for register/offset operands |

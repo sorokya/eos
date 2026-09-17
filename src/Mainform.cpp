@@ -21,6 +21,10 @@
 #include "Npccontrol.h"
 #include "Effectcontrol.h"
 #include "Weddings.h"
+#include "Doorcontrol.h"
+#include "Chestcontrol.h"
+#include "Eventcontrol.h"
+#include "Msgboardcontrol.h"
 
 #pragma package(smart_init)
 
@@ -57,34 +61,6 @@ class Server
            int version_minor,
            int version_major);
 };
-class Chestcontrol
-{
-    char _pad[0x14];
-
-  public:
-    Chestcontrol(Mapcontrol *map, Players *players, Server *server, Settings *settings);
-};
-class Doorcontrol
-{
-    char _pad[0xc];
-
-  public:
-    Doorcontrol(Mapcontrol *map);
-};
-class Eventcontrol
-{
-    char _pad[0x14];
-
-  public:
-    Eventcontrol(Mapcontrol *map, Players *players, Server *server, Settings *settings);
-};
-class Msgboardcontrol
-{
-    char _pad[0x3c4];
-
-  public:
-    Msgboardcontrol();
-};
 class Questengine
 {
     char _pad[0x94];
@@ -107,9 +83,6 @@ void Mapcontrol_AddArenaSpawn(Mapcontrol *map, int map_id, int a, int b, int c, 
 void Mapcontrol_SetArenaBlock(Mapcontrol *map, int map_id, int block);
 void Game_Tick(Server *server);
 void Players_Tick(Players *players);
-void Doorcontrol_Tick(Doorcontrol *door_control);
-void Eventcontrol_Tick(Eventcontrol *event_control);
-void Chestcontrol_Tick(Chestcontrol *chest_control);
 String FUN_00473540(Server *server);
 String FUN_004731d0(Server *server);
 int Players_GetStatTotal(Players *players);
@@ -314,13 +287,13 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
     if (tick_counter % 100 == 0)
     {
         Logins::Tick(logins);
-        Doorcontrol_Tick(door_control);
+        Doorcontrol::Tick(door_control);
         Effectcontrol::Tick(effect_control);
-        Eventcontrol_Tick(event_control);
+        Eventcontrol::Tick(event_control);
         WeddingController::Tick(weddings);
     }
     if (tick_counter % 5000 == 0)
-        Chestcontrol_Tick(chest_control);
+        Chestcontrol::Tick(chest_control);
     if (tick_counter % 1000 == 0)
     {
         Mysqlcontrols::UpdateServerStatus(mysql_controls,
