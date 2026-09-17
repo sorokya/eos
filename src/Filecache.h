@@ -31,7 +31,7 @@ class FilecacheEntryB
     ~FilecacheEntryB();
 };
 
-class Filecache
+class FileCache
 {
   public:
     char dirty;
@@ -45,16 +45,16 @@ class Filecache
     String field_54;
     int field_58;
 
-    Filecache();
-    ~Filecache();
+    FileCache();
+    ~FileCache();
 
-    static void CheckCacheFile(Filecache *self);
-    static void LoadPlayerCache(Filecache *self);
-    static void LoadGuildCache(Filecache *self);
-    static String FUN_0053d754(Filecache *self);
-    static void FUN_0053d0e8(Filecache *self, char *record);
+    static void CheckCacheFile(FileCache *self);
+    static void LoadPlayerCache(FileCache *self);
+    static void LoadGuildCache(FileCache *self);
+    static String FUN_0053d754(FileCache *self);
+    static void FUN_0053d0e8(FileCache *self, char *record);
 };
 
-void Database_FlushCache(Filecache *cache);
+void Database_FlushCache(FileCache *cache);
 
 #endif

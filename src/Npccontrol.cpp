@@ -31,10 +31,10 @@ Player **Players_Iter_End(Players *players);
 int Map_IsWalkableNPC(Mapcontrol *map, int map_id, int x, int y, int flag);
 bool Map_IsOccupied(Mapcontrol *map, int map_id, int x, int y);
 
-Npccontrol::Npccontrol(Mapcontrol *map,
-                       Players *players,
-                       Server *server,
-                       Settings *settings)
+NpcController::NpcController(Mapcontrol *map,
+                             Players *players,
+                             Server *server,
+                             Settings *settings)
 {
     encode_scratch = operator new(8);
     map_control = map;
@@ -46,11 +46,11 @@ Npccontrol::Npccontrol(Mapcontrol *map,
     regen_counter = 0;
 }
 
-Npccontrol::~Npccontrol()
+NpcController::~NpcController()
 {
 }
 
-int Npccontrol::Npc_GetDistance(Npccontrol *self, Npc *npc, Player *player)
+int NpcController::Npc_GetDistance(NpcController *self, Npc *npc, Player *player)
 {
     int distance = 0;
     if (npc->y > player->y)
@@ -64,7 +64,7 @@ int Npccontrol::Npc_GetDistance(Npccontrol *self, Npc *npc, Player *player)
     return distance;
 }
 
-bool Npccontrol::Npc_IsWithinRange(Npccontrol *self, int x1, int y1, int x2, int y2)
+bool NpcController::Npc_IsWithinRange(NpcController *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -85,7 +85,7 @@ bool Npccontrol::Npc_IsWithinRange(Npccontrol *self, int x1, int y1, int x2, int
     return result;
 }
 
-bool Npccontrol::Npc_DoMove(Npccontrol *self, int map_id, int x, int y)
+bool NpcController::Npc_DoMove(NpcController *self, int map_id, int x, int y)
 {
     if (self->flag_0x14 == 0)
     {
@@ -108,7 +108,8 @@ bool Npccontrol::Npc_DoMove(Npccontrol *self, int map_id, int x, int y)
     return false;
 }
 
-void Npccontrol::Npc_Wander(Npccontrol *self, Npc *npc, int map_id, int map_w, int map_h)
+void NpcController::Npc_Wander(
+    NpcController *self, Npc *npc, int map_id, int map_w, int map_h)
 {
     if ((unsigned short)npc->nMove_cooldown < 1 ||
         (unsigned short)npc->nMove_cooldown > 10)
@@ -190,7 +191,7 @@ void Npccontrol::Npc_Wander(Npccontrol *self, Npc *npc, int map_id, int map_w, i
     }
 }
 
-int Npccontrol::Npc_ValidateMove(Npccontrol *self, int map_id, int x, int y)
+int NpcController::Npc_ValidateMove(NpcController *self, int map_id, int x, int y)
 {
     if (self->flag_0x14 == 0)
     {
@@ -214,7 +215,7 @@ int Npccontrol::Npc_ValidateMove(Npccontrol *self, int map_id, int x, int y)
 }
 
 String
-Npccontrol::Packet_AppendEncoded(Npccontrol *context, unsigned int value, int width)
+NpcController::Packet_AppendEncoded(NpcController *context, unsigned int value, int width)
 {
     int rem;
     char c;

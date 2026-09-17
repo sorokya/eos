@@ -8,7 +8,7 @@ class Players;
 class Server;
 class Settings;
 
-class Chestcontrol
+class ChestController
 {
   public:
     char *encode_scratch;
@@ -17,15 +17,15 @@ class Chestcontrol
     Players *players;
     Server *server;
 
-    Chestcontrol(Mapcontrol *map_control,
-                 Players *players,
-                 Server *server,
-                 Settings *settings);
-    ~Chestcontrol();
+    ChestController(Mapcontrol *map_control,
+                    Players *players,
+                    Server *server,
+                    Settings *settings);
+    ~ChestController();
 
-    static void Tick(Chestcontrol *self);
-    static String AppendEncoded(Chestcontrol *self, unsigned int value, int width);
-    static bool InRange(Chestcontrol *self, int x, int y, int player_x, int player_y);
+    static void Tick(ChestController *self);
+    static String AppendEncoded(ChestController *self, unsigned int value, int width);
+    static bool InRange(ChestController *self, int x, int y, int player_x, int player_y);
 };
 
 #endif

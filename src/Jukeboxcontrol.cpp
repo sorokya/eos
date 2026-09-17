@@ -5,13 +5,14 @@
 
 #pragma package(smart_init)
 
-Jukeboxcontrol::Jukeboxcontrol()
+JukeBoxController::JukeBoxController()
 {
     field_0 = (char *)operator new(8);
     recent_plays.clear();
 }
 
-String Jukeboxcontrol::EncodeNumber(Jukeboxcontrol *self, unsigned int value, int width)
+String
+JukeBoxController::EncodeNumber(JukeBoxController *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -49,11 +50,12 @@ String Jukeboxcontrol::EncodeNumber(Jukeboxcontrol *self, unsigned int value, in
     return result;
 }
 
-String Jukeboxcontrol::BuildRecentTracksString(Jukeboxcontrol *self, int npc_id)
+String JukeBoxController::BuildRecentTracksString(JukeBoxController *self, int npc_id)
 {
     String result = "";
     for (std::vector<JukeBox>::iterator it = self->recent_plays.begin();
-         it != self->recent_plays.end(); it++)
+         it != self->recent_plays.end();
+         it++)
     {
         if (it->id != npc_id)
             continue;
@@ -74,11 +76,12 @@ String Jukeboxcontrol::BuildRecentTracksString(Jukeboxcontrol *self, int npc_id)
     return result;
 }
 
-bool Jukeboxcontrol::TryPlayTrack(Jukeboxcontrol *self, int npc_id, String track)
+bool JukeBoxController::TryPlayTrack(JukeBoxController *self, int npc_id, String track)
 {
     bool played = false;
     for (std::vector<JukeBox>::iterator it = self->recent_plays.begin();
-         it != self->recent_plays.end(); it++)
+         it != self->recent_plays.end();
+         it++)
     {
         if (it->id != npc_id)
             continue;

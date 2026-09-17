@@ -8,7 +8,7 @@ class Mapcontrol;
 class Players;
 class Server;
 
-class Effectcontrol
+class EffectController
 {
   public:
     int aState_countdown[4];
@@ -21,14 +21,14 @@ class Effectcontrol
     Players *players;
     Server *server;
 
-    Effectcontrol(Mapcontrol *map_control,
-                  Players *players,
-                  Server *server,
-                  Settings *settings);
-    ~Effectcontrol();
+    EffectController(Mapcontrol *map_control,
+                     Players *players,
+                     Server *server,
+                     Settings *settings);
+    ~EffectController();
 
-    static void Tick(Effectcontrol *self);
-    static String AppendEncoded(Effectcontrol *self, unsigned int value, int width);
+    static void Tick(EffectController *self);
+    static String AppendEncoded(EffectController *self, unsigned int value, int width);
 };
 
 #endif

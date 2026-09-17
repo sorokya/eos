@@ -5,9 +5,9 @@
 
 #pragma package(smart_init)
 
-PlayerInventory::PlayerInventory(int value)
+PlayerInventory::PlayerInventory(int id)
 {
-    field_0 = value;
+    item_id = id;
 }
 
 PlayerInventory::~PlayerInventory()

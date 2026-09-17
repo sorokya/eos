@@ -5,12 +5,12 @@
 
 #pragma package(smart_init)
 
-struct Map;
+struct MapContainer;
 struct Player;
 
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
-Map *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
+MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 unsigned int Map_GetTileSpec(Mapcontrol *map_control, int map_id, int x, int y);
 int Player_HpPercent(Player *player);
 void Client_SendEncoded(
@@ -43,7 +43,7 @@ struct Player
     char map_has_spikes;   // +0x3df
 };
 
-struct Map
+struct MapContainer
 {
     char pad_00[0xb];
     unsigned char field_0xb; // +0x0b
@@ -52,10 +52,10 @@ struct Map
     char field_0x58;   // +0x58
 };
 
-Effectcontrol::Effectcontrol(Mapcontrol *map_control,
-                             Players *players,
-                             Server *server,
-                             Settings *settings)
+EffectController::EffectController(Mapcontrol *map_control,
+                                   Players *players,
+                                   Server *server,
+                                   Settings *settings)
 {
     pEncode_scratch = (char *)operator new(8);
     this->map_control = map_control;
@@ -71,11 +71,12 @@ Effectcontrol::Effectcontrol(Mapcontrol *map_control,
     nBroadcast_gate = 10;
 }
 
-Effectcontrol::~Effectcontrol()
+EffectController::~EffectController()
 {
 }
 
-String Effectcontrol::AppendEncoded(Effectcontrol *self, unsigned int value, int width)
+String
+EffectController::AppendEncoded(EffectController *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -113,7 +114,7 @@ String Effectcontrol::AppendEncoded(Effectcontrol *self, unsigned int value, int
     return encoded_str;
 }
 
-void Effectcontrol::Tick(Effectcontrol *self)
+void EffectController::Tick(EffectController *self)
 {
     for (int countdown_slot = 0; countdown_slot < 4; countdown_slot++)
         self->aState_countdown[countdown_slot]--;

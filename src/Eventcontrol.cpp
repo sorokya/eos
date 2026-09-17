@@ -5,13 +5,13 @@
 
 #pragma package(smart_init)
 
-// Minimal view of the (unreconstructed) Mapwarp/Map units. Only the fields
+// Minimal view of the (unreconstructed) MapWarp/MapContainer units. Only the fields
 // this unit reads are declared, at the offsets pinned by the reference
-// disassembly; the remaining bytes are padding. sizeof(Map) must be 0x160 (the
+// disassembly; the remaining bytes are padding. sizeof(MapContainer) must be 0x160 (the
 // reference map-vector stride is `add [map_iter],0x160`). The reference reads the
-// Mapwarp coordinates with movzx, so the fields are unsigned short (Mapwarp.h
+// MapWarp coordinates with movzx, so the fields are unsigned short (Mapwarp.h
 // declares short — reconcile).
-struct Mapwarp
+struct MapWarp
 {
     unsigned short from_x; // +0x00
     unsigned short from_y; // +0x02
@@ -26,7 +26,7 @@ struct MapwarpVector
     char pad_00[0x20];
 };
 
-struct Map
+struct MapContainer
 {
     unsigned short rid; // +0x00
     char pad_02[0x10 - 0x02];
@@ -62,10 +62,10 @@ struct Player
 // in the stripped image, so they are declared here; the argument shapes are
 // pinned by the reference call sites. Replaced by the owning units' headers
 // once those are reconstructed.
-Map *MapVector_Begin(Mapcontrol *map_control);
-Map *MapVector_End(Mapcontrol *map_control);
-Mapwarp *MapwarpVector_Begin(MapwarpVector *arena_spawn_list);
-Mapwarp *MapwarpVector_End(MapwarpVector *arena_spawn_list);
+MapContainer *MapVector_Begin(Mapcontrol *map_control);
+MapContainer *MapVector_End(Mapcontrol *map_control);
+MapWarp *MapwarpVector_Begin(MapwarpVector *arena_spawn_list);
+MapWarp *MapwarpVector_End(MapwarpVector *arena_spawn_list);
 
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
@@ -83,10 +83,10 @@ void Player_Warp(Server *server,
 
 int RandRange(int max);
 
-Eventcontrol::Eventcontrol(Mapcontrol *map_control,
-                           Players *players,
-                           Server *server,
-                           Settings *settings)
+EventController::EventController(Mapcontrol *map_control,
+                                 Players *players,
+                                 Server *server,
+                                 Settings *settings)
 {
     pEncode_scratch = (char *)operator new(8);
     this->map_control = map_control;
@@ -95,11 +95,12 @@ Eventcontrol::Eventcontrol(Mapcontrol *map_control,
     this->server = server;
 }
 
-Eventcontrol::~Eventcontrol()
+EventController::~EventController()
 {
 }
 
-String Eventcontrol::AppendEncoded(Eventcontrol *self, unsigned int value, int width)
+String
+EventController::AppendEncoded(EventController *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -137,9 +138,9 @@ String Eventcontrol::AppendEncoded(Eventcontrol *self, unsigned int value, int w
     return encoded_str;
 }
 
-void Eventcontrol::Tick(Eventcontrol *self)
+void EventController::Tick(EventController *self)
 {
-    for (Map *map_iter = MapVector_Begin(self->map_control);
+    for (MapContainer *map_iter = MapVector_Begin(self->map_control);
          map_iter != MapVector_End(self->map_control);
          map_iter++)
     {
@@ -214,7 +215,7 @@ void Eventcontrol::Tick(Eventcontrol *self)
                 }
                 else
                 {
-                    for (Mapwarp *spawn_iter =
+                    for (MapWarp *spawn_iter =
                              MapwarpVector_Begin(&map_iter->arena_spawn_list);
                          spawn_iter != MapwarpVector_End(&map_iter->arena_spawn_list);
                          spawn_iter++)

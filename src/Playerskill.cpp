@@ -5,9 +5,9 @@
 
 #pragma package(smart_init)
 
-PlayerSkill::PlayerSkill(int value)
+PlayerSkill::PlayerSkill(int id)
 {
-    field_0 = value;
+    skill_id = id;
 }
 
 PlayerSkill::~PlayerSkill()

@@ -8,16 +8,16 @@
 //   4  String poster
 //   8  String subject
 //  12  String message
-struct Msgboard
+struct MsgBoard
 {
     short id;
     String poster;
     String subject;
     String message;
 
-    Msgboard();
-    Msgboard(short post_id, String post_poster, String post_subject, String post_message);
-    ~Msgboard();
+    MsgBoard();
+    MsgBoard(int post_id, String post_poster, String post_subject, String post_message);
+    ~MsgBoard();
 };
 
 #endif

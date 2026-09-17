@@ -6,12 +6,14 @@
 // Recovered from the reference (Itemground unit, 0x488494..0x4884d8): the
 // constructor is trivial (no member stores; just the EH frame and returning
 // `this`) and the destructor is emitted out-of-line as the deleting form.
-// The full record size is set by callers and is not established here; the class
-// name is a Ghidra hint (internal names are unobservable in the stripped image).
-struct GroundItem
+// The class name is ChestItem: the reference RTTI type-name table carries
+// `std::vector<ChestItem,...>` for MapContainer's ground-item list, which is the
+// only place the Itemground class is used. Layout beyond the size is not
+// established here.
+struct ChestItem
 {
-    GroundItem();
-    ~GroundItem();
+    ChestItem();
+    ~ChestItem();
 };
 
 #endif

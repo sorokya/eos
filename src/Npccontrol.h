@@ -16,7 +16,7 @@ class Settings;
 // by the FormCreate call site. player_targets is a std::vector<Player*> and its
 // begin pointer lands at +0x1c (the compiler's vector layout puts _M_start at
 // the object's +4).
-class Npccontrol
+class NpcController
 {
   public:
     Settings *settings;      // +0x00
@@ -33,20 +33,21 @@ class Npccontrol
     int talk_counter;                     // +0x3c
     int regen_counter;                    // +0x40
 
-    Npccontrol(Mapcontrol *map, Players *players, Server *server, Settings *settings);
-    ~Npccontrol();
+    NpcController(Mapcontrol *map, Players *players, Server *server, Settings *settings);
+    ~NpcController();
 
-    static void NpcControl_Tick(Npccontrol *self);
-    static int Npc_GetDistance(Npccontrol *self, Npc *npc, Player *player);
-    static bool Npc_IsWithinRange(Npccontrol *self, int x1, int y1, int x2, int y2);
-    static bool Npc_AttackPlayer(Npccontrol *self, Npc *npc, Player *player);
-    static void Npc_Wander(Npccontrol *self, Npc *npc, int map_id, int map_w, int map_h);
+    static void NpcControl_Tick(NpcController *self);
+    static int Npc_GetDistance(NpcController *self, Npc *npc, Player *player);
+    static bool Npc_IsWithinRange(NpcController *self, int x1, int y1, int x2, int y2);
+    static bool Npc_AttackPlayer(NpcController *self, Npc *npc, Player *player);
+    static void
+    Npc_Wander(NpcController *self, Npc *npc, int map_id, int map_w, int map_h);
     static void Npc_ChaseTarget(
-        Npccontrol *self, Npc *npc, Player *player, int map_id, int map_w, int map_h);
-    static bool Npc_DoMove(Npccontrol *self, int map_id, int x, int y);
-    static int Npc_ValidateMove(Npccontrol *self, int map_id, int x, int y);
+        NpcController *self, Npc *npc, Player *player, int map_id, int map_w, int map_h);
+    static bool Npc_DoMove(NpcController *self, int map_id, int x, int y);
+    static int Npc_ValidateMove(NpcController *self, int map_id, int x, int y);
     static String
-    Packet_AppendEncoded(Npccontrol *context, unsigned int value, int width);
+    Packet_AppendEncoded(NpcController *context, unsigned int value, int width);
 };
 
 #endif

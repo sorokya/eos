@@ -14,7 +14,7 @@ class Settings;
 // argument order is pinned by the FormCreate call site. The class has no virtual
 // functions; the reference destructor (0x52db78) is emitted solely in the
 // deleting form.
-class Eventcontrol
+class EventController
 {
   public:
     char *pEncode_scratch;   // +0x00
@@ -23,14 +23,14 @@ class Eventcontrol
     Players *players;        // +0x0c
     Server *server;          // +0x10
 
-    Eventcontrol(Mapcontrol *map_control,
-                 Players *players,
-                 Server *server,
-                 Settings *settings);
-    ~Eventcontrol();
+    EventController(Mapcontrol *map_control,
+                    Players *players,
+                    Server *server,
+                    Settings *settings);
+    ~EventController();
 
-    static void Tick(Eventcontrol *self);
-    static String AppendEncoded(Eventcontrol *self, unsigned int value, int width);
+    static void Tick(EventController *self);
+    static String AppendEncoded(EventController *self, unsigned int value, int width);
 };
 
 #endif

@@ -34,6 +34,28 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # link output is unaffected; other missing functions are real failures.
 BENIGN_MISS = re.compile(r"\$bd[et]r?\$|\$bdt\$")
 
+# A unit's C++ class name is fixed by the RTTI type-name table in the reference,
+# which need not match the unit's file base name (that base is fixed by the
+# `@@Unit@Initialize` export). Map each such unit to the class-name prefix its
+# functions actually use.
+UNIT_CLASS_ALIASES = {
+    "Map": ["MapContainer"],
+    "Mapwarp": ["MapWarp"],
+    "Mapobject": ["MapObject"],
+    "Mapchest": ["MapChest"],
+    "Msgboard": ["MsgBoard"],
+    "Msgboardcontrol": ["MsgBoardController"],
+    "Chestcontrol": ["ChestController"],
+    "Doorcontrol": ["DoorController"],
+    "Effectcontrol": ["EffectController"],
+    "Eventcontrol": ["EventController"],
+    "Npccontrol": ["NpcController"],
+    "Jukeboxcontrol": ["JukeBoxController"],
+    "Filecache": ["FileCache"],
+    "Killcounters": ["KillCounters"],
+    "Questtype": ["QuestType"],
+}
+
 
 def load_compare():
     spec = importlib.util.spec_from_file_location(
@@ -118,12 +140,13 @@ def main() -> int:
             continue
         pool = reference_pool(ca, args.ref_bin, ranges[tsv_unit])
         txt = open(asm, encoding="latin1").read()
-        own = f"@@{tsv_unit}@".lower()
+        own = [f"@@{tsv_unit}@".lower()]
+        own += [f"@@{c}@".lower() for c in UNIT_CLASS_ALIASES.get(tsv_unit, ())]
         ok = n = 0
         bad = []
         benign = []
         for name in re.findall(r"(?m)^(\S+)\s+proc\s+near", txt):
-            if not name.lower().startswith(own):
+            if not any(name.lower().startswith(p) for p in own):
                 continue                       # RTL/VCL/std, not our source
             ins, _, _ = ca.parse_our(asm, name)
             if ins is None:

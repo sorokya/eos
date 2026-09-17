@@ -6,19 +6,19 @@
 
 class Mapcontrol;
 
-// Object layout pinned by the reference (Doorcontrol unit, 0x4aaf7c..0x4ab104):
+// Object layout pinned by the reference (DoorController unit, 0x4aaf7c..0x4ab104):
 //   +0x00 TTimeStamp last_tick
 //   +0x08 Mapcontrol *map_control
-class Doorcontrol
+class DoorController
 {
   public:
     TTimeStamp last_tick;
     Mapcontrol *map_control;
 
-    Doorcontrol(Mapcontrol *map_control);
-    ~Doorcontrol();
+    DoorController(Mapcontrol *map_control);
+    ~DoorController();
 
-    static void Tick(Doorcontrol *self);
+    static void Tick(DoorController *self);
 };
 
 #endif

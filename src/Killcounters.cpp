@@ -7,17 +7,17 @@
 
 #pragma package(smart_init)
 
-Killcounters::Killcounters()
+KillCounters::KillCounters()
 {
     field_0 = new TStringList;
     Init(this);
 }
 
-Killcounters::~Killcounters()
+KillCounters::~KillCounters()
 {
 }
 
-void Killcounters::Init(Killcounters *self)
+void KillCounters::Init(KillCounters *self)
 {
     self->field_0->Clear();
     try
@@ -35,7 +35,7 @@ void Killcounters::Init(Killcounters *self)
     }
 }
 
-String Killcounters::Extract(Killcounters *self)
+String KillCounters::Extract(KillCounters *self)
 {
     int pos = self->name.Pos(";");
     if (pos < 1)
@@ -45,7 +45,7 @@ String Killcounters::Extract(Killcounters *self)
     return result;
 }
 
-void Killcounters::Add(Killcounters *self, String name, int count)
+void KillCounters::Add(KillCounters *self, String name, int count)
 {
     name += name.LowerCase();
     int bucket = name[1] - 'a';
@@ -55,7 +55,7 @@ void Killcounters::Add(Killcounters *self, String name, int count)
     self->buckets[bucket].insert(self->buckets[bucket].end(), killcounter);
 }
 
-int Killcounters::IncrementAndGet(Killcounters *self, String name)
+int KillCounters::IncrementAndGet(KillCounters *self, String name)
 {
     name += name.LowerCase();
     int bucket = name[1] - 'a';
@@ -76,7 +76,7 @@ int Killcounters::IncrementAndGet(Killcounters *self, String name)
     return 1;
 }
 
-int Killcounters::Get(Killcounters *self, String name)
+int KillCounters::Get(KillCounters *self, String name)
 {
     name += name.LowerCase();
     int bucket = name[1] - 'a';
@@ -92,7 +92,7 @@ int Killcounters::Get(Killcounters *self, String name)
     return 0;
 }
 
-void Killcounters::Clear(Killcounters *self)
+void KillCounters::Clear(KillCounters *self)
 {
     for (int i = 0; i < 26; i++)
     {
@@ -105,7 +105,7 @@ void Killcounters::Clear(Killcounters *self)
     }
 }
 
-void Killcounters::Save(Killcounters *self)
+void KillCounters::Save(KillCounters *self)
 {
     String path = "./cache/kills.chk";
     if (access(path.c_str(), 0) == 0)

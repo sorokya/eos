@@ -20,11 +20,11 @@ class Mysqlcontrols;
 class Players;
 class Logins;
 class Server;
-class Npccontrol;
-class Chestcontrol;
-class Doorcontrol;
-class Effectcontrol;
-class Eventcontrol;
+class NpcController;
+class ChestController;
+class DoorController;
+class EffectController;
+class EventController;
 class ItemValues;
 class NpcValues;
 class SkillValues;
@@ -32,8 +32,8 @@ class LearnValues;
 class ShopValues;
 class InnValues;
 class ClassValues;
-class Msgboardcontrol;
-class Jukeboxcontrol;
+class MsgBoardController;
+class JukeBoxController;
 class WeddingController;
 class Questengine;
 class Newscontrol;
@@ -57,38 +57,38 @@ class TGUI : public TForm
     TApplicationEvents *ApplicationEvents1; // +0x2f4
 
   public:
-    Settings *settings;                // +0x2f8
-    Serial *serial;                    // +0x2fc
-    Mapcontrol *map_control;           // +0x300
-    Mysqlcontrols *mysql_controls;     // +0x304
-    Players *players;                  // +0x308
-    Logins *logins;                    // +0x30c
-    Server *server_ctrl;               // +0x310
-    Npccontrol *npc_control;           // +0x314
-    Chestcontrol *chest_control;       // +0x318
-    Doorcontrol *door_control;         // +0x31c
-    Effectcontrol *effect_control;     // +0x320
-    Eventcontrol *event_control;       // +0x324
-    int version_patch;                 // +0x328
-    int version_minor;                 // +0x32c
-    int version_major;                 // +0x330
-    int tick_counter;                  // +0x334
-    ItemValues *item_values;           // +0x338
-    NpcValues *npc_values;             // +0x33c
-    SkillValues *skill_values;         // +0x340
-    LearnValues *learn_values;         // +0x344
-    ShopValues *shop_values;           // +0x348
-    InnValues *inn_values;             // +0x34c
-    ClassValues *class_values;         // +0x350
-    Msgboardcontrol *msgboard_control; // +0x354
-    Jukeboxcontrol *jukebox_control;   // +0x358
-    WeddingController *weddings;       // +0x35c
-    Questengine *quest_engine;         // +0x360
-    Newscontrol *news_control;         // +0x364
-    Gamecontrol *game_control;         // +0x368
-    int field_36c;                     // +0x36c
-    int field_370;                     // +0x370
-    int field_374;                     // +0x374
+    Settings *settings;                   // +0x2f8
+    Serial *serial;                       // +0x2fc
+    Mapcontrol *map_control;              // +0x300
+    Mysqlcontrols *mysql_controls;        // +0x304
+    Players *players;                     // +0x308
+    Logins *logins;                       // +0x30c
+    Server *server_ctrl;                  // +0x310
+    NpcController *npc_control;           // +0x314
+    ChestController *chest_control;       // +0x318
+    DoorController *door_control;         // +0x31c
+    EffectController *effect_control;     // +0x320
+    EventController *event_control;       // +0x324
+    int version_patch;                    // +0x328
+    int version_minor;                    // +0x32c
+    int version_major;                    // +0x330
+    int tick_counter;                     // +0x334
+    ItemValues *item_values;              // +0x338
+    NpcValues *npc_values;                // +0x33c
+    SkillValues *skill_values;            // +0x340
+    LearnValues *learn_values;            // +0x344
+    ShopValues *shop_values;              // +0x348
+    InnValues *inn_values;                // +0x34c
+    ClassValues *class_values;            // +0x350
+    MsgBoardController *msgboard_control; // +0x354
+    JukeBoxController *jukebox_control;   // +0x358
+    WeddingController *weddings;          // +0x35c
+    Questengine *quest_engine;            // +0x360
+    Newscontrol *news_control;            // +0x364
+    Gamecontrol *game_control;            // +0x368
+    int field_36c;                        // +0x36c
+    int field_370;                        // +0x370
+    int field_374;                        // +0x374
 
     __fastcall TGUI(TComponent *Owner);
     __fastcall void FormCreate(TObject *Sender);

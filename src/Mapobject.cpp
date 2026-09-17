@@ -5,7 +5,7 @@
 
 #pragma package(smart_init)
 
-Mapobject::Mapobject(short x, short y, short value)
+MapObject::MapObject(short x, short y, short value)
 {
     this->x = x;
     this->y = y;
@@ -13,6 +13,6 @@ Mapobject::Mapobject(short x, short y, short value)
     this->ticks = 0;
 }
 
-Mapobject::~Mapobject()
+MapObject::~MapObject()
 {
 }

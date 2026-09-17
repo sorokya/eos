@@ -5,12 +5,12 @@
 
 #pragma package(smart_init)
 
-Questtype::Questtype(int value, String name)
+QuestType::QuestType(int value, String name)
 {
     this->value = value;
     this->name = name;
 }
 
-Questtype::~Questtype()
+QuestType::~QuestType()
 {
 }

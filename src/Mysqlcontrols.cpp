@@ -31,7 +31,7 @@ Mysqlcontrols::~Mysqlcontrols()
 
 Mysqlcontrols::Mysqlcontrols()
 {
-    file_cache = new Filecache;
+    file_cache = new FileCache;
     thread_queue = new mySQLbuffer;
     worker_thread =
         new MySQLthread(GUI->mysession, GUI->mysql, GUI->myquery, thread_queue, false);
@@ -67,7 +67,7 @@ void Mysqlcontrols::Connect(Mysqlcontrols *self,
                             int version_minor,
                             int version_patch)
 {
-    Filecache::CheckCacheFile(self->file_cache);
+    FileCache::CheckCacheFile(self->file_cache);
     if (self->file_cache->dirty == false)
         ExecDrop(self, "UPDATE endl_characters SET online = 0 WHERE online = 1");
     ExecDrop(self, "DELETE FROM endl_server");
@@ -131,7 +131,7 @@ void Mysqlcontrols::Connect(Mysqlcontrols *self,
     }
     else
     {
-        Filecache::LoadPlayerCache(self->file_cache);
+        FileCache::LoadPlayerCache(self->file_cache);
     }
 
     if (self->file_cache->dirty == false)
@@ -146,7 +146,7 @@ void Mysqlcontrols::Connect(Mysqlcontrols *self,
     }
     else
     {
-        Filecache::LoadGuildCache(self->file_cache);
+        FileCache::LoadGuildCache(self->file_cache);
     }
 }
 

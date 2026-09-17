@@ -5,11 +5,11 @@
 
 #pragma package(smart_init)
 
-Msgboard::Msgboard()
+MsgBoard::MsgBoard()
 {
 }
 
-Msgboard::Msgboard(short post_id,
+MsgBoard::MsgBoard(int post_id,
                    String post_poster,
                    String post_subject,
                    String post_message)
@@ -20,6 +20,6 @@ Msgboard::Msgboard(short post_id,
     message = post_message;
 }
 
-Msgboard::~Msgboard()
+MsgBoard::~MsgBoard()
 {
 }

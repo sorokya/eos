@@ -5,7 +5,7 @@
 
 #pragma package(smart_init)
 
-Msgboardcontrol::Msgboardcontrol()
+MsgBoardController::MsgBoardController()
 {
     field_118 = (char *)operator new(8);
     field_0 = 0x18;
@@ -18,7 +18,7 @@ Msgboardcontrol::Msgboardcontrol()
     LoadBoards(this);
 }
 
-Msgboardcontrol::~Msgboardcontrol()
+MsgBoardController::~MsgBoardController()
 {
     SaveBoards(this);
     for (int i = 0; i < 8; i++)
@@ -29,7 +29,7 @@ Msgboardcontrol::~Msgboardcontrol()
 }
 
 String
-Msgboardcontrol::AppendEncoded(Msgboardcontrol *self, unsigned int value, int width)
+MsgBoardController::AppendEncoded(MsgBoardController *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -67,7 +67,7 @@ Msgboardcontrol::AppendEncoded(Msgboardcontrol *self, unsigned int value, int wi
     return result;
 }
 
-void Msgboardcontrol::ClearBoard(Msgboardcontrol *self, int board)
+void MsgBoardController::ClearBoard(MsgBoardController *self, int board)
 {
     if (board >= 1 && board <= 8)
     {
@@ -77,12 +77,12 @@ void Msgboardcontrol::ClearBoard(Msgboardcontrol *self, int board)
     }
 }
 
-void Msgboardcontrol::DeletePost(Msgboardcontrol *self, int board, int post_id)
+void MsgBoardController::DeletePost(MsgBoardController *self, int board, int post_id)
 {
     if (board >= 1 && board <= 8)
     {
         board--;
-        for (std::vector<Msgboard>::iterator it = self->boards[board].begin();
+        for (std::vector<MsgBoard>::iterator it = self->boards[board].begin();
              it != self->boards[board].end();
              it++)
         {
@@ -96,13 +96,13 @@ void Msgboardcontrol::DeletePost(Msgboardcontrol *self, int board, int post_id)
     }
 }
 
-int Msgboardcontrol::CountPosts(Msgboardcontrol *self, int board, String author)
+int MsgBoardController::CountPosts(MsgBoardController *self, int board, String author)
 {
     int count = 0;
     if (board >= 1 && board <= 8)
     {
         board--;
-        for (std::vector<Msgboard>::iterator it = self->boards[board].begin();
+        for (std::vector<MsgBoard>::iterator it = self->boards[board].begin();
              it != self->boards[board].end();
              it++)
         {
@@ -113,19 +113,19 @@ int Msgboardcontrol::CountPosts(Msgboardcontrol *self, int board, String author)
     return count;
 }
 
-void Msgboardcontrol::AddPost(Msgboardcontrol *self,
-                              int board,
-                              String poster,
-                              String subject,
-                              String message,
-                              char flag)
+void MsgBoardController::AddPost(MsgBoardController *self,
+                                 int board,
+                                 String poster,
+                                 String subject,
+                                 String message,
+                                 char flag)
 {
     if (board >= 1 && board <= 8)
     {
         self->field_4++;
         if (self->field_4 > 40000)
             self->field_4 = 0;
-        Msgboard post(self->field_4, poster, subject, message);
+        MsgBoard post(self->field_4, poster, subject, message);
         board--;
         if (flag == 0)
             self->boards[board].insert(self->boards[board].begin(), post);
@@ -137,16 +137,16 @@ void Msgboardcontrol::AddPost(Msgboardcontrol *self,
     }
 }
 
-void Msgboardcontrol::SetPostLimit(std::vector<Msgboard> *posts, unsigned int count)
+void MsgBoardController::SetPostLimit(std::vector<MsgBoard> *posts, unsigned int count)
 {
-    Msgboard post;
+    MsgBoard post;
     if (posts->size() < count)
         posts->insert(posts->end(), count - posts->size(), post);
     else if (count < posts->size())
         posts->erase(posts->begin() + count, posts->end());
 }
 
-String Msgboardcontrol::GetBoard(Msgboardcontrol *self, int board)
+String MsgBoardController::GetBoard(MsgBoardController *self, int board)
 {
     String result;
     if (board >= 1 && board <= 8)
@@ -161,14 +161,14 @@ String Msgboardcontrol::GetBoard(Msgboardcontrol *self, int board)
     return result;
 }
 
-String Msgboardcontrol::GetPost(Msgboardcontrol *self, int board, int post_id)
+String MsgBoardController::GetPost(MsgBoardController *self, int board, int post_id)
 {
     String result;
     if (board >= 1 && board <= 8)
     {
         board--;
         int count = 0;
-        for (std::vector<Msgboard>::iterator it = self->boards[board].begin();
+        for (std::vector<MsgBoard>::iterator it = self->boards[board].begin();
              it != self->boards[board].end() && count < self->field_0;
              it++, count++)
         {
@@ -183,7 +183,7 @@ String Msgboardcontrol::GetPost(Msgboardcontrol *self, int board, int post_id)
     return result;
 }
 
-void Msgboardcontrol::BuildBoardName(Msgboardcontrol *self, int board)
+void MsgBoardController::BuildBoardName(MsgBoardController *self, int board)
 {
     if (board >= 1 && board <= 8)
     {
@@ -193,7 +193,7 @@ void Msgboardcontrol::BuildBoardName(Msgboardcontrol *self, int board)
         String result = AppendEncoded(self, board, 1);
         result.Insert(AppendEncoded(self, count, 1), result.Length() + 1);
         board--;
-        std::vector<Msgboard>::iterator it;
+        std::vector<MsgBoard>::iterator it;
         int i = 0;
         for (it = self->boards[board].begin();
              it != self->boards[board].end() && i < self->field_0;
@@ -213,7 +213,7 @@ void Msgboardcontrol::BuildBoardName(Msgboardcontrol *self, int board)
     }
 }
 
-String Msgboardcontrol::BuildBoardData(Msgboardcontrol *self, int board)
+String MsgBoardController::BuildBoardData(MsgBoardController *self, int board)
 {
     String text = "";
     String result = "";
@@ -222,7 +222,7 @@ String Msgboardcontrol::BuildBoardData(Msgboardcontrol *self, int board)
         board--;
         result = AppendEncoded(self, self->boards[board].size(), 2);
         result.Insert(String((char)0xff), result.Length() + 1);
-        for (std::vector<Msgboard>::iterator it = self->boards[board].begin();
+        for (std::vector<MsgBoard>::iterator it = self->boards[board].begin();
              it != self->boards[board].end();
              it++)
         {
@@ -244,7 +244,7 @@ String Msgboardcontrol::BuildBoardData(Msgboardcontrol *self, int board)
     return result;
 }
 
-void Msgboardcontrol::LoadBoard(Msgboardcontrol *self, int board, String data)
+void MsgBoardController::LoadBoard(MsgBoardController *self, int board, String data)
 {
     if (board >= 1 && board <= 8)
     {
@@ -286,7 +286,9 @@ void Msgboardcontrol::LoadBoard(Msgboardcontrol *self, int board, String data)
     }
 }
 
-void Msgboardcontrol::SetDecodeSource(Msgboardcontrol *self, String data, char delimiter)
+void MsgBoardController::SetDecodeSource(MsgBoardController *self,
+                                         String data,
+                                         char delimiter)
 {
     self->field_10c = 1;
     self->misc_text = data;
@@ -294,7 +296,7 @@ void Msgboardcontrol::SetDecodeSource(Msgboardcontrol *self, String data, char d
     self->field_114 = delimiter;
 }
 
-String Msgboardcontrol::ReadToken(Msgboardcontrol *self)
+String MsgBoardController::ReadToken(MsgBoardController *self)
 {
     String result = "";
     try
@@ -321,7 +323,7 @@ String Msgboardcontrol::ReadToken(Msgboardcontrol *self)
     return result;
 }
 
-String Msgboardcontrol::ReadRest(Msgboardcontrol *self)
+String MsgBoardController::ReadRest(MsgBoardController *self)
 {
     String result = "";
     try
@@ -343,7 +345,7 @@ String Msgboardcontrol::ReadRest(Msgboardcontrol *self)
     return result;
 }
 
-int Msgboardcontrol::DecodeNumber(Msgboardcontrol *self, String value)
+int MsgBoardController::DecodeNumber(MsgBoardController *self, String value)
 {
     int result = 0;
     try
@@ -375,7 +377,7 @@ int Msgboardcontrol::DecodeNumber(Msgboardcontrol *self, String value)
     return result;
 }
 
-int Msgboardcontrol::LoadBoards(Msgboardcontrol *self)
+int MsgBoardController::LoadBoards(MsgBoardController *self)
 {
     String path;
     String unused;
@@ -431,7 +433,7 @@ int Msgboardcontrol::LoadBoards(Msgboardcontrol *self)
     return 1;
 }
 
-void Msgboardcontrol::SaveBoards(Msgboardcontrol *self)
+void MsgBoardController::SaveBoards(MsgBoardController *self)
 {
     String lengths = "";
     String contents = "";

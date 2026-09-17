@@ -23,7 +23,7 @@ FilecacheEntryB::~FilecacheEntryB()
 {
 }
 
-Filecache::Filecache()
+FileCache::FileCache()
 {
     dirty = 0;
     accounts_count = 0;
@@ -33,11 +33,11 @@ Filecache::Filecache()
     string_list = new TStringList;
 }
 
-Filecache::~Filecache()
+FileCache::~FileCache()
 {
 }
 
-void Filecache::CheckCacheFile(Filecache *self)
+void FileCache::CheckCacheFile(FileCache *self)
 {
     String path = "./cache/cacheok.chk";
     if (access(path.c_str(), 0) == 0)
@@ -47,7 +47,7 @@ void Filecache::CheckCacheFile(Filecache *self)
     }
 }
 
-String Filecache::FUN_0053d754(Filecache *self)
+String FileCache::FUN_0053d754(FileCache *self)
 {
     int pos = self->field_54.Pos(";");
     if (pos < 1)
@@ -57,7 +57,7 @@ String Filecache::FUN_0053d754(Filecache *self)
     return result;
 }
 
-void Filecache::LoadPlayerCache(Filecache *self)
+void FileCache::LoadPlayerCache(FileCache *self)
 {
     self->string_list->Clear();
     try
@@ -81,7 +81,7 @@ void Filecache::LoadPlayerCache(Filecache *self)
     }
 }
 
-void Filecache::LoadGuildCache(Filecache *self)
+void FileCache::LoadGuildCache(FileCache *self)
 {
     self->string_list->Clear();
     try
@@ -103,7 +103,7 @@ void Filecache::LoadGuildCache(Filecache *self)
     }
 }
 
-void Filecache::FUN_0053d0e8(Filecache *self, char *record)
+void FileCache::FUN_0053d0e8(FileCache *self, char *record)
 {
     if (self->field_58 < *(int *)(record + 0xc0) && *(int *)(record + 0x98) == 0)
     {
@@ -152,7 +152,7 @@ void Filecache::FUN_0053d0e8(Filecache *self, char *record)
     }
 }
 
-void Database_FlushCache(Filecache *cache)
+void Database_FlushCache(FileCache *cache)
 {
     cache->string_list->Clear();
     if (cache->pending_player_writes.size() > 99)

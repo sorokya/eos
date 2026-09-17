@@ -2,84 +2,29 @@
 #pragma hdrstop
 
 #include "Chestcontrol.h"
+#include "Map.h"
+#include "Player.h"
 
 #pragma package(smart_init)
 
-struct Map;
-struct Mapchest;
-struct Itemchest;
-struct Player;
-
-Map *MapVector_Begin(Mapcontrol *map_control);
-Map *MapVector_End(Mapcontrol *map_control);
+MapContainer *MapVector_Begin(Mapcontrol *map_control);
+MapContainer *MapVector_End(Mapcontrol *map_control);
 int Mapcontrol_GetCount(Mapcontrol *map_control);
-Map *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
-Mapchest *MapchestVector_Begin(void *chest_list);
-Mapchest *MapchestVector_End(void *chest_list);
-Itemchest *ItemchestVector_Begin(void *slots);
-Itemchest *ItemchestVector_End(void *slots);
+MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
+MapChest *MapchestVector_Begin(void *chest_list);
+MapChest *MapchestVector_End(void *chest_list);
+MapItem *MapItemVector_Begin(void *slots);
+MapItem *MapItemVector_End(void *slots);
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
 void Client_SendEncoded(
     Server *server, Player *player, int action, int family, String data);
 int RandRange(int max);
 
-struct Player
-{
-    char pad_00[4];
-    char logged_in; // +0x04
-    char pad_05[0xdc - 0x05];
-    int map_id; // +0xdc
-    int x;      // +0xe0
-    int y;      // +0xe4
-};
-
-struct Itemchest
-{
-    int item_id;                   // +0x00
-    int amount;                    // +0x04
-    char item_present;             // +0x08
-    char respawn_enabled;          // +0x09
-    char pad_0a[2];                // +0x0a
-    int respawn_countdown;         // +0x0c
-    unsigned short respawn_delay;  // +0x10
-    unsigned short alt_item_id[4]; // +0x12
-    int alt_amount[4];             // +0x1c
-};
-
-struct ChestList
-{
-    char data[0x20];
-};
-
-struct SlotList
-{
-    char data[0x20];
-};
-
-struct Mapchest
-{
-    unsigned short x; // +0x00
-    unsigned short y; // +0x02
-    short key_id;     // +0x04
-    char updated;     // +0x06
-    char pad_07;      // +0x07
-    SlotList slots;   // +0x08
-};
-
-struct Map
-{
-    char pad_00[0x9c];
-    ChestList chest_list; // +0x9c
-    char pad_bc[0x124 - 0xbc];
-    char chests_dirty; // +0x124
-    char pad_125[0x160 - 0x125];
-};
-
-Chestcontrol::Chestcontrol(Mapcontrol *map_control,
-                           Players *players,
-                           Server *server,
-                           Settings *settings)
+ChestController::ChestController(Mapcontrol *map_control,
+                                 Players *players,
+                                 Server *server,
+                                 Settings *settings)
 {
     encode_scratch = (char *)operator new(8);
     this->map_control = map_control;
@@ -88,20 +33,20 @@ Chestcontrol::Chestcontrol(Mapcontrol *map_control,
     this->server = server;
 }
 
-Chestcontrol::~Chestcontrol()
+ChestController::~ChestController()
 {
 }
 
-void Chestcontrol::Tick(Chestcontrol *self)
+void ChestController::Tick(ChestController *self)
 {
-    Map *map;
-    Mapchest *chest;
-    Itemchest *item;
+    MapContainer *map;
+    MapChest *chest;
+    MapItem *item;
     int max_items;
     int item_index;
     Player **player_iter;
-    Mapchest *chest_iter;
-    Itemchest *item_iter;
+    MapChest *chest_iter;
+    MapItem *item_iter;
 
     for (map = MapVector_Begin(self->map_control);
          MapVector_End(self->map_control) != map;
@@ -112,8 +57,8 @@ void Chestcontrol::Tick(Chestcontrol *self)
              MapchestVector_End(&map->chest_list) != chest;
              chest++)
         {
-            for (item = ItemchestVector_Begin(&chest->slots);
-                 ItemchestVector_End(&chest->slots) != item;
+            for (item = MapItemVector_Begin(&chest->slots);
+                 MapItemVector_End(&chest->slots) != item;
                  item++)
             {
                 if (item->respawn_enabled != 0 && item->item_present == 0)
@@ -190,8 +135,8 @@ void Chestcontrol::Tick(Chestcontrol *self)
                                     (*player_iter)->y))
                         {
                             pkt = "";
-                            for (item_iter = ItemchestVector_Begin(&chest_iter->slots);
-                                 ItemchestVector_End(&chest_iter->slots) != item_iter;
+                            for (item_iter = MapItemVector_Begin(&chest_iter->slots);
+                                 MapItemVector_End(&chest_iter->slots) != item_iter;
                                  item_iter++)
                             {
                                 if (item_iter->item_present != 0)
@@ -214,7 +159,8 @@ void Chestcontrol::Tick(Chestcontrol *self)
     }
 }
 
-String Chestcontrol::AppendEncoded(Chestcontrol *self, unsigned int value, int width)
+String
+ChestController::AppendEncoded(ChestController *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -252,7 +198,8 @@ String Chestcontrol::AppendEncoded(Chestcontrol *self, unsigned int value, int w
     return encoded_str;
 }
 
-bool Chestcontrol::InRange(Chestcontrol *self, int x, int y, int player_x, int player_y)
+bool ChestController::InRange(
+    ChestController *self, int x, int y, int player_x, int player_y)
 {
     bool result = false;
     int dx = player_x - x;

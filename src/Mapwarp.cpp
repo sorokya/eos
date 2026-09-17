@@ -5,7 +5,7 @@
 
 #pragma package(smart_init)
 
-Mapwarp::Mapwarp(
+MapWarp::MapWarp(
     short from_x, short from_y, int dest_map, int level, short to_x, short to_y)
 {
     this->from_x = from_x;
@@ -16,6 +16,6 @@ Mapwarp::Mapwarp(
     this->to_y = to_y;
 }
 
-Mapwarp::~Mapwarp()
+MapWarp::~MapWarp()
 {
 }

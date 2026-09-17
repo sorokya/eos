@@ -4,19 +4,18 @@
 #include <Classes.hpp>
 #include <vector>
 
+#include "Itemground.h"
 #include "Mapchest.h"
 #include "Mapobject.h"
 #include "Mapwarp.h"
 #include "Npc.h"
 
-struct GroundItem;
-
-// Layout recovered from the reference (Map unit, 0x487e84..0x488474). The
+// Layout recovered from the reference (MapContainer unit, 0x487e84..0x488474). The
 // constructor stores rid/width/height and the scalar flags, constructs the
 // vector and AnsiString members in declaration order, then resizes the
 // walkability bit array (0x130) to width*height*2 bits and clears the two
 // tile-spec lists. Every offset is pinned by the constructor/destructor stores.
-struct Map
+struct MapContainer
 {
     short rid;            // +0x00
     short rid1;           // +0x02
@@ -36,7 +35,7 @@ struct Map
     int arena_ticks;                       // +0x18
     int field_0x1c;                        // +0x1c
     int evac_countdown;                    // +0x20
-    std::vector<Mapwarp> arena_spawn_list; // +0x24
+    std::vector<MapWarp> arena_spawn_list; // +0x24
     int relog_x;                           // +0x44
     int relog_y;                           // +0x48
     short field_0x4c;                      // +0x4c
@@ -46,12 +45,12 @@ struct Map
     String field_0x54;                     // +0x54
     char field_0x58;                       // +0x58
     char pad_59[3];
-    std::vector<Mapobject> tile_specs;           // +0x5c
-    std::vector<Mapobject> legacy_door_key_list; // +0x7c
-    std::vector<Mapchest> chest_list;            // +0x9c
-    std::vector<Mapwarp> warp_list;              // +0xbc
+    std::vector<MapObject> tile_specs;           // +0x5c
+    std::vector<MapObject> legacy_door_key_list; // +0x7c
+    std::vector<MapChest> chest_list;            // +0x9c
+    std::vector<MapWarp> warp_list;              // +0xbc
     std::vector<Npc *> npc_list;                 // +0xdc
-    std::vector<GroundItem *> ground_items;      // +0xfc
+    std::vector<ChestItem> ground_items;         // +0xfc
     int next_ground_item_id;                     // +0x11c
     short child_npc_id;                          // +0x120
     bool boss_alive;                             // +0x122
@@ -63,8 +62,8 @@ struct Map
     int player_count;            // +0x12c
     std::vector<bool> tile_bits; // +0x130
 
-    Map(short map_id, int width, int height);
-    ~Map();
+    MapContainer(short map_id, int width, int height);
+    ~MapContainer();
 };
 
 #endif

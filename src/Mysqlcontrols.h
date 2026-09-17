@@ -13,7 +13,7 @@
 
 // Mysqlcontrols is the DB layer root (0x28 bytes). Layout from the reference
 // constructor 0x474668 and the status refresh 0x4762c8:
-//   +0x00 Filecache *    file_cache
+//   +0x00 FileCache *    file_cache
 //   +0x04 TTimeStamp     last_query_time
 //   +0x0c TTimeStamp     connected_time
 //   +0x14 int            field_14
@@ -24,7 +24,7 @@
 class Mysqlcontrols
 {
   public:
-    Filecache *file_cache;      // +0x00
+    FileCache *file_cache;      // +0x00
     TTimeStamp last_query_time; // +0x04
     TTimeStamp connected_time;  // +0x0c
     int field_14;               // +0x14

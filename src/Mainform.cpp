@@ -206,7 +206,7 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     inn_values = new InnValues();
     class_values = new ClassValues();
     news_control = new Newscontrol();
-    jukebox_control = new Jukeboxcontrol();
+    jukebox_control = new JukeBoxController();
     players = new Players(settings, mysql_controls);
     map_control = new Mapcontrol(settings);
     quest_engine = new Questengine(settings);
@@ -220,13 +220,13 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
                              version_patch,
                              version_minor,
                              version_major);
-    npc_control = new Npccontrol(map_control, players, server_ctrl, settings);
-    chest_control = new Chestcontrol(map_control, players, server_ctrl, settings);
-    effect_control = new Effectcontrol(map_control, players, server_ctrl, settings);
-    event_control = new Eventcontrol(map_control, players, server_ctrl, settings);
+    npc_control = new NpcController(map_control, players, server_ctrl, settings);
+    chest_control = new ChestController(map_control, players, server_ctrl, settings);
+    effect_control = new EffectController(map_control, players, server_ctrl, settings);
+    event_control = new EventController(map_control, players, server_ctrl, settings);
     weddings = new WeddingController(players, server_ctrl);
-    door_control = new Doorcontrol(map_control);
-    msgboard_control = new Msgboardcontrol();
+    door_control = new DoorController(map_control);
+    msgboard_control = new MsgBoardController();
     game_control = new Gamecontrol();
 
     Mapcontrol_AddArenaSpawn(map_control, 0x2e, 0xb, 0x2c, 0xc, 0x18);
@@ -283,17 +283,17 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
     if (tick_counter % 10 == 0)
         Players_Tick(players);
     if (tick_counter % 20 == 0)
-        Npccontrol::NpcControl_Tick(npc_control);
+        NpcController::NpcControl_Tick(npc_control);
     if (tick_counter % 100 == 0)
     {
         Logins::Tick(logins);
-        Doorcontrol::Tick(door_control);
-        Effectcontrol::Tick(effect_control);
-        Eventcontrol::Tick(event_control);
+        DoorController::Tick(door_control);
+        EffectController::Tick(effect_control);
+        EventController::Tick(event_control);
         WeddingController::Tick(weddings);
     }
     if (tick_counter % 5000 == 0)
-        Chestcontrol::Tick(chest_control);
+        ChestController::Tick(chest_control);
     if (tick_counter % 1000 == 0)
     {
         Mysqlcontrols::UpdateServerStatus(mysql_controls,
