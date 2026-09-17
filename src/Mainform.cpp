@@ -344,7 +344,7 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
         Chestcontrol_Tick(chest_control);
     if (tick_counter % 1000 == 0)
     {
-        Mysqlcontrols::FUN_004762c8(mysql_controls,
+        Mysqlcontrols::UpdateServerStatus(mysql_controls,
                                     Settings::GetRefreshSeconds(settings),
                                     server->Socket->ActiveConnections,
                                     Players_GetIdleTimeout(players),

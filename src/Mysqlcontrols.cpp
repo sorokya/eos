@@ -7,10 +7,27 @@
 #pragma package(smart_init)
 
 // Cross-unit helpers whose units are reconstructed separately.
-extern void FUN_0053d070(Filecache *cache);
-extern void FUN_0053d2a8(int cache);
-extern void FUN_0053d53c(int cache);
-extern void FUN_005340f4(int thread, int value);
+extern void Filecache_CheckCacheFile(Filecache *cache);
+extern void Filecache_LoadPlayerCache(int cache);
+extern void Filecache_LoadGuildCache(int cache);
+extern bool Mysqlthread_HasPendingTask(int thread, int player_id);
+
+// Connection parameters are stored obfuscated; DecodeString reverses them and
+// maps digits/letters back (see Serial::DecodeString). Decoded:
+//   username=endless_acc
+//   password=xitz9ak4
+#define MYSQL_ENC_STR_USERNAME "xxz_hhvowmv=vnzmivhf"
+#define MYSQL_ENC_STR_PASSWORD "5pz0agrc=wildhhzk"
+
+#define MS_PER_SECOND 1000
+#define MS_PER_HALF_HOUR 1800000
+#define SECONDS_PER_DAY 0x15180
+#define HALF_HOURS_PER_DAY 0x30
+
+#define TEXT_MIN_LENGTH 0x3c
+#define TEXT_MAX_LENGTH 0x80
+#define TEXT_SYMBOL_LIMIT 0x14
+#define TEXT_CAPS_LIMIT 0x28
 
 Mysqlcontrols::Mysqlcontrols()
 {
@@ -18,8 +35,8 @@ Mysqlcontrols::Mysqlcontrols()
     thread_queue = new Mysqlthread;
     worker_thread = Mysqlthread::Spawn(
         NULL, true, GUI->mysession, false, thread_queue, GUI->myquery, GUI->mysql);
-    field_18 = 0;
-    field_1c = 0;
+    query_error_count = 0;
+    exec_error_count = 0;
     connected_time = DateTimeToTimeStamp(Now());
     last_query_time = DateTimeToTimeStamp(Now());
 }
@@ -35,8 +52,8 @@ bool Mysqlcontrols::TestConnection(Mysqlcontrols *self)
     try
     {
         GUI->mysql->Params->Clear();
-        GUI->mysql->Params->Add(FUN_00477a00(self, "xxz_hhvowmv=vnzmivhf"));
-        GUI->mysql->Params->Add(FUN_00477a00(self, "5pz0agrc=wildhhzk"));
+        GUI->mysql->Params->Add(DecodeString(self, MYSQL_ENC_STR_USERNAME));
+        GUI->mysql->Params->Add(DecodeString(self, MYSQL_ENC_STR_PASSWORD));
         GUI->mysql->Connected = true;
     }
     catch (...)
@@ -50,7 +67,7 @@ void Mysqlcontrols::Connect(Mysqlcontrols *self,
                             int version_minor,
                             int version_major)
 {
-    FUN_0053d070(self->file_cache);
+    Filecache_CheckCacheFile(self->file_cache);
     if (self->file_cache->dirty == false)
         ExecDrop(self, "UPDATE endl_characters SET online = 0 WHERE online = 1");
     ExecDrop(self, "DELETE FROM endl_server");
@@ -92,11 +109,11 @@ void Mysqlcontrols::Connect(Mysqlcontrols *self,
               "SELECT privilege, name, title, level, experience, gender FROM "
               "endl_characters "
               "WHERE privilege = 0 ORDER BY experience desc LIMIT 100");
-        FUN_004752d4(self);
+        LoadCachedPlayers(self);
     }
     else
     {
-        FUN_0053d2a8((int)self->file_cache);
+        Filecache_LoadPlayerCache((int)self->file_cache);
     }
 
     if (self->file_cache->dirty == false)
@@ -107,68 +124,73 @@ void Mysqlcontrols::Connect(Mysqlcontrols *self,
               "LENGTH(ident_guild) > 1 "
               "AND privilege = 0 GROUP BY ident_guild desc ORDER BY exptotal desc LIMIT "
               "100");
-        FUN_00475b20(self);
+        LoadCachedGuilds(self);
     }
     else
     {
-        FUN_0053d53c((int)self->file_cache);
+        Filecache_LoadGuildCache((int)self->file_cache);
     }
 }
 
-void Mysqlcontrols::FUN_004752d4(Mysqlcontrols *self)
+void Mysqlcontrols::LoadCachedPlayers(Mysqlcontrols *self)
 {
     while (GUI->myquery->Eof == false)
     {
         FilecacheEntry *entry = new FilecacheEntry;
-        entry->field_0 = GUI->myquery->Fields->FieldByName("privilege")->AsInteger;
-        entry->field_4 = GUI->myquery->Fields->FieldByName("name")->AsString;
-        entry->field_8 = GUI->myquery->Fields->FieldByName("title")->AsString;
-        entry->field_c = GUI->myquery->Fields->FieldByName("level")->AsInteger;
-        entry->field_10 = GUI->myquery->Fields->FieldByName("experience")->AsInteger;
-        entry->field_14 = GUI->myquery->Fields->FieldByName("gender")->AsInteger;
+        entry->privilege = GUI->myquery->Fields->FieldByName("privilege")->AsInteger;
+        entry->name = GUI->myquery->Fields->FieldByName("name")->AsString;
+        entry->title = GUI->myquery->Fields->FieldByName("title")->AsString;
+        entry->level = GUI->myquery->Fields->FieldByName("level")->AsInteger;
+        entry->experience = GUI->myquery->Fields->FieldByName("experience")->AsInteger;
+        entry->gender = GUI->myquery->Fields->FieldByName("gender")->AsInteger;
         self->file_cache->pending_player_writes.insert(
             self->file_cache->pending_player_writes.end(), entry);
         GUI->myquery->Next();
     }
 }
 
-void Mysqlcontrols::FUN_00475b20(Mysqlcontrols *self)
+void Mysqlcontrols::LoadCachedGuilds(Mysqlcontrols *self)
 {
     while (GUI->myquery->Eof == false)
     {
         FilecacheEntryB *entry = new FilecacheEntryB;
-        entry->field_0 = GUI->myquery->Fields->FieldByName("ident_guild")->AsString;
-        entry->field_4 = GUI->myquery->Fields->FieldByName("guild")->AsString;
-        entry->field_8 = GUI->myquery->Fields->FieldByName("exptotal")->AsInteger;
-        entry->field_c = GUI->myquery->Fields->FieldByName("exphigh")->AsInteger;
-        entry->field_10 = GUI->myquery->Fields->FieldByName("members")->AsInteger;
+        entry->ident_guild = GUI->myquery->Fields->FieldByName("ident_guild")->AsString;
+        entry->guild = GUI->myquery->Fields->FieldByName("guild")->AsString;
+        entry->exptotal = GUI->myquery->Fields->FieldByName("exptotal")->AsInteger;
+        entry->exphigh = GUI->myquery->Fields->FieldByName("exphigh")->AsInteger;
+        entry->members = GUI->myquery->Fields->FieldByName("members")->AsInteger;
         self->file_cache->pending_guild_writes.insert(
             self->file_cache->pending_guild_writes.end(), entry);
         GUI->myquery->Next();
     }
 }
 
-void Mysqlcontrols::FUN_004762c8(
-    Mysqlcontrols *self, int refresh, int conn, int idle, int stat, String a, String b)
+void Mysqlcontrols::UpdateServerStatus(Mysqlcontrols *self,
+                                       int refresh_seconds,
+                                       int connections,
+                                       int players,
+                                       int most,
+                                       String upload,
+                                       String download)
 {
     TTimeStamp now_stamp = DateTimeToTimeStamp(Now());
     int date_diff = now_stamp.Date - self->last_query_time.Date;
     int time_diff = now_stamp.Time - self->last_query_time.Time;
-    int elapsed = time_diff / 1000 + date_diff * 0x15180;
-    if (elapsed >= refresh)
+    int elapsed = time_diff / MS_PER_SECOND + date_diff * SECONDS_PER_DAY;
+    if (elapsed >= refresh_seconds)
     {
         self->last_query_time = DateTimeToTimeStamp(Now());
         TTimeStamp stamp = DateTimeToTimeStamp(Now());
         int up_date_diff = stamp.Date - self->connected_time.Date;
         int up_time_diff = stamp.Time - self->connected_time.Time;
-        int uptime = up_time_diff / 1800000 + up_date_diff * 0x30;
+        int uptime = up_time_diff / MS_PER_HALF_HOUR + up_date_diff * HALF_HOURS_PER_DAY;
         String s = "UPDATE endl_server SET ";
         s = s + "uptime = " + IntToStr(uptime) + ",";
-        s = s + "connections = " + IntToStr(conn) + ",";
-        s = s + "players = " + IntToStr(idle) + ",";
-        s = s + "most = " + IntToStr(stat) + ",";
-        s = s + "upload = '" + a + "',";
-        s = s + "download = '" + b + "'";
+        s = s + "connections = " + IntToStr(connections) + ",";
+        s = s + "players = " + IntToStr(players) + ",";
+        s = s + "most = " + IntToStr(most) + ",";
+        s = s + "upload = '" + upload + "',";
+        s = s + "download = '" + download + "'";
         Mysql_ExecDirect(self, 0, s);
     }
 }
@@ -183,12 +205,12 @@ int Mysqlcontrols::Db_GetInt(Mysqlcontrols *self, String label)
     return GUI->myquery->Fields->FieldByName(label)->AsInteger;
 }
 
-void Mysqlcontrols::FUN_00476bfc(Mysqlcontrols *self)
+void Mysqlcontrols::NextResultRecord(Mysqlcontrols *self)
 {
     GUI->myquery->Next();
 }
 
-bool Mysqlcontrols::FUN_00476c14(Mysqlcontrols *self)
+bool Mysqlcontrols::ResultAtEnd(Mysqlcontrols *self)
 {
     return GUI->myquery->Eof;
 }
@@ -198,30 +220,30 @@ int Mysqlcontrols::GetResultCount(Mysqlcontrols *self)
     return GUI->myquery->RecordCount;
 }
 
-bool Mysqlcontrols::Mysql_SubmitQuery(Mysqlcontrols *db,
+bool Mysqlcontrols::Mysql_SubmitQuery(Mysqlcontrols *self,
                                       int query_id,
                                       int player_id,
                                       int expected_query_id,
-                                      String p5,
-                                      String p6)
+                                      String data,
+                                      String param2)
 {
-    Mysqltask *task = new Mysqltask(query_id, player_id, expected_query_id, p5, p6);
-    db->thread_queue->thread->Acquire();
-    Mysqlthread::EnqueueTask(db->thread_queue, task);
-    db->worker_thread->Resume();
-    db->thread_queue->thread->Release();
+    Mysqltask *task = new Mysqltask(query_id, player_id, expected_query_id, data, param2);
+    self->thread_queue->thread->Acquire();
+    Mysqlthread::EnqueueTask(self->thread_queue, task);
+    self->worker_thread->Resume();
+    self->thread_queue->thread->Release();
     return 1;
 }
 
-bool Mysqlcontrols::Mysql_SubmitQuery_FromCallback(Mysqlcontrols *db,
+bool Mysqlcontrols::Mysql_SubmitQuery_FromCallback(Mysqlcontrols *self,
                                                    int query_id,
                                                    int player_id,
                                                    int expected_query_id,
-                                                   String p5,
-                                                   String p6)
+                                                   String data,
+                                                   String param2)
 {
-    Mysqltask *task = new Mysqltask(query_id, player_id, expected_query_id, p5, p6);
-    Mysqlthread::EnqueueTask(db->thread_queue, task);
+    Mysqltask *task = new Mysqltask(query_id, player_id, expected_query_id, data, param2);
+    Mysqlthread::EnqueueTask(self->thread_queue, task);
     return 1;
 }
 
@@ -244,27 +266,29 @@ bool Mysqlcontrols::Query(Mysqlcontrols *self, String query)
     catch (...)
     {
         result = false;
-        self->field_18 = self->field_18 + 1;
+        self->query_error_count = self->query_error_count + 1;
     }
     return result;
 }
 
-bool Mysqlcontrols::Mysql_ExecDirect(Mysqlcontrols *db, int unk, String query)
+bool Mysqlcontrols::Mysql_ExecDirect(Mysqlcontrols *self,
+                                     int expected_query_id,
+                                     String query)
 {
-    Mysqltask *task = new Mysqltask(1, 0, unk, "", query);
-    db->thread_queue->thread->Acquire();
-    Mysqlthread::EnqueueTask(db->thread_queue, task);
-    db->worker_thread->Resume();
-    db->thread_queue->thread->Release();
+    Mysqltask *task = new Mysqltask(1, 0, expected_query_id, "", query);
+    self->thread_queue->thread->Acquire();
+    Mysqlthread::EnqueueTask(self->thread_queue, task);
+    self->worker_thread->Resume();
+    self->thread_queue->thread->Release();
     return 1;
 }
 
-bool Mysqlcontrols::Mysql_ExecDirect_FromCallback(Mysqlcontrols *db,
-                                                  int unk,
+bool Mysqlcontrols::Mysql_ExecDirect_FromCallback(Mysqlcontrols *self,
+                                                  int expected_query_id,
                                                   String query)
 {
-    Mysqltask *task = new Mysqltask(1, 0, unk, "", query);
-    Mysqlthread::EnqueueTask(db->thread_queue, task);
+    Mysqltask *task = new Mysqltask(1, 0, expected_query_id, "", query);
+    Mysqlthread::EnqueueTask(self->thread_queue, task);
     return 1;
 }
 
@@ -282,35 +306,35 @@ bool Mysqlcontrols::ExecDrop(Mysqlcontrols *self, String query)
     catch (...)
     {
         result = false;
-        self->field_1c = self->field_1c + 1;
+        self->exec_error_count = self->exec_error_count + 1;
     }
     return result;
 }
 
-int Mysqlcontrols::Db_GetActiveConnectionCount(Mysqlcontrols *db)
+int Mysqlcontrols::Db_GetActiveConnectionCount(Mysqlcontrols *self)
 {
-    return db->thread_queue->job_queue.size();
+    return self->thread_queue->job_queue.size();
 }
 
-bool Mysqlcontrols::Database_CanReconnect(Mysqlcontrols *db)
+bool Mysqlcontrols::Database_CanReconnect(Mysqlcontrols *self)
 {
-    if (db->thread_queue->job_queue.size() > 0)
+    if (self->thread_queue->job_queue.size() > 0)
         return false;
-    if (db->thread_queue->last_player_id > 0)
+    if (self->thread_queue->last_player_id > 0)
         return false;
-    if (db->worker_thread->Suspended)
+    if (self->worker_thread->Suspended)
     {
-        db->worker_thread->Terminate();
+        self->worker_thread->Terminate();
         return true;
     }
 }
 
-void Mysqlcontrols::FUN_004772a0(Mysqlcontrols *self, int value)
+bool Mysqlcontrols::IsTaskPending(Mysqlcontrols *self, int player_id)
 {
-    FUN_005340f4((int)self->thread_queue, value);
+    return Mysqlthread_HasPendingTask((int)self->thread_queue, player_id);
 }
 
-bool Mysqlcontrols::FUN_004772b8(Mysqlcontrols *self, String value)
+bool Mysqlcontrols::IsAsciiText(Mysqlcontrols *self, String value)
 {
     for (int i = 1; i <= value.Length(); i++)
     {
@@ -320,7 +344,7 @@ bool Mysqlcontrols::FUN_004772b8(Mysqlcontrols *self, String value)
     return 1;
 }
 
-bool Mysqlcontrols::SpamGuard_CheckCooldown(Mysqlcontrols *self, String value)
+bool Mysqlcontrols::IsAlphabeticText(Mysqlcontrols *self, String value)
 {
     bool result = true;
     if (value.Length() >= 1)
@@ -343,7 +367,7 @@ bool Mysqlcontrols::SpamGuard_CheckCooldown(Mysqlcontrols *self, String value)
 }
 
 String
-Mysqlcontrols::Mysql_SanitizeString(Mysqlcontrols *db, String value, bool uppercase)
+Mysqlcontrols::Mysql_SanitizeString(Mysqlcontrols *self, String value, bool uppercase)
 {
     if (value.Length() >= 1)
     {
@@ -364,29 +388,36 @@ Mysqlcontrols::Mysql_SanitizeString(Mysqlcontrols *db, String value, bool upperc
         return AnsiUpperCase(value);
 }
 
-String Mysqlcontrols::Db_SanitizeString(Mysqlcontrols *db, String in)
+String Mysqlcontrols::Db_SanitizeString(Mysqlcontrols *self, String value)
 {
-    if (in.Length() >= 1)
+    if (value.Length() >= 1)
     {
-        for (int i = in.Length(); i >= 1; i--)
+        for (int i = value.Length(); i >= 1; i--)
         {
-            if (String(in[i]) == "'" || in[i] == '%' || in[i] == '[' || in[i] == '*' ||
-                in[i] == ']' || in[i] == '(' || in[i] == ',' || in[i] == ')' ||
-                in[i] == '&' || in[i] == '{' || in[i] == '#' || in[i] == '}' ||
-                in[i] == '"' || in[i] == ':' || in[i] == ';' || in[i] == (char)0xc8 ||
-                in[i] == '=' || in[i] == '/' || in[i] == '\\' || in[i] == (char)0xff)
-                in.Delete(i, 1);
+            if (String(value[i]) == "'" || value[i] == '%' || value[i] == '[' ||
+                value[i] == '*' || value[i] == ']' || value[i] == '(' ||
+                value[i] == ',' || value[i] == ')' || value[i] == '&' ||
+                value[i] == '{' || value[i] == '#' || value[i] == '}' ||
+                value[i] == '"' || value[i] == ':' || value[i] == ';' ||
+                value[i] == (char)0xc8 || value[i] == '=' || value[i] == '/' ||
+                value[i] == '\\' || value[i] == (char)0xff)
+                value.Delete(i, 1);
         }
     }
-    return AnsiLowerCase(in);
+    return AnsiLowerCase(value);
 }
 
-void Mysqlcontrols::Chat_HasBadWords(Mysqlcontrols *ctx, String &message)
+// Normalizes an incoming player text field for several packet handlers (it runs
+// before the '#'-command parser). Short text is left alone; long text is capped
+// at 0x80, non-letter (or 'W') characters are dropped once more than 0x14 have
+// been seen, and the whole field is lowercased when it holds more than 0x28
+// uppercase letters.
+void Mysqlcontrols::NormalizePlayerText(Mysqlcontrols *self, String &message)
 {
-    if (message.Length() < 0x3c)
+    if (message.Length() < TEXT_MIN_LENGTH)
         return;
-    if (message.Length() > 0x80)
-        message = message.SubString(1, 0x80);
+    if (message.Length() > TEXT_MAX_LENGTH)
+        message = message.SubString(1, TEXT_MAX_LENGTH);
     int caps = 0;
     int other = 0;
     for (int i = message.Length(); i >= 1; i--)
@@ -397,20 +428,20 @@ void Mysqlcontrols::Chat_HasBadWords(Mysqlcontrols *ctx, String &message)
             (unsigned char)message[i] == 'W')
         {
             other++;
-            if (other > 0x14)
+            if (other > TEXT_SYMBOL_LIMIT)
                 message.Delete(i, 1);
         }
     }
-    if (caps > 0x28)
+    if (caps > TEXT_CAPS_LIMIT)
         message = AnsiLowerCase(message);
 }
 
-TTimeStamp Mysqlcontrols::Server_GetUptime(Mysqlcontrols *db)
+TTimeStamp Mysqlcontrols::Server_GetUptime(Mysqlcontrols *self)
 {
-    return db->connected_time;
+    return self->connected_time;
 }
 
-String Mysqlcontrols::FUN_00477a00(Mysqlcontrols *db, String value)
+String Mysqlcontrols::DecodeString(Mysqlcontrols *self, String value)
 {
     String reversed = "";
     String result = "";
