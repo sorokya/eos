@@ -396,7 +396,7 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
                      Players_GetStatTotal(players),
                      FUN_004731d0(server_ctrl),
                      FUN_00473540(server_ctrl));
-        if (*(bool *)((char *)this + 0x47))
+        if (Visible)
         {
             String s = IntToStr(server->Socket->ActiveConnections) + " con / ";
             s.Insert(IntToStr(Players_GetIdleTimeout(players)) + " players",
