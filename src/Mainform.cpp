@@ -13,6 +13,11 @@
 #include "Innvalues.h"
 #include "Classvalues.h"
 #include "Jukeboxcontrol.h"
+#include "Settings.h"
+#include "Gamecontrol.h"
+#include "Logins.h"
+#include "Newscontrol.h"
+#include "Mysqlcontrols.h"
 
 #pragma package(smart_init)
 
@@ -20,20 +25,6 @@
 // Their real layouts live in their own (not yet reconstructed) units; only the
 // size and constructor shape are needed to reproduce the reference codegen.
 // The sizes are pinned by the `operator new` arguments in FormCreate.
-class Settings
-{
-    char _pad[0x8c];
-
-  public:
-    Settings();
-};
-class Mysqlcontrols
-{
-    char _pad[0x28];
-
-  public:
-    Mysqlcontrols();
-};
 class Mapcontrol
 {
     char _pad[0x44];
@@ -47,13 +38,6 @@ class Players
 
   public:
     Players(Settings *settings, Mysqlcontrols *mysql);
-};
-class Logins
-{
-    char _pad[0x10];
-
-  public:
-    Logins(Mysqlcontrols *mysql);
 };
 class Server
 {
@@ -126,20 +110,6 @@ class Questengine
   public:
     Questengine(Settings *settings);
 };
-class Newscontrol
-{
-    char _pad[4];
-
-  public:
-    Newscontrol();
-};
-class Gamecontrol
-{
-    char _pad[8];
-
-  public:
-    Gamecontrol();
-};
 
 // Cross-unit operations the form invokes. Their mangled names are unobservable
 // in the stripped image, so they are declared here; the argument shapes are
@@ -151,22 +121,11 @@ void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data);
 bool Players_Add(Players *players, TCustomWinSocket *socket);
 void Players_Remove(Players *players, TCustomWinSocket *socket);
 void Players_MarkRemoving(Players *players, TCustomWinSocket *socket);
-bool Logins_HandleAddress(Logins *logins, String address);
-int Settings_GetMaxConnections(Settings *settings);
-bool Mysqlcontrols_TestConnection(Mysqlcontrols *mysql);
-void Mysqlcontrols_Connect(Mysqlcontrols *mysql,
-                           int version_patch,
-                           int version_minor,
-                           int version_major);
-void Mysqlcontrols_Free(Mysqlcontrols *mysql, unsigned char free_flags);
-String Settings_GetServerName(Settings *settings);
-int Settings_GetPort(Settings *settings);
 void Mapcontrol_AddArenaSpawn(Mapcontrol *map, int map_id, int a, int b, int c, int d);
 void Mapcontrol_SetArenaBlock(Mapcontrol *map, int map_id, int block);
 void Game_Tick(Server *server);
 void Players_Tick(Players *players);
 void NpcControl_Tick(Npccontrol *npc_control);
-void Logins_Tick(Logins *logins);
 void Doorcontrol_Tick(Doorcontrol *door_control);
 void Effectcontrol_Tick(Effectcontrol *effect_control);
 void Eventcontrol_Tick(Eventcontrol *event_control);
@@ -177,10 +136,6 @@ String FUN_004731d0(Server *server);
 int Players_GetStatTotal(Players *players);
 int Players_GetIdleTimeout(Players *players);
 int Players_GetActiveCount(Players *players);
-int Settings_GetRefreshSeconds(Settings *settings);
-int Db_GetActiveConnectionCount(Mysqlcontrols *mysql);
-void FUN_004762c8(
-    Mysqlcontrols *mysql, int refresh, int conn, int idle, int stat, String a, String b);
 String FUN_00403080(TGUI *self, String a, String b, String c);
 
 __fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
@@ -189,7 +144,7 @@ __fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
 
 void __fastcall TGUI::FormClose(TObject *Sender, TCloseAction &Action)
 {
-    Server_Shutdown(server);
+    Server_Shutdown(server_ctrl);
     Action = caNone;
 }
 
@@ -212,12 +167,12 @@ void __fastcall TGUI::serverClientConnect(TObject *Sender, TCustomWinSocket *Soc
         Socket->Close();
         return;
     }
-    if (server->Socket->ActiveConnections > Settings_GetMaxConnections(settings) + 5)
+    if (server->Socket->ActiveConnections > Settings::GetMaxConnections(settings) + 5)
     {
         Socket->Close();
         return;
     }
-    if (!Logins_HandleAddress(logins, Socket->RemoteAddress))
+    if (!Logins::HandleAddress(logins, Socket->RemoteAddress))
     {
         Socket->Close();
         return;
@@ -233,7 +188,7 @@ void __fastcall TGUI::serverClientDisconnect(TObject *Sender, TCustomWinSocket *
 {
     if (Socket->SocketHandle >= 1 && Socket->SocketHandle < 100000)
     {
-        Server_RemovePlayer(server, Socket);
+        Server_RemovePlayer(server_ctrl, Socket);
         Players_Remove(players, Socket);
     }
 }
@@ -245,7 +200,7 @@ void __fastcall TGUI::serverClientRead(TObject *Sender, TCustomWinSocket *Socket
         Socket->Close();
         return;
     }
-    Server_ClientRead(server, Socket, Socket->ReceiveText());
+    Server_ClientRead(server_ctrl, Socket, Socket->ReceiveText());
 }
 
 void __fastcall TGUI::ApplicationEvents1Exception(TObject *Sender, Exception *E)
@@ -278,17 +233,17 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     fclose(boot);
 
     mysql_controls = new Mysqlcontrols();
-    if (!Mysqlcontrols_TestConnection(mysql_controls))
+    if (!Mysqlcontrols::TestConnection(mysql_controls))
     {
         MessageDlg(
             "No mysql database was found (115)", mtError, TMsgDlgButtons() << mbOK, 0);
-        Mysqlcontrols_Free(mysql_controls, 3);
+        Mysqlcontrols::Free(mysql_controls, 3);
         Application->Terminate();
     }
 
     settings = new Settings();
     serial = new Serial();
-    Mysqlcontrols_Connect(mysql_controls, version_patch, version_minor, version_major);
+    Mysqlcontrols::Connect(mysql_controls, version_patch, version_minor, version_major);
     Serial::SetCounter(serial, 100);
 
     item_values = new ItemValues();
@@ -304,20 +259,20 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     map_control = new Mapcontrol(settings);
     quest_engine = new Questengine(settings);
     logins = new Logins(mysql_controls);
-    server = new Server(map_control,
-                        quest_engine,
-                        players,
-                        settings,
-                        mysql_controls,
-                        logins,
-                        version_patch,
-                        version_minor,
-                        version_major);
-    npc_control = new Npccontrol(map_control, players, server, settings);
-    chest_control = new Chestcontrol(map_control, players, server, settings);
-    effect_control = new Effectcontrol(map_control, players, server, settings);
-    event_control = new Eventcontrol(map_control, players, server, settings);
-    weddings = new Weddings(players, server);
+    server_ctrl = new Server(map_control,
+                             quest_engine,
+                             players,
+                             settings,
+                             mysql_controls,
+                             logins,
+                             version_patch,
+                             version_minor,
+                             version_major);
+    npc_control = new Npccontrol(map_control, players, server_ctrl, settings);
+    chest_control = new Chestcontrol(map_control, players, server_ctrl, settings);
+    effect_control = new Effectcontrol(map_control, players, server_ctrl, settings);
+    event_control = new Eventcontrol(map_control, players, server_ctrl, settings);
+    weddings = new Weddings(players, server_ctrl);
     door_control = new Doorcontrol(map_control);
     msgboard_control = new Msgboardcontrol();
     game_control = new Gamecontrol();
@@ -349,7 +304,7 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
 
     if (Serial::IsValid(serial))
     {
-        server->Port = Settings_GetPort(settings);
+        server->Port = Settings::GetPort(settings);
         try
         {
             server->Active = true;
@@ -365,21 +320,21 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
         timer->Interval = 10;
         timer->Enabled = true;
     }
-    Caption = Settings_GetServerName(settings);
+    Caption = Settings::GetServerName(settings);
 }
 
 void __fastcall TGUI::timerTimer(TObject *Sender)
 {
     tick_counter++;
     if (tick_counter % 10 == 0)
-        Game_Tick(server);
+        Game_Tick(server_ctrl);
     if (tick_counter % 10 == 0)
         Players_Tick(players);
     if (tick_counter % 20 == 0)
         NpcControl_Tick(npc_control);
     if (tick_counter % 100 == 0)
     {
-        Logins_Tick(logins);
+        Logins::Tick(logins);
         Doorcontrol_Tick(door_control);
         Effectcontrol_Tick(effect_control);
         Eventcontrol_Tick(event_control);
@@ -389,22 +344,23 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
         Chestcontrol_Tick(chest_control);
     if (tick_counter % 1000 == 0)
     {
-        FUN_004762c8(mysql_controls,
-                     Settings_GetRefreshSeconds(settings),
-                     server->Socket->ActiveConnections,
-                     Players_GetIdleTimeout(players),
-                     Players_GetStatTotal(players),
-                     FUN_004731d0(server),
-                     FUN_00473540(server));
+        Mysqlcontrols::FUN_004762c8(mysql_controls,
+                                    Settings::GetRefreshSeconds(settings),
+                                    server->Socket->ActiveConnections,
+                                    Players_GetIdleTimeout(players),
+                                    Players_GetStatTotal(players),
+                                    FUN_004731d0(server_ctrl),
+                                    FUN_00473540(server_ctrl));
         if (Visible)
         {
             String s = IntToStr(server->Socket->ActiveConnections) + " con / ";
             s.Insert(IntToStr(Players_GetIdleTimeout(players)) + " players",
                      s.Length() + 1);
             panel_buffer->Caption =
-                IntToStr(Db_GetActiveConnectionCount(mysql_controls)) + " sql";
-            panel_send->Caption = FUN_004731d0(server);
-            panel_received->Caption = FUN_00473540(server);
+                IntToStr(Mysqlcontrols::Db_GetActiveConnectionCount(mysql_controls)) +
+                " sql";
+            panel_send->Caption = FUN_004731d0(server_ctrl);
+            panel_received->Caption = FUN_00473540(server_ctrl);
             panel_connections->Caption = s;
         }
     }

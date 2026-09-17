@@ -35,6 +35,14 @@ def canon(ins: str) -> str:
     s = ins.lower().strip()
     s = re.sub(r"<[^>]*>", "", s)
     s = re.sub(r"\[[^\]]*@[^\]]*\]", "[ADDR]", s)
+    # A bare-symbol memory operand (e.g. bcc32's `[_GUI]` package slot) is a
+    # relocated address; the reference disassembly shows it resolved (a number).
+    # Registers are also bare identifiers, so exclude them.
+    s = re.sub(
+        r"\[([A-Za-z_@][A-Za-z0-9_@]*)\]",
+        lambda m: m.group(0) if re.fullmatch(r"[a-z]{2,3}", m.group(1).lower())
+        else "[ADDR]",
+        s)
     s = re.sub(r"\boffset\s+\S+", "ADDR", s)
     s = re.sub(r"\bcall\s+(?!dword|word|byte|\[)(\S+)", "call ADDR", s)
     s = re.sub(r"0x[0-9a-f]+", lambda m: str(int(m.group(0), 16)), s)

@@ -55,12 +55,19 @@ def canon(seq):
 def reference_pool(ca, ref_bin, ranges):
     """Canonical instruction lists for every plausible cut of every range."""
     pool = set()
-    for start, end in ranges:
+    for i, (start, end) in enumerate(ranges):
         ins = ca.parse_ref(ref_bin, start, end)[0]
         pool.add(tuple(canon(ins)))
-        for i, x in enumerate(ins):
+        for j, x in enumerate(ins):
             if x == "ret":
-                pool.add(tuple(canon(ins[:i + 1])))
+                pool.add(tuple(canon(ins[:j + 1])))
+        # Ghidra occasionally splits a function after its prologue (for example
+        # Settings_ReadIniBool at 0x4158c4 -> FUN_004158ca). A ret-less fragment
+        # no longer than a prologue is re-joined with its immediate successor.
+        if ("ret" not in ins and len(ins) <= 6 and i + 1 < len(ranges)
+                and ranges[i + 1][0] == end):
+            merged = ca.parse_ref(ref_bin, start, ranges[i + 1][1])[0]
+            pool.add(tuple(canon(merged)))
     pool.discard(())
     return pool
 
