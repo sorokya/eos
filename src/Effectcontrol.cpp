@@ -2,11 +2,11 @@
 #pragma hdrstop
 
 #include "Effectcontrol.h"
+#include "Map.h"
+#include "Player.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
-
-struct MapContainer;
-struct Player;
 
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
@@ -19,38 +19,6 @@ void Server_BroadcastNearby(
     Server *server, Player *player, int action, int family, String data);
 void Player_Respawn(Server *server, Player *player);
 int RandRange(int max);
-
-struct Player
-{
-    char pad_00[0x8];
-    int player_id; // +0x08
-    char pad_0c[0xdc - 0x0c];
-    int map_id; // +0xdc
-    int x;      // +0xe0
-    int y;      // +0xe4
-    char pad_e8[0x108 - 0xe8];
-    int max_hp; // +0x108
-    int hp;     // +0x10c
-    char pad_110[0x114 - 0x110];
-    int max_tp; // +0x114
-    int tp;     // +0x118
-    char pad_11c[0x3c8 - 0x11c];
-    int field_0x3c8; // +0x3c8
-    char pad_3cc[0x3dc - 0x3cc];
-    char map_has_quakes;   // +0x3dc
-    char map_has_hp_drain; // +0x3dd
-    char map_has_tp_drain; // +0x3de
-    char map_has_spikes;   // +0x3df
-};
-
-struct MapContainer
-{
-    char pad_00[0xb];
-    unsigned char field_0xb; // +0x0b
-    char pad_0c[0x54 - 0x0c];
-    String field_0x54; // +0x54
-    char field_0x58;   // +0x58
-};
 
 EffectController::EffectController(Mapcontrol *map_control,
                                    Players *players,
@@ -128,7 +96,7 @@ void EffectController::Tick(EffectController *self)
         if ((*player_iter)->map_has_quakes != 0)
         {
             int idx = Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                          ->field_0xb -
+                          ->timed_effect -
                       3;
             if (idx >= 0 && idx <= 3)
             {
@@ -137,7 +105,11 @@ void EffectController::Tick(EffectController *self)
                     String pkt = AppendEncoded(self, 1, 1);
                     pkt.Insert(AppendEncoded(self, self->aState_extra[idx], 1),
                                pkt.Length() + 1);
-                    Client_SendEncoded(self->server, *player_iter, 0xa, 0x1f, pkt);
+                    Client_SendEncoded(self->server,
+                                       *player_iter,
+                                       PacketAction_Use,
+                                       PacketFamily_Effect,
+                                       pkt);
                 }
             }
             else
@@ -154,34 +126,36 @@ void EffectController::Tick(EffectController *self)
                 if ((*player_iter)->hp <= hp_regen)
                     hp_regen = (*player_iter)->hp - 1;
                 (*player_iter)->hp -= hp_regen;
-                (*player_iter)->field_0x3c8 = hp_regen;
+                (*player_iter)->item_change_count = hp_regen;
                 if (Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                        ->field_0x58 != 0)
+                        ->hp_drain_others_sent != 0)
                 {
                     Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                        ->field_0x54 += "";
+                        ->hp_drain_others += "";
                     Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                        ->field_0x58 = 0;
+                        ->hp_drain_others_sent = 0;
                 }
                 Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                    ->field_0x54.Insert(AppendEncoded(self, (*player_iter)->player_id, 2),
-                                        Mapcontrol_GetByIndex(self->map_control,
-                                                              (*player_iter)->map_id - 1)
-                                                ->field_0x54.Length() +
-                                            1);
+                    ->hp_drain_others.Insert(
+                        AppendEncoded(self, (*player_iter)->player_id, 2),
+                        Mapcontrol_GetByIndex(self->map_control,
+                                              (*player_iter)->map_id - 1)
+                                ->hp_drain_others.Length() +
+                            1);
                 Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                    ->field_0x54.Insert(
+                    ->hp_drain_others.Insert(
                         AppendEncoded(self, Player_HpPercent(*player_iter), 1),
                         Mapcontrol_GetByIndex(self->map_control,
                                               (*player_iter)->map_id - 1)
-                                ->field_0x54.Length() +
+                                ->hp_drain_others.Length() +
                             1);
                 Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                    ->field_0x54.Insert(AppendEncoded(self, hp_regen, 2),
-                                        Mapcontrol_GetByIndex(self->map_control,
-                                                              (*player_iter)->map_id - 1)
-                                                ->field_0x54.Length() +
-                                            1);
+                    ->hp_drain_others.Insert(
+                        AppendEncoded(self, hp_regen, 2),
+                        Mapcontrol_GetByIndex(self->map_control,
+                                              (*player_iter)->map_id - 1)
+                                ->hp_drain_others.Length() +
+                            1);
             }
             if ((*player_iter)->map_has_tp_drain != 0 && (*player_iter)->tp > 0)
             {
@@ -196,7 +170,11 @@ void EffectController::Tick(EffectController *self)
                 pkt.Insert(AppendEncoded(self, (*player_iter)->tp, 2), pkt.Length() + 1);
                 pkt.Insert(AppendEncoded(self, (*player_iter)->max_tp, 2),
                            pkt.Length() + 1);
-                Client_SendEncoded(self->server, *player_iter, 0x10, 0x1f, pkt);
+                Client_SendEncoded(self->server,
+                                   *player_iter,
+                                   PacketAction_Spec,
+                                   PacketFamily_Effect,
+                                   pkt);
             }
         }
 
@@ -228,20 +206,32 @@ void EffectController::Tick(EffectController *self)
                                pkt.Length() + 1);
                     pkt.Insert(AppendEncoded(self, (*player_iter)->max_hp, 2),
                                pkt.Length() + 1);
-                    Client_SendEncoded(self->server, *player_iter, 0x10, 0x1f, pkt);
+                    Client_SendEncoded(self->server,
+                                       *player_iter,
+                                       PacketAction_Spec,
+                                       PacketFamily_Effect,
+                                       pkt);
                     pkt += AppendEncoded(self, (*player_iter)->player_id, 2);
                     pkt.Insert(AppendEncoded(self, Player_HpPercent(*player_iter), 1),
                                pkt.Length() + 1);
                     pkt.Insert(AppendEncoded(self, died, 1), pkt.Length() + 1);
                     pkt.Insert(AppendEncoded(self, dmg, 2), pkt.Length() + 1);
-                    Server_BroadcastNearby(self->server, *player_iter, 0x11, 0x1f, pkt);
+                    Server_BroadcastNearby(self->server,
+                                           *player_iter,
+                                           PacketAction_Admin,
+                                           PacketFamily_Effect,
+                                           pkt);
                     if (died != 0)
                         Player_Respawn(self->server, *player_iter);
                 }
             }
             else
             {
-                Client_SendEncoded(self->server, *player_iter, 0x15, 0x1f, "S");
+                Client_SendEncoded(self->server,
+                                   *player_iter,
+                                   PacketAction_Report,
+                                   PacketFamily_Effect,
+                                   "S");
             }
         }
     }
@@ -256,17 +246,21 @@ void EffectController::Tick(EffectController *self)
             if ((*broadcast_iter)->map_has_hp_drain != 0)
             {
                 Mapcontrol_GetByIndex(self->map_control, (*broadcast_iter)->map_id - 1)
-                    ->field_0x58 = 1;
-                String pkt = AppendEncoded(self, (*broadcast_iter)->field_0x3c8, 2);
+                    ->hp_drain_others_sent = 1;
+                String pkt = AppendEncoded(self, (*broadcast_iter)->item_change_count, 2);
                 pkt.Insert(AppendEncoded(self, (*broadcast_iter)->hp, 2),
                            pkt.Length() + 1);
                 pkt.Insert(AppendEncoded(self, (*broadcast_iter)->max_hp, 2),
                            pkt.Length() + 1);
                 pkt.Insert(Mapcontrol_GetByIndex(self->map_control,
                                                  (*broadcast_iter)->map_id - 1)
-                               ->field_0x54,
+                               ->hp_drain_others,
                            pkt.Length() + 1);
-                Client_SendEncoded(self->server, *broadcast_iter, 0x1f, 0x1f, pkt);
+                Client_SendEncoded(self->server,
+                                   *broadcast_iter,
+                                   PacketAction_TargetOther,
+                                   PacketFamily_Effect,
+                                   pkt);
             }
         }
     }

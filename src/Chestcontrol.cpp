@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Chestcontrol.h"
+#include "Protocol.h"
 #include "Map.h"
 #include "Player.h"
 
@@ -147,7 +148,11 @@ void ChestController::Tick(ChestController *self)
                                                pkt.Length() + 1);
                                 }
                             }
-                            Client_SendEncoded(self->server, *player_iter, 5, 0x21, pkt);
+                            Client_SendEncoded(self->server,
+                                               *player_iter,
+                                               PacketAction_Agree,
+                                               PacketFamily_Chest,
+                                               pkt);
                         }
                     }
                 }

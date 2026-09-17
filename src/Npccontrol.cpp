@@ -2,23 +2,9 @@
 #pragma hdrstop
 
 #include "Npccontrol.h"
+#include "Player.h"
 
 #pragma package(smart_init)
-
-// Minimal view of the (unreconstructed) Player unit. Only the fields this unit
-// reads are declared, at the offsets pinned by the reference disassembly; the
-// remaining bytes are padding. Replace with Player.h once that unit exists.
-struct Player
-{
-    char pad_00[4];    // +0x00
-    bool logged_in;    // +0x04
-    char pad_05[3];    // +0x05
-    int player_id;     // +0x08
-    char pad_0c[0xd0]; // +0x0c
-    int map_id;        // +0xdc
-    int x;             // +0xe0
-    int y;             // +0xe4
-};
 
 // Players-unit operations (unit not yet reconstructed). Their argument shapes
 // are pinned by this unit's call sites; the reference uses the container's own

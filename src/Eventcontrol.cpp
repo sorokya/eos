@@ -2,61 +2,12 @@
 #pragma hdrstop
 
 #include "Eventcontrol.h"
+#include "Map.h"
+#include "Mapwarp.h"
+#include "Player.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
-
-// Minimal view of the (unreconstructed) MapWarp/MapContainer units. Only the fields
-// this unit reads are declared, at the offsets pinned by the reference
-// disassembly; the remaining bytes are padding. sizeof(MapContainer) must be 0x160 (the
-// reference map-vector stride is `add [map_iter],0x160`). The reference reads the
-// MapWarp coordinates with movzx, so the fields are unsigned short (Mapwarp.h
-// declares short — reconcile).
-struct MapWarp
-{
-    unsigned short from_x; // +0x00
-    unsigned short from_y; // +0x02
-    int dest_map;          // +0x04
-    int level;             // +0x08
-    unsigned short to_x;   // +0x0c
-    unsigned short to_y;   // +0x0e
-};
-
-struct MapwarpVector
-{
-    char pad_00[0x20];
-};
-
-struct MapContainer
-{
-    unsigned short rid; // +0x00
-    char pad_02[0x10 - 0x02];
-    bool arena_enabled;             // +0x10
-    char pad_11[3];                 // +0x11
-    int arena_block;                // +0x14
-    int arena_ticks;                // +0x18
-    int field_0x1c;                 // +0x1c
-    int evac_countdown;             // +0x20
-    MapwarpVector arena_spawn_list; // +0x24
-    char pad_44[0x160 - 0x44];
-};
-
-// Minimal view of the (unreconstructed) Player unit. Only the fields this unit
-// reads are declared, at the offsets pinned by the reference disassembly.
-struct Player
-{
-    bool connected; // +0x00
-    char pad_01[0x54 - 0x01];
-    bool arena_queued;  // +0x54
-    bool arena_playing; // +0x55
-    char pad_56[0x58 - 0x56];
-    int field_0x58; // +0x58
-    char pad_5c[0x98 - 0x5c];
-    int admin_level; // +0x98
-    char pad_9c[0xdc - 0x9c];
-    int map_id; // +0xdc
-    int x;      // +0xe0
-    int y;      // +0xe4
-};
 
 // Cross-unit operations this unit invokes. Their mangled names are unobservable
 // in the stripped image, so they are declared here; the argument shapes are
@@ -64,8 +15,8 @@ struct Player
 // once those are reconstructed.
 MapContainer *MapVector_Begin(Mapcontrol *map_control);
 MapContainer *MapVector_End(Mapcontrol *map_control);
-MapWarp *MapwarpVector_Begin(MapwarpVector *arena_spawn_list);
-MapWarp *MapwarpVector_End(MapwarpVector *arena_spawn_list);
+MapWarp *MapwarpVector_Begin(void *arena_spawn_list);
+MapWarp *MapwarpVector_End(void *arena_spawn_list);
 
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
@@ -144,8 +95,8 @@ void EventController::Tick(EventController *self)
          map_iter != MapVector_End(self->map_control);
          map_iter++)
     {
-        if (map_iter->field_0x1c > 0)
-            map_iter->field_0x1c--;
+        if (map_iter->quest_cooldown > 0)
+            map_iter->quest_cooldown--;
         if (map_iter->evac_countdown > 0)
         {
             map_iter->evac_countdown--;
@@ -156,8 +107,8 @@ void EventController::Tick(EventController *self)
                 {
                     Server_BroadcastToMap(self->server,
                                           map_iter->rid,
-                                          0x17,
-                                          0x12,
+                                          PacketAction_Server,
+                                          PacketFamily_Talk,
                                           "Last warning! - leave this map in (" +
                                               IntToStr(map_iter->evac_countdown) +
                                               ") seconds or be send to jail!");
@@ -166,8 +117,8 @@ void EventController::Tick(EventController *self)
                 {
                     Server_BroadcastToMap(self->server,
                                           map_iter->rid,
-                                          0x17,
-                                          0x12,
+                                          PacketAction_Server,
+                                          PacketFamily_Talk,
                                           "Warning! - please leave this map in (" +
                                               IntToStr(map_iter->evac_countdown) +
                                               ") seconds or be send to jail!");
@@ -175,8 +126,11 @@ void EventController::Tick(EventController *self)
             }
             else if (map_iter->evac_countdown > 3)
             {
-                Server_BroadcastToMap(
-                    self->server, map_iter->rid, 8, 0x28, AppendEncoded(self, 0x33, 1));
+                Server_BroadcastToMap(self->server,
+                                      map_iter->rid,
+                                      PacketAction_Player,
+                                      PacketFamily_Music,
+                                      AppendEncoded(self, 0x33, 1));
             }
             if (map_iter->evac_countdown < 1)
             {
@@ -209,8 +163,11 @@ void EventController::Tick(EventController *self)
                 {
                     if (map_iter->arena_ticks == 0)
                     {
-                        Server_BroadcastToMap(
-                            self->server, map_iter->rid, 0x18, 0x2d, "N");
+                        Server_BroadcastToMap(self->server,
+                                              map_iter->rid,
+                                              PacketAction_Drop,
+                                              PacketFamily_Arena,
+                                              "N");
                     }
                 }
                 else
@@ -247,8 +204,8 @@ void EventController::Tick(EventController *self)
                     {
                         Server_BroadcastToMap(self->server,
                                               map_iter->rid,
-                                              0xa,
-                                              0x2d,
+                                              PacketAction_Use,
+                                              PacketFamily_Arena,
                                               AppendEncoded(self, warped_count, 1));
                     }
                 }

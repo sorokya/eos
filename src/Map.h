@@ -17,19 +17,19 @@
 // tile-spec lists. Every offset is pinned by the constructor/destructor stores.
 struct MapContainer
 {
-    short rid;            // +0x00
-    short rid1;           // +0x02
-    short rid2;           // +0x04
-    short filesize;       // +0x06
-    unsigned char width;  // +0x08
-    unsigned char height; // +0x09
-    char map_type;        // +0x0a
-    char timed_effect;    // +0x0b
-    bool has_quakes;      // +0x0c
-    bool has_hp_drain;    // +0x0d
-    bool has_tp_drain;    // +0x0e
-    bool has_spikes;      // +0x0f
-    bool arena_enabled;   // +0x10
+    unsigned short rid;         // +0x00
+    short rid1;                 // +0x02
+    short rid2;                 // +0x04
+    short filesize;             // +0x06
+    unsigned char width;        // +0x08
+    unsigned char height;       // +0x09
+    char map_type;              // +0x0a
+    unsigned char timed_effect; // +0x0b
+    bool has_quakes;            // +0x0c
+    bool has_hp_drain;          // +0x0d
+    bool has_tp_drain;          // +0x0e
+    bool has_spikes;            // +0x0f
+    bool arena_enabled;         // +0x10
     char pad_11[3];
     int arena_block;                       // +0x14
     int arena_ticks;                       // +0x18

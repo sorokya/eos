@@ -3,23 +3,11 @@
 
 #include "Doorcontrol.h"
 #include "Mapobject.h"
+#include "Map.h"
 
 #include <vector>
 
 #pragma package(smart_init)
-
-// Provisional cross-unit views. Mapcontrol and MapContainer are not yet reconstructed;
-// only the fields this unit reads are recovered here, at their reference offsets
-// (Doorcontrol_Tick, 0x4aafc8). Mapcontrol's first member is the maps vector at
-// +0x00; sizeof(Mapcontrol) is 0x44 (pinned by Mainform.cpp's operator new).
-struct MapContainer
-{
-    char pad_00[0x5c];
-    std::vector<MapObject> tile_specs; // +0x5c
-    char pad_specs[0x125 - 0x5c - sizeof(std::vector<MapObject>)];
-    unsigned char has_open_doors; // +0x125
-    char pad_126[0x160 - 0x126];
-};
 
 class Mapcontrol
 {
