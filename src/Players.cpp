@@ -41,16 +41,13 @@ bool Players::Players_Add(Players *self, TCustomWinSocket *socket)
     if (self->by_id[socket->SocketHandle] != 0)
         return false;
     int same_ip = 0;
-    Player **iter = self->players.begin();
-    while (iter != self->players.end())
+    for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
     {
-        if (Socket_GetRemoteIP((*iter)->socket) == Socket_GetRemoteIP(socket))
-        {
-            same_ip++;
-            if (Settings::GetMaxConnections(self->settings) <= same_ip)
-                return false;
-        }
-        iter++;
+        if (Socket_GetRemoteIP((*iter)->socket) != Socket_GetRemoteIP(socket))
+            continue;
+        same_ip++;
+        if (Settings::GetMaxConnections(self->settings) <= same_ip)
+            return false;
     }
     Player *player = new Player(socket);
     self->by_id[socket->SocketHandle] = player;
@@ -340,12 +337,18 @@ bool Players::Player_RemoveItem(Players *self, Player *player, int item_id, int 
 
 bool Players::CharName_Validate(Players *players, Player *player, String name)
 {
+    Player **iter;
     if (player->null_string != "")
+    {
         return true;
-    Player **iter = players->players.begin();
-    for (; iter != players->players.end(); iter++)
+    }
+    iter = players->players.begin();
+    while (iter != players->players.end())
+    {
         if (name == (*iter)->null_string)
             return true;
+        iter++;
+    }
     player->null_string += name;
     return false;
 }

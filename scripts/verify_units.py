@@ -43,6 +43,7 @@ UNIT_CLASS_ALIASES = {
     "Mapwarp": ["MapWarp"],
     "Mapobject": ["MapObject"],
     "Mapchest": ["MapChest"],
+    "Itemchest": ["MapItem"],
     "Msgboard": ["MsgBoard"],
     "Msgboardcontrol": ["MsgBoardController"],
     "Chestcontrol": ["ChestController"],
@@ -57,6 +58,8 @@ UNIT_CLASS_ALIASES = {
     "Questcounter": ["QuestCounter"],
     "Questcounterlist": ["QuestCounterList"],
     "Questcounters": ["QuestCounters"],
+    "Packets": ["Server"],
+    "Banned": ["Asocketban"],
 }
 
 

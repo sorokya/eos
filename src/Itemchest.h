@@ -18,6 +18,9 @@ struct MapItem
     unsigned short respawn_delay;  // +0x10
     unsigned short alt_item_id[4]; // +0x12
     int alt_amount[4];             // +0x1c
+
+    MapItem(int item_id);
+    ~MapItem();
 };
 
 #endif

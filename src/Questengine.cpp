@@ -513,35 +513,38 @@ int Questengine::ParseInt(Questengine *self, String token)
 String
 Questengine::AppendEncoded(Questengine *self, unsigned int value, unsigned int width)
 {
-    int result = 1;
-    bool leading = true;
-    double d;
-
-    for (int i = 0; i < (int)width; i++)
+    int rem;
+    char c;
+    try
     {
-        if (leading)
+        unsigned int quotient = 1;
+        bool leading = true;
+        for (int i = 0; i < (int)width; i++)
         {
-            d = value / 253.0;
-            result = d;
-            char digit = (char)(value % 253) + 1;
-            ((char *)self->encode_scratch)[i] = digit;
-            value = result;
-            if (result >= 1)
+            if (leading)
             {
-                if (i + 1 == (int)width)
+                double d = value / 253.0;
+                quotient = d;
+                rem = value % 0xfd;
+                c = rem + 1;
+                ((char *)self->encode_scratch)[i] = c;
+                value = quotient;
+                if (quotient < 1)
+                    leading = false;
+                else if (i + 1 == (int)width)
                     width++;
             }
             else
             {
-                leading = false;
+                char pad = 0xfe;
+                ((char *)self->encode_scratch)[i] = pad;
             }
         }
-        else
-        {
-            ((char *)self->encode_scratch)[i] = 0xfe;
-        }
     }
-
+    catch (...)
+    {
+        width = 0;
+    }
     String encoded_str((char *)self->encode_scratch, width);
     return encoded_str;
 }
@@ -591,14 +594,9 @@ Questengine::GetActionData(Questengine *self, int quest_id, int state_index, int
 String
 Questengine::GetActionData2(Questengine *self, int quest_id, int state_index, int arg)
 {
-    String result;
     QuestState *state = GetState(self, quest_id, state_index);
     if (state == NULL)
-    {
-        result = "";
-        return result;
-    }
-
+        return "";
     String data = "";
     for (std::vector<QuestAction *>::iterator it = state->actions.begin();
          it != state->actions.end();
@@ -624,8 +622,7 @@ Questengine::GetActionData2(Questengine *self, int quest_id, int state_index, in
             }
         }
     }
-    result = data;
-    return result;
+    return data;
 }
 
 int Questengine::GetRuleValue(Questengine *self,

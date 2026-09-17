@@ -315,7 +315,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Serial | `0x00013b4c` | byte-exact |
 | Settings | `0x00015d88` | byte-exact |
 | Logins | `0x000166ec` | byte-exact |
-| Packets | `0x00074648` | not-started |
+| Packets | `0x00074648` | in-progress |
 | Mysqlcontrols | `0x00078180` | in-progress |
 | Itemvalue | `0x0007824c` | byte-exact |
 | Itemvalues | `0x0007a848` | byte-exact |
@@ -326,7 +326,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Mapwarp | `0x00087e64` | byte-exact |
 | Map | `0x00088474` | byte-exact |
 | Itemground | `0x000884d8` | byte-exact |
-| Itemchest | `0x000a2ff8` | not-started |
+| Itemchest | `0x000a2ff8` | byte-exact |
 | Skillvalues | `0x000a5400` | byte-exact |
 | Npcvalues | `0x000a8e90` | byte-exact |
 | Skillvalue | `0x000a8f64` | byte-exact |
@@ -346,7 +346,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Shopcraft | `0x000b5500` | byte-exact |
 | Chestcontrol | `0x000b5bc4` | byte-exact |
 | Weaponmap | `0x000b5c60` | byte-exact |
-| Banned | `0x0012cb2c` | not-started |
+| Banned | `0x0012cb2c` | byte-exact |
 | Effectcontrol | `0x0012db00` | byte-exact |
 | Eventcontrol | `0x0012e204` | byte-exact |
 | Wedding | `0x0012e35c` | byte-exact |
@@ -528,6 +528,7 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Killcounters byte-exact (9/9) | 2 | done | ctor 36, dtor 34, `Clear` 45, `IncrementAndGet` 117, `Add` 78, `Get` 84, `Init` 98, `Extract` 68, `Save` 153 - all 0 mismatches, plus ~24 `std::vector<KillCounter>`/allocator COMDATs. sizeof 0x368. The WIP `Init(this)` tail is now present. |
 | Msgboard byte-exact (3/3) | 2 | done | `Msgboard()` 24, `Msgboard(short,String,String,String)` 65, `~Msgboard` 34. Layout (16): `short id`@0, `String poster`@4, `subject`@8, `message`@12. |
 | Mapchest byte-exact (2/2) | 2 | done | `Mapchest(short,short,short)` 34 and `~Mapchest` 26 plus the `std::vector<Itemchest>` COMDATs. Layout (0x28): x/y/key_id + `char updated` + `std::vector<Itemchest> slots`; sizeof(Itemchest) recovered as 0x2c. Itemchest is a size-correct placeholder pending its own unit. |
+| Itemchest byte-exact (2/2) | 2 | done | `MapItem(int item_id)` 46 and the deleting dtor `$bdtr$qv` 26, at `0x4a2fac..0x4a2ff8` (the module's code is exactly these two functions). RTTI names the class `MapItem` (not `Itemchest`); `verify_units.py` maps unit `Itemchest` to prefix `@@MapItem@`. The unit's `Initialize`/`Finalize` stubs carry no init body. The 109 KB module span from `units.tsv` is an artifact of four unexported BDE/VCL library members (init stubs at `0x4888f8`, `0x48d3c0`, `0x48d5d8`, `0x4a2fa4`, counters `0x58bbc0..0x58bbcc`) that lack the prologue form of the module stub and so were not segmented; the `FUN_*` functions before `0x4a2fac` are those library members, not this unit. |
 | Effectcontrol byte-exact (4/4) | 2 | done | ctor 46, `$bdtr` 11, `Tick` 945, `AppendEncoded` 100. Layout (0x48): `aState_countdown[4]`/`aState_value[4]`/`aState_extra[4]` + broadcast gate + `char *encode_scratch` + Settings/Mapcontrol/Players/Server. Ctor order `(Mapcontrol*,Players*,Server*,Settings*)`. `AppendEncoded` returns String by value. |
 | Npccontrol partial (8/13) | 2 | in-progress | Byte-exact: ctor 49, `$bdtr` 26, `Npc_GetDistance` 43, `Npc_IsWithinRange` 41, `Npc_DoMove` 84, `Npc_ValidateMove` 86, `Npc_Wander` 253, `Packet_AppendEncoded` 100. Remaining: `NpcControl_Tick` (6064 B), `Npc_AttackPlayer` (converged except local-slot order and an 8-byte pair push), `Npc_ChaseTarget`. Layout (0x44). |
 | Weddings partial (7/8; class is WeddingController) | 2 | in-progress | RTTI class name is `WeddingController` (unit/file `Weddings`). Byte-exact: ctor 34, dtor 26, `Has` 36, `Add` 78, `Confirm` 295, `BroadcastPriestLine` 52, `BothPresent` 40, `AppendEncoded` 100, plus 21 vector COMDATs. `Tick` (1071) differs in 4 hunks (510 marker-equal mismatches) - dead `sete` sequences bcc32 emits that our structurally-identical source does not. Layout (0x2c): `char *encode_scratch` + `Players*` + `Server*` + `std::vector<Wedding*>`. Mainform now uses `WeddingController`. |

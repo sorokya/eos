@@ -586,26 +586,37 @@ void Mapcontrol::Mapcontrol_AppendEncoded(String &out_str,
                                           unsigned int value,
                                           int width)
 {
-    bool flag = true;
-    for (int i = 0; i < width; i++)
+    int rem;
+    char c;
+    try
     {
-        if (flag)
+        unsigned int quotient = 1;
+        bool flag = true;
+        for (int i = 0; i < width; i++)
         {
-            double d = value / 253.0;
-            unsigned int quotient = d;
-            char rem = value % 0xfd;
-            char c = rem + 1;
-            ((char *)map_control->encode_scratch)[i] = c;
-            value = quotient;
-            if (quotient < 1)
-                flag = false;
-            else if (i + 1 == width)
-                width++;
+            if (flag)
+            {
+                double d = value / 253.0;
+                quotient = d;
+                rem = value % 0xfd;
+                c = rem + 1;
+                ((char *)map_control->encode_scratch)[i] = c;
+                value = quotient;
+                if (quotient < 1)
+                    flag = false;
+                else if (i + 1 == width)
+                    width++;
+            }
+            else
+            {
+                char pad = 0xfe;
+                ((char *)map_control->encode_scratch)[i] = pad;
+            }
         }
-        else
-        {
-            ((char *)map_control->encode_scratch)[i] = 0xfe;
-        }
+    }
+    catch (...)
+    {
+        width = 0;
     }
     String encoded_str((char *)map_control->encode_scratch, width);
     out_str += encoded_str;
