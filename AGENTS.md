@@ -214,7 +214,15 @@ documented build, not a manual fix-up.
 `scripts/` and the `Makefile` provide the measurement pipeline; see
 `scripts/README.md` for the full list. Make targets: `image`, `analyze`, `units`,
 `functions`, `struct`, `disasm`, `sanity`, `compare`, `normalize`, `unit`,
-`unit-asm`, `clean`.
+`unit-asm`, `format`, `format-check`, `clean`.
+
+- `make format` applies the project style (`.clang-format`: Allman braces,
+  4-space indent, right-aligned pointers, 90 columns) to `src/*.cpp` and
+  `src/*.h`; `make format-check` is the non-mutating equivalent.
+  `SortIncludes` is deliberately off — include order is semantic here
+  (`vcl.h`, then `#pragma hdrstop`, then the unit header). Formatting is
+  whitespace-only and cannot affect codegen, but commit it separately from
+  byte-level changes so the diffs stay reviewable.
 
 - `scripts/borland.sh '<command>'` — run a tool in the container (exports `$B`,
   `$BZ`).
