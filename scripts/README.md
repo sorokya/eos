@@ -72,6 +72,8 @@ produced.
   `units.tsv` order) and link `build/GameServer.exe`, then apply the timestamp
   normalization. `MAP=1` adds `ilink32 -s` and writes `build/GameServer.map`
   (the detailed segment map that `unitmap.py --map` consumes).
+- **`build_asm.sh`** — emit a bcc32 `-S` listing for every unit into
+  `build/<Unit>.asm` (one container run). Input to `verify_units.py`.
 
 ## Make targets
 
@@ -88,6 +90,9 @@ make stubs     # generate stub units for units not yet reconstructed
 make build     # build build/GameServer.exe from src/
 make unit UNIT=Serial     # compile one reconstructed unit
 make unit-asm UNIT=Serial # emit bcc32 assembly for one unit
+make verify    # emit asm for all units + score every source function vs the reference
+make format    # apply the project clang-format style to src/*.cpp, src/*.h
+make format-check # check the style without modifying files
 make compare   # compare build/GameServer.exe against the reference
 make normalize # apply the deterministic timestamp step
 make clean     # remove build/
@@ -99,3 +104,9 @@ make clean     # remove build/
   bcc32 `-S` function against a reference address range, canonicalizing relocated
   addresses and branch targets while requiring registers, stack offsets and small
   constants to match exactly. The per-function byte-fidelity loop.
+- **`verify_units.py [UNIT ...] [--ref-bin PATH] [--asm-dir DIR]`** — the
+  whole-tree equivalent: for every unit's listing, match each function in the
+  unit's namespace against that unit's reference ranges from
+  `analysis/target/unit_functions.tsv`, printing per-unit matched/total and
+  exiting non-zero on any unmatched source function. Unreferenced `$bdtr`
+  COMDATs are counted separately (the linker drops them).

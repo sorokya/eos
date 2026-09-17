@@ -22,7 +22,7 @@ VLIB      ?= import32.lib cw32mt.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.l
 CLANG_FORMAT ?= clang-format
 SRC          := $(wildcard src/*.cpp src/*.h)
 
-.PHONY: image analyze units unitmap functions struct disasm sanity compare normalize build stubs unit unit-asm format format-check clean
+.PHONY: image analyze units unitmap functions struct disasm sanity compare normalize build stubs unit unit-asm verify format format-check clean
 
 image:
 	docker build -t $(IMAGE) docker
@@ -82,6 +82,12 @@ unit:
 # Emit bcc32 assembly for one unit (codegen inspection):  make unit-asm UNIT=Serial
 unit-asm:
 	scripts/borland.sh 'wine "$$B\Bin\bcc32.exe" $(CFLAGS) -S -obuild/$(UNIT).asm src/$(UNIT).cpp'
+
+# Emit a bcc32 -S listing for every unit, then score every source function
+# against its unit's reference range (see scripts/verify_units.py).
+verify:
+	scripts/build_asm.sh
+	$(PYTHON) scripts/verify_units.py
 
 # Apply the project code style (.clang-format) in place.
 format:

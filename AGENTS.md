@@ -214,7 +214,15 @@ documented build, not a manual fix-up.
 `scripts/` and the `Makefile` provide the measurement pipeline; see
 `scripts/README.md` for the full list. Make targets: `image`, `analyze`, `units`,
 `functions`, `struct`, `disasm`, `sanity`, `compare`, `normalize`, `unit`,
-`unit-asm`, `format`, `format-check`, `clean`.
+`unit-asm`, `verify`, `format`, `format-check`, `clean`.
+
+- `make verify` compiles every unit to a bcc32 `-S` listing
+  (`scripts/build_asm.sh`) and scores every function in a unit's own namespace
+  against that unit's reference ranges (`scripts/verify_units.py`), reporting
+  per-unit matched/total and failing on any unmatched source function.
+  `$bdtr` (deleting-destructor) COMDATs that nothing references are reported
+  separately — the linker drops them, so the reference has no range for them.
+  This is the whole-tree check; `compare_asm.py` remains the per-function tool.
 
 - `make format` applies the project style (`.clang-format`: Allman braces,
   4-space indent, right-aligned pointers, 90 columns) to `src/*.cpp` and
