@@ -73,3 +73,34 @@ String Jukeboxcontrol::BuildRecentTracksString(Jukeboxcontrol *self, int npc_id)
     }
     return result;
 }
+
+bool Jukeboxcontrol::TryPlayTrack(Jukeboxcontrol *self, int npc_id, String track)
+{
+    bool played = false;
+    for (std::vector<JukeBox>::iterator it = self->recent_plays.begin();
+         it != self->recent_plays.end(); it++)
+    {
+        if (it->id != npc_id)
+            continue;
+        if (it->playing)
+        {
+            TDateTime now = Now();
+            TTimeStamp a = DateTimeToTimeStamp(it->timer);
+            TTimeStamp b = DateTimeToTimeStamp(now);
+            int days = b.Date - a.Date;
+            int ms = b.Time - a.Time;
+            int secs = ms / 1000 + days * 86400;
+            if (secs > 90)
+                it->playing = 0;
+        }
+        if (it->playing == 0)
+        {
+            played = true;
+            it->playing = 1;
+            it->timer = Now();
+            it->name = track;
+            break;
+        }
+    }
+    return played;
+}
