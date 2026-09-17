@@ -7,7 +7,6 @@
 
 Killcounters::Killcounters()
 {
-
     field_0 = new TStringList;
 }
 
