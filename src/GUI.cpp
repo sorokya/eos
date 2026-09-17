@@ -5,10 +5,6 @@
 
 TGUI *GUI;
 
-__fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
-{
-}
-
 #pragma argsused
 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {

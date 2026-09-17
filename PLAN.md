@@ -164,6 +164,52 @@ strings and vtables correctly once the source matches.
   stubs, and per-function scoring must use the compiler's `-S` output
   (`compare_asm.py`) rather than the linked image until the reference call graph
   is reproduced.
+- **`Mainform`/`TGUI` form located, method table decoded (corrected).** The main
+  form class is `TGUI` (from the embedded DFM and the class RTTI), but it belongs
+  to the **`Mainform`** unit, not `GUI`: the class RTTI type data
+  (`VA 0x4042b4`) names the unit `MainForm`, the VMT is at `VA 0x55c380`
+  (instance size `0x378` = 888), and the unit exports `@@Mainform@Initialize`
+  (`RVA 0x7928`). `GUI.cpp` is the project main unit (WinMain + the `PACKAGE`
+  `GUI` global); the form's methods live in `Mainform.cpp`.
+  The class's published tables sit in `.data`: the field table at
+  `VA 0x55c460` (format `{dword offset; word; byte namelen; name}`, 10 fields)
+  and the method table at `VA 0x55c513`. The method table format is
+  `{word count; {word size; dword code; byte namelen; name}[count]}` (per
+  `TObject::MethodAddress` in `ref/Borland5/Source/Vcl/system.pas`). Parsing it
+  yields **eight** published methods; the task's earlier naive
+  `{byte len; name; word; dword}` parse associated each name with the *previous*
+  entry's address, so the addresses were shifted by one. The correct mapping
+  (and the one that matters, confirmed against each handler's VCL signature) is:
+
+  | handler | address | mapped callee |
+  | --- | --- | --- |
+  | `FormCreate` | `0x4015c8` | boot sequence (`Mainform_Init`) |
+  | `serverClientError` | `0x4028e8` | `Players_MarkRemoving` |
+  | `serverClientConnect` | `0x4027c4` | max-conns + remote IP + `Logins`/`Players` |
+  | `serverClientDisconnect` | `0x402938` | `Server_RemovePlayer` + `Players_Remove` |
+  | `serverClientRead` | `0x402988` | `Server_ClientRead` |
+  | `timerTimer` | `0x402a20` | `Mainform_Tick` (master timer) |
+  | `FormClose` | `0x4036c8` | `Server_Shutdown`; `Action = caNone` |
+  | `ApplicationEvents1Exception` | `0x4036f0` | appends to `.\logs\error.log` |
+
+  Field offsets are pinned by the field table and the handlers: published
+  components `server`(TServerSocket) `0x2d0`, `mysql` `0x2d4`, `myquery` `0x2d8`,
+  `mysession` `0x2dc`, `timer` `0x2e0`, `panel_connections` `0x2e4`,
+  `panel_send` `0x2e8`, `panel_received` `0x2ec`, `panel_buffer` `0x2f0`,
+  `ApplicationEvents1` `0x2f4`; private controller pointers begin at
+  `settings` `0x2f8` (see `src/Mainform.h`). The `__published` order is
+  observable: it drives the compiler-generated field table bytes.
+  Source-form notes: the socket event methods take the `TCustomWinSocket*` in
+  `ecx`; `serverClientError`'s `ErrorCode` reference is the **last** parameter
+  (VCL order), because bcc32 pushes the stack arguments left-to-right, placing
+  the final parameter at `[ebp+8]`. Appending to an `AnsiString` in
+  `ApplicationEvents1Exception` is written as explicit
+  `s.Insert(x, s.Length()+1)` (bcc32 lowers `s += x` to `$brplu`, which is not
+  the reference's sequence). A `FILE *fp;` **declaration separate from its
+  assignment** avoids an extra EH scope marker at the `fopen` site.
+  Six of the eight handlers are byte-exact (see milestones); `FormCreate`
+  (4160 bytes) and `timerTimer` (1519 bytes) remain.
+
 - **`ClassValues::LoadClasses` (byte-exact).** The ~600-instruction ECF table
   parser (`0x536100`), now byte-identical (596/596). Root causes found by
   deriving the scope structure upward from the reference's EH cleanup-record
@@ -252,7 +298,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Unit | Init RVA | Status |
 | --- | --- | --- |
 | GUI (main) | `_GUI@0x18bb70` | not-started |
-| Mainform | `0x00007928` | not-started |
+| Mainform | `0x00007928` | in-progress |
 | Players | `0x00010de4` | not-started |
 | Player | `0x00011f64` | not-started |
 | Playerskill | `0x00011fd0` | byte-exact |
@@ -454,6 +500,8 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Jukeboxcontrol BuildRecentTracksString byte-exact | 2 | done | 113/113, 0 mismatches (`0x4aa59c`). Walks `recent_plays` by `0x18`, skips entries whose `id` != arg, appends `EncodeNumber(self, id, 2)`, and when `playing` is set computes `secs` from `Now()` vs the entry's `TDateTime` via two `DateTimeToTimeStamp` calls and keeps the name only while `secs < 90`; otherwise clears `playing`. The two subtractions must be separate `int` locals (`days`, `ms`) before the `/1000 + *86400` sum or the frame is 8 bytes short. `EncodeNumber` is still a stub - its call-site shape is right, its body is not yet reconstructed |
 | Jukeboxcontrol ctor byte-exact + disassembly partition | 2 | progress | `Jukeboxcontrol()` matches 0 mismatches; source is just `{ field_0 = operator new(8); recent_plays.clear(); }`. This resolved the InitStub puzzle: `InitStub`, `InitRecentPlays`, `ClearRecentPlays`, `InitBox`, `ComputeInitialCapacity`, `GrowCapacity` are the `std::vector<JukeBox>` member's own construction internals (library COMDATs the compiler emits for free), NOT source functions. Of the unit's 33 reference functions, 14 are such COMDATs already covered by the ctor alone; 19 real source functions remain (the `0x4a9e14`-`0x4aa534` group, `BuildRecentTracksString` 382, `TryPlayTrack` 299, and its own base-253 `EncodeNumber` 323) |
 | Jukebox byte-exact (2/2 fns) | 1 | done | `JukeBox(short)` and `~JukeBox()` both 0 mismatches. `JukeBox` (RTTI name) = `short id`(+0), `char playing`(+2), `TDateTime timer`(+8), `AnsiString name`(+0x10); the ctor zero-inits the `TDateTime` via its out-of-line `__fastcall` default ctor (called with `this` in EAX - an inline `double` store or a `__cdecl` wrapper both fail) and the dtor destroys only the `AnsiString`, confirming the `TDateTime` is the unmanaged 8-byte member |
+| Mainform/TGUI form located; method table corrected | 2 | done | Class RTTI (`VA 0x4042b4`) names unit `MainForm`; VMT `VA 0x55c380`, size `0x378`. Field table (`VA 0x55c460`) and method table (`VA 0x55c513`, format per `TObject::MethodAddress`) decoded; corrected the shifted handler addresses (`FormCreate` `0x4015c8`, `serverClientConnect` `0x4027c4`, `serverClientError` `0x4028e8`, `serverClientDisconnect` `0x402938`, `serverClientRead` `0x402988`, `timerTimer` `0x402a20`, `FormClose` `0x4036c8`, `ApplicationEvents1Exception` `0x4036f0`). `src/Mainform.h`/`.cpp` carry the `TGUI` class and handlers |
+| Mainform handlers byte-exact (6/8) | 2 | progress | `FormClose` 15, `serverClientError` 26, `serverClientConnect` 83, `serverClientDisconnect` 25, `serverClientRead` 43, `ApplicationEvents1Exception` 202 - all 0 mismatches. Remaining: `FormCreate` (`0x4015c8`, 4160 B boot sequence) and `timerTimer` (`0x402a20`, 1519 B master tick) |
 | *values family byte-exact (13 units) | 2 | done | `Classvalues`/`Classvalue`, `Itemvalues`/`Itemvalue`, `Skillvalues`/`Skillvalue`, `Npcvalues`/`Npcvalue`, `Shopvalues`/`Shopvalue`/`Shopcraft`, `Learnvalues`/`Learnvalue`/`Learnitem`, `Innvalues`/`Innvalue` — every source function scores 0 mismatches (parsers, ctors/dtors, accessors, encode/decode). Most were reconstructed in parallel by subagents; the shared idioms are the try/catch file read, inline `DecodeNumber` record arguments, and the empty-ctor + anonymous-aggregate result-pair shape |
 | Shared value decoder done | 1 | done | The base-253 decoder is reconstructed per unit (each *values class has its own DecodeNumber, 83-85 instrs) and the base-253 encoder per container (EncodeNumber, 134 instrs) - all byte-exact. The decoder is per-class source (not one shared function), confirmed by the distinct mangled names and identical 287-byte bodies with 16-byte multiplier spacing |
 | Classvalue byte-exact | 1 | done | ctor 19 + dtor 24 match; ECF element layout (0x1C) pinned by the owning vector |
@@ -477,8 +525,10 @@ These require evidence and must not be answered by guessing:
 - Exact library set and link order (VCL, BDE, OLE, sockets) that reproduces the
   reference's statically included objects, and whether the reference's `.tds`
   debug side-effect of `-v` was discarded.
-- Whether the `GUI` unit itself defines `TGUI` or whether the form lives in
-  `Mainform`; the DFM is named `TGUI` and both units exist.
+- ~~Whether the `GUI` unit itself defines `TGUI` or whether the form lives in
+  `Mainform`~~ Resolved: the class RTTI's unit name is `MainForm` and the class
+  is exported through `@@Mainform@Initialize`, so `TGUI` is defined in
+  `Mainform.cpp`; `GUI.cpp` is the project main unit.
 - Whether units are contiguous or library objects interleave between them; resolve
   with the `ilink32 -s` detailed map.
 
