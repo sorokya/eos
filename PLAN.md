@@ -277,7 +277,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Skillvalue | `0x000a8f64` | byte-exact |
 | Npcvalue | `0x000a9ac8` | byte-exact |
 | Npcdrop | `0x000a9b34` | byte-exact |
-| Jukeboxcontrol | `0x000aa9a8` | not-started |
+| Jukeboxcontrol | `0x000aa9a8` | in-progress |
 | Jukebox | `0x000aaa70` | byte-exact |
 | Newscontrol | `0x000aaf5c` | not-started |
 | Doorcontrol | `0x000ab108` | not-started |
