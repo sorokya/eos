@@ -55,11 +55,12 @@ class Player
     int remove_timer;                         // +0x050
     bool arena_queued;                        // +0x054
     bool arena_playing;                       // +0x055
-    char pad_56[6];                           // +0x056
-    char field_0x5c;                          // +0x05c
-    char field_0x5d;                          // +0x05d
-    char field_0x5e;                          // +0x05e
-    bool field_0x5f;                          // +0x05f
+    char pad_56[2];                           // +0x056
+    int field_0x58;                           // +0x058
+    char bank_dirty;                          // +0x05c
+    char inventory_dirty;                     // +0x05d
+    char equipment_dirty;                     // +0x05e
+    bool base_stats_dirty;                    // +0x05f
     int character_id;                         // +0x060
     int class_id;                             // +0x064
     int account_id;                           // +0x068
@@ -72,7 +73,7 @@ class Player
     int field_0x84;                           // +0x084
     int field_0x88;                           // +0x088
     String field_0x8c;                        // +0x08c
-    bool field_0x90;                          // +0x090
+    bool trade_accepted;                      // +0x090
     char pad_91[3];                           // +0x091
     int field_0x94;                           // +0x094
     int admin_level;                          // +0x098
@@ -232,12 +233,12 @@ class Player
     void *socket;                             // +0x3b0 (socket object pointer)
     char pad_3b4[12];                         // +0x3b4
     String null_string;                       // +0x3c0
-    int field_0x3c4;                          // +0x3c4
-    int field_0x3c8;                          // +0x3c8
-    int tick;                                 // +0x3cc
+    int item_change_id;                       // +0x3c4
+    int item_change_count;                    // +0x3c8
+    int item_change_remaining;                // +0x3cc
     int item_change_amount;                   // +0x3d0
-    int field_0x3d4;                          // +0x3d4
-    int field_0x3d8;                          // +0x3d8
+    int equip_result;                         // +0x3d4
+    int equip_result_count;                   // +0x3d8
     bool map_has_quakes;                      // +0x3dc
     bool map_has_hp_drain;                    // +0x3dd
     bool map_has_tp_drain;                    // +0x3de

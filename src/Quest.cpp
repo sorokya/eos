@@ -5,10 +5,10 @@
 
 #pragma package(smart_init)
 
-Quest::Quest(int id)
+Quest::Quest(int quest_id)
 {
-    this->quest_id = id;
-    field_0xc = 0;
+    this->quest_id = quest_id;
+    state_count = 0;
     loaded = 0;
 }
 

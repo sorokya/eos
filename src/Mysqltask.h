@@ -12,7 +12,7 @@
 //   +0x04 int    player_id
 //   +0x08 int    expected_query_id
 //   +0x0c String data
-//   +0x10 String param2
+//   +0x10 String query_text
 class mySQLtask
 {
   public:
@@ -20,10 +20,13 @@ class mySQLtask
     int player_id;         // +0x04
     int expected_query_id; // +0x08
     String data;           // +0x0c
-    String param2;         // +0x10
+    String query_text;     // +0x10
 
-    mySQLtask(
-        int query_id, int player_id, int expected_query_id, String data, String param2);
+    mySQLtask(int query_id,
+              int player_id,
+              int expected_query_id,
+              String data,
+              String query_text);
     ~mySQLtask();
 };
 

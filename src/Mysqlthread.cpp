@@ -56,11 +56,11 @@ void __fastcall MySQLthread::Execute()
         if (job != NULL)
         {
             task = job;
-            String query_text = job->param2;
+            String query_text = job->query_text;
             if (query->Active)
                 query->Active = false;
             query->SQL->Clear();
-            query->SQL->Add(job->param2);
+            query->SQL->Add(job->query_text);
             if (job->query_id < 0x3c)
             {
                 query->Open();

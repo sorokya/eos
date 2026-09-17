@@ -47,7 +47,7 @@ void FileCache::CheckCacheFile(FileCache *self)
     }
 }
 
-String FileCache::FUN_0053d754(FileCache *self)
+String FileCache::NextToken(FileCache *self)
 {
     int pos = self->field_54.Pos(";");
     if (pos < 1)
@@ -71,12 +71,12 @@ void FileCache::LoadPlayerCache(FileCache *self)
     {
         self->field_54 = self->string_list->Strings[i];
         FilecacheEntry *entry = new FilecacheEntry;
-        entry->privilege = StrToInt(FUN_0053d754(self));
-        entry->name = FUN_0053d754(self);
-        entry->title = FUN_0053d754(self);
-        entry->level = StrToInt(FUN_0053d754(self));
-        entry->experience = StrToInt(FUN_0053d754(self));
-        entry->gender = StrToInt(FUN_0053d754(self));
+        entry->privilege = StrToInt(NextToken(self));
+        entry->name = NextToken(self);
+        entry->title = NextToken(self);
+        entry->level = StrToInt(NextToken(self));
+        entry->experience = StrToInt(NextToken(self));
+        entry->gender = StrToInt(NextToken(self));
         self->pending_player_writes.insert(self->pending_player_writes.end(), entry);
     }
 }
@@ -95,15 +95,15 @@ void FileCache::LoadGuildCache(FileCache *self)
     {
         self->field_54 = self->string_list->Strings[i];
         FilecacheEntryB *entry = new FilecacheEntryB;
-        entry->ident_guild = FUN_0053d754(self);
-        entry->guild = FUN_0053d754(self);
-        entry->exptotal = StrToInt(FUN_0053d754(self));
-        entry->members = StrToInt(FUN_0053d754(self));
+        entry->ident_guild = NextToken(self);
+        entry->guild = NextToken(self);
+        entry->exptotal = StrToInt(NextToken(self));
+        entry->members = StrToInt(NextToken(self));
         self->pending_guild_writes.insert(self->pending_guild_writes.end(), entry);
     }
 }
 
-void FileCache::FUN_0053d0e8(FileCache *self, char *record)
+void FileCache::UpdatePlayerCache(FileCache *self, char *record)
 {
     if (self->field_58 < *(int *)(record + 0xc0) && *(int *)(record + 0x98) == 0)
     {

@@ -10,7 +10,7 @@
 // the RTTI type name.
 //
 // Quest (0x34): int quest_id (+0), String name (+4), int version (+8),
-//               int field_0xc (+0xc), char loaded (+0x10),
+//               int state_count (+0xc), char loaded (+0x10),
 //               std::vector<QuestState *> states (+0x14)
 class Quest
 {
@@ -18,11 +18,11 @@ class Quest
     int quest_id;
     String name;
     int version;
-    int field_0xc;
+    int state_count;
     char loaded;
     std::vector<QuestState *> states;
 
-    Quest(int id);
+    Quest(int quest_id);
     ~Quest();
 };
 

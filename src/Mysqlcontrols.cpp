@@ -243,9 +243,10 @@ bool Mysqlcontrols::Mysql_SubmitQuery(Mysqlcontrols *self,
                                       int player_id,
                                       int expected_query_id,
                                       String data,
-                                      String param2)
+                                      String query_text)
 {
-    mySQLtask *task = new mySQLtask(query_id, player_id, expected_query_id, data, param2);
+    mySQLtask *task =
+        new mySQLtask(query_id, player_id, expected_query_id, data, query_text);
     self->thread_queue->thread->Acquire();
     self->thread_queue->EnqueueTask(task);
     self->worker_thread->Resume();
@@ -258,9 +259,10 @@ bool Mysqlcontrols::Mysql_SubmitQuery_FromCallback(Mysqlcontrols *self,
                                                    int player_id,
                                                    int expected_query_id,
                                                    String data,
-                                                   String param2)
+                                                   String query_text)
 {
-    mySQLtask *task = new mySQLtask(query_id, player_id, expected_query_id, data, param2);
+    mySQLtask *task =
+        new mySQLtask(query_id, player_id, expected_query_id, data, query_text);
     self->thread_queue->EnqueueTask(task);
     return 1;
 }

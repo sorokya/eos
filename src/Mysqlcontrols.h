@@ -60,13 +60,13 @@ class Mysqlcontrols
                                   int player_id,
                                   int expected_query_id,
                                   String data,
-                                  String param2);
+                                  String query_text);
     static bool Mysql_SubmitQuery_FromCallback(Mysqlcontrols *self,
                                                int query_id,
                                                int player_id,
                                                int expected_query_id,
                                                String data,
-                                               String param2);
+                                               String query_text);
     static bool Query(Mysqlcontrols *self, String query);
     static bool
     Mysql_ExecDirect(Mysqlcontrols *self, int expected_query_id, String query);

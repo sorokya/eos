@@ -5,14 +5,17 @@
 
 #pragma package(smart_init)
 
-mySQLtask::mySQLtask(
-    int query_id_, int player_id_, int expected_query_id_, String data_, String param2_)
+mySQLtask::mySQLtask(int query_id_,
+                     int player_id_,
+                     int expected_query_id_,
+                     String data_,
+                     String query_text_)
 {
     query_id = query_id_;
     player_id = player_id_;
     expected_query_id = expected_query_id_;
     data = data_;
-    param2 = param2_;
+    query_text = query_text_;
 }
 
 mySQLtask::~mySQLtask()

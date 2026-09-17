@@ -33,7 +33,7 @@ struct MapContainer
     char pad_11[3];
     int arena_block;                       // +0x14
     int arena_ticks;                       // +0x18
-    int field_0x1c;                        // +0x1c
+    int quest_cooldown;                    // +0x1c
     int evac_countdown;                    // +0x20
     std::vector<MapWarp> arena_spawn_list; // +0x24
     int relog_x;                           // +0x44
@@ -42,8 +42,8 @@ struct MapContainer
     bool buf_copied;                       // +0x4e
     bool can_scroll;                       // +0x4f
     String buf;                            // +0x50
-    String field_0x54;                     // +0x54
-    char field_0x58;                       // +0x58
+    String hp_drain_others;                // +0x54
+    char hp_drain_others_sent;             // +0x58
     char pad_59[3];
     std::vector<MapObject> tile_specs;           // +0x5c
     std::vector<MapObject> legacy_door_key_list; // +0x7c
@@ -54,7 +54,7 @@ struct MapContainer
     int next_ground_item_id;                     // +0x11c
     short child_npc_id;                          // +0x120
     bool boss_alive;                             // +0x122
-    char field_0x123;                            // +0x123
+    char npc_dirty;                              // +0x123
     char chests_dirty;                           // +0x124
     char has_open_doors;                         // +0x125
     char pad_126[2];

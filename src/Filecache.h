@@ -51,8 +51,8 @@ class FileCache
     static void CheckCacheFile(FileCache *self);
     static void LoadPlayerCache(FileCache *self);
     static void LoadGuildCache(FileCache *self);
-    static String FUN_0053d754(FileCache *self);
-    static void FUN_0053d0e8(FileCache *self, char *record);
+    static String NextToken(FileCache *self);
+    static void UpdatePlayerCache(FileCache *self, char *record);
 };
 
 void Database_FlushCache(FileCache *cache);
