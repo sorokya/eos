@@ -7,12 +7,14 @@
 #include <SysUtils.hpp>
 #include <SyncObjs.hpp>
 
+#include "Mysqltask.h"
+#include "Mysqlthread.h"
+
 // Cross-unit classes (reconstructed separately). Only the layouts and the
 // members used by this unit are declared here; their method code lives in their
 // own translation units.
 class FilecacheEntry;
 class FilecacheEntryB;
-class Mysqltask;
 
 // Element records held (by pointer) in the Filecache write queues. sizeof is
 // pinned by the `operator new` arguments in LoadCachedPlayers (0x18) and
@@ -68,50 +70,16 @@ class Filecache
     Filecache();
 };
 
-class Mysqltask
-{
-  public:
-    int query_id;          // +0x00
-    int player_id;         // +0x04
-    int expected_query_id; // +0x08
-    String data;           // +0x0c
-    String param2;         // +0x10
-
-    Mysqltask(
-        int query_id, int player_id, int expected_query_id, String data, String param2);
-};
-
-// Mysqlthread (unit Mysqlthread); only the members touched by this unit.
-class Mysqlthread
-{
-  public:
-    TCriticalSection *thread;           // +0x00
-    std::vector<Mysqltask *> job_queue; // +0x04
-    int last_player_id;                 // +0x24
-    int field_28;                       // +0x28
-
-    Mysqlthread();
-
-    static TThread *__fastcall Spawn(void *vmt,
-                                     bool alloc,
-                                     TSession *session,
-                                     bool create_suspended,
-                                     Mysqlthread *thread_queue,
-                                     TQuery *query,
-                                     TDatabase *db);
-    static void EnqueueTask(Mysqlthread *thread, Mysqltask *task);
-};
-
 // Mysqlcontrols is the DB layer root (0x28 bytes). Layout from the reference
 // constructor 0x474668 and the status refresh 0x4762c8:
-//   +0x00 Filecache *   file_cache
-//   +0x04 TTimeStamp    last_query_time
-//   +0x0c TTimeStamp    connected_time
-//   +0x14 int           field_14
-//   +0x18 int           query_error_count
-//   +0x1c int           exec_error_count
-//   +0x20 Mysqlthread * thread_queue
-//   +0x24 TThread *     worker_thread
+//   +0x00 Filecache *    file_cache
+//   +0x04 TTimeStamp     last_query_time
+//   +0x0c TTimeStamp     connected_time
+//   +0x14 int            field_14
+//   +0x18 int            query_error_count
+//   +0x1c int            exec_error_count
+//   +0x20 mySQLbuffer *  thread_queue
+//   +0x24 MySQLthread *  worker_thread
 class Mysqlcontrols
 {
   public:
@@ -121,15 +89,16 @@ class Mysqlcontrols
     int field_14;               // +0x14
     int query_error_count;      // +0x18
     int exec_error_count;       // +0x1c
-    Mysqlthread *thread_queue;  // +0x20
-    TThread *worker_thread;     // +0x24
+    mySQLbuffer *thread_queue;  // +0x20
+    MySQLthread *worker_thread; // +0x24
 
     Mysqlcontrols();
+    ~Mysqlcontrols();
 
     static void Free(Mysqlcontrols *self, unsigned char free_flags);
     static bool TestConnection(Mysqlcontrols *self);
     static void
-    Connect(Mysqlcontrols *self, int version_patch, int version_minor, int version_major);
+    Connect(Mysqlcontrols *self, int version_major, int version_minor, int version_patch);
 
     static void LoadCachedPlayers(Mysqlcontrols *self);
     static void LoadCachedGuilds(Mysqlcontrols *self);

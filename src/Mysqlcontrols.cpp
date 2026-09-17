@@ -10,7 +10,6 @@
 extern void Filecache_CheckCacheFile(Filecache *cache);
 extern void Filecache_LoadPlayerCache(int cache);
 extern void Filecache_LoadGuildCache(int cache);
-extern bool Mysqlthread_HasPendingTask(int thread, int player_id);
 
 // Connection parameters are stored obfuscated; DecodeString reverses them and
 // maps digits/letters back (see Serial::DecodeString). Decoded:
@@ -29,12 +28,16 @@ extern bool Mysqlthread_HasPendingTask(int thread, int player_id);
 #define TEXT_SYMBOL_LIMIT 0x14
 #define TEXT_CAPS_LIMIT 0x28
 
+Mysqlcontrols::~Mysqlcontrols()
+{
+}
+
 Mysqlcontrols::Mysqlcontrols()
 {
     file_cache = new Filecache;
-    thread_queue = new Mysqlthread;
-    worker_thread = Mysqlthread::Spawn(
-        NULL, true, GUI->mysession, false, thread_queue, GUI->myquery, GUI->mysql);
+    thread_queue = new mySQLbuffer;
+    worker_thread =
+        new MySQLthread(GUI->mysession, GUI->mysql, GUI->myquery, thread_queue, false);
     query_error_count = 0;
     exec_error_count = 0;
     connected_time = DateTimeToTimeStamp(Now());
@@ -44,7 +47,7 @@ Mysqlcontrols::Mysqlcontrols()
 void Mysqlcontrols::Free(Mysqlcontrols *self, unsigned char free_flags)
 {
     if (self != 0 && (free_flags & 1))
-        delete self;
+        ::operator delete(self);
 }
 
 bool Mysqlcontrols::TestConnection(Mysqlcontrols *self)
@@ -63,9 +66,9 @@ bool Mysqlcontrols::TestConnection(Mysqlcontrols *self)
 }
 
 void Mysqlcontrols::Connect(Mysqlcontrols *self,
-                            int version_patch,
+                            int version_major,
                             int version_minor,
-                            int version_major)
+                            int version_patch)
 {
     Filecache_CheckCacheFile(self->file_cache);
     if (self->file_cache->dirty == false)
@@ -74,31 +77,49 @@ void Mysqlcontrols::Connect(Mysqlcontrols *self,
 
     String connect_string = "INSERT INTO endl_server (version, characters, connections, "
                             "players, uptime, upload, download) VALUES (";
-    connect_string = connect_string + IntToStr(version_major) + "." +
-                     IntToStr(version_minor) + "." + IntToStr(version_patch);
-    connect_string = connect_string + "',0,0,0,0,'no data','no data')";
+    connect_string = connect_string + "'" + IntToStr(version_major) + "." +
+                     IntToStr(version_minor) + "." + IntToStr(version_patch) +
+                     "',0,0,0,0,'no data','no data')";
     ExecDrop(self, connect_string);
 
     Query(self, "SHOW TABLE STATUS FROM endless_db");
     while (GUI->myquery->Eof == false)
     {
-        if (GUI->myquery->Fields->Fields[0]->AsString == "endl_accounts")
+        try
         {
-            if (GUI->myquery->Fields->Fields[3]->AsString.LowerCase() == "fixed")
-                self->file_cache->accounts_count =
-                    GUI->myquery->Fields->Fields[4]->AsInteger;
+            if (GUI->myquery->Fields->Fields[0]->AsString == "endl_accounts")
+            {
+                if (AnsiLowerCase(GUI->myquery->Fields->Fields[3]->AsString) == "fixed")
+                    self->file_cache->accounts_count =
+                        GUI->myquery->Fields->Fields[4]->AsInteger;
+            }
         }
-        if (GUI->myquery->Fields->Fields[0]->AsString == "endl_characters")
+        catch (...)
         {
-            if (GUI->myquery->Fields->Fields[3]->AsString.LowerCase() == "fixed")
-                self->file_cache->characters_count =
-                    GUI->myquery->Fields->Fields[4]->AsInteger;
         }
-        if (GUI->myquery->Fields->Fields[0]->AsString == "endl_guilds")
+        try
         {
-            if (GUI->myquery->Fields->Fields[3]->AsString.LowerCase() == "fixed")
-                self->file_cache->guilds_count =
-                    GUI->myquery->Fields->Fields[4]->AsInteger;
+            if (GUI->myquery->Fields->Fields[0]->AsString == "endl_characters")
+            {
+                if (AnsiLowerCase(GUI->myquery->Fields->Fields[3]->AsString) == "fixed")
+                    self->file_cache->characters_count =
+                        GUI->myquery->Fields->Fields[4]->AsInteger;
+            }
+        }
+        catch (...)
+        {
+        }
+        try
+        {
+            if (GUI->myquery->Fields->Fields[0]->AsString == "endl_guilds")
+            {
+                if (AnsiLowerCase(GUI->myquery->Fields->Fields[3]->AsString) == "fixed")
+                    self->file_cache->guilds_count =
+                        GUI->myquery->Fields->Fields[4]->AsInteger;
+            }
+        }
+        catch (...)
+        {
         }
         GUI->myquery->Next();
     }
@@ -227,9 +248,9 @@ bool Mysqlcontrols::Mysql_SubmitQuery(Mysqlcontrols *self,
                                       String data,
                                       String param2)
 {
-    Mysqltask *task = new Mysqltask(query_id, player_id, expected_query_id, data, param2);
+    mySQLtask *task = new mySQLtask(query_id, player_id, expected_query_id, data, param2);
     self->thread_queue->thread->Acquire();
-    Mysqlthread::EnqueueTask(self->thread_queue, task);
+    self->thread_queue->EnqueueTask(task);
     self->worker_thread->Resume();
     self->thread_queue->thread->Release();
     return 1;
@@ -242,8 +263,8 @@ bool Mysqlcontrols::Mysql_SubmitQuery_FromCallback(Mysqlcontrols *self,
                                                    String data,
                                                    String param2)
 {
-    Mysqltask *task = new Mysqltask(query_id, player_id, expected_query_id, data, param2);
-    Mysqlthread::EnqueueTask(self->thread_queue, task);
+    mySQLtask *task = new mySQLtask(query_id, player_id, expected_query_id, data, param2);
+    self->thread_queue->EnqueueTask(task);
     return 1;
 }
 
@@ -275,9 +296,9 @@ bool Mysqlcontrols::Mysql_ExecDirect(Mysqlcontrols *self,
                                      int expected_query_id,
                                      String query)
 {
-    Mysqltask *task = new Mysqltask(1, 0, expected_query_id, "", query);
+    mySQLtask *task = new mySQLtask(1, 0, expected_query_id, "", query);
     self->thread_queue->thread->Acquire();
-    Mysqlthread::EnqueueTask(self->thread_queue, task);
+    self->thread_queue->EnqueueTask(task);
     self->worker_thread->Resume();
     self->thread_queue->thread->Release();
     return 1;
@@ -287,8 +308,8 @@ bool Mysqlcontrols::Mysql_ExecDirect_FromCallback(Mysqlcontrols *self,
                                                   int expected_query_id,
                                                   String query)
 {
-    Mysqltask *task = new Mysqltask(1, 0, expected_query_id, "", query);
-    Mysqlthread::EnqueueTask(self->thread_queue, task);
+    mySQLtask *task = new mySQLtask(1, 0, expected_query_id, "", query);
+    self->thread_queue->EnqueueTask(task);
     return 1;
 }
 
@@ -331,7 +352,7 @@ bool Mysqlcontrols::Database_CanReconnect(Mysqlcontrols *self)
 
 bool Mysqlcontrols::IsTaskPending(Mysqlcontrols *self, int player_id)
 {
-    return Mysqlthread_HasPendingTask((int)self->thread_queue, player_id);
+    return self->thread_queue->HasPendingTask(player_id);
 }
 
 bool Mysqlcontrols::IsAsciiText(Mysqlcontrols *self, String value)
