@@ -63,7 +63,7 @@ class TGUI : public TForm
     Mysqlcontrols *mysql_controls;     // +0x304
     Players *players;                  // +0x308
     Logins *logins;                    // +0x30c
-    Server *server_ctrl;               // +0x310
+    Server *server;                    // +0x310
     Npccontrol *npc_control;           // +0x314
     Chestcontrol *chest_control;       // +0x318
     Doorcontrol *door_control;         // +0x31c

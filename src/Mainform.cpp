@@ -189,7 +189,7 @@ __fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
 
 void __fastcall TGUI::FormClose(TObject *Sender, TCloseAction &Action)
 {
-    Server_Shutdown(server_ctrl);
+    Server_Shutdown(server);
     Action = caNone;
 }
 
@@ -233,7 +233,7 @@ void __fastcall TGUI::serverClientDisconnect(TObject *Sender, TCustomWinSocket *
 {
     if (Socket->SocketHandle >= 1 && Socket->SocketHandle < 100000)
     {
-        Server_RemovePlayer(server_ctrl, Socket);
+        Server_RemovePlayer(server, Socket);
         Players_Remove(players, Socket);
     }
 }
@@ -245,7 +245,7 @@ void __fastcall TGUI::serverClientRead(TObject *Sender, TCustomWinSocket *Socket
         Socket->Close();
         return;
     }
-    Server_ClientRead(server_ctrl, Socket, Socket->ReceiveText());
+    Server_ClientRead(server, Socket, Socket->ReceiveText());
 }
 
 void __fastcall TGUI::ApplicationEvents1Exception(TObject *Sender, Exception *E)
@@ -304,20 +304,20 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     map_control = new Mapcontrol(settings);
     quest_engine = new Questengine(settings);
     logins = new Logins(mysql_controls);
-    server_ctrl = new Server(map_control,
-                             quest_engine,
-                             players,
-                             settings,
-                             mysql_controls,
-                             logins,
-                             version_patch,
-                             version_minor,
-                             version_major);
-    npc_control = new Npccontrol(map_control, players, server_ctrl, settings);
-    chest_control = new Chestcontrol(map_control, players, server_ctrl, settings);
-    effect_control = new Effectcontrol(map_control, players, server_ctrl, settings);
-    event_control = new Eventcontrol(map_control, players, server_ctrl, settings);
-    weddings = new Weddings(players, server_ctrl);
+    server = new Server(map_control,
+                        quest_engine,
+                        players,
+                        settings,
+                        mysql_controls,
+                        logins,
+                        version_patch,
+                        version_minor,
+                        version_major);
+    npc_control = new Npccontrol(map_control, players, server, settings);
+    chest_control = new Chestcontrol(map_control, players, server, settings);
+    effect_control = new Effectcontrol(map_control, players, server, settings);
+    event_control = new Eventcontrol(map_control, players, server, settings);
+    weddings = new Weddings(players, server);
     door_control = new Doorcontrol(map_control);
     msgboard_control = new Msgboardcontrol();
     game_control = new Gamecontrol();
@@ -372,7 +372,7 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
 {
     tick_counter++;
     if (tick_counter % 10 == 0)
-        Game_Tick(server_ctrl);
+        Game_Tick(server);
     if (tick_counter % 10 == 0)
         Players_Tick(players);
     if (tick_counter % 20 == 0)
@@ -394,8 +394,8 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
                      server->Socket->ActiveConnections,
                      Players_GetIdleTimeout(players),
                      Players_GetStatTotal(players),
-                     FUN_004731d0(server_ctrl),
-                     FUN_00473540(server_ctrl));
+                     FUN_004731d0(server),
+                     FUN_00473540(server));
         if (Visible)
         {
             String s = IntToStr(server->Socket->ActiveConnections) + " con / ";
@@ -403,8 +403,8 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
                      s.Length() + 1);
             panel_buffer->Caption =
                 IntToStr(Db_GetActiveConnectionCount(mysql_controls)) + " sql";
-            panel_send->Caption = FUN_004731d0(server_ctrl);
-            panel_received->Caption = FUN_00473540(server_ctrl);
+            panel_send->Caption = FUN_004731d0(server);
+            panel_received->Caption = FUN_00473540(server);
             panel_connections->Caption = s;
         }
     }
