@@ -11,9 +11,42 @@ Jukeboxcontrol::Jukeboxcontrol()
     recent_plays.clear();
 }
 
-String Jukeboxcontrol::EncodeNumber(Jukeboxcontrol *self, int value, int width)
+String Jukeboxcontrol::EncodeNumber(Jukeboxcontrol *self, unsigned int value, int width)
 {
-    return "";
+    int rem;
+    char c;
+    try
+    {
+        unsigned int quotient = 1;
+        bool flag = true;
+        for (int i = 0; i < width; i++)
+        {
+            if (flag)
+            {
+                double d = value / 253.0;
+                quotient = d;
+                rem = value % 0xfd;
+                c = rem + 1;
+                self->field_0[i] = c;
+                value = quotient;
+                if (quotient < 1)
+                    flag = false;
+                else if (i + 1 == width)
+                    width++;
+            }
+            else
+            {
+                char pad = 0xfe;
+                self->field_0[i] = pad;
+            }
+        }
+    }
+    catch (...)
+    {
+        width = 0;
+    }
+    String result(self->field_0, width);
+    return result;
 }
 
 String Jukeboxcontrol::BuildRecentTracksString(Jukeboxcontrol *self, int npc_id)

@@ -17,7 +17,7 @@ public:
 
     Jukeboxcontrol();
 
-    static String EncodeNumber(Jukeboxcontrol *self, int value, int width);
+    static String EncodeNumber(Jukeboxcontrol *self, unsigned int value, int width);
     static String BuildRecentTracksString(Jukeboxcontrol *self, int npc_id);
 };
 
