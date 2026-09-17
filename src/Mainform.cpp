@@ -18,6 +18,9 @@
 #include "Logins.h"
 #include "Newscontrol.h"
 #include "Mysqlcontrols.h"
+#include "Npccontrol.h"
+#include "Effectcontrol.h"
+#include "Weddings.h"
 
 #pragma package(smart_init)
 
@@ -54,13 +57,6 @@ class Server
            int version_minor,
            int version_major);
 };
-class Npccontrol
-{
-    char _pad[0x44];
-
-  public:
-    Npccontrol(Mapcontrol *map, Players *players, Server *server, Settings *settings);
-};
 class Chestcontrol
 {
     char _pad[0x14];
@@ -75,13 +71,6 @@ class Doorcontrol
   public:
     Doorcontrol(Mapcontrol *map);
 };
-class Effectcontrol
-{
-    char _pad[0x48];
-
-  public:
-    Effectcontrol(Mapcontrol *map, Players *players, Server *server, Settings *settings);
-};
 class Eventcontrol
 {
     char _pad[0x14];
@@ -95,13 +84,6 @@ class Msgboardcontrol
 
   public:
     Msgboardcontrol();
-};
-class Weddings
-{
-    char _pad[0x2c];
-
-  public:
-    Weddings(Players *players, Server *server);
 };
 class Questengine
 {
@@ -125,11 +107,8 @@ void Mapcontrol_AddArenaSpawn(Mapcontrol *map, int map_id, int a, int b, int c, 
 void Mapcontrol_SetArenaBlock(Mapcontrol *map, int map_id, int block);
 void Game_Tick(Server *server);
 void Players_Tick(Players *players);
-void NpcControl_Tick(Npccontrol *npc_control);
 void Doorcontrol_Tick(Doorcontrol *door_control);
-void Effectcontrol_Tick(Effectcontrol *effect_control);
 void Eventcontrol_Tick(Eventcontrol *event_control);
-void Weddings_Tick(Weddings *weddings);
 void Chestcontrol_Tick(Chestcontrol *chest_control);
 String FUN_00473540(Server *server);
 String FUN_004731d0(Server *server);
@@ -272,7 +251,7 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     chest_control = new Chestcontrol(map_control, players, server_ctrl, settings);
     effect_control = new Effectcontrol(map_control, players, server_ctrl, settings);
     event_control = new Eventcontrol(map_control, players, server_ctrl, settings);
-    weddings = new Weddings(players, server_ctrl);
+    weddings = new WeddingController(players, server_ctrl);
     door_control = new Doorcontrol(map_control);
     msgboard_control = new Msgboardcontrol();
     game_control = new Gamecontrol();
@@ -331,26 +310,26 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
     if (tick_counter % 10 == 0)
         Players_Tick(players);
     if (tick_counter % 20 == 0)
-        NpcControl_Tick(npc_control);
+        Npccontrol::NpcControl_Tick(npc_control);
     if (tick_counter % 100 == 0)
     {
         Logins::Tick(logins);
         Doorcontrol_Tick(door_control);
-        Effectcontrol_Tick(effect_control);
+        Effectcontrol::Tick(effect_control);
         Eventcontrol_Tick(event_control);
-        Weddings_Tick(weddings);
+        WeddingController::Tick(weddings);
     }
     if (tick_counter % 5000 == 0)
         Chestcontrol_Tick(chest_control);
     if (tick_counter % 1000 == 0)
     {
         Mysqlcontrols::UpdateServerStatus(mysql_controls,
-                                    Settings::GetRefreshSeconds(settings),
-                                    server->Socket->ActiveConnections,
-                                    Players_GetIdleTimeout(players),
-                                    Players_GetStatTotal(players),
-                                    FUN_004731d0(server_ctrl),
-                                    FUN_00473540(server_ctrl));
+                                          Settings::GetRefreshSeconds(settings),
+                                          server->Socket->ActiveConnections,
+                                          Players_GetIdleTimeout(players),
+                                          Players_GetStatTotal(players),
+                                          FUN_004731d0(server_ctrl),
+                                          FUN_00473540(server_ctrl));
         if (Visible)
         {
             String s = IntToStr(server->Socket->ActiveConnections) + " con / ";

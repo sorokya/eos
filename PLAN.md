@@ -320,7 +320,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Itemvalue | `0x0007824c` | byte-exact |
 | Itemvalues | `0x0007a848` | byte-exact |
 | Npc | `0x0007ab00` | byte-exact |
-| Mapchest | `0x0007ad1c` | not-started |
+| Mapchest | `0x0007ad1c` | byte-exact |
 | Mapcontrol | `0x00087d38` | not-started |
 | Mapobject | `0x00087dc4` | byte-exact |
 | Mapwarp | `0x00087e64` | byte-exact |
@@ -337,8 +337,8 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Newscontrol | `0x000aaf5c` | byte-exact |
 | Doorcontrol | `0x000ab108` | not-started |
 | Msgboardcontrol | `0x000ae180` | not-started |
-| Msgboard | `0x000ae35c` | not-started |
-| Npccontrol | `0x000b11f4` | not-started |
+| Msgboard | `0x000ae35c` | byte-exact |
+| Npccontrol | `0x000b11f4` | in-progress |
 | Gamecontrol | `0x000b15a0` | byte-exact |
 | Shopvalues | `0x000b49b4` | byte-exact |
 | Shopitem | `0x000b4a20` | byte-exact |
@@ -347,10 +347,10 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Chestcontrol | `0x000b5bc4` | not-started |
 | Weaponmap | `0x000b5c60` | byte-exact |
 | Banned | `0x0012cb2c` | not-started |
-| Effectcontrol | `0x0012db00` | not-started |
+| Effectcontrol | `0x0012db00` | byte-exact |
 | Eventcontrol | `0x0012e204` | not-started |
 | Wedding | `0x0012e35c` | byte-exact |
-| Weddings | `0x001303d0` | not-started |
+| Weddings | `0x001303d0` | in-progress |
 | Learnvalue | `0x00130e78` | byte-exact |
 | Learnvalues | `0x0013326c` | byte-exact |
 | Learnitem | `0x00133300` | byte-exact |
@@ -368,7 +368,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Filecache | `0x0013e248` | byte-exact |
 | Killcounter | `0x0013e3a0` | byte-exact |
 | Playercommand | `0x0013e494` | byte-exact |
-| Killcounters | `0x0013f5e4` | not-started |
+| Killcounters | `0x0013f5e4` | byte-exact |
 | Questcounter | `0x001406d4` | not-started |
 | Questcounterlist | `0x0014082c` | not-started |
 | Questcounters | `0x00141e84` | not-started |
@@ -525,6 +525,12 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | Queststate byte-exact (12/12) | 2 | done | `QuestState` ctor 65 / deleting dtor 43, `QuestAction` ctor 27 / dtor 29, `QuestRule` ctor 40 / dtor 34, plus the `std::vector<QuestAction*>`/`<QuestRule*>` COMDATs - all 0 mismatches. RTTI names are `QuestState`/`QuestAction`/`QuestRule`; the `QuestAction`/`QuestRule` ctors/dtors are emitted in this unit's span (Questengine only references them). |
 | Npc byte-exact (2/2) | 2 | done | `Npc(short,short,short,short,short,int,short)` 115 (Ghidra `Npc_Init`) and the deleting dtor 34 - 0 mismatches. sizeof 0x94; a user-declared empty `~Npc()` is required (the implicit one omits the EH scope marker). `Npc_Init` derives `act_ticks` from `spawn_type` and needs `TDateTime now = Now(); nDeath_ms = DateTimeToTimeStamp(now);` (the inline form emits `fstp [esp]` and the wrong frame). |
 | Small record units byte-exact (Mapobject, Mapwarp, Questtype, Playerquest, Playercommand, Wedding) | 2 | done | `Mapobject` {short x,y,value,ticks} sizeof 8; `Mapwarp` {short from_x,from_y; int dest_map,level; short to_x,to_y} sizeof 0x10; `Questtype` {int value; String name} size 8; `PlayerQuest` (0x14); `PlayerCommand` {int action,arg; String text} size 12; `Wedding` sizeof 0x28. Each is a trivial ctor + user destructor; all 2/2 byte-exact. |
+| Killcounters byte-exact (9/9) | 2 | done | ctor 36, dtor 34, `Clear` 45, `IncrementAndGet` 117, `Add` 78, `Get` 84, `Init` 98, `Extract` 68, `Save` 153 - all 0 mismatches, plus ~24 `std::vector<KillCounter>`/allocator COMDATs. sizeof 0x368. The WIP `Init(this)` tail is now present. |
+| Msgboard byte-exact (3/3) | 2 | done | `Msgboard()` 24, `Msgboard(short,String,String,String)` 65, `~Msgboard` 34. Layout (16): `short id`@0, `String poster`@4, `subject`@8, `message`@12. |
+| Mapchest byte-exact (2/2) | 2 | done | `Mapchest(short,short,short)` 34 and `~Mapchest` 26 plus the `std::vector<Itemchest>` COMDATs. Layout (0x28): x/y/key_id + `char updated` + `std::vector<Itemchest> slots`; sizeof(Itemchest) recovered as 0x2c. Itemchest is a size-correct placeholder pending its own unit. |
+| Effectcontrol byte-exact (4/4) | 2 | done | ctor 46, `$bdtr` 11, `Tick` 945, `AppendEncoded` 100. Layout (0x48): `aState_countdown[4]`/`aState_value[4]`/`aState_extra[4]` + broadcast gate + `char *encode_scratch` + Settings/Mapcontrol/Players/Server. Ctor order `(Mapcontrol*,Players*,Server*,Settings*)`. `AppendEncoded` returns String by value. |
+| Npccontrol partial (8/13) | 2 | in-progress | Byte-exact: ctor 49, `$bdtr` 26, `Npc_GetDistance` 43, `Npc_IsWithinRange` 41, `Npc_DoMove` 84, `Npc_ValidateMove` 86, `Npc_Wander` 253, `Packet_AppendEncoded` 100. Remaining: `NpcControl_Tick` (6064 B), `Npc_AttackPlayer` (converged except local-slot order and an 8-byte pair push), `Npc_ChaseTarget`. Layout (0x44). |
+| Weddings partial (7/8; class is WeddingController) | 2 | in-progress | RTTI class name is `WeddingController` (unit/file `Weddings`). Byte-exact: ctor 34, dtor 26, `Has` 36, `Add` 78, `Confirm` 295, `BroadcastPriestLine` 52, `BothPresent` 40, `AppendEncoded` 100, plus 21 vector COMDATs. `Tick` (1071) differs in 4 hunks (510 marker-equal mismatches) - dead `sete` sequences bcc32 emits that our structurally-identical source does not. Layout (0x2c): `char *encode_scratch` + `Players*` + `Server*` + `std::vector<Wedding*>`. Mainform now uses `WeddingController`. |
 | Quest byte-exact (14/14) | 2 | done | `Quest(int)` ctor 35 and `~Quest` 31 plus the 12 `std::vector<QuestState*>`/allocator COMDATs emitted from the `states` member - all 0 mismatches. Layout (0x34): `quest_id`@0, `String name`@4, `version`@8, `field_0xc`@0xc, `char loaded`@0x10, `std::vector<QuestState*> states`@0x14. No Quest methods beyond ctor/dtor. |
 | Mainform wired to the reconstructed controllers | 2 | done | `Mainform.cpp` includes `Settings.h`/`Gamecontrol.h`/`Logins.h`/`Newscontrol.h`/`Mysqlcontrols.h` and drops all five stubs; call sites become `Settings::Get*`, `Mysqlcontrols::{TestConnection,Connect,Free,FUN_004762c8,Db_GetActiveConnectionCount}`, `Logins::{HandleAddress,Tick}`. All 8 handlers re-verified (0 mismatches) and `make build` links |
 | compare_asm canonicalizes package symbols | 1 | tool | `canon()` now maps a bare-symbol memory operand (bcc32 emits `[_GUI]` for a `__declspec(package)` global; the reference shows the resolved address) to `[ADDR]`. This unblocked scoring `Mysqlcontrols` (10/28 -> 19/28 reported) and is a no-op for register/offset operands |

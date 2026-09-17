@@ -34,7 +34,7 @@ class InnValues;
 class ClassValues;
 class Msgboardcontrol;
 class Jukeboxcontrol;
-class Weddings;
+class WeddingController;
 class Questengine;
 class Newscontrol;
 class Gamecontrol;
@@ -82,7 +82,7 @@ class TGUI : public TForm
     ClassValues *class_values;         // +0x350
     Msgboardcontrol *msgboard_control; // +0x354
     Jukeboxcontrol *jukebox_control;   // +0x358
-    Weddings *weddings;                // +0x35c
+    WeddingController *weddings;       // +0x35c
     Questengine *quest_engine;         // +0x360
     Newscontrol *news_control;         // +0x364
     Gamecontrol *game_control;         // +0x368
