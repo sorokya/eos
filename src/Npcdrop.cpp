@@ -5,9 +5,9 @@
 
 #pragma package(smart_init)
 
-NpcDropItem::NpcDropItem(int value)
+NpcDropItem::NpcDropItem(int item_id)
 {
-    field_0 = value;
+    this->item_id = item_id;
 }
 
 NpcDropItem::~NpcDropItem()
