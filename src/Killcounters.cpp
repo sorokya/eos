@@ -7,7 +7,7 @@
 
 Killcounters::Killcounters()
 {
-    buckets.Length = 27;
+
     field_0 = new TStringList;
 }
 
