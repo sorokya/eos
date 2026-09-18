@@ -598,6 +598,14 @@ Tracked so they are not mistaken for done:
   AnsiString cleanup order; 14 source forms tried.
 - `Questengine::LoadQuest` / `ParseToken` — bcc local-slot/temp allocation.
 - `Weddings::Tick` — three dead `sete` blocks; markers match 57/57.
+- Packets' `0x45ddf0`/`0x45ddfc`/`0x45de08`/`0x45de14` — eight byte-identical
+  11-byte container accessors exist in the reference
+  (`mov eax,[ebp+8]; mov eax,[eax+4|8]; ret`). We emit four named ones plus the
+  `std::vector<T>::begin/end` COMDATs, and the sheet's per-unit greedy 1:1
+  assignment cannot allocate every identical row; the four left over are COMDATs
+  that appear as the still-stubbed owners use their containers, not hand-written
+  functions. `GroundItemPtrVector_Count` (`0x44f8b0`) is the `(end - begin)`
+  ptrdiff over 4-byte elements, i.e. a `T** - T**` subtraction.
 - `Packets`: `Player_Warp` (1 instruction: temp construction order in the
   `do_leave` Avatar-Remove build); `Client_SendEncoded` (blocked on the
   `EO_ByteRange_FromString` RTL helper ABI); `EO_Encode_Interleave` /
