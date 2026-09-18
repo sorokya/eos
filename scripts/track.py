@@ -88,19 +88,43 @@ def load_inventory(path):
     return rows
 
 
-def load_stub_registry(path):
-    """(unit, start) of functions that have a generated placeholder."""
+def load_stub_registry(path, src="src"):
+    """(unit, start) of functions that have a generated placeholder.
+
+    The registry is a cache of the `*_Stub` definitions actually present in the
+    unit sources; a row whose placeholder has since been deleted (because the
+    function converged) must not keep reporting the function as `stubbed` -- that
+    hides a `mismatched` body behind a stub. Validate each row against its unit
+    source before trusting it, so a stale cache cannot mask real state.
+    """
     seen = set()
-    if os.path.exists(path):
-        with open(path, encoding="utf-8") as fh:
-            next(fh, None)
-            for line in fh:
-                p = line.rstrip("\n").split("\t")
-                if len(p) >= 2:
-                    try:
-                        seen.add((p[0], int(p[1], 16)))
-                    except ValueError:
-                        pass
+    if not os.path.exists(path):
+        return seen
+    sources = {}
+
+    def text(unit):
+        if unit not in sources:
+            p = os.path.join(src, unit + ".cpp")
+            try:
+                with open(p, encoding="utf-8") as fh:
+                    sources[unit] = fh.read()
+            except OSError:
+                sources[unit] = ""
+        return sources[unit]
+
+    with open(path, encoding="utf-8") as fh:
+        next(fh, None)
+        for line in fh:
+            p = line.rstrip("\n").split("\t")
+            if len(p) < 2:
+                continue
+            stub = p[3] if len(p) > 3 else ""
+            if stub and stub not in text(p[0]):
+                continue
+            try:
+                seen.add((p[0], int(p[1], 16)))
+            except ValueError:
+                pass
     return seen
 
 

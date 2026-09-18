@@ -153,16 +153,16 @@ outstanding cross-unit externs and the known-unconverged functions.
 pie showData
     title Application functions by status
     "byte-exact" : 1602
-    "mismatched" : 4
-    "stubbed" : 185
-    "unimplemented" : 17
+    "mismatched" : 11
+    "stubbed" : 177
+    "unimplemented" : 18
     "deferred" : 1
 ```
 
 | Unit | functions | byte-exact | stubbed | mismatched | unimplemented |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Mapcontrol | 279 | 249 | 26 | 0 | 4 |
-| Packets | 249 | 83 | 157 | 4 | 4 |
+| Mapcontrol | 279 | 249 | 25 | 1 | 4 |
+| Packets | 249 | 83 | 150 | 10 | 5 |
 | Players | 160 | 159 | 1 | 0 | 0 |
 | Questengine | 123 | 123 | 0 | 0 | 0 |
 | Shopvalues | 86 | 86 | 0 | 0 | 0 |

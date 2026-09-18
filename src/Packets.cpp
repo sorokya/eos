@@ -1414,6 +1414,67 @@ String Server_BuildOnlineList(Server *server)
     return server->online_list_cache;
 }
 
+String Paperdoll_BuildReply(Server *server, Player *player)
+{
+    String data = "";
+    data.Insert(player->name, data.Length() + 1);
+    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+    data.Insert(player->home_name, data.Length() + 1);
+    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+    data.Insert(player->partner_name, data.Length() + 1);
+    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+    data.Insert(player->title, data.Length() + 1);
+    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+    data.Insert(player->guild_name, data.Length() + 1);
+    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+    data.Insert(player->guild_rank_name, data.Length() + 1);
+    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->player_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->class_id, 1), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->gender, 1), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->admin_level, 1), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->boots_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->accessory_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->gloves_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->belt_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->armor_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->necklace_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->hat_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->shield_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->weapon_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->ring1_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->ring2_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->armlet1_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->armlet2_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->bracer1_item_id, 2), data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, player->bracer2_item_id, 2), data.Length() + 1);
+    if (player->in_party)
+    {
+        if (player->admin_level > 1)
+        {
+            if (player->admin_level < 4)
+                data.Insert(EO_EncodeNumber(server, 9, 1), data.Length() + 1);
+            else
+                data.Insert(EO_EncodeNumber(server, 10, 1), data.Length() + 1);
+        }
+        else
+            data.Insert(EO_EncodeNumber(server, 6, 1), data.Length() + 1);
+    }
+    else
+    {
+        if (player->admin_level > 1)
+        {
+            if (player->admin_level < 4)
+                data.Insert(EO_EncodeNumber(server, 4, 1), data.Length() + 1);
+            else
+                data.Insert(EO_EncodeNumber(server, 5, 1), data.Length() + 1);
+        }
+        else
+            data.Insert(EO_EncodeNumber(server, 1, 1), data.Length() + 1);
+    }
+    return data;
+}
+
 String Player_SerializePaperdoll(Server *server, Player *player)
 {
     String out = "";
@@ -2756,12 +2817,6 @@ void *Walk_BuildReply_Stub(void *a0, void *a1, void *a2)
 // STUB(0x0045de20, 5386 bytes) Refresh_BuildReply - ref: AnsiString *
 // Refresh_BuildReply(AnsiString * out, Server * server, Player * player)
 void *Refresh_BuildReply_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x004607c8, 3110 bytes) Paperdoll_BuildReply - ref: int *
-// Paperdoll_BuildReply(AnsiString * data, Server * server, Player * player)
-void *Paperdoll_BuildReply_Stub(void *a0, void *a1, void *a2)
 {
     return 0;
 }
