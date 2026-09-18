@@ -66,7 +66,7 @@ struct Npc
     int nStuck_pos;                         // +0x8c
     char pad_90[4];                         // +0x90
 
-    Npc(short npc_index,
+    Npc(int npc_index,
         short npc_id,
         short x,
         short y,

@@ -5,7 +5,7 @@
 
 #pragma package(smart_init)
 
-Npc::Npc(short npc_index,
+Npc::Npc(int npc_index,
          short npc_id,
          short x,
          short y,

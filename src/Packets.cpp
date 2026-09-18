@@ -1414,6 +1414,153 @@ String Server_BuildOnlineList(Server *server)
     return server->online_list_cache;
 }
 
+String Refresh_BuildReply(Server *server, Player *player)
+{
+    String data = EO_GetBreakByte(server, 0xff);
+    int count = 0;
+    Player **iter;
+    Npc **niter;
+    ChestItem **iiter;
+    int cheat_x;
+    int cheat_y;
+    int sit_state;
+    for (iter = Players_Iter_Begin(server->players);
+         iter != Players_Iter_End(server->players);
+         iter++)
+    {
+        if ((*iter)->map_id == player->map_id &&
+            Server_InViewRange(server, player->x, player->y, (*iter)->x, (*iter)->y))
+        {
+            count++;
+            data.Insert((*iter)->name, data.Length() + 1);
+            data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->player_id, 2),
+                        data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->map_id, 2), data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->x, 2), data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->y, 2), data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->direction, 1),
+                        data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->class_id, 1), data.Length() + 1);
+            data.Insert((*iter)->guild_tag, data.Length() + 1);
+            if ((*iter)->guild_tag.Length() == 2)
+                data.Insert(" ", data.Length() + 1);
+            if ((*iter)->guild_tag.Length() == 1)
+                data.Insert("  ", data.Length() + 1);
+            if ((*iter)->guild_tag.Length() == 0)
+                data.Insert("   ", data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->level, 1), data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->gender, 1), data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->hair_style, 1),
+                        data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->hair_color, 1),
+                        data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->skin, 1), data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->max_hp, 2), data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->hp, 2), data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->max_tp, 2), data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->tp, 2), data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->boots_graphic_id, 2),
+                        data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->accessory_graphic_id, 2),
+                        data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->gloves_graphic_id, 2),
+                        data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->belt_graphic_id, 2),
+                        data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->armor_graphic_id, 2),
+                        data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->necklace_graphic_id, 2),
+                        data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->hat_graphic_id, 2),
+                        data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->shield_graphic_id, 2),
+                        data.Length() + 1);
+            data.Insert(EO_EncodeNumber(server, (*iter)->weapon_graphic_id, 2),
+                        data.Length() + 1);
+            sit_state = 0;
+            if ((*iter)->on_chair)
+                sit_state = 1;
+            if ((*iter)->sitting)
+                sit_state = 2;
+            data.Insert(EO_EncodeNumber(server, sit_state, 1), data.Length() + 1);
+            if ((*iter)->hidden)
+                data.Insert(EO_EncodeNumber(server, 1, 1), data.Length() + 1);
+            else
+                data.Insert(EO_EncodeNumber(server, 0, 1), data.Length() + 1);
+            data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+        }
+    }
+    data.Insert(EO_EncodeNumber(server, count, 1), 1);
+    if (player->map_id > 0 && player->map_id <= Mapcontrol_GetCount(server->map_control))
+    {
+        for (niter = (Npc **)Map_NpcIter_Begin(
+                 &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                      ->npc_list);
+             niter != (Npc **)Map_NpcIter_End(
+                          &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                               ->npc_list);
+             niter++)
+        {
+            if ((*niter)->alive &&
+                Server_InViewRange(
+                    server, player->x, player->y, (*niter)->x, (*niter)->y))
+            {
+                data.Insert(EO_EncodeNumber(server, (*niter)->index, 1),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*niter)->id, 2), data.Length() + 1);
+                if (!player->cheater_flag)
+                {
+                    data.Insert(EO_EncodeNumber(server, (*niter)->x, 1),
+                                data.Length() + 1);
+                    data.Insert(EO_EncodeNumber(server, (*niter)->y, 1),
+                                data.Length() + 1);
+                }
+                else
+                {
+                    cheat_x = (*niter)->x + server->cheat_offset_x - 1;
+                    cheat_y = (*niter)->y + server->cheat_offset_y - 1;
+                    if (cheat_x < 1)
+                        cheat_x = 0;
+                    if (cheat_y < 1)
+                        cheat_y = 0;
+                    data.Insert(EO_EncodeNumber(server, cheat_x, 1), data.Length() + 1);
+                    data.Insert(EO_EncodeNumber(server, cheat_y, 1), data.Length() + 1);
+                }
+                data.Insert(
+                    EO_EncodeNumber(server, (unsigned short)(*niter)->direction, 1),
+                    data.Length() + 1);
+            }
+        }
+    }
+    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+    if (player->map_id > 0 && player->map_id <= Mapcontrol_GetCount(server->map_control))
+    {
+        for (iiter = (ChestItem **)GroundItemPtrVector_Begin(
+                 &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                      ->ground_items);
+             iiter != (ChestItem **)PtrVector_GetEnd(
+                          &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                               ->ground_items);
+             iiter++)
+        {
+            if (Server_InViewRange(
+                    server, player->x, player->y, (*iiter)->x, (*iiter)->y))
+            {
+                data.Insert(EO_EncodeNumber(server, (*iiter)->index, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iiter)->item_id, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iiter)->x, 1), data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iiter)->y, 1), data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iiter)->amount, 3),
+                            data.Length() + 1);
+            }
+        }
+    }
+    return data;
+}
+
 String Paperdoll_BuildReply(Server *server, Player *player)
 {
     String data = "";
@@ -2811,12 +2958,6 @@ void Login_SendCharacterList_Stub(void *a0, void *a1, int a2, int a3, void *a4)
 // STUB(0x0045d874, 1342 bytes) Walk_BuildReply - ref: AnsiString *
 // Walk_BuildReply(AnsiString * out, Server * server, Player * player)
 void *Walk_BuildReply_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0045de20, 5386 bytes) Refresh_BuildReply - ref: AnsiString *
-// Refresh_BuildReply(AnsiString * out, Server * server, Player * player)
-void *Refresh_BuildReply_Stub(void *a0, void *a1, void *a2)
 {
     return 0;
 }

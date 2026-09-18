@@ -762,7 +762,31 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                         target = NULL;
                                     }
                                 }
-                                if (target == NULL)
+                                if (target != NULL)
+                                {
+                                    distance = Npc_GetDistance(npc_control, *npc, target);
+                                    if (target->in_party != false && 1 < distance)
+                                    {
+                                        for (int i = 0; i < 10; i++)
+                                        {
+                                            Player *member = Players::Players_GetById(
+                                                npc_control->players,
+                                                target->party_ids[i]);
+                                            if (member != NULL &&
+                                                member->map_id == target->map_id)
+                                            {
+                                                int d = Npc_GetDistance(
+                                                    npc_control, *npc, member);
+                                                if (d <= distance)
+                                                {
+                                                    distance = d;
+                                                    target = member;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                else
                                 {
                                     if (npc_control->player_targets_valid == 0)
                                     {
@@ -788,30 +812,8 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                         int d = Npc_GetDistance(npc_control, *npc, *it);
                                         if (d <= distance)
                                         {
-                                            target = *it;
                                             distance = d;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    distance = Npc_GetDistance(npc_control, *npc, target);
-                                    if (target->in_party != false && 1 < distance)
-                                    {
-                                        for (int i = 0; i < 10; i++)
-                                        {
-                                            Player *member = Players::Players_GetById(
-                                                npc_control->players,
-                                                target->party_ids[i]);
-                                            int d = Npc_GetDistance(
-                                                npc_control, *npc, member);
-                                            if (member != NULL &&
-                                                member->map_id == target->map_id &&
-                                                d <= distance)
-                                            {
-                                                distance = d;
-                                                target = member;
-                                            }
+                                            target = *it;
                                         }
                                     }
                                 }
@@ -910,7 +912,8 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
         npc_control->act_counter = 0;
     if (0x1c2 < npc_control->regen_counter)
         npc_control->regen_counter = 0;
-    for (Player **player = Players_Iter_Begin(npc_control->players);
+    Player **player;
+    for (player = Players_Iter_Begin(npc_control->players);
          player != Players_Iter_End(npc_control->players);
          player++)
     {
@@ -1001,7 +1004,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
     }
     if (flag == false)
     {
-        for (Player **player = Players_Iter_Begin(npc_control->players);
+        for (player = Players_Iter_Begin(npc_control->players);
              player != Players_Iter_End(npc_control->players);
              player++)
         {

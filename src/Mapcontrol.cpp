@@ -4,6 +4,8 @@
 #include "Mapcontrol.h"
 #include "Mainform.h"
 #include "Npc.h"
+#include "Npcvalue.h"
+#include "Npcvalues.h"
 #include "Settings.h"
 #include "Protocol.h"
 
@@ -20,6 +22,9 @@ void FUN_004aa4e4(JukeBoxController *jukebox_control, int map_id);
 int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id);
 int FUN_004813c8(void *list);
 void FUN_0048441c(void *list, int count, int value);
+int NpcPtrVector_Count(void *list);
+void *Map_NpcIter_End(void *npc_list);
+void Map_AddNpc(void *npc_list, void *position, Npc *npc);
 
 typedef std::vector<ChestItem *> GroundItemPtrVector;
 
@@ -1522,7 +1527,51 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            return 1;
+            int npc_count =
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 8));
+            for (int j = 0; j < npc_count; j++)
+            {
+                int index = NpcPtrVector_Count(&map->npc_list) + 1;
+                Npc *npc =
+                    new Npc(index,
+                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                             map_buf.SubString(2, 3)),
+                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                             map_buf.SubString(1, 1)),
+                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                             map_buf.SubString(1, 2)),
+                            0,
+                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                             map_buf.SubString(1, 5)),
+                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                             map_buf.SubString(2, 6)));
+                NpcValue npc_value =
+                    NpcValues::GetNpc((*MAINFORM)->npc_values,
+                                      Mapcontrol::Pub_DecodeNumber_Map(
+                                          map_control, map_buf.SubString(2, 3)));
+                if (npc_value.npc_type == 2)
+                {
+                    npc->aggressive = true;
+                    npc->in_combat = true;
+                }
+                if (npc_value.child > 0)
+                    map->child_npc_id = npc->id;
+                npc->boss = npc_value.boss;
+                npc->child = npc_value.child;
+                npc->min_damage = npc_value.min_damage;
+                npc->max_damage = npc_value.max_damage;
+                npc->accuracy = npc_value.accuracy;
+                npc->evade = npc_value.evade;
+                npc->armor = npc_value.armor;
+                npc->element_weakness = npc_value.element_weakness;
+                short *ew = &npc->pad_34;
+                for (int k = 0; k < 7; k++)
+                    ew[k] = 0;
+                if (npc_value.element_weakness > 0 && npc_value.element_weakness < 7)
+                    ew[npc_value.element_weakness] = npc_value.element_weakness_damage;
+                Map_AddNpc(&map->npc_list, Map_NpcIter_End(&map->npc_list), npc);
+            }
+            map_buf.Delete(1, 8);
         }
         return 1;
     }

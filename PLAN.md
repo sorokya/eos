@@ -613,27 +613,47 @@ Tracked so they are not mistaken for done:
   `Walk_Execute`, `Attack_Execute`, `Spell_Execute`, the reply builders, and
   `Player_HandlePacket` (deferred: one 226 KB function).
 - `Mapcontrol` `FUN_00482834` (`0x482834`) and `Mapcontrol_LoadMap` (`0x484e28`)
-  — the loader. Now matches the reference instruction-for-instruction through
-  index 474 (`0x482ff9`), the whole fixed 46-byte EMF header; the remaining ~1000
-  instructions are five section loops (two with an inner loop) whose 56
-  decode/delete blocks are extracted as a spec (every decode is `0x486c38`,
-  every section delete `0x55949c`). Byte-exactness is gated on the local set
-  being complete — the EH arming word/counter sit at `[ebp-0x160]`/`[ebp-0x154]`
-  in the reference but at `[ebp-52]`/`[ebp-44]` until every section temporary
-  (out to `-0x1f0`) exists — so displacements reconcile only at the end.
+  — the loader. Matches the reference instruction-for-instruction through index
+  775 and beyond: the whole fixed 46-byte EMF header plus section 1 (the NPC
+  section). Sections `0x48353e`, `0x483751`, `0x483b10` (inner `0x483bfd`) and
+  `0x483f9b` (inner `0x484088`) remain; all 56 decode/delete blocks are
+  extracted as a spec (every decode is `0x486c38` `Pub_DecodeNumber_Map`, every
+  section delete is the RTL helper `0x55949c`). Byte-exactness is gated on the
+  local set being complete: the EH arming word/counter sit at
+  `[ebp-0x160]`/`[ebp-0x154]` in the reference but at `[ebp-0xf8]`/`[ebp-0xec]`
+  until every section temporary (out to `-0x1f0`) exists, so displacements
+  reconcile only at the end.
+  **The NPC-section local is `NpcValue`** (`src/Npcvalue.h`, 0x7c bytes), filled
+  by `NpcValue npc_value = NpcValues::GetNpc(npc_values, id);` —
+  `FUN_004a8858` is `NpcValues::GetNpc` (declared `src/Npcvalues.h:110`), and the
+  by-value return is why its arg list looks like `(L, table, id)`. Other
+  `FUN_...` sightings resolve to `NpcPtrVector_Count` (0x4810a0),
+  `Npc::Npc` (0x47a868), `Map_AddNpc` (0x4844c0) and `Map_NpcIter_End`
+  (0x45ddfc) — all already reconstructed.
   Pinned forms: `local_c` before the `try`; header/section blocks are single
   statements with anonymous temps (`dest = Pub_DecodeNumber_Map(map_control,
   map_buf.SubString(s, n))`), not named `tN` locals; `file_handle`/`size`/`buf`/
   `count` at function scope outside the `try`; the loop index stays in the `for`
   head; `map->start_map` is `unsigned short`; `map_buf.Delete(1, 0x2e)` (bcc maps
-  `Delete` as `ecx=len, edx=start`, the reverse of `SubString`).
+  `Delete` as `ecx=len, edx=start`, the reverse of `SubString`); and **`Npc`'s
+  ctor takes its index as `int`, not `short`** — the call site stores the
+  argument with a 4-byte `mov dword ptr [slot],eax`, where a `short` truncates.
+  (`src/Npc.h`/`src/Npc.cpp` were changed together; the ctor body stays
+  byte-exact at 115/115 and the mangled name becomes `@@Npc@$bctr$qissssis`.)
 - `NpcControl_Tick` (`0x4ae45c`) — the broadcaster block IS wrapped in
-  `try { ... } catch (...) { }`; adding it makes the whole EH scope-marker stream
-  match the reference exactly (39 markers, identical values), which was the
-  previously unexplained +12 cleanup offset. Residual: the catch's unwind form
-  (ours emits an extra `allocator<Player*>::deallocate` + `_ReThrowException`,
-  ~5 instructions the reference's catch lacks) and the aggro/chase/target-select
-  region's bcc register allocation (~40 hunks).
+  `try { ... } catch (...) { }`; with it the whole EH scope-marker stream matches
+  the reference exactly (39 markers, identical values). The frame was one 4-byte
+  slot too large because we declared a second `Player **player` iterator: the
+  reference reuses one iterator across the broadcaster and respawn loops.
+  Progress 912 -> 788 mismatched, 51 -> 31 hunks. Also pinned: the
+  target-selection branch is `if (target != NULL) { <party> } else {
+  <player_targets> }`; the scan loop assigns `distance = d; target = *it;`; and
+  the party loop tests `member != NULL && member->map_id == target->map_id`
+  before calling `Npc_GetDistance`. Residual: `ref[766]` (`jng` vs `jnle`, so the
+  `Npc_AttackPlayer` block layout), the aggro/chase register allocation, and the
+  packet-build clusters. The extra `allocator<Player*>::deallocate` /
+  `_ReThrowException` seen earlier belongs to the `NpcController` constructor, not
+  this function.
 
 ## Risks and mitigations
 
