@@ -147,31 +147,31 @@ outstanding cross-unit externs and the known-unconverged functions.
 
 <!-- BEGIN GENERATED STATUS -->
 
-**1597/1809 (88.3%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
+**1599/1809 (88.4%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
 
 ```mermaid
 pie showData
     title Application functions by status
-    "byte-exact" : 1597
+    "byte-exact" : 1599
     "mismatched" : 4
-    "stubbed" : 195
-    "unimplemented" : 12
+    "stubbed" : 188
+    "unimplemented" : 17
     "deferred" : 1
 ```
 
 | Unit | functions | byte-exact | stubbed | mismatched | unimplemented |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Mapcontrol | 279 | 249 | 26 | 0 | 4 |
-| Packets | 249 | 79 | 161 | 4 | 4 |
-| Players | 160 | 158 | 2 | 0 | 0 |
+| Packets | 249 | 80 | 160 | 4 | 4 |
+| Players | 160 | 159 | 1 | 0 | 0 |
 | Questengine | 123 | 123 | 0 | 0 | 0 |
 | Shopvalues | 86 | 86 | 0 | 0 | 0 |
-| Npcvalues | 80 | 77 | 3 | 0 | 0 |
+| Npcvalues | 80 | 77 | 0 | 0 | 3 |
 | Mysqlcontrols | 73 | 73 | 0 | 0 | 0 |
-| Msgboardcontrol | 57 | 56 | 1 | 0 | 0 |
+| Msgboardcontrol | 57 | 56 | 0 | 0 | 1 |
 | Itemvalues | 44 | 44 | 0 | 0 | 0 |
 | Learnvalues | 41 | 41 | 0 | 0 | 0 |
-| Settings | 40 | 39 | 1 | 0 | 0 |
+| Settings | 40 | 39 | 0 | 0 | 1 |
 | Innvalues | 39 | 39 | 0 | 0 | 0 |
 | Questcounters | 36 | 36 | 0 | 0 | 0 |
 | Skillvalues | 34 | 34 | 0 | 0 | 0 |

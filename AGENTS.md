@@ -459,6 +459,24 @@ them to pick the form that matches the reference.
   the append destination — which is why `Server_BuildOnlineNames`,
   `Message_BuildServerStatus` and `Party_EncodeMemberList` carry the `0x38/0x44`,
   `0x80/0x8c` and `0x74/0x80` pairs.
+- **A class with a member container: an *empty* destructor is the whole function.**
+  bcc generates the scalar/deleting destructor itself — `call vector<Player*>
+  ::~vector(this, 2)` for the member, then the `operator delete` tail folded into
+  the same function. `Players::~Players() { }` (nothing in the body) reproduces
+  the reference's 24 instructions exactly; writing `players.clear()` or calling
+  the member's destructor by hand gives a different form.
+- **Applying the returned-`String` builder recipe** (`Walk_BuildReply`,
+  `Player_SerializeAvatar`). The accumulator is not always initialised from `""`:
+  `Player_SerializeAvatar` starts it from a field (`String out = player->name;`).
+  The first insert can also sit *outside* the `try`, and the catch is then empty
+  (`catch (...) { }`, no `buf += ""`). Read the catch handler (`call 0x55623d`
+  `__CatchCleanup`) before assuming the shape, and check the EH cleanup table for
+  the flags-3 clause entry to confirm a catch exists at all.
+- **A `T** - T**` size difference divides by the element size.** bcc lowers the
+  ptrdiff with its generic signed-division sequence, so `(end - begin)` over
+  4-byte elements emits `sub` / `test` / `jns` / `add 3` / `sar 2`, not a bare
+  `sub`/`sar`. `GroundItemPtrVector_Count` (`0x44f8b0`) is exactly this; casting
+  both sides to `char *` removes the scale and the match.
 - **Encoded strings.** Where the reference carries an obfuscated literal (decoded
   through `Serial::DecodeString`), name a macro after the decoded text so intent
   is legible, e.g.

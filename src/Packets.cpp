@@ -290,8 +290,7 @@ void *PtrVector_GetEnd(void *list)
 
 int GroundItemPtrVector_Count(void *list)
 {
-    return (void **)PtrVector_GetEnd(list)
-           - (void **)GroundItemPtrVector_Begin(list);
+    return (void **)PtrVector_GetEnd(list) - (void **)GroundItemPtrVector_Begin(list);
 }
 
 int Math_Abs(int value)
@@ -1413,6 +1412,74 @@ String Server_BuildOnlineList(Server *server)
         return list;
     }
     return server->online_list_cache;
+}
+
+String Player_SerializeAvatar(Server *server, Player *player, int arg)
+{
+    String out = player->name;
+    out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+    try
+    {
+        out.Insert(EO_EncodeNumber(server, player->player_id, 2), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->map_id, 2), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->x, 2), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->y, 2), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->direction, 1), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->class_id, 1), out.Length() + 1);
+        out.Insert(player->guild_tag, out.Length() + 1);
+        if (player->guild_tag.Length() == 2)
+            out.Insert(" ", out.Length() + 1);
+        if (player->guild_tag.Length() == 1)
+            out.Insert("  ", out.Length() + 1);
+        if (player->guild_tag.Length() == 0)
+            out.Insert("   ", out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->level, 1), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->gender, 1), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->hair_style, 1), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->hair_color, 1), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->skin, 1), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->max_hp, 2), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->hp, 2), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->max_tp, 2), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->tp, 2), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->boots_graphic_id, 2),
+                   out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->accessory_graphic_id, 2),
+                   out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->gloves_graphic_id, 2),
+                   out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->belt_graphic_id, 2), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->armor_graphic_id, 2),
+                   out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->necklace_graphic_id, 2),
+                   out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->hat_graphic_id, 2), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->shield_graphic_id, 2),
+                   out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->weapon_graphic_id, 2),
+                   out.Length() + 1);
+        int sit_state = 0;
+        if (player->on_chair)
+            sit_state = 1;
+        if (player->sitting)
+            sit_state = 2;
+        out.Insert(EO_EncodeNumber(server, sit_state, 1), out.Length() + 1);
+        if (player->hidden)
+            out.Insert(EO_EncodeNumber(server, 1, 1), out.Length() + 1);
+        else
+            out.Insert(EO_EncodeNumber(server, 0, 1), out.Length() + 1);
+        if (arg < 0)
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+        else
+        {
+            out.Insert(EO_EncodeNumber(server, arg, 1), out.Length() + 1);
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+        }
+    }
+    catch (...)
+    {
+    }
+    return out;
 }
 
 String Walk_BuildReply(Server *server, Player *player)
@@ -2629,12 +2696,6 @@ void *Walk_BuildReply_Stub(void *a0, void *a1, void *a2)
 // STUB(0x0045de20, 5386 bytes) Refresh_BuildReply - ref: AnsiString *
 // Refresh_BuildReply(AnsiString * out, Server * server, Player * player)
 void *Refresh_BuildReply_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0045f37c, 3291 bytes) Player_SerializeAvatar - ref: int *
-// Player_SerializeAvatar(int * param_1, int param_2, int param_3, uint param_4)
-void *Player_SerializeAvatar_Stub(void *a0, int a1, int a2, unsigned int a3)
 {
     return 0;
 }

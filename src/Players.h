@@ -33,6 +33,7 @@ class Players
     int stat_total;                // +0x61ab0
 
     Players(Settings *settings, Mysqlcontrols *mysql_controls);
+    ~Players();
 
     static void Players_Tick(Players *self);
     static bool Players_Add(Players *self, TCustomWinSocket *socket);

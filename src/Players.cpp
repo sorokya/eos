@@ -39,6 +39,10 @@ Players::Players(Settings *settings, Mysqlcontrols *mysql_controls)
         by_id[i] = 0;
 }
 
+Players::~Players()
+{
+}
+
 int Players::Players_ActiveCount(Players *self)
 {
     return self->players.end() - self->players.begin();
@@ -1146,11 +1150,6 @@ void Players::Player_ClearSpells(Players *self, Player *player)
 
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
-// STUB(0x00407b30, 80 bytes) FUN_00407b30 - ref: undefined FUN_00407b30(int param_1, byte
-// param_2)
-void FUN_00407b30_Stub(int a0, unsigned char a1)
-{
-}
 // STUB(0x004081c8, 381 bytes) FUN_004081c8 - ref: undefined4 FUN_004081c8(Players *
 // players, int socket)
 int FUN_004081c8_Stub(void *a0, int a1)
