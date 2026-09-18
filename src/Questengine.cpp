@@ -649,3 +649,37 @@ int Questengine::GetRuleValue2(Questengine *self,
     }
     return -1;
 }
+
+// BEGIN GENERATED STUBS (scripts/genstubs.py)
+#pragma warn - 8057
+// STUB(0x005387ec, 2712 bytes) Questengine_LoadQuest - ref: bool
+// Questengine_LoadQuest(Questengine * this, int quest_id)
+bool Questengine_LoadQuest_Stub(void *a0, int a1)
+{
+    return 0;
+}
+// STUB(0x005397c8, 2616 bytes) FUN_005397c8 - ref: undefined FUN_005397c8(int param_1,
+// int param_2, byte * param_3)
+void FUN_005397c8_Stub(int a0, int a1, void *a2)
+{
+}
+// STUB(0x0053a25c, 152 bytes) FUN_0053a25c - ref: int FUN_0053a25c(int param_1,
+// undefined4 * param_2, undefined4 * param_3)
+int FUN_0053a25c_Stub(int a0, void *a1, void *a2)
+{
+    return 0;
+}
+// STUB(0x0053a31c, 152 bytes) FUN_0053a31c - ref: int FUN_0053a31c(int param_1,
+// undefined4 * param_2, undefined4 * param_3)
+int FUN_0053a31c_Stub(int a0, void *a1, void *a2)
+{
+    return 0;
+}
+// STUB(0x0053a3b4, 152 bytes) FUN_0053a3b4 - ref: int FUN_0053a3b4(int param_1,
+// undefined4 * param_2, undefined4 * param_3)
+int FUN_0053a3b4_Stub(int a0, void *a1, void *a2)
+{
+    return 0;
+}
+#pragma warn.8057
+// END GENERATED STUBS

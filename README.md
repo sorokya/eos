@@ -153,77 +153,78 @@ outstanding cross-unit externs and the known-unconverged functions.
 pie showData
     title Application functions by status
     "byte-exact" : 1359
-    "mismatched" : 5
-    "unimplemented" : 444
+    "mismatched" : 4
+    "stubbed" : 407
+    "unimplemented" : 38
     "deferred" : 1
 ```
 
-| Unit | functions | byte-exact | mismatched | unimplemented |
-| --- | ---: | ---: | ---: | ---: |
-| Mapcontrol | 279 | 116 | 0 | 163 |
-| Packets | 249 | 70 | 5 | 173 |
-| Players | 160 | 99 | 0 | 61 |
-| Questengine | 123 | 118 | 0 | 5 |
-| Shopvalues | 86 | 81 | 0 | 5 |
-| Npcvalues | 80 | 77 | 0 | 3 |
-| Mysqlcontrols | 73 | 73 | 0 | 0 |
-| Msgboardcontrol | 57 | 56 | 0 | 1 |
-| Itemvalues | 44 | 44 | 0 | 0 |
-| Learnvalues | 41 | 36 | 0 | 5 |
-| Settings | 40 | 39 | 0 | 1 |
-| Innvalues | 39 | 39 | 0 | 0 |
-| Questcounters | 36 | 36 | 0 | 0 |
-| Skillvalues | 34 | 34 | 0 | 0 |
-| Jukeboxcontrol | 33 | 16 | 0 | 17 |
-| Killcounters | 33 | 33 | 0 | 0 |
-| Questcounter | 32 | 32 | 0 | 0 |
-| Weddings | 31 | 30 | 0 | 1 |
-| Classvalues | 29 | 28 | 0 | 1 |
-| Learnvalue | 26 | 26 | 0 | 0 |
-| Player | 26 | 26 | 0 | 0 |
-| Mysqltask | 21 | 21 | 0 | 0 |
-| Npcvalue | 21 | 21 | 0 | 0 |
-| Filecache | 18 | 18 | 0 | 0 |
-| Serial | 18 | 17 | 0 | 1 |
-| Shopvalue | 16 | 16 | 0 | 0 |
-| Quest | 14 | 14 | 0 | 0 |
-| Npccontrol | 13 | 10 | 0 | 3 |
-| Queststate | 12 | 12 | 0 | 0 |
-| Banned | 11 | 7 | 0 | 4 |
-| Logins | 10 | 10 | 0 | 0 |
-| Map | 8 | 8 | 0 | 0 |
-| Mysqlthread | 8 | 8 | 0 | 0 |
-| Gamecontrol | 7 | 7 | 0 | 0 |
-| Mapchest | 7 | 7 | 0 | 0 |
-| Chestcontrol | 5 | 5 | 0 | 0 |
-| Newscontrol | 5 | 5 | 0 | 0 |
-| Effectcontrol | 4 | 4 | 0 | 0 |
-| Eventcontrol | 4 | 4 | 0 | 0 |
-| Doorcontrol | 3 | 3 | 0 | 0 |
-| Killcounter | 3 | 3 | 0 | 0 |
-| Learnitem | 3 | 3 | 0 | 0 |
-| Msgboard | 3 | 3 | 0 | 0 |
-| Questcounterlist | 3 | 3 | 0 | 0 |
-| Weaponmap | 3 | 3 | 0 | 0 |
-| Classvalue | 2 | 2 | 0 | 0 |
-| Innvalue | 2 | 2 | 0 | 0 |
-| Itemchest | 2 | 2 | 0 | 0 |
-| Itemground | 2 | 2 | 0 | 0 |
-| Itemvalue | 2 | 2 | 0 | 0 |
-| Jukebox | 2 | 2 | 0 | 0 |
-| Mapobject | 2 | 2 | 0 | 0 |
-| Mapwarp | 2 | 2 | 0 | 0 |
-| Npc | 2 | 2 | 0 | 0 |
-| Npcdrop | 2 | 2 | 0 | 0 |
-| Playercommand | 2 | 2 | 0 | 0 |
-| Playerinventory | 2 | 2 | 0 | 0 |
-| Playerquest | 2 | 2 | 0 | 0 |
-| Playerskill | 2 | 2 | 0 | 0 |
-| Questtype | 2 | 2 | 0 | 0 |
-| Shopcraft | 2 | 2 | 0 | 0 |
-| Shopitem | 2 | 2 | 0 | 0 |
-| Skillvalue | 2 | 2 | 0 | 0 |
-| Wedding | 2 | 2 | 0 | 0 |
+| Unit | functions | byte-exact | stubbed | mismatched | unimplemented |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Mapcontrol | 279 | 116 | 140 | 0 | 23 |
+| Packets | 249 | 70 | 170 | 4 | 4 |
+| Players | 160 | 99 | 59 | 0 | 2 |
+| Questengine | 123 | 118 | 5 | 0 | 0 |
+| Shopvalues | 86 | 81 | 3 | 0 | 2 |
+| Npcvalues | 80 | 77 | 3 | 0 | 0 |
+| Mysqlcontrols | 73 | 73 | 0 | 0 | 0 |
+| Msgboardcontrol | 57 | 56 | 1 | 0 | 0 |
+| Itemvalues | 44 | 44 | 0 | 0 | 0 |
+| Learnvalues | 41 | 36 | 3 | 0 | 2 |
+| Settings | 40 | 39 | 1 | 0 | 0 |
+| Innvalues | 39 | 39 | 0 | 0 | 0 |
+| Questcounters | 36 | 36 | 0 | 0 | 0 |
+| Skillvalues | 34 | 34 | 0 | 0 | 0 |
+| Jukeboxcontrol | 33 | 16 | 16 | 0 | 1 |
+| Killcounters | 33 | 33 | 0 | 0 | 0 |
+| Questcounter | 32 | 32 | 0 | 0 | 0 |
+| Weddings | 31 | 30 | 1 | 0 | 0 |
+| Classvalues | 29 | 28 | 1 | 0 | 0 |
+| Learnvalue | 26 | 26 | 0 | 0 | 0 |
+| Player | 26 | 26 | 0 | 0 | 0 |
+| Mysqltask | 21 | 21 | 0 | 0 | 0 |
+| Npcvalue | 21 | 21 | 0 | 0 | 0 |
+| Filecache | 18 | 18 | 0 | 0 | 0 |
+| Serial | 18 | 17 | 1 | 0 | 0 |
+| Shopvalue | 16 | 16 | 0 | 0 | 0 |
+| Quest | 14 | 14 | 0 | 0 | 0 |
+| Npccontrol | 13 | 10 | 3 | 0 | 0 |
+| Queststate | 12 | 12 | 0 | 0 | 0 |
+| Banned | 11 | 7 | 0 | 0 | 4 |
+| Logins | 10 | 10 | 0 | 0 | 0 |
+| Map | 8 | 8 | 0 | 0 | 0 |
+| Mysqlthread | 8 | 8 | 0 | 0 | 0 |
+| Gamecontrol | 7 | 7 | 0 | 0 | 0 |
+| Mapchest | 7 | 7 | 0 | 0 | 0 |
+| Chestcontrol | 5 | 5 | 0 | 0 | 0 |
+| Newscontrol | 5 | 5 | 0 | 0 | 0 |
+| Effectcontrol | 4 | 4 | 0 | 0 | 0 |
+| Eventcontrol | 4 | 4 | 0 | 0 | 0 |
+| Doorcontrol | 3 | 3 | 0 | 0 | 0 |
+| Killcounter | 3 | 3 | 0 | 0 | 0 |
+| Learnitem | 3 | 3 | 0 | 0 | 0 |
+| Msgboard | 3 | 3 | 0 | 0 | 0 |
+| Questcounterlist | 3 | 3 | 0 | 0 | 0 |
+| Weaponmap | 3 | 3 | 0 | 0 | 0 |
+| Classvalue | 2 | 2 | 0 | 0 | 0 |
+| Innvalue | 2 | 2 | 0 | 0 | 0 |
+| Itemchest | 2 | 2 | 0 | 0 | 0 |
+| Itemground | 2 | 2 | 0 | 0 | 0 |
+| Itemvalue | 2 | 2 | 0 | 0 | 0 |
+| Jukebox | 2 | 2 | 0 | 0 | 0 |
+| Mapobject | 2 | 2 | 0 | 0 | 0 |
+| Mapwarp | 2 | 2 | 0 | 0 | 0 |
+| Npc | 2 | 2 | 0 | 0 | 0 |
+| Npcdrop | 2 | 2 | 0 | 0 | 0 |
+| Playercommand | 2 | 2 | 0 | 0 | 0 |
+| Playerinventory | 2 | 2 | 0 | 0 | 0 |
+| Playerquest | 2 | 2 | 0 | 0 | 0 |
+| Playerskill | 2 | 2 | 0 | 0 | 0 |
+| Questtype | 2 | 2 | 0 | 0 | 0 |
+| Shopcraft | 2 | 2 | 0 | 0 | 0 |
+| Shopitem | 2 | 2 | 0 | 0 | 0 |
+| Skillvalue | 2 | 2 | 0 | 0 | 0 |
+| Wedding | 2 | 2 | 0 | 0 | 0 |
 
 <!-- END GENERATED STATUS -->
 

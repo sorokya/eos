@@ -163,3 +163,14 @@ int ClassValues::DecodeInt(String value)
     }
     return result;
 }
+
+// BEGIN GENERATED STUBS (scripts/genstubs.py)
+#pragma warn - 8057
+// STUB(0x005371e8, 67 bytes) FUN_005371e8 - ref: undefined4 FUN_005371e8(int param_1, int
+// param_2, int param_3)
+int FUN_005371e8_Stub(int a0, int a1, int a2)
+{
+    return 0;
+}
+#pragma warn.8057
+// END GENERATED STUBS

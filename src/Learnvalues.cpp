@@ -314,3 +314,25 @@ int LearnValues::Pub_DecodeNumber_Learn(LearnValues *self, String value)
     }
     return result;
 }
+
+// BEGIN GENERATED STUBS (scripts/genstubs.py)
+#pragma warn - 8057
+// STUB(0x00531d94, 169 bytes) FUN_00531d94 - ref: undefined FUN_00531d94(undefined4
+// param_1, undefined4 * param_2)
+void FUN_00531d94_Stub(int a0, void *a1)
+{
+}
+// STUB(0x00531e40, 140 bytes) FUN_00531e40 - ref: undefined4 * FUN_00531e40(undefined4 *
+// param_1, undefined4 * param_2, undefined4 * param_3)
+void *FUN_00531e40_Stub(void *a0, void *a1, void *a2)
+{
+    return 0;
+}
+// STUB(0x0053260c, 140 bytes) FUN_0053260c - ref: undefined4 * FUN_0053260c(undefined4 *
+// param_1, undefined4 * param_2, undefined4 * param_3)
+void *FUN_0053260c_Stub(void *a0, void *a1, void *a2)
+{
+    return 0;
+}
+#pragma warn.8057
+// END GENERATED STUBS

@@ -202,6 +202,10 @@ def main() -> int:
         bad = []
         benign = []
         for name in re.findall(r"(?m)^(\S+)\s+proc\s+near", txt):
+            # Placeholders from scripts/genstubs.py: not reconstructions, so they
+            # are excluded from the score (track.py reports them as `stubbed`).
+            if "_Stub" in name:
+                continue
             if not any(name.lower().startswith(p) for p in own):
                 continue                       # RTL/VCL/std, not our source
             ins, _, _ = ca.parse_our(asm, name)

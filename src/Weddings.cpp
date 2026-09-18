@@ -410,3 +410,13 @@ WeddingController::AppendEncoded(WeddingController *self, unsigned int value, in
     String result(self->encode_scratch, width);
     return result;
 }
+
+// BEGIN GENERATED STUBS (scripts/genstubs.py)
+#pragma warn - 8057
+// STUB(0x0052efa0, 4371 bytes) Weddings_Tick - ref: undefined Weddings_Tick(Weddings *
+// this)
+void Weddings_Tick_Stub(void *a0)
+{
+}
+#pragma warn.8057
+// END GENERATED STUBS

@@ -88,6 +88,22 @@ def load_inventory(path):
     return rows
 
 
+def load_stub_registry(path):
+    """(unit, start) of functions that have a generated placeholder."""
+    seen = set()
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as fh:
+            next(fh, None)
+            for line in fh:
+                p = line.rstrip("\n").split("\t")
+                if len(p) >= 2:
+                    try:
+                        seen.add((p[0], int(p[1], 16)))
+                    except ValueError:
+                        pass
+    return seen
+
+
 def load_stub_addrs(path):
     """Every module boundary: the Initialize stub and its Finalize at +0x10."""
     addrs = set()
@@ -144,6 +160,8 @@ def our_functions(ca, list_canon, asm_dir, units):
             continue
         txt = open(path, encoding="latin1").read()
         for name in re.findall(r"(?m)^(\S+)\s+proc\s+near", txt):
+            if "_Stub" in name:
+                continue          # placeholders from scripts/genstubs.py
             ins, _calls, _mk = ca.parse_our(path, name)
             if ins is None:
                 continue
@@ -304,7 +322,7 @@ def summary(rows):
              f"library members       : {sum(1 for r in rows if r['kind']=='library')}",
              f"module stubs          : {sum(1 for r in rows if r['kind']=='stub')}",
              f"byte-exact            : {done}/{total} ({pct:.1f}% of app+comdat)"]
-    for k in ("mismatched", "unimplemented", "deferred"):
+    for k in ("mismatched", "stubbed", "unimplemented", "deferred"):
         if st[k]:
             lines.append(f"  {k:20}: {st[k]}")
     return lines
@@ -326,16 +344,18 @@ def readme_block(rows):
            f"({total} app + compiler COMDATs; {lib} library members excluded).",
            "", "```mermaid", "pie showData",
            "    title Application functions by status"]
-    for k in ("byte-exact", "mismatched", "unimplemented", "deferred"):
+    for k in ("byte-exact", "mismatched", "stubbed", "unimplemented",
+              "deferred"):
         if st[k]:
             out.append(f'    "{k}" : {st[k]}')
     out += ["```", "",
-            "| Unit | functions | byte-exact | mismatched | unimplemented |",
-            "| --- | ---: | ---: | ---: | ---: |"]
+            "| Unit | functions | byte-exact | stubbed | mismatched | unimplemented |",
+            "| --- | ---: | ---: | ---: | ---: | ---: |"]
     for unit in sorted(per, key=lambda u: (-sum(per[u].values()), u)):
         t = sum(per[unit].values())
         out.append(f"| {unit} | {t} | {per[unit]['byte-exact']} | "
-                   f"{per[unit]['mismatched']} | {per[unit]['unimplemented']} |")
+                   f"{per[unit]['stubbed']} | {per[unit]['mismatched']} | "
+                   f"{per[unit]['unimplemented']} |")
     out += ["", READ_END]
     return "\n".join(out)
 
@@ -354,6 +374,8 @@ def main() -> int:
     ap.add_argument("--inventory", default="analysis/target/unit_functions.tsv")
     ap.add_argument("--modules", default="analysis/target/modules.tsv")
     ap.add_argument("--kinds-cache", default="analysis/target/function_kinds.tsv")
+    ap.add_argument("--stubs", default="analysis/target/stubs.tsv",
+                    help="registry written by scripts/genstubs.py")
     ap.add_argument("--reclassify", action="store_true")
     ap.add_argument("--ref", default="GameServer.exe")
     ap.add_argument("--asm-dir", default="build")
@@ -464,6 +486,14 @@ def main() -> int:
                 r["status"], r["source_name"] = "n/a", ""
 
     _extend_library_runs(rows)
+
+    # A generated placeholder is not a reconstruction, but it is more than
+    # "nothing yet": report it as `stubbed` so the sheet distinguishes the two.
+    stubbed = load_stub_registry(args.stubs)
+    for r in rows:
+        if (r["unit"], r["start"]) in stubbed and r["status"] in (
+                "unimplemented", "mismatched"):
+            r["status"] = "stubbed"
 
     # A function we have reproduced is application code by definition; never let
     # the (heuristic) library vote hide it.

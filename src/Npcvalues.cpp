@@ -479,3 +479,24 @@ int NpcValues::DecodeNumber(String value)
     }
     return result;
 }
+
+// BEGIN GENERATED STUBS (scripts/genstubs.py)
+#pragma warn - 8057
+// STUB(0x004a87a0, 36 bytes) FUN_004a87a0 - ref: undefined FUN_004a87a0(int param_1)
+void FUN_004a87a0_Stub(int a0)
+{
+}
+// STUB(0x004a87c4, 91 bytes) FUN_004a87c4 - ref: undefined4 * FUN_004a87c4(int param_1,
+// undefined4 * param_2, undefined4 * param_3)
+void *FUN_004a87c4_Stub(int a0, void *a1, void *a2)
+{
+    return 0;
+}
+// STUB(0x004a8820, 53 bytes) FUN_004a8820 - ref: undefined4 * FUN_004a8820(undefined4 *
+// param_1, undefined4 * param_2, undefined4 * param_3)
+void *FUN_004a8820_Stub(void *a0, void *a1, void *a2)
+{
+    return 0;
+}
+#pragma warn.8057
+// END GENERATED STUBS

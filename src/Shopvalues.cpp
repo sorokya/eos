@@ -447,3 +447,25 @@ int ShopValues::DecodeNumber(String value)
     }
     return result;
 }
+
+// BEGIN GENERATED STUBS (scripts/genstubs.py)
+#pragma warn - 8057
+// STUB(0x004b2598, 197 bytes) FUN_004b2598 - ref: undefined FUN_004b2598(undefined4
+// param_1, undefined4 * param_2)
+void FUN_004b2598_Stub(int a0, void *a1)
+{
+}
+// STUB(0x004b2660, 170 bytes) FUN_004b2660 - ref: undefined4 * FUN_004b2660(undefined4 *
+// param_1, undefined4 * param_2, undefined4 * param_3)
+void *FUN_004b2660_Stub(void *a0, void *a1, void *a2)
+{
+    return 0;
+}
+// STUB(0x004b39c4, 170 bytes) FUN_004b39c4 - ref: undefined4 * FUN_004b39c4(undefined4 *
+// param_1, undefined4 * param_2, undefined4 * param_3)
+void *FUN_004b39c4_Stub(void *a0, void *a1, void *a2)
+{
+    return 0;
+}
+#pragma warn.8057
+// END GENERATED STUBS

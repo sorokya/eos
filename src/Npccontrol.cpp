@@ -240,3 +240,23 @@ NpcController::Packet_AppendEncoded(NpcController *context, unsigned int value, 
     String encoded((char *)context->encode_scratch, width);
     return encoded;
 }
+
+// BEGIN GENERATED STUBS (scripts/genstubs.py)
+#pragma warn - 8057
+// STUB(0x004ae45c, 6064 bytes) NpcControl_Tick - ref: void NpcControl_Tick(Npccontrol *
+// npc_control)
+void NpcControl_Tick_Stub(void *a0)
+{
+}
+// STUB(0x004afd20, 1648 bytes) Npc_AttackPlayer - ref: void Npc_AttackPlayer(Npccontrol *
+// mc, Npc * npc, Player * player)
+void Npc_AttackPlayer_Stub(void *a0, void *a1, void *a2)
+{
+}
+// STUB(0x004b06b0, 1942 bytes) Npc_ChaseTarget - ref: void Npc_ChaseTarget(Npccontrol *
+// mc, Npc * npc, Player * player, int map_id, int map_w, int map_h)
+void Npc_ChaseTarget_Stub(void *a0, void *a1, void *a2, int a3, int a4, int a5)
+{
+}
+#pragma warn.8057
+// END GENERATED STUBS
