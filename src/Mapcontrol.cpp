@@ -13,6 +13,8 @@
 int Mapcontrol_GetCount(Mapcontrol *map_control);
 MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 
+typedef std::vector<ChestItem *> GroundItemPtrVector;
+
 Mapcontrol::Mapcontrol(Settings *settings)
 {
     encode_scratch = (char *)operator new(8);
@@ -711,6 +713,135 @@ void Mapcontrol::Mapcontrol_AddChestItem(Mapcontrol *map_control,
     }
 }
 
+ItemStack Mapcontrol::Mapcontrol_TakeChestItem(
+    Mapcontrol *map_control, int map_id, unsigned int x, unsigned int y, int item_id)
+{
+    ItemStack result;
+    result.id = -1;
+    result.amount = -1;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    {
+        for (std::vector<MapChest>::iterator chest_iter =
+                 Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.begin();
+             chest_iter !=
+             Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.end();
+             chest_iter++)
+        {
+            if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
+            {
+                bool found = false;
+                for (std::vector<MapItem>::iterator item_iter = chest_iter->slots.begin();
+                     item_iter != chest_iter->slots.end() && !found;
+                     item_iter++)
+                {
+                    if (item_iter->item_id == item_id && !found)
+                    {
+                        if (item_iter->item_present != false)
+                        {
+                            found = true;
+                            result.id = item_iter->item_id;
+                            result.amount = item_iter->amount;
+                            if (item_iter->respawn_enabled != false)
+                            {
+                                item_iter->item_present = false;
+                                item_iter->respawn_countdown = item_iter->respawn_delay;
+                                item_iter->amount = 0;
+                            }
+                            else
+                            {
+                                chest_iter->slots.erase(item_iter);
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+int Mapcontrol::Mapcontrol_AddGroundItem(Mapcontrol *map_control,
+                                         int map_id,
+                                         unsigned int item_id,
+                                         int x,
+                                         int y,
+                                         unsigned int amount,
+                                         int owner_player_id,
+                                         unsigned short protect_ticks)
+{
+    int item_index = -1;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control) && x >= 0 && y >= 0 &&
+        x < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->width &&
+        y < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->height)
+    {
+        ChestItem *item = new ChestItem();
+        item->index = Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id;
+        item->item_id = item_id;
+        item->x = x;
+        item->y = y;
+        item->amount = amount;
+        item->drop_time = DateTimeToTimeStamp(Now());
+        item->owner_player_id = owner_player_id;
+        item->protect_ticks = protect_ticks;
+        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id == 15000)
+            Mapcontrol_PurgeGroundItemsInRange(map_control, map_id, 15000, 30000);
+        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id == 30000)
+            Mapcontrol_PurgeGroundItemsInRange(map_control, map_id, 30000, 45000);
+        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id == 45000)
+            Mapcontrol_PurgeGroundItemsInRange(map_control, map_id, 45000, 60000);
+        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id == 60000)
+            Mapcontrol_PurgeGroundItemsInRange(map_control, map_id, 0, 15000);
+        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id >= 60000)
+            Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id = 0;
+        ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
+             ->ground_items)
+            ->insert(
+                ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
+                     ->ground_items)
+                    ->end(),
+                item);
+        item_index = Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id;
+        Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id =
+            Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id + 1;
+    }
+    return item_index;
+}
+
+void Mapcontrol::Mapcontrol_PurgeGroundItemsInRange(Mapcontrol *map_control,
+                                                    int map_id,
+                                                    int range_low,
+                                                    int range_high)
+{
+    GroundItemPtrVector::iterator cursor =
+        ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
+             ->ground_items)
+            ->begin();
+    while (cursor !=
+           ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
+                ->ground_items)
+               ->end())
+    {
+        if ((*cursor)->index < range_low)
+        {
+            cursor++;
+        }
+        else if ((*cursor)->index > range_high)
+        {
+            cursor++;
+        }
+        else
+        {
+            ChestItem *item = *cursor;
+            cursor =
+                ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
+                     ->ground_items)
+                    ->erase(cursor);
+            delete item;
+        }
+    }
+}
+
 MapItem *Mapcontrol::Itemchest_GetSlot(std::vector<MapItem> *slot_list, int slot)
 {
     return slot_list->begin() + slot;
@@ -1018,24 +1149,152 @@ int FUN_0047cd28(int map_control, int map_id, unsigned int x, unsigned int y)
     return result;
 }
 
+MapObject Map_GetTileSpecObject(Mapcontrol *map_control, int map_id, int x, int y)
+{
+    map_id <= 0 ? (map_id == 1) : 0;
+    std::vector<MapObject>::iterator spec_iter =
+        Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.begin();
+    while (spec_iter != Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.end())
+    {
+        if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
+            break;
+        spec_iter++;
+    }
+    return *spec_iter;
+}
+
+bool FUN_004879b0(int map_control, int map_id, int x, int y, int player_id)
+{
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
+    {
+        int count = 0;
+        for (GroundItemPtrVector::iterator cursor =
+                 ((GroundItemPtrVector *)&Mapcontrol_GetByIndex((Mapcontrol *)map_control,
+                                                                map_id - 1)
+                      ->ground_items)
+                     ->begin();
+             cursor != ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(
+                            (Mapcontrol *)map_control, map_id - 1)
+                            ->ground_items)
+                           ->end();
+             cursor++)
+        {
+            if ((*cursor)->x == x && (*cursor)->y == y)
+            {
+                if ((*cursor)->owner_player_id == player_id)
+                {
+                    count = count + 1;
+                    if (count > 9)
+                        return 0;
+                }
+                else
+                {
+                    TTimeStamp now = DateTimeToTimeStamp(Now());
+                    int elapsed = now.Date - (*cursor)->drop_time.Date;
+                    int ms = now.Time - (*cursor)->drop_time.Time;
+                    elapsed = ms / 1000 + elapsed * 0x15180;
+                    if ((*cursor)->protect_ticks > elapsed)
+                        return 0;
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+GroundItemInfo FUN_00487ac0(int map_control, int map_id, int index, int player_id)
+{
+    GroundItemInfo result;
+    result.x = -1;
+    result.y = -1;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
+    {
+        for (GroundItemPtrVector::iterator cursor =
+                 ((GroundItemPtrVector *)&Mapcontrol_GetByIndex((Mapcontrol *)map_control,
+                                                                map_id - 1)
+                      ->ground_items)
+                     ->begin();
+             cursor != ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(
+                            (Mapcontrol *)map_control, map_id - 1)
+                            ->ground_items)
+                           ->end();
+             cursor++)
+        {
+            if ((*cursor)->index == index)
+            {
+                TTimeStamp now = DateTimeToTimeStamp(Now());
+                int elapsed = now.Date - (*cursor)->drop_time.Date;
+                int ms = now.Time - (*cursor)->drop_time.Time;
+                elapsed = ms / 1000 + elapsed * 0x15180;
+                if ((*cursor)->protect_ticks > elapsed &&
+                    (*cursor)->owner_player_id != player_id &&
+                    (unsigned int)(*cursor)->owner_player_id > 0)
+                {
+                    result.x = -2;
+                }
+                else
+                {
+                    result.x = (*cursor)->x;
+                    result.y = (*cursor)->y;
+                    result.item_id = (*cursor)->item_id;
+                    result.amount = (*cursor)->amount;
+                }
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+String FUN_0047badc(Mapcontrol *map_control, int map_id, unsigned int x, unsigned int y)
+{
+    String result = "x";
+    std::vector<MapChest>::iterator chest_iter;
+    std::vector<MapItem>::iterator item_iter;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    {
+        for (chest_iter =
+                 Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.begin();
+             chest_iter !=
+             Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.end();
+             chest_iter++)
+        {
+            if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
+            {
+                result = "";
+                for (item_iter = chest_iter->slots.begin();
+                     item_iter != chest_iter->slots.end();
+                     item_iter++)
+                {
+                    if (item_iter->item_present != false)
+                    {
+                        result.Insert(Mapcontrol::Mapcontrol_AppendEncoded(
+                                          map_control, item_iter->item_id, 2),
+                                      result.Length() + 1);
+                        result.Insert(Mapcontrol::Mapcontrol_AppendEncoded(
+                                          map_control, item_iter->amount, 3),
+                                      result.Length() + 1);
+                    }
+                }
+                break;
+            }
+        }
+    }
+    return result;
+}
+
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
+// STUB(0x00482470, 836 bytes) Map_ReadRawFile - ref: AnsiString *
+// Map_ReadRawFile(AnsiString * out_data, Mapcontrol * map_control, int map_id)
+void *Map_ReadRawFile_Stub(void *a0, void *a1, int a2)
+{
+    return 0;
+}
 // STUB(0x0047af68, 80 bytes) FUN_0047af68 - ref: undefined FUN_0047af68(int param_1, byte
 // param_2)
 void FUN_0047af68_Stub(int a0, unsigned char a1)
 {
-}
-// STUB(0x0047badc, 511 bytes) FUN_0047badc - ref: int * FUN_0047badc(int * param_1, int
-// param_2, int param_3, uint param_4, uint param_5)
-void *FUN_0047badc_Stub(void *a0, int a1, int a2, unsigned int a3, unsigned int a4)
-{
-    return 0;
-}
-// STUB(0x0047c114, 210 bytes) FUN_0047c114 - ref: ushort * FUN_0047c114(ushort * param_1,
-// int param_2, int param_3, uint param_4, uint param_5)
-void *FUN_0047c114_Stub(void *a0, int a1, int a2, unsigned int a3, unsigned int a4)
-{
-    return 0;
 }
 // STUB(0x0047e30c, 248 bytes) FUN_0047e30c - ref: undefined FUN_0047e30c(undefined4
 // param_1, undefined4 * param_2)
@@ -1549,12 +1808,6 @@ void *FUN_00482444_Stub(void *a0, void *a1, void *a2)
 {
     return 0;
 }
-// STUB(0x00482470, 836 bytes) Map_ReadRawFile - ref: AnsiString *
-// Map_ReadRawFile(AnsiString * out_data, Mapcontrol * map_control, int map_id)
-void *Map_ReadRawFile_Stub(void *a0, void *a1, int a2)
-{
-    return 0;
-}
 // STUB(0x004827c8, 106 bytes) FUN_004827c8 - ref: undefined1 FUN_004827c8(int param_1,
 // uint param_2)
 char FUN_004827c8_Stub(int a0, unsigned int a1)
@@ -1666,14 +1919,6 @@ bool Mapcontrol_LoadMap_Stub(void *a0, int a1)
 {
     return 0;
 }
-// STUB(0x0048707c, 667 bytes) Mapcontrol_AddGroundItem - ref: undefined4
-// Mapcontrol_AddGroundItem(Mapcontrol * map_control, int map_id, uint item_id, int x, int
-// y, uint amount, int owner_player_id, ushort protect_ticks)
-int Mapcontrol_AddGroundItem_Stub(
-    void *a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7)
-{
-    return 0;
-}
 // STUB(0x004873c8, 19 bytes) FUN_004873c8 - ref: undefined FUN_004873c8(undefined4
 // param_1, undefined4 param_2, undefined4 * param_3)
 void FUN_004873c8_Stub(int a0, int a1, void *a2)
@@ -1694,43 +1939,6 @@ int FUN_00487638_Stub(void *a0, void *a1, int a2)
 // STUB(0x004876c0, 195 bytes) FUN_004876c0 - ref: undefined FUN_004876c0(int param_1, int
 // param_2, int param_3)
 void FUN_004876c0_Stub(int a0, int a1, int a2)
-{
-}
-// STUB(0x00487784, 101 bytes) FUN_00487784 - ref: undefined4 * FUN_00487784(int param_1,
-// undefined4 * param_2)
-void *FUN_00487784_Stub(int a0, void *a1)
-{
-    return 0;
-}
-// STUB(0x004877ec, 346 bytes) Mapcontrol_TakeChestItem - ref: ItemStack *
-// Mapcontrol_TakeChestItem(ItemStack * out, Mapcontrol * map_control, int map_id, uint x,
-// uint y, int item_id)
-void *Mapcontrol_TakeChestItem_Stub(void *a0, void *a1, int a2, int a3, int a4, int a5)
-{
-    return 0;
-}
-// STUB(0x00487948, 101 bytes) FUN_00487948 - ref: undefined4 * FUN_00487948(int param_1,
-// undefined4 * param_2)
-void *FUN_00487948_Stub(int a0, void *a1)
-{
-    return 0;
-}
-// STUB(0x004879b0, 269 bytes) FUN_004879b0 - ref: undefined4 FUN_004879b0(int param_1,
-// int param_2, int param_3, int param_4, int param_5)
-int FUN_004879b0_Stub(int a0, int a1, int a2, int a3, int a4)
-{
-    return 0;
-}
-// STUB(0x00487ac0, 340 bytes) FUN_00487ac0 - ref: undefined4 * FUN_00487ac0(undefined4 *
-// param_1, int param_2, int param_3, int param_4, int param_5)
-void *FUN_00487ac0_Stub(void *a0, int a1, int a2, int a3, int a4)
-{
-    return 0;
-}
-// STUB(0x00487c38, 188 bytes) Mapcontrol_PurgeGroundItemsInRange - ref: undefined
-// Mapcontrol_PurgeGroundItemsInRange(Mapcontrol * map_control, int map_id, int range_low,
-// int range_high)
-void Mapcontrol_PurgeGroundItemsInRange_Stub(void *a0, int a1, int a2, int a3)
 {
 }
 #pragma warn.8057

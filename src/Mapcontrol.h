@@ -20,6 +20,32 @@ struct MapCoord
     }
 };
 
+struct ItemStack
+{
+    struct
+    {
+        int id;
+        int amount;
+    };
+    ItemStack()
+    {
+    }
+};
+
+struct GroundItemInfo
+{
+    struct
+    {
+        int x;
+        int y;
+        int item_id;
+        int amount;
+    };
+    GroundItemInfo()
+    {
+    }
+};
+
 // Layout recovered from the reference constructor (Mapcontrol unit,
 // 0x47ad3c..0x487d38). The constructor runs the std::vector<MapContainer>
 // default constructor first (member auto-init), then allocates the 8-byte
@@ -99,6 +125,20 @@ class Mapcontrol
                                         unsigned int y,
                                         int item_id,
                                         int amount);
+    static ItemStack Mapcontrol_TakeChestItem(
+        Mapcontrol *map_control, int map_id, unsigned int x, unsigned int y, int item_id);
+    static int Mapcontrol_AddGroundItem(Mapcontrol *map_control,
+                                        int map_id,
+                                        unsigned int item_id,
+                                        int x,
+                                        int y,
+                                        unsigned int amount,
+                                        int owner_player_id,
+                                        unsigned short protect_ticks);
+    static void Mapcontrol_PurgeGroundItemsInRange(Mapcontrol *map_control,
+                                                   int map_id,
+                                                   int range_low,
+                                                   int range_high);
     static int Pub_DecodeNumber_Map(Mapcontrol *map_control, String value);
     static String
     Mapcontrol_AppendEncoded(Mapcontrol *map_control, unsigned int value, int width);

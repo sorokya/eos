@@ -137,8 +137,7 @@ class Player
     short class_accuracy;                     // +0x15a
     short class_evasion;                      // +0x15c
     short class_armor;                        // +0x15e
-    char pad_160[2];                          // +0x160
-    short element_resistances[6];             // +0x162
+    short element_resistances[7];             // +0x160
     char pad_16e[2];                          // +0x16e
     int equip_bonus_hp;                       // +0x170
     int equip_bonus_tp;                       // +0x174
@@ -205,53 +204,60 @@ class Player
     String skillblob;                         // +0x330
     String quest_cache;                       // +0x334
     String quest_blob;                        // +0x338
-    int character_slot_0;                     // +0x33c
-    int character_slot_1;                     // +0x340
-    int character_slot_2;                     // +0x344
-    char stats_dirty;                         // +0x348
-    bool dead;                                // +0x349
-    char pad_34a[2];                          // +0x34a
-    int last_client_walk_tick;                // +0x34c
-    int sync_base_ahead;                      // +0x350
-    int sync_base_behind;                     // +0x354
-    TTimeStamp last_pass_ms;                  // +0x358
-    int ghost_walk_tokens;                    // +0x360
-    int ghost_token_ticks;                    // +0x364
-    int attack_tokens;                        // +0x368
-    int attack_token_ticks;                   // +0x36c
-    int queued_spell_id;                      // +0x370
-    int expected_cast_timestamp;              // +0x374
-    int field_0x378;                          // +0x378
-    int field_0x37c;                          // +0x37c
-    int drop_counter;                         // +0x380
-    int walk_tick;                            // +0x384
-    int field_0x388;                          // +0x388
-    std::vector<PlayerCommand> action_queue;  // +0x38c
-    char fast_action;                         // +0x3ac
-    char flush_queue;                         // +0x3ad
-    char pad_3ae[2];                          // +0x3ae
-    void *socket;                             // +0x3b0 (socket object pointer)
-    char pad_3b4[12];                         // +0x3b4
-    String null_string;                       // +0x3c0
-    int item_change_id;                       // +0x3c4
-    int item_change_count;                    // +0x3c8
-    int item_change_remaining;                // +0x3cc
-    int item_change_amount;                   // +0x3d0
-    int equip_result;                         // +0x3d4
-    int equip_result_count;                   // +0x3d8
-    bool map_has_quakes;                      // +0x3dc
-    bool map_has_hp_drain;                    // +0x3dd
-    bool map_has_tp_drain;                    // +0x3de
-    bool map_has_spikes;                      // +0x3df
-    int idle_ticks;                           // +0x3e0
-    bool on_chair;                            // +0x3e4
-    bool sitting;                             // +0x3e5
-    bool hidden;                              // +0x3e6
-    bool hide_online;                         // +0x3e7
-    bool cheater_flag;                        // +0x3e8
-    bool global_chat;                         // +0x3e9
-    char pad_3ea[6];                          // +0x3ea
-    TDateTime enter_game_timestamp;           // +0x3f0
+    union
+    {
+        struct
+        {
+            Player *character_slot_0; // +0x33c
+            Player *character_slot_1; // +0x340
+            Player *character_slot_2; // +0x344
+        };
+        Player *character_slots[3]; // +0x33c
+    };
+    char stats_dirty;                        // +0x348
+    bool dead;                               // +0x349
+    char pad_34a[2];                         // +0x34a
+    int last_client_walk_tick;               // +0x34c
+    int sync_base_ahead;                     // +0x350
+    int sync_base_behind;                    // +0x354
+    TTimeStamp last_pass_ms;                 // +0x358
+    int ghost_walk_tokens;                   // +0x360
+    int ghost_token_ticks;                   // +0x364
+    int attack_tokens;                       // +0x368
+    int attack_token_ticks;                  // +0x36c
+    int queued_spell_id;                     // +0x370
+    int expected_cast_timestamp;             // +0x374
+    int field_0x378;                         // +0x378
+    int field_0x37c;                         // +0x37c
+    int drop_counter;                        // +0x380
+    int walk_tick;                           // +0x384
+    int field_0x388;                         // +0x388
+    std::vector<PlayerCommand> action_queue; // +0x38c
+    char fast_action;                        // +0x3ac
+    char flush_queue;                        // +0x3ad
+    char pad_3ae[2];                         // +0x3ae
+    void *socket;                            // +0x3b0 (socket object pointer)
+    char pad_3b4[12];                        // +0x3b4
+    String null_string;                      // +0x3c0
+    int item_change_id;                      // +0x3c4
+    int item_change_count;                   // +0x3c8
+    int item_change_remaining;               // +0x3cc
+    int item_change_amount;                  // +0x3d0
+    int equip_result;                        // +0x3d4
+    int equip_result_count;                  // +0x3d8
+    bool map_has_quakes;                     // +0x3dc
+    bool map_has_hp_drain;                   // +0x3dd
+    bool map_has_tp_drain;                   // +0x3de
+    bool map_has_spikes;                     // +0x3df
+    int idle_ticks;                          // +0x3e0
+    bool on_chair;                           // +0x3e4
+    bool sitting;                            // +0x3e5
+    bool hidden;                             // +0x3e6
+    bool hide_online;                        // +0x3e7
+    bool cheater_flag;                       // +0x3e8
+    bool global_chat;                        // +0x3e9
+    char pad_3ea[6];                         // +0x3ea
+    TDateTime enter_game_timestamp;          // +0x3f0
 
     Player(void *socket);
     ~Player();

@@ -8,11 +8,19 @@
 #include "Gamecontrol.h"
 #include "Itemvalues.h"
 #include "Settings.h"
+#include "Mysqlcontrols.h"
 #include "Protocol.h"
 
 #pragma package(smart_init)
 
 extern TGUI **MAINFORM;
+
+bool Walk_Execute(Server *server, Player *player, int action, String *data);
+bool Attack_Execute(Server *server, Player *player, int action, String *data);
+bool Spell_Execute(Server *server, Player *player, int action, String *data);
+bool Face_Execute(Server *server, Player *player, int action, String *data);
+bool Chair_Execute(Server *server, Player *player, int action, String *data);
+Server *Mainform_GetServer(TGUI *form);
 
 int RandRange(int max)
 {
@@ -585,6 +593,323 @@ bool Players::Players_IsAccountNameTaken(Players *self,
     return false;
 }
 
+void Players::Players_Remove(Players *self, TCustomWinSocket *socket)
+{
+    if (self->by_id[socket->SocketHandle] != 0)
+    {
+        Player *player = self->by_id[socket->SocketHandle];
+        for (int i = 0; i < 3; i++)
+        {
+            if (player->character_slots[i] != 0)
+            {
+                Player *slot = player->character_slots[i];
+                player->character_slots[i] = 0;
+                delete slot;
+            }
+        }
+        if (player->logged_in != false)
+        {
+            if (self->idle_timeout > 0)
+                self->idle_timeout = self->idle_timeout - 1;
+            Mysqlcontrols::Mysql_ExecDirect(self->mysql_controls,
+                                            player->field_0xc,
+                                            Character_BuildSaveQuery(self, player, 0));
+            player->trade_items.clear();
+            player->inventory.clear();
+            player->bank.clear();
+            player->spells.clear();
+            Player::ClearPartyRoster(player);
+            player->action_queue.clear();
+            player->quest_trackers.clear();
+            player->quest_history.clear();
+        }
+        for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
+        {
+            if ((*iter)->player_id == socket->SocketHandle)
+            {
+                self->players.erase(iter);
+                break;
+            }
+        }
+        self->by_id[socket->SocketHandle] = 0;
+        delete player;
+    }
+}
+
+#define PLAYER_UNEQUIP_SLOT(slot, graphic, set_flag)                                     \
+    if (ItemValues::Eif_GetSpecial((*MAINFORM)->item_values, player->slot) == 5)         \
+    {                                                                                    \
+        ItemValue *item =                                                                \
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->slot - 1);          \
+        if (item->element < 7)                                                           \
+            player->element_resistances[item->element] =                                 \
+                player->element_resistances[item->element] + item->element_damage;       \
+        player->min_damage -= item->min_damage;                                          \
+        player->max_damage -= item->max_damage;                                          \
+        player->accuracy -= item->accuracy;                                              \
+        player->evasion -= item->evade;                                                  \
+        player->armor -= item->armor;                                                    \
+        player->equip_bonus_hp -= item->hp;                                              \
+        player->equip_bonus_tp -= item->tp;                                              \
+        player->equip_strength_bonus -= item->strength;                                  \
+        player->equip_wisdom_bonus -= item->wisdom;                                      \
+        player->equip_intelligence_bonus -= item->intelligence;                          \
+        player->equip_agility_bonus -= item->agility;                                    \
+        player->equip_constitution_bonus -= item->constitution;                          \
+        player->equip_charisma_bonus -= item->charisma;                                  \
+        player->slot = 0;                                                                \
+        player->graphic = 0;                                                             \
+        set_flag;                                                                        \
+    }
+
+char Players::Player_UnequipAll(Players *self, Player *player)
+{
+    char changed = 0;
+    PLAYER_UNEQUIP_SLOT(weapon_item_id, weapon_graphic_id, changed = 1)
+    PLAYER_UNEQUIP_SLOT(shield_item_id, shield_graphic_id, changed = 1)
+    PLAYER_UNEQUIP_SLOT(armor_item_id, armor_graphic_id, changed = 1)
+    PLAYER_UNEQUIP_SLOT(hat_item_id, hat_graphic_id, changed = 1)
+    PLAYER_UNEQUIP_SLOT(boots_item_id, boots_graphic_id, changed = 1)
+    PLAYER_UNEQUIP_SLOT(gloves_item_id, gloves_graphic_id, )
+    PLAYER_UNEQUIP_SLOT(accessory_item_id, accessory_graphic_id, )
+    PLAYER_UNEQUIP_SLOT(belt_item_id, belt_graphic_id, )
+    PLAYER_UNEQUIP_SLOT(necklace_item_id, necklace_graphic_id, )
+    PLAYER_UNEQUIP_SLOT(ring1_item_id, ring1_graphic_id, )
+    PLAYER_UNEQUIP_SLOT(ring2_item_id, ring2_graphic_id, )
+    PLAYER_UNEQUIP_SLOT(armlet1_item_id, armlet1_graphic_id, )
+    PLAYER_UNEQUIP_SLOT(armlet2_item_id, armlet2_graphic_id, )
+    PLAYER_UNEQUIP_SLOT(bracer1_item_id, bracer1_graphic_id, )
+    PLAYER_UNEQUIP_SLOT(bracer2_item_id, bracer2_graphic_id, )
+    return changed;
+}
+
+#undef PLAYER_UNEQUIP_SLOT
+
+#define EQUIP_SLOT_TYPE(itype, slot, graphic, result)                                    \
+    if (type == itype && player->slot <= 0)                                              \
+    {                                                                                    \
+        player->equip_result = result;                                                   \
+        player->slot = item_id;                                                          \
+        player->graphic =                                                                \
+            ItemValues::Eif_GetSpec1ForTypes((*MAINFORM)->item_values, item_id);         \
+    }
+
+#define EQUIP_SLOT_ID(itype, slot, graphic, result)                                      \
+    if (type == itype && player->slot <= 0)                                              \
+    {                                                                                    \
+        player->equip_result = result;                                                   \
+        player->slot = item_id;                                                          \
+        player->graphic = item_id;                                                       \
+    }
+
+#define EQUIP_SLOT_PAIR(itype, field, graphic, index)                                    \
+    if (type == itype && player->field <= 0 && slot == index)                            \
+    {                                                                                    \
+        player->equip_result = 1;                                                        \
+        player->field = item_id;                                                         \
+        player->graphic = item_id;                                                       \
+    }
+
+bool Players::Player_EquipItem(Players *self, Player *player, int item_id, int slot)
+{
+    player->equipment_dirty = 1;
+    player->inventory_dirty = 1;
+    player->equip_result = 0;
+    int type = ItemValues::Eif_GetType((*MAINFORM)->item_values, item_id);
+    for (PlayerInventory *iter = player->inventory.begin();
+         iter != player->inventory.end();
+         iter++)
+    {
+        if (iter->item_id == item_id)
+        {
+            if ((unsigned int)iter->amount > 0)
+            {
+                player->equip_result = 0;
+                EQUIP_SLOT_TYPE(ItemType_Weapon, weapon_item_id, weapon_graphic_id, 2)
+                EQUIP_SLOT_TYPE(ItemType_Shield, shield_item_id, shield_graphic_id, 2)
+                if (type == ItemType_Armor && player->armor_item_id <= 0 &&
+                    ItemValues::Eif_GetGender((*MAINFORM)->item_values, item_id) ==
+                        player->gender)
+                {
+                    player->equip_result = 2;
+                    player->armor_item_id = item_id;
+                    player->armor_graphic_id = ItemValues::Eif_GetSpec1ForTypes(
+                        (*MAINFORM)->item_values, item_id);
+                }
+                EQUIP_SLOT_TYPE(ItemType_Hat, hat_item_id, hat_graphic_id, 2)
+                EQUIP_SLOT_TYPE(ItemType_Boots, boots_item_id, boots_graphic_id, 2)
+                EQUIP_SLOT_ID(ItemType_Gloves, gloves_item_id, gloves_graphic_id, 2)
+                EQUIP_SLOT_ID(
+                    ItemType_Accessory, accessory_item_id, accessory_graphic_id, 1)
+                EQUIP_SLOT_ID(ItemType_Belt, belt_item_id, belt_graphic_id, 1)
+                EQUIP_SLOT_ID(ItemType_Necklace, necklace_item_id, necklace_graphic_id, 1)
+                EQUIP_SLOT_PAIR(ItemType_Ring, ring1_item_id, ring1_graphic_id, 0)
+                EQUIP_SLOT_PAIR(ItemType_Ring, ring2_item_id, ring2_graphic_id, 1)
+                EQUIP_SLOT_PAIR(ItemType_Armlet, armlet1_item_id, armlet1_graphic_id, 0)
+                EQUIP_SLOT_PAIR(ItemType_Armlet, armlet2_item_id, armlet2_graphic_id, 1)
+                EQUIP_SLOT_PAIR(ItemType_Bracer, bracer1_item_id, bracer1_graphic_id, 0)
+                EQUIP_SLOT_PAIR(ItemType_Bracer, bracer2_item_id, bracer2_graphic_id, 1)
+                if (player->equip_result > 0)
+                {
+                    iter->amount = iter->amount - 1;
+                    player->equip_result_count = iter->amount;
+                    if ((unsigned int)iter->amount < 1)
+                        player->inventory.erase(iter);
+                    return 1;
+                }
+            }
+            return 0;
+        }
+    }
+    return 0;
+}
+
+#undef EQUIP_SLOT_TYPE
+#undef EQUIP_SLOT_ID
+#undef EQUIP_SLOT_PAIR
+
+#define UNEQUIP_SLOT(itype, field, graphic, result)                                      \
+    if (type == itype && player->field == item_id)                                       \
+    {                                                                                    \
+        player->field = 0;                                                               \
+        player->graphic = 0;                                                             \
+        player->equip_result = result;                                                   \
+    }
+
+#define UNEQUIP_SLOT_PAIR(itype, field, graphic, index)                                  \
+    if (type == itype && player->field == item_id && slot == index)                      \
+    {                                                                                    \
+        player->field = 0;                                                               \
+        player->graphic = 0;                                                             \
+        player->equip_result = 1;                                                        \
+    }
+
+bool Players::Player_UnequipItem(Players *self, Player *player, int item_id, int slot)
+{
+    player->equipment_dirty = 1;
+    player->inventory_dirty = 1;
+    player->equip_result = 0;
+    int type = ItemValues::Eif_GetType((*MAINFORM)->item_values, item_id);
+    UNEQUIP_SLOT(ItemType_Weapon, weapon_item_id, weapon_graphic_id, 2)
+    UNEQUIP_SLOT(ItemType_Shield, shield_item_id, shield_graphic_id, 2)
+    UNEQUIP_SLOT(ItemType_Armor, armor_item_id, armor_graphic_id, 2)
+    UNEQUIP_SLOT(ItemType_Hat, hat_item_id, hat_graphic_id, 2)
+    UNEQUIP_SLOT(ItemType_Boots, boots_item_id, boots_graphic_id, 2)
+    UNEQUIP_SLOT(ItemType_Gloves, gloves_item_id, gloves_graphic_id, 1)
+    UNEQUIP_SLOT(ItemType_Accessory, accessory_item_id, accessory_graphic_id, 1)
+    UNEQUIP_SLOT(ItemType_Belt, belt_item_id, belt_graphic_id, 1)
+    UNEQUIP_SLOT(ItemType_Necklace, necklace_item_id, necklace_graphic_id, 1)
+    UNEQUIP_SLOT_PAIR(ItemType_Ring, ring1_item_id, ring1_graphic_id, 0)
+    UNEQUIP_SLOT_PAIR(ItemType_Ring, ring2_item_id, ring2_graphic_id, 1)
+    UNEQUIP_SLOT_PAIR(ItemType_Armlet, armlet1_item_id, armlet1_graphic_id, 0)
+    UNEQUIP_SLOT_PAIR(ItemType_Armlet, armlet2_item_id, armlet2_graphic_id, 1)
+    UNEQUIP_SLOT_PAIR(ItemType_Bracer, bracer1_item_id, bracer1_graphic_id, 0)
+    UNEQUIP_SLOT_PAIR(ItemType_Bracer, bracer2_item_id, bracer2_graphic_id, 1)
+    if (player->equip_result > 0)
+    {
+        for (PlayerInventory *iter = player->inventory.begin();
+             iter != player->inventory.end();
+             iter++)
+        {
+            if (iter->item_id == item_id)
+            {
+                iter->amount = iter->amount + 1;
+                player->equip_result_count = iter->amount;
+                return true;
+            }
+        }
+        PlayerInventory item(item_id);
+        item.amount = 1;
+        player->inventory.insert(player->inventory.end(), item);
+        player->equip_result_count = 1;
+        return true;
+    }
+    return false;
+}
+
+#undef UNEQUIP_SLOT
+#undef UNEQUIP_SLOT_PAIR
+
+void Players::Players_Tick(Players *self)
+{
+    while (self->dirty)
+    {
+        self->dirty = 0;
+        for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
+        {
+            if ((*iter)->removing)
+            {
+                ((TCustomWinSocket *)(*iter)->socket)->Close();
+                self->dirty = 1;
+                break;
+            }
+        }
+    }
+    Player **iter;
+    TTimeStamp now = DateTimeToTimeStamp(Now());
+    for (iter = self->players.begin(); iter != self->players.end(); iter++)
+    {
+        if ((*iter)->removing == false && (*iter)->flush_queue != false)
+        {
+            (*iter)->flush_queue = 0;
+            (*iter)->action_queue.clear();
+            continue;
+        }
+        if ((*iter)->removing)
+            continue;
+        if ((*iter)->action_queue.size() <= 0)
+            continue;
+        int delta = now.Time - (*iter)->walk_tick;
+        if (delta > 7500000)
+            delta = 300;
+        if (delta < 300)
+        {
+            if (delta < 100)
+                continue;
+            if ((*iter)->fast_action == 0)
+                continue;
+        }
+        Server *server = Mainform_GetServer(*MAINFORM);
+        (*iter)->flush_queue = 0;
+        (*iter)->fast_action = 0;
+        if ((*iter)->action_queue[0].action == 6)
+            Walk_Execute(server,
+                         *iter,
+                         (*iter)->action_queue[0].arg,
+                         &(*iter)->action_queue[0].text);
+        if ((*iter)->action_queue[0].action == 11)
+            Attack_Execute(server,
+                           *iter,
+                           (*iter)->action_queue[0].arg,
+                           &(*iter)->action_queue[0].text);
+        if ((*iter)->action_queue[0].action == 12)
+            Spell_Execute(server,
+                          *iter,
+                          (*iter)->action_queue[0].arg,
+                          &(*iter)->action_queue[0].text);
+        if ((*iter)->action_queue[0].action == 8)
+            Chair_Execute(server,
+                          *iter,
+                          (*iter)->action_queue[0].arg,
+                          &(*iter)->action_queue[0].text);
+        if ((*iter)->action_queue[0].action == 7)
+        {
+            (*iter)->fast_action = 1;
+            Face_Execute(server,
+                         *iter,
+                         (*iter)->action_queue[0].arg,
+                         &(*iter)->action_queue[0].text);
+        }
+        if ((*iter)->flush_queue == 0)
+            (*iter)->action_queue.erase((*iter)->action_queue.begin());
+        else
+        {
+            (*iter)->flush_queue = 0;
+            (*iter)->action_queue.clear();
+        }
+    }
+}
+
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
 // STUB(0x00407b30, 80 bytes) FUN_00407b30 - ref: undefined FUN_00407b30(int param_1, byte
@@ -592,76 +917,9 @@ bool Players::Players_IsAccountNameTaken(Players *self,
 void FUN_00407b30_Stub(int a0, unsigned char a1)
 {
 }
-// STUB(0x00407b80, 934 bytes) Players_Tick - ref: void Players_Tick(Players * this)
-void Players_Tick_Stub(void *a0)
-{
-}
-// STUB(0x00407f40, 36 bytes) FUN_00407f40 - ref: undefined FUN_00407f40(int param_1)
-void FUN_00407f40_Stub(int a0)
-{
-}
-// STUB(0x00407f64, 36 bytes) FUN_00407f64 - ref: int FUN_00407f64(int param_1)
-int FUN_00407f64_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00407f88, 25 bytes) FUN_00407f88 - ref: int FUN_00407f88(int param_1, int
-// param_2)
-int FUN_00407f88_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00407fb0, 101 bytes) FUN_00407fb0 - ref: undefined4 * FUN_00407fb0(int param_1,
-// undefined4 * param_2)
-void *FUN_00407fb0_Stub(int a0, void *a1)
-{
-    return 0;
-}
-// STUB(0x00408024, 92 bytes) FUN_00408024 - ref: undefined4 * FUN_00408024(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-void *FUN_00408024_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00408098, 88 bytes) FUN_00408098 - ref: undefined4 * FUN_00408098(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_00408098_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
 // STUB(0x004081c8, 381 bytes) FUN_004081c8 - ref: undefined4 FUN_004081c8(Players *
 // players, int socket)
 int FUN_004081c8_Stub(void *a0, int a1)
-{
-    return 0;
-}
-// STUB(0x0040894c, 510 bytes) FUN_0040894c - ref: undefined FUN_0040894c(Players *
-// players, int param_2)
-void FUN_0040894c_Stub(void *a0, int a1)
-{
-}
-// STUB(0x00408b4c, 36 bytes) FUN_00408b4c - ref: undefined FUN_00408b4c(ItemStackVector *
-// param_1)
-void FUN_00408b4c_Stub(void *a0)
-{
-}
-// STUB(0x00408b70, 36 bytes) FUN_00408b70 - ref: undefined FUN_00408b70(int param_1)
-void FUN_00408b70_Stub(int a0)
-{
-}
-// STUB(0x00408b94, 36 bytes) FUN_00408b94 - ref: undefined FUN_00408b94(int param_1)
-void FUN_00408b94_Stub(int a0)
-{
-}
-// STUB(0x00408bb8, 101 bytes) FUN_00408bb8 - ref: undefined4 * FUN_00408bb8(int param_1,
-// undefined4 * param_2)
-void *FUN_00408bb8_Stub(int a0, void *a1)
-{
-    return 0;
-}
-// STUB(0x00408c38, 91 bytes) FUN_00408c38 - ref: undefined4 *
-// FUN_00408c38(ItemStackVector * param_1, ItemStack * param_2, ItemStack * param_3)
-void *FUN_00408c38_Stub(void *a0, void *a1, void *a2)
 {
     return 0;
 }
@@ -704,18 +962,6 @@ void *FUN_00408e88_Stub(void *a0, void *a1, void *a2)
 // Character_BuildSaveQuery(AnsiString * out_str, Players * players, Player * player, int
 // flags)
 void *Character_BuildSaveQuery_Stub(void *a0, void *a1, void *a2, int a3)
-{
-    return 0;
-}
-// STUB(0x0040cd10, 1231 bytes) FUN_0040cd10 - ref: undefined4 FUN_0040cd10(undefined4
-// param_1, int param_2, int param_3, int param_4)
-int FUN_0040cd10_Stub(int a0, int a1, int a2, int a3)
-{
-    return 0;
-}
-// STUB(0x0040d248, 1177 bytes) FUN_0040d248 - ref: undefined4 FUN_0040d248(undefined4
-// param_1, int param_2, int param_3, int param_4)
-int FUN_0040d248_Stub(int a0, int a1, int a2, int a3)
 {
     return 0;
 }
@@ -773,12 +1019,6 @@ void *FUN_0040ea28_Stub(int a0, void *a1)
 // param_1, int param_2)
 void FUN_0040ea90_Stub(int a0, int a1)
 {
-}
-// STUB(0x0040eaa4, 5213 bytes) FUN_0040eaa4 - ref: undefined1 FUN_0040eaa4(undefined4
-// param_1, int param_2)
-char FUN_0040eaa4_Stub(int a0, int a1)
-{
-    return 0;
 }
 // STUB(0x00410dac, 11 bytes) FUN_00410dac - ref: undefined4 FUN_00410dac(int param_1)
 int FUN_00410dac_Stub(int a0)

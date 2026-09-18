@@ -11,6 +11,9 @@
 class Settings;
 class Mysqlcontrols;
 class Server;
+class Players;
+
+String Character_BuildSaveQuery(Players *players, Player *player, int flag);
 
 // Player manager. Layout recovered from the reference (Players unit,
 // 0x407948..0x410de4): a std::vector<Player *> at +0, the 100000-entry
@@ -77,6 +80,8 @@ class Players
                                            String guild_tag);
     static bool
     Players_IsAccountNameTaken(Players *self, String account_name, int player_id);
+    static char Player_UnequipAll(Players *self, Player *player);
+    static bool Player_EquipItem(Players *self, Player *player, int item_id, int slot);
+    static bool Player_UnequipItem(Players *self, Player *player, int item_id, int slot);
 };
-
 #endif

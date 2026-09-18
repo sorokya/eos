@@ -17,6 +17,7 @@
 #include "Innvalues.h"
 #include "Mapcontrol.h"
 #include "Mapobject.h"
+#include "Classvalues.h"
 #include "Protocol.h"
 
 #pragma package(smart_init)
@@ -503,10 +504,12 @@ void Player_Warp(Server *server,
     player->warp_y = coords.y;
     if (do_leave)
     {
-        String out = EO_EncodeNumber(server, player->warp_state, 1) +
-                     EO_EncodeNumber(server, player->player_id, 2);
-        Server_BroadcastNearby(
-            server, player, PacketAction_Remove, PacketFamily_Avatar, out);
+        Server_BroadcastNearby(server,
+                               player,
+                               PacketAction_Remove,
+                               PacketFamily_Avatar,
+                               EO_EncodeNumber(server, player->player_id, 2) +
+                                   EO_EncodeNumber(server, player->warp_state, 1));
         if (target_map > 0)
         {
             player->target_map = target_map;
@@ -548,22 +551,24 @@ void Player_Warp(Server *server,
                        Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid,
                        2),
                    out.Length() + 1);
-        out.Insert(EO_EncodeNumber(
-                       server,
-                       Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid1,
-                       2),
+        out.Insert(EO_EncodeNumber(server,
+                                   (unsigned short)Mapcontrol_GetByIndex(
+                                       server->map_control, target_map - 1)
+                                       ->rid1,
+                                   2),
                    out.Length() + 1);
-        out.Insert(EO_EncodeNumber(
-                       server,
-                       Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid2,
-                       2),
+        out.Insert(EO_EncodeNumber(server,
+                                   (unsigned short)Mapcontrol_GetByIndex(
+                                       server->map_control, target_map - 1)
+                                       ->rid2,
+                                   2),
                    out.Length() + 1);
-        out.Insert(
-            EO_EncodeNumber(
-                server,
-                Mapcontrol_GetByIndex(server->map_control, target_map - 1)->filesize,
-                3),
-            out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server,
+                                   (unsigned short)Mapcontrol_GetByIndex(
+                                       server->map_control, target_map - 1)
+                                       ->filesize,
+                                   3),
+                   out.Length() + 1);
         out.Insert(EO_EncodeNumber(server, player->session_id, 2), out.Length() + 1);
         Client_SendEncoded(server, player, PacketAction_Request, PacketFamily_Warp, out);
         Player_FireQuestTriggers(server, player, 0xc, old_map);
@@ -595,6 +600,78 @@ bool Player_CheckIdleWarp(Server *server, Player *player, int x, int y)
         }
     }
     return false;
+}
+
+void Player_CalculateStats(Server *server, Player *player)
+{
+    if (player->class_id < 1)
+        return;
+    ClassValue cls =
+        ClassValues::GetByIndex((*MAINFORM)->class_values, player->class_id - 1);
+    player->adj_strength = player->adj_strength + cls.str;
+    player->adj_intelligence = player->adj_intelligence + cls.intl;
+    player->adj_wisdom = player->adj_wisdom + cls.wis;
+    player->adj_agility = player->adj_agility + cls.agi;
+    player->adj_constitution = player->adj_constitution + cls.con;
+    player->adj_charisma = player->adj_charisma + cls.cha;
+    player->min_damage = player->min_damage - player->class_min_damage;
+    player->max_damage = player->max_damage - player->class_max_damage;
+    player->accuracy = player->accuracy - player->class_accuracy;
+    player->evasion = player->evasion - player->class_evasion;
+    player->armor = player->armor - player->class_armor;
+    player->class_min_damage = 0;
+    player->class_max_damage = 0;
+    player->class_accuracy = 0;
+    player->class_evasion = 0;
+    player->class_armor = 0;
+    if (cls.stat_group == 0)
+    {
+        player->class_min_damage =
+            player->class_min_damage + (short)(player->adj_strength / 3);
+        player->class_max_damage =
+            player->class_max_damage + (short)(player->adj_strength / 3);
+        player->class_accuracy =
+            player->class_accuracy + (short)(player->adj_agility / 3);
+        player->class_evasion = player->class_evasion + (short)(player->adj_agility / 5);
+        player->class_armor = player->class_armor + (short)(player->adj_constitution / 4);
+    }
+    if (cls.stat_group == 1)
+    {
+        player->class_min_damage =
+            player->class_min_damage + (short)(player->adj_strength / 5);
+        player->class_max_damage =
+            player->class_max_damage + (short)(player->adj_strength / 5);
+        player->class_accuracy =
+            player->class_accuracy + (short)(player->adj_agility / 3);
+        player->class_evasion = player->class_evasion + (short)(player->adj_agility / 3);
+        player->class_armor = player->class_armor + (short)(player->adj_constitution / 4);
+    }
+    if (cls.stat_group == 2)
+    {
+        player->class_min_damage =
+            player->class_min_damage + (short)(player->adj_intelligence / 3);
+        player->class_max_damage =
+            player->class_max_damage + (short)(player->adj_intelligence / 3);
+        player->class_accuracy = player->class_accuracy + (short)(player->adj_wisdom / 3);
+        player->class_evasion = player->class_evasion + (short)(player->adj_agility / 4);
+        player->class_armor = player->class_armor + (short)(player->adj_constitution / 5);
+    }
+    if (cls.stat_group == 3)
+    {
+        player->class_min_damage =
+            player->class_min_damage + (short)(player->adj_strength / 6);
+        player->class_max_damage =
+            player->class_max_damage + (short)(player->adj_strength / 6);
+        player->class_accuracy =
+            player->class_accuracy + (short)(player->adj_agility / 5);
+        player->class_evasion = player->class_evasion + (short)(player->adj_agility / 4);
+        player->class_armor = player->class_armor + (short)(player->adj_constitution / 5);
+    }
+    player->min_damage = player->min_damage + player->class_min_damage;
+    player->max_damage = player->max_damage + player->class_max_damage;
+    player->accuracy = player->accuracy + player->class_accuracy;
+    player->evasion = player->evasion + player->class_evasion;
+    player->armor = player->armor + player->class_armor;
 }
 
 void Player_Respawn(Server *server, Player *player)
@@ -1624,18 +1701,6 @@ void FUN_00463d40_Stub(int a0, unsigned char a1, unsigned char a2, int a3)
 // family)
 void Client_SendEncoded_Stub(void *a0, void *a1, int a2, int a3)
 {
-}
-// STUB(0x0046466c, 1487 bytes) Player_Warp - ref: void Player_Warp(Server * server,
-// Player * player, int target_map, short warp_x, short warp_y, int warp_anim, bool
-// do_leave)
-void Player_Warp_Stub(void *a0, void *a1, int a2, int a3, int a4, int a5, int a6)
-{
-}
-// STUB(0x00464d84, 1054 bytes) Player_CalculateStats - ref: undefined4
-// Player_CalculateStats(Server * server, Player * player)
-int Player_CalculateStats_Stub(void *a0, void *a1)
-{
-    return 0;
 }
 // STUB(0x004651a4, 5786 bytes) Player_ApplyEquipmentBonuses - ref: undefined
 // Player_ApplyEquipmentBonuses(Server * server, Player * player)
