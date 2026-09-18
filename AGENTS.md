@@ -153,7 +153,7 @@ the linked object set. The `-L` directories mirror the paths in `ilink32.cfg`;
 
 ### Compiler flags
 
-Three flags are required for byte fidelity, all passed by `scripts/build.sh`
+Four flags are required for byte fidelity, all passed by `scripts/build.sh`
 and `make unit`/`unit-asm` (`CFLAGS`):
 
 - **`-D__CODEGUARD__`** (CodeGuard compile-time checks). Without it bcc32 inlines
@@ -169,6 +169,13 @@ and `make unit`/`unit-asm` (`CFLAGS`):
   and leaves the exe stripped (no debug directory; characteristic `0x010e`).
 - **`-Od`** (disable optimizations). The reference is unoptimized: parameters are
   reloaded from the stack rather than cached in callee-saved registers.
+
+- **`-tWM`** (multithreaded RTL target, defines `__MT__`). The reference's
+  iostream/RTTI layouts are the multithreaded ones (`basic_streambuf` 68,
+  `basic_filebuf` 100, `basic_ofstream` 200 bytes, each carrying the
+  `_RWSTD_MULTI_THREAD` mutex) and the link uses `cw32mt.lib`; without
+  `__MT__` stdcomp.h picks the single-threaded layouts and any unit using
+  iostreams (e.g. `Msgboardcontrol::SaveBoards`) diverges.
 
 Codegen otherwise matches the reference (`__cdecl` members, RTTI on).
 

@@ -12,7 +12,7 @@ cd "$REPO_ROOT"
 UNITS_TSV="${UNITS_TSV:-analysis/target/units.tsv}"
 OUT="${OUT:-build/GameServer.exe}"
 MAP="${MAP:-}"
-CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od}"
+CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od -tWM}"
 VLIB="${VLIB:-import32.lib cw32mt.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib}"
 LINKFLAGS="${LINKFLAGS:--Tpe -aa -c -Gn -j -v}"
 if [ -n "$MAP" ]; then

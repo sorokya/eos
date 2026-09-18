@@ -56,21 +56,27 @@ void __fastcall MySQLthread::Execute()
         if (job != NULL)
         {
             task = job;
-            String query_text = job->query_text;
+            String query_text = task->query_text;
             if (query->Active)
                 query->Active = false;
             query->SQL->Clear();
-            query->SQL->Add(job->query_text);
-            if (job->query_id < 0x3c)
+            query->SQL->Add(task->query_text);
+            try
             {
-                query->Open();
-                if (job->query_id != 1)
+                if (task->query_id < 0x3c)
+                {
+                    query->Open();
+                    if (task->query_id != 1)
+                        Synchronize(OnResult);
+                }
+                else
+                {
+                    query->Active = true;
                     Synchronize(OnResult);
+                }
             }
-            else
+            catch (...)
             {
-                query->Active = true;
-                Synchronize(OnResult);
             }
         }
 

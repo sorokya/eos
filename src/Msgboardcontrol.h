@@ -2,7 +2,7 @@
 #define MsgboardcontrolH
 
 #include <vector>
-#include <fstream>
+#include <fstream.h>
 #include "Msgboard.h"
 
 // Recovered from the reference (MsgBoardController unit, 0x4ab128..0x4ae180).
@@ -46,7 +46,7 @@ class MsgBoardController
     MsgBoardController();
     ~MsgBoardController();
 
-    static int LoadBoards(MsgBoardController *self);
+    static bool LoadBoards(MsgBoardController *self);
     static void SaveBoards(MsgBoardController *self);
     static String AppendEncoded(MsgBoardController *self, unsigned int value, int width);
     static void ClearBoard(MsgBoardController *self, int board);

@@ -10,7 +10,7 @@ REF       ?= GameServer.exe
 # The reference was compiled with CodeGuard compile-time checks
 # (__CODEGUARD__), source-level debug info (-v, which also disables C++ inline
 # expansion), and no optimization (-Od). Keep this in sync with scripts/build.sh.
-CFLAGS    ?= -D__CODEGUARD__ -v -Od
+CFLAGS    ?= -D__CODEGUARD__ -v -Od -tWM
 
 # Link configuration. The reference's library code byte-matches the Debug VCL/BDE
 # libraries, not Release (see PLAN.md), so Lib/Debug precedes Lib/Release on the

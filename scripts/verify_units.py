@@ -87,7 +87,7 @@ def reference_pool(ca, ref_bin, ranges):
         ins = ca.parse_ref(ref_bin, start, end)[0]
         pool.add(tuple(canon(ins)))
         for j, x in enumerate(ins):
-            if x == "ret":
+            if x == "ret" or x.startswith("ret "):
                 pool.add(tuple(canon(ins[:j + 1])))
         # Ghidra occasionally splits a function after its prologue (for example
         # Settings_ReadIniBool at 0x4158c4 -> FUN_004158ca). A ret-less fragment

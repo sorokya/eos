@@ -510,8 +510,7 @@ int Questengine::ParseInt(Questengine *self, String token)
     return StrToInt(token);
 }
 
-String
-Questengine::AppendEncoded(Questengine *self, unsigned int value, unsigned int width)
+String Questengine::AppendEncoded(Questengine *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -519,7 +518,7 @@ Questengine::AppendEncoded(Questengine *self, unsigned int value, unsigned int w
     {
         unsigned int quotient = 1;
         bool leading = true;
-        for (int i = 0; i < (int)width; i++)
+        for (int i = 0; i < width; i++)
         {
             if (leading)
             {
@@ -531,7 +530,7 @@ Questengine::AppendEncoded(Questengine *self, unsigned int value, unsigned int w
                 value = quotient;
                 if (quotient < 1)
                     leading = false;
-                else if (i + 1 == (int)width)
+                else if (i + 1 == width)
                     width++;
             }
             else
@@ -585,7 +584,7 @@ Questengine::GetActionData(Questengine *self, int quest_id, int state_index, int
         if ((*it)->args[0] == arg && (*it)->action == 3)
         {
             data.Insert((*it)->data[1], data.Length() + 1);
-            data.Insert(String((char)-1), data.Length() + 1);
+            data.Insert((char)-1, data.Length() + 1);
         }
     }
     return data;
@@ -606,19 +605,16 @@ Questengine::GetActionData2(Questengine *self, int quest_id, int state_index, in
         {
             if ((*it)->action == 1)
             {
-                String enc = AppendEncoded(self, (*it)->action, 2);
-                data.Insert(enc, data.Length() + 1);
+                data.Insert(AppendEncoded(self, (*it)->action, 2), data.Length() + 1);
                 data.Insert((*it)->data[1], data.Length() + 1);
-                data.Insert(String((char)-1), data.Length() + 1);
+                data.Insert((char)-1, data.Length() + 1);
             }
             if ((*it)->action == 2)
             {
-                String enc = AppendEncoded(self, (*it)->action, 2);
-                data.Insert(enc, data.Length() + 1);
-                String enc2 = AppendEncoded(self, (*it)->args[1], 2);
-                data.Insert(enc2, data.Length() + 1);
+                data.Insert(AppendEncoded(self, (*it)->action, 2), data.Length() + 1);
+                data.Insert(AppendEncoded(self, (*it)->args[1], 2), data.Length() + 1);
                 data.Insert((*it)->data[2], data.Length() + 1);
-                data.Insert(String((char)-1), data.Length() + 1);
+                data.Insert((char)-1, data.Length() + 1);
             }
         }
     }

@@ -72,8 +72,7 @@ class Questengine
     static QuestState *GetState(Questengine *self, int quest_id, int state_index);
     static void RegisterAction(Questengine *self, int action_id, String name);
     static void RegisterCondition(Questengine *self, int condition_id, String name);
-    static String
-    AppendEncoded(Questengine *self, unsigned int value, unsigned int width);
+    static String AppendEncoded(Questengine *self, unsigned int value, int width);
     static int GetActionType(Questengine *self, String name);
     static int GetConditionType(Questengine *self, String name);
     static int ParseInt(Questengine *self, String token);

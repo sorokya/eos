@@ -10,7 +10,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 UNITS_TSV="${UNITS_TSV:-analysis/target/units.tsv}"
-CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od}"
+CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od -tWM}"
 
 mkdir -p build
 rm -f build/*.asm

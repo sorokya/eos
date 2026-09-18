@@ -167,10 +167,11 @@ String MsgBoardController::GetPost(MsgBoardController *self, int board, int post
     if (board >= 1 && board <= 8)
     {
         board--;
+        std::vector<MsgBoard>::iterator it;
         int count = 0;
-        for (std::vector<MsgBoard>::iterator it = self->boards[board].begin();
+        for (it = self->boards[board].begin();
              it != self->boards[board].end() && count < self->field_0;
-             it++, count++)
+             it++)
         {
             if (it->id == post_id)
             {
@@ -197,17 +198,14 @@ void MsgBoardController::BuildBoardName(MsgBoardController *self, int board)
         int i = 0;
         for (it = self->boards[board].begin();
              it != self->boards[board].end() && i < self->field_0;
-             it++, i++)
+             i++, it++)
         {
             result.Insert(AppendEncoded(self, it->id, 2), result.Length() + 1);
-            String sep1 = (char)0xff;
-            result.Insert(sep1, result.Length() + 1);
+            result.Insert((char)0xff, result.Length() + 1);
             result.Insert(it->poster, result.Length() + 1);
-            String sep2 = (char)0xff;
-            result.Insert(sep2, result.Length() + 1);
+            result.Insert((char)0xff, result.Length() + 1);
             result.Insert(it->subject, result.Length() + 1);
-            String sep3 = (char)0xff;
-            result.Insert(sep3, result.Length() + 1);
+            result.Insert((char)0xff, result.Length() + 1);
         }
         self->aBoard_names[board] = result;
     }
@@ -221,10 +219,9 @@ String MsgBoardController::BuildBoardData(MsgBoardController *self, int board)
     {
         board--;
         result = AppendEncoded(self, self->boards[board].size(), 2);
-        result.Insert(String((char)0xff), result.Length() + 1);
-        for (std::vector<MsgBoard>::iterator it = self->boards[board].begin();
-             it != self->boards[board].end();
-             it++)
+        result.Insert((char)0xff, result.Length() + 1);
+        std::vector<MsgBoard>::iterator it;
+        for (it = self->boards[board].begin(); it != self->boards[board].end(); it++)
         {
             String poster = it->poster;
             String subject = it->subject;
@@ -233,11 +230,11 @@ String MsgBoardController::BuildBoardData(MsgBoardController *self, int board)
             text.Insert(subject, text.Length() + 1);
             text.Insert(message, text.Length() + 1);
             result.Insert(AppendEncoded(self, poster.Length(), 2), result.Length() + 1);
-            result.Insert(String((char)0xff), result.Length() + 1);
+            result.Insert((char)0xff, result.Length() + 1);
             result.Insert(AppendEncoded(self, subject.Length(), 2), result.Length() + 1);
-            result.Insert(String((char)0xff), result.Length() + 1);
+            result.Insert((char)0xff, result.Length() + 1);
             result.Insert(AppendEncoded(self, message.Length(), 2), result.Length() + 1);
-            result.Insert(String((char)0xff), result.Length() + 1);
+            result.Insert((char)0xff, result.Length() + 1);
         }
         result.Insert(text, result.Length() + 1);
     }
@@ -256,21 +253,20 @@ void MsgBoardController::LoadBoard(MsgBoardController *self, int board, String d
             SetDecodeSource(self, data, (char)0xff);
             int count = DecodeNumber(self, ReadToken(self));
             int total = 0;
-            int i = 0;
-            while (i < count && i < 0x20)
+            for (int i = 0; i < count && i < 0x20; i++)
             {
-                self->field_144[i] = DecodeNumber(self, ReadToken(self));
-                self->field_1c4[i] = DecodeNumber(self, ReadToken(self));
-                self->field_244[i] = DecodeNumber(self, ReadToken(self));
-                total =
-                    total + self->field_144[i] + self->field_1c4[i] + self->field_244[i];
-                i++;
+                int a = DecodeNumber(self, ReadToken(self));
+                int b = DecodeNumber(self, ReadToken(self));
+                int c = DecodeNumber(self, ReadToken(self));
+                self->field_144[i] = a;
+                self->field_1c4[i] = b;
+                self->field_244[i] = c;
+                total = total + a + b + c;
             }
             String text = ReadRest(self);
             if (text.Length() >= total && total > 0)
             {
-                int j = 0;
-                while (j < count && j < 0x20)
+                for (int j = 0; j < count && j < 0x20; j++)
                 {
                     String poster = text.SubString(1, self->field_144[j]);
                     text.Delete(1, self->field_144[j]);
@@ -279,7 +275,6 @@ void MsgBoardController::LoadBoard(MsgBoardController *self, int board, String d
                     String message = text.SubString(1, self->field_244[j]);
                     text.Delete(1, self->field_244[j]);
                     AddPost(self, board + 1, poster, subject, message, 1);
-                    j++;
                 }
             }
         }
@@ -305,13 +300,15 @@ String MsgBoardController::ReadToken(MsgBoardController *self)
         {
             while (self->field_10c <= self->field_110)
             {
-                if (self->misc_text[self->field_10c] == self->field_114)
+                if (self->misc_text[self->field_10c] != self->field_114)
+                {
+                    result.Insert(self->misc_text[self->field_10c], result.Length() + 1);
+                }
+                else
                 {
                     self->field_10c++;
                     break;
                 }
-                String ch(self->misc_text[self->field_10c]);
-                result.Insert(ch, result.Length() + 1);
                 self->field_10c++;
             }
         }
@@ -332,8 +329,7 @@ String MsgBoardController::ReadRest(MsgBoardController *self)
         {
             while (self->field_10c <= self->field_110)
             {
-                String ch(self->misc_text[self->field_10c]);
-                result.Insert(ch, result.Length() + 1);
+                result.Insert(self->misc_text[self->field_10c], result.Length() + 1);
                 self->field_10c++;
             }
         }
@@ -377,23 +373,17 @@ int MsgBoardController::DecodeNumber(MsgBoardController *self, String value)
     return result;
 }
 
-int MsgBoardController::LoadBoards(MsgBoardController *self)
+bool MsgBoardController::LoadBoards(MsgBoardController *self)
 {
     String path;
     String unused;
-    String data = "./pub/dbb001.ebf";
-    String tail;
-    String literal;
-    String token;
-    String content;
     int h;
     int size;
     char *buf;
     try
     {
-        path = data;
-        tail = path.c_str();
-        h = FileOpen(tail.c_str(), 0);
+        path = "./pub/dbb001.ebf";
+        h = FileOpen(path.c_str(), 0);
         if (h < 0)
             return 0;
         size = FileSeek(h, 0, 2);
@@ -401,8 +391,8 @@ int MsgBoardController::LoadBoards(MsgBoardController *self)
         buf = new char[size + 1];
         FileRead(h, buf, size);
         FileClose(h);
-        content = buf;
-        content.SetLength(size);
+        path = buf;
+        path.SetLength(size);
         delete[] buf;
         for (int i = 0; i < 8; i++)
         {
@@ -411,15 +401,13 @@ int MsgBoardController::LoadBoards(MsgBoardController *self)
         }
         for (int i = 0; i < 8; i++)
         {
-            token = content.SubString(1, 4);
-            self->field_2c4[i] = DecodeNumber(self, token);
-            content.Delete(1, 4);
+            self->field_2c4[i] = DecodeNumber(self, path.SubString(1, 4));
+            path.Delete(1, 4);
         }
         for (int i = 0; i < 8; i++)
         {
-            literal = content.SubString(1, self->field_2c4[i]);
-            self->aExtra_strings[i] = literal;
-            content.Delete(1, self->field_2c4[i]);
+            self->aExtra_strings[i] = path.SubString(1, self->field_2c4[i]);
+            path.Delete(1, self->field_2c4[i]);
         }
         for (int i = 0; i < 8; i++)
         {
@@ -429,6 +417,7 @@ int MsgBoardController::LoadBoards(MsgBoardController *self)
     catch (...)
     {
         FileClose(h);
+        return 0;
     }
     return 1;
 }
@@ -438,7 +427,7 @@ void MsgBoardController::SaveBoards(MsgBoardController *self)
     String lengths = "";
     String contents = "";
     String board_data = "";
-    for (int i = 1; i < 9; i++)
+    for (int i = 1; i <= 8; i++)
     {
         board_data = BuildBoardData(self, i);
         lengths.Insert(AppendEncoded(self, board_data.Length(), 4), lengths.Length() + 1);
@@ -446,8 +435,8 @@ void MsgBoardController::SaveBoards(MsgBoardController *self)
     }
     lengths.Insert(contents, lengths.Length() + 1);
     String path = "./pub/dbb001.ebf";
-    std::ofstream file;
-    file.open(path.c_str());
+    ofstream file;
+    file.open(path.c_str(), ios::binary);
     file << lengths.c_str();
     file.close();
 }

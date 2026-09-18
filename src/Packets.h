@@ -15,8 +15,9 @@ class Settings;
 class Mysqlcontrols;
 class Logins;
 class Banned;
-class Killcounters;
-class Questcounterlist;
+class KillCounters;
+class QuestCounters;
+struct WeaponmapEntry;
 
 // The application core. Layout recovered from the reference server constructor
 // (Packets unit, 0x41670c) and the per-tick loop. sizeof is 0xc8, pinned by the
@@ -24,50 +25,50 @@ class Questcounterlist;
 class Server
 {
   public:
-    int state_0x00;                       // +0x00
-    int state_0x04;                       // +0x04
-    TStringList *wordfilter;              // +0x08
-    void *field_0x0c;                     // +0x0c
-    Players *players;                     // +0x10
-    Mysqlcontrols *mysql_controls;        // +0x14
-    Logins *logins;                       // +0x18
-    Banned *banned;                       // +0x1c
-    Questengine *quest_engine;            // +0x20
-    Mapcontrol *map_control;              // +0x24
-    Settings *settings;                   // +0x28
-    Killcounters *kill_counters;          // +0x2c
-    Questcounterlist *quest_counter_list; // +0x30
-    int field_0x34;                       // +0x34
-    double start_time;                    // +0x38
-    char *encode_buffer;                  // +0x40
-    char *packet_buffer;                  // +0x44
-    int version_patch;                    // +0x48
-    int version_minor;                    // +0x4c
-    int version_major;                    // +0x50
-    int field_0x54;                       // +0x54
-    int field_0x58;                       // +0x58
-    int field_0x5c;                       // +0x5c
-    int field_0x60;                       // +0x60
-    int field_0x64;                       // +0x64
-    int field_0x68;                       // +0x68
-    String field_0x6c;                    // +0x6c
-    int field_0x70;                       // +0x70
-    int field_0x74;                       // +0x74
-    char field_0x78;                      // +0x78
-    int online_names_ttl;                 // +0x7c
-    String online_names_cache;            // +0x80
-    int online_list_ttl;                  // +0x84
-    String online_list_cache;             // +0x88
-    String field_0x8c[7];                 // +0x8c
-    int field_0xa8[3];                    // +0xa8
-    int ticks;                            // +0xb4
-    char field_0xb8;                      // +0xb8
-    char flag_0xb9;                       // +0xb9
-    char flag_0xba;                       // +0xba
-    char pad_bb[1];                       // +0xbb
-    int cheat_offset_x;                   // +0xbc
-    int cheat_offset_y;                   // +0xc0
-    int field_0xc4;                       // +0xc4
+    int state_0x00;                // +0x00
+    int state_0x04;                // +0x04
+    TStringList *wordfilter;       // +0x08
+    WeaponmapEntry *weapon_map;    // +0x0c
+    Players *players;              // +0x10
+    Mysqlcontrols *mysql_controls; // +0x14
+    Logins *logins;                // +0x18
+    Banned *banned;                // +0x1c
+    Questengine *quest_engine;     // +0x20
+    Mapcontrol *map_control;       // +0x24
+    Settings *settings;            // +0x28
+    KillCounters *kill_counters;   // +0x2c
+    QuestCounters *quest_counters; // +0x30
+    int field_0x34;                // +0x34
+    TDateTime start_time;          // +0x38
+    char *encode_buffer;           // +0x40
+    char *packet_buffer;           // +0x44
+    int version_patch;             // +0x48
+    int version_minor;             // +0x4c
+    int version_major;             // +0x50
+    int field_0x54;                // +0x54
+    int field_0x58;                // +0x58
+    int field_0x5c;                // +0x5c
+    int field_0x60;                // +0x60
+    int field_0x64;                // +0x64
+    int field_0x68;                // +0x68
+    String field_0x6c;             // +0x6c
+    int field_0x70;                // +0x70
+    int field_0x74;                // +0x74
+    char field_0x78;               // +0x78
+    int online_names_ttl;          // +0x7c
+    String online_names_cache;     // +0x80
+    int online_list_ttl;           // +0x84
+    String online_list_cache;      // +0x88
+    String field_0x8c[7];          // +0x8c
+    int field_0xa8[3];             // +0xa8
+    int ticks;                     // +0xb4
+    char hangup_gate;              // +0xb8
+    char flag_0xb9;                // +0xb9
+    char flag_0xba;                // +0xba
+    char pad_bb[1];                // +0xbb
+    int cheat_offset_x;            // +0xbc
+    int cheat_offset_y;            // +0xc0
+    int field_0xc4;                // +0xc4
 
     Server(Mapcontrol *map_control,
            Questengine *quest_engine,
@@ -103,8 +104,9 @@ String EO_EncodeNumber(Server *server, unsigned int value, int width);
 int EO_DecodeNumber(void *self, String data);
 int EO_DecodeByte(void *self, char value);
 char EO_GetBreakByte(void *self, char value);
-int Server_DecodePacketLength(void *self, String data);
+unsigned int Server_DecodePacketLength(void *self, String data);
 bool Login_CheckConnectionThreshold(Server *server);
+void Connection_Ping(Server *server);
 void PacketReader_Init(Server *reader, String data, unsigned char break_byte);
 
 bool Coords_IsAdjacent(void *self, int x1, int y1, int x2, int y2);

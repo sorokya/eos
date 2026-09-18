@@ -316,7 +316,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Settings | `0x00015d88` | byte-exact |
 | Logins | `0x000166ec` | byte-exact |
 | Packets | `0x00074648` | in-progress |
-| Mysqlcontrols | `0x00078180` | in-progress |
+| Mysqlcontrols | `0x00078180` | byte-exact |
 | Itemvalue | `0x0007824c` | byte-exact |
 | Itemvalues | `0x0007a848` | byte-exact |
 | Npc | `0x0007ab00` | byte-exact |
@@ -336,7 +336,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Jukebox | `0x000aaa70` | byte-exact |
 | Newscontrol | `0x000aaf5c` | byte-exact |
 | Doorcontrol | `0x000ab108` | byte-exact |
-| Msgboardcontrol | `0x000ae180` | in-progress |
+| Msgboardcontrol | `0x000ae180` | byte-exact |
 | Msgboard | `0x000ae35c` | byte-exact |
 | Npccontrol | `0x000b11f4` | in-progress |
 | Gamecontrol | `0x000b15a0` | byte-exact |
@@ -354,7 +354,7 @@ so its `_GUI` public symbol RVA is shown instead. Status legend: `not-started`,
 | Learnvalue | `0x00130e78` | byte-exact |
 | Learnvalues | `0x0013326c` | byte-exact |
 | Learnitem | `0x00133300` | byte-exact |
-| Mysqlthread | `0x00133818` | in-progress |
+| Mysqlthread | `0x00133818` | byte-exact |
 | Mysqltask | `0x001342bc` | byte-exact |
 | Innvalues | `0x00135d94` | byte-exact |
 | Innvalue | `0x00135ecc` | byte-exact |

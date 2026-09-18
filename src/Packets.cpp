@@ -4,8 +4,212 @@
 #include "Packets.h"
 #include "Player.h"
 #include "Players.h"
+#include "Weaponmap.h"
+#include "Banned.h"
+#include "Killcounters.h"
+#include "Questcounters.h"
+#include "Mysqlcontrols.h"
+#include "Filecache.h"
+#include "Settings.h"
+#include "Logins.h"
 
 #pragma package(smart_init)
+
+Player **Players_Iter_Begin(Players *players);
+Player **Players_Iter_End(Players *players);
+void Connection_Ping(Server *server);
+bool Player_CheckIdleWarp(Server *server, Player *player, int x, int y);
+bool Player_HandlePacket(Server *server, Player *player, String data);
+bool FUN_00462374(Server *server, Player *player, String data);
+void Server_BroadcastToParty(
+    Server *server, Player *player, int action, int family, String data);
+String Character_BuildSaveQuery(Players *players, Player *player, int flag);
+
+void Game_Tick(Server *server)
+{
+    server->ticks++;
+    server->hangup_gate = 0;
+    if (server->ticks % 100 == 0)
+    {
+        if (server->online_names_ttl > 0)
+            server->online_names_ttl--;
+        if (server->online_list_ttl > 0)
+            server->online_list_ttl--;
+    }
+    if (server->ticks % 200 == 0)
+        Connection_Ping(server);
+    if (server->ticks > 200)
+        server->ticks = 0;
+    if (server->ticks % 10 == 0)
+    {
+        for (Player **player = Players_Iter_Begin(server->players);
+             Players_Iter_End(server->players) != player;
+             player++)
+        {
+            if ((*player)->logged_in)
+            {
+                (*player)->hangup_ticks++;
+                (*player)->recover_ticks++;
+                (*player)->ghost_token_ticks++;
+                (*player)->attack_token_ticks++;
+                (*player)->idle_ticks++;
+                if ((*player)->idle_ticks == 0xc)
+                {
+                    bool found = false;
+                    if (!found)
+                        found = Player_CheckIdleWarp(
+                            server, *player, (*player)->x, (*player)->y + 1);
+                    if (!found)
+                        found = Player_CheckIdleWarp(
+                            server, *player, (*player)->x + 1, (*player)->y);
+                    if (!found)
+                        found = Player_CheckIdleWarp(
+                            server, *player, (*player)->x, (*player)->y - 1);
+                    if (!found)
+                        found = Player_CheckIdleWarp(
+                            server, *player, (*player)->x - 1, (*player)->y);
+                    if (!found)
+                        found = Player_CheckIdleWarp(
+                            server, *player, (*player)->x, (*player)->y);
+                }
+                if ((*player)->ghost_token_ticks > 0xc)
+                {
+                    (*player)->ghost_walk_tokens = 2;
+                    (*player)->ghost_token_ticks = 0;
+                    (*player)->attack_tokens = 0x23;
+                }
+                if ((*player)->attack_token_ticks > 3)
+                {
+                    (*player)->attack_token_ticks = 0;
+                    (*player)->attack_tokens = 9;
+                }
+                if ((*player)->recover_ticks > 0x3c)
+                {
+                    server->cheat_offset_x = RandRange(3);
+                    server->cheat_offset_y = RandRange(3);
+                    Players::Player_RegenHpTp(server->players, *player);
+                    String hp_str = EO_EncodeNumber(server, (*player)->hp, 2);
+                    hp_str.Insert(EO_EncodeNumber(server, (*player)->tp, 2),
+                                  hp_str.Length() + 1);
+                    hp_str.Insert(EO_EncodeNumber(server, 0, 2), hp_str.Length() + 1);
+                    Client_SendEncoded(server, *player, 8, 0x2a, hp_str);
+                    if ((*player)->in_party)
+                    {
+                        String pid_str = EO_EncodeNumber(server, (*player)->player_id, 2);
+                        pid_str.Insert(
+                            EO_EncodeNumber(server, Player::HpPercent(*player), 1),
+                            pid_str.Length() + 1);
+                        Server_BroadcastToParty(server, *player, 5, 0x18, pid_str);
+                    }
+                    (*player)->recover_ticks = 0;
+                }
+                if (server->hangup_gate != 0 &&
+                    Players::Players_GetIdleTimeout(server->players) + 600 <
+                        (*player)->hangup_ticks)
+                {
+                    if (!(*player)->removing)
+                        Mysqlcontrols::Mysql_ExecDirect(
+                            server->mysql_controls,
+                            (*player)->field_0xc,
+                            Character_BuildSaveQuery(server->players, *player, 1));
+                    (*player)->hangup_ticks = 0;
+                    server->hangup_gate = 0;
+                }
+            }
+            if ((*player)->remove_timer > 0)
+            {
+                (*player)->remove_timer--;
+                if ((*player)->remove_timer < 1)
+                {
+                    (*player)->removing = 1;
+                    Players::Players_MarkDirty(server->players);
+                }
+            }
+            if ((*player)->account_create_cooldown > 0)
+                (*player)->account_create_cooldown--;
+        }
+        if (server->flag_0xba != 0 &&
+            (unsigned int)Players::Players_ActiveCount(server->players) < 1 &&
+            Mysqlcontrols::Database_CanReconnect(server->mysql_controls))
+        {
+            Database_FlushCache(server->mysql_controls->file_cache);
+            KillCounters::Save(server->kill_counters);
+            QuestCounters::Save(server->quest_counters);
+            Application->Terminate();
+        }
+    }
+    if (Settings::GetMaxKills(server->settings) > 0)
+    {
+        TTimeStamp ts = DateTimeToTimeStamp(Now());
+        int stamp = ts.Time / 10 + 100;
+        if (server->flag_0xb9 == 0)
+        {
+            if (stamp > 0x8387e0)
+            {
+                KillCounters::Clear(server->kill_counters);
+                QuestCounters::Clear(server->quest_counters);
+                server->flag_0xb9 = 1;
+            }
+        }
+        else if (stamp < 100000)
+        {
+            server->flag_0xb9 = 0;
+        }
+    }
+}
+
+Server::Server(Mapcontrol *map_control,
+               Questengine *quest_engine,
+               Players *players,
+               Settings *settings,
+               Mysqlcontrols *mysql_controls,
+               Logins *logins,
+               int version_patch,
+               int version_minor,
+               int version_major)
+{
+    encode_buffer = (char *)operator new(8);
+    packet_buffer = (char *)operator new(65000);
+    DateSeparator = '/';
+    ShortDateFormat = "yyyy/mm/dd";
+    start_time = Now();
+    online_names_ttl = 0;
+    online_list_ttl = 0;
+    weapon_map = new WeaponmapEntry();
+    banned = new Banned(mysql_controls);
+    kill_counters = new KillCounters();
+    quest_counters = new QuestCounters();
+    this->map_control = map_control;
+    this->quest_engine = quest_engine;
+    this->players = players;
+    this->logins = logins;
+    this->mysql_controls = mysql_controls;
+    this->settings = settings;
+    Mysqlcontrols::Query(this->mysql_controls, "SELECT * FROM endl_wordfilter");
+    wordfilter = new TStringList;
+    while (!Mysqlcontrols::ResultAtEnd(this->mysql_controls))
+    {
+        wordfilter->Add(Mysqlcontrols::Db_GetString(this->mysql_controls, "word"));
+        Mysqlcontrols::NextResultRecord(this->mysql_controls);
+    }
+    Connection_Ping(this);
+    this->version_patch = version_patch;
+    this->version_minor = version_minor;
+    this->version_major = version_major;
+    field_0x60 = 0;
+    field_0x64 = 0;
+    field_0x68 = 0;
+    field_0x54 = 0;
+    field_0x58 = 0;
+    field_0x5c = 0;
+    ticks = 0;
+    flag_0xba = 0;
+    flag_0xb9 = 0;
+    state_0x00 = 1;
+    state_0x04 = 1;
+    cheat_offset_x = 0;
+    cheat_offset_y = 0;
+}
 
 Server::~Server()
 {
@@ -54,7 +258,6 @@ Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
 
 void FUN_00463d40(Server *server, int action, int family, String data);
-
 void Server_Shutdown(Server *server)
 {
     FUN_00463d40(server, 0xE, 0x23, "r");
@@ -64,6 +267,104 @@ void Server_Shutdown(Server *server)
          player_iter++)
         (*player_iter)->removing = 1;
     server->flag_0xba = 1;
+}
+
+void Connection_Ping(Server *server)
+{
+    Randomize();
+    bool found = false;
+    int value = 0;
+    while (!found)
+    {
+        found = true;
+        value = RandRange(0xCA) + 10;
+        for (int i = 0; i < 3; i++)
+        {
+            int recent = server->field_0xa8[i];
+            if (value == recent)
+                found = false;
+        }
+    }
+    for (int i = 2; i >= 1; i--)
+        server->field_0xa8[i] = server->field_0xa8[i - 1];
+    server->field_0xa8[0] = value;
+    int value2 = RandRange(0xCA) + 10;
+    int sum = server->field_0xa8[0] + value2;
+    String encoded = EO_EncodeNumber(server, sum, 2);
+    encoded.Insert(EO_EncodeNumber(server, value2, 1), encoded.Length() + 1);
+    Player **player_iter;
+    for (player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((unsigned char)(*player_iter)->ping_timeout > 1)
+        {
+            (*player_iter)->removing = 1;
+            Players::Players_MarkDirty(server->players);
+        }
+        else if ((*player_iter)->connected)
+        {
+            (*player_iter)->ping_timeout++;
+            Client_SendEncoded(server, *player_iter, 8, 1, encoded);
+        }
+    }
+}
+
+void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data)
+{
+    if (server->players->by_id[socket->SocketHandle] == NULL)
+    {
+        socket->Close();
+        return;
+    }
+    Player *player = server->players->by_id[socket->SocketHandle];
+    if (player->removing)
+        return;
+    player->receive_buffer.Insert(data, player->receive_buffer.Length() + 1);
+    if (player->receive_buffer.Length() > 0x1f4)
+    {
+        socket->Close();
+        return;
+    }
+    while (player->receive_buffer.Length() >= 3)
+    {
+        int packet_len = 2;
+        packet_len =
+            Server_DecodePacketLength(server, player->receive_buffer.SubString(1, 2)) +
+            packet_len;
+        if (packet_len < 3 || packet_len > 300)
+        {
+            Logins::AddLogin(server->logins, player->remote_ip);
+            socket->Close();
+            break;
+        }
+        if (player->receive_buffer.Length() < packet_len)
+            break;
+        if (!player->unk_char1)
+        {
+            if (server->flag_0xba != 0)
+            {
+                socket->Close();
+                break;
+            }
+            if (!FUN_00462374(
+                    server, player, player->receive_buffer.SubString(3, packet_len - 2)))
+            {
+                socket->Close();
+                break;
+            }
+        }
+        else
+        {
+            if (!Player_HandlePacket(
+                    server, player, player->receive_buffer.SubString(3, packet_len - 2)))
+            {
+                socket->Close();
+                break;
+            }
+        }
+        player->receive_buffer.Delete(1, packet_len);
+    }
 }
 
 String EO_EncodeNumber(Server *server, unsigned int value, int width)
@@ -156,7 +457,7 @@ void PacketReader_Init(Server *reader, String data, unsigned char break_byte)
     reader->field_0x78 = break_byte;
 }
 
-int Server_DecodePacketLength(void *self, String data)
+unsigned int Server_DecodePacketLength(void *self, String data)
 {
     int result = 0;
     try

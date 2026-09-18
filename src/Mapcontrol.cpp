@@ -496,13 +496,14 @@ unsigned char Mapcontrol::Mapcontrol_ToggleDoor(Mapcontrol *map_control,
                     spec_iter->value = 9;
                     spec_iter->ticks = 2;
                 }
-                if ((unsigned short)spec_iter->value != 10)
-                    return result;
-                result = 1;
-                Mapcontrol_GetByIndex(map_control, map_id - 1)->has_open_doors = 1;
-                spec_iter->value = 0xb;
-                spec_iter->ticks = 2;
-                return result;
+                if ((unsigned short)spec_iter->value == 10)
+                {
+                    result = 1;
+                    Mapcontrol_GetByIndex(map_control, map_id - 1)->has_open_doors = 1;
+                    spec_iter->value = 0xb;
+                    spec_iter->ticks = 2;
+                }
+                break;
             }
         }
     }
@@ -563,28 +564,36 @@ MapItem *Mapcontrol::Itemchest_GetSlot(std::vector<MapItem> *slot_list, int slot
 int Mapcontrol::Pub_DecodeNumber_Map(Mapcontrol *map_control, String value)
 {
     int result = 0;
-    for (int digit_index = 1; digit_index <= value.Length(); digit_index++)
+    try
     {
-        char c = value[digit_index];
-        if (c == 0xfe || c == 0)
-            break;
-        int v = (unsigned char)c - 1;
-        if (digit_index == 1)
-            result += v;
-        if (digit_index == 2)
-            result += v * 0xfd;
-        if (digit_index == 3)
-            result += v * 0xfa09;
-        if (digit_index == 4)
-            result += v * 0xf71ae5;
+        for (int digit_index = 1; digit_index <= value.Length(); digit_index++)
+        {
+            char c = value[digit_index];
+            unsigned char ch = c;
+            if (ch == 0xFE || ch == 0)
+                break;
+            int v = ch;
+            v = v - 1;
+            if (digit_index == 1)
+                result = result + v;
+            if (digit_index == 2)
+                result = result + v * 0xfd;
+            if (digit_index == 3)
+                result = result + v * 0xfa09;
+            if (digit_index == 4)
+                result = result + v * 0xf71ae5;
+        }
+    }
+    catch (...)
+    {
+        result = 0;
     }
     return result;
 }
 
-void Mapcontrol::Mapcontrol_AppendEncoded(String &out_str,
-                                          Mapcontrol *map_control,
-                                          unsigned int value,
-                                          int width)
+String Mapcontrol::Mapcontrol_AppendEncoded(Mapcontrol *map_control,
+                                            unsigned int value,
+                                            int width)
 {
     int rem;
     char c;
@@ -619,5 +628,5 @@ void Mapcontrol::Mapcontrol_AppendEncoded(String &out_str,
         width = 0;
     }
     String encoded_str((char *)map_control->encode_scratch, width);
-    out_str += encoded_str;
+    return encoded_str;
 }

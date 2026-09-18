@@ -349,7 +349,7 @@ bool Players::CharName_Validate(Players *players, Player *player, String name)
             return true;
         iter++;
     }
-    player->null_string += name;
+    player->null_string = name;
     return false;
 }
 

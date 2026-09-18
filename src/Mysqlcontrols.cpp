@@ -82,41 +82,41 @@ void Mysqlcontrols::Connect(Mysqlcontrols *self,
     Query(self, "SHOW TABLE STATUS FROM endless_db");
     while (GUI->myquery->Eof == false)
     {
-        try
+        if (GUI->myquery->Fields->Fields[0]->AsString == "endl_accounts")
         {
-            if (GUI->myquery->Fields->Fields[0]->AsString == "endl_accounts")
+            try
             {
                 if (AnsiLowerCase(GUI->myquery->Fields->Fields[3]->AsString) == "fixed")
                     self->file_cache->accounts_count =
                         GUI->myquery->Fields->Fields[4]->AsInteger;
             }
+            catch (...)
+            {
+            }
         }
-        catch (...)
+        if (GUI->myquery->Fields->Fields[0]->AsString == "endl_characters")
         {
-        }
-        try
-        {
-            if (GUI->myquery->Fields->Fields[0]->AsString == "endl_characters")
+            try
             {
                 if (AnsiLowerCase(GUI->myquery->Fields->Fields[3]->AsString) == "fixed")
                     self->file_cache->characters_count =
                         GUI->myquery->Fields->Fields[4]->AsInteger;
             }
+            catch (...)
+            {
+            }
         }
-        catch (...)
+        if (GUI->myquery->Fields->Fields[0]->AsString == "endl_guilds")
         {
-        }
-        try
-        {
-            if (GUI->myquery->Fields->Fields[0]->AsString == "endl_guilds")
+            try
             {
                 if (AnsiLowerCase(GUI->myquery->Fields->Fields[3]->AsString) == "fixed")
                     self->file_cache->guilds_count =
                         GUI->myquery->Fields->Fields[4]->AsInteger;
             }
-        }
-        catch (...)
-        {
+            catch (...)
+            {
+            }
         }
         GUI->myquery->Next();
     }

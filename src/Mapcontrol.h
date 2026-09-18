@@ -72,10 +72,8 @@ class Mapcontrol
                                             unsigned int x,
                                             unsigned int y);
     static int Pub_DecodeNumber_Map(Mapcontrol *map_control, String value);
-    static void Mapcontrol_AppendEncoded(String &out_str,
-                                         Mapcontrol *map_control,
-                                         unsigned int value,
-                                         int width);
+    static String
+    Mapcontrol_AppendEncoded(Mapcontrol *map_control, unsigned int value, int width);
     static int Map_GetWarpMap(Mapcontrol *map_control, int map_id, int x, int y);
     static int Map_GetWarpLevelReq(Mapcontrol *map_control, int map_id, int x, int y);
     static int Map_GetWarpX(Mapcontrol *map_control, int map_id, int x, int y);
