@@ -4,17 +4,11 @@
 #include "Doorcontrol.h"
 #include "Mapobject.h"
 #include "Map.h"
+#include "Mapcontrol.h"
 
 #include <vector>
 
 #pragma package(smart_init)
-
-class Mapcontrol
-{
-  public:
-    std::vector<MapContainer> maps;
-    char pad_04[0x44 - sizeof(std::vector<MapContainer>)];
-};
 
 DoorController::DoorController(Mapcontrol *map_control)
 {

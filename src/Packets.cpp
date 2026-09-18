@@ -23,12 +23,8 @@
 
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
-void Connection_Ping(Server *server);
-bool Player_CheckIdleWarp(Server *server, Player *player, int x, int y);
 bool Player_HandlePacket(Server *server, Player *player, String data);
 bool FUN_00462374(Server *server, Player *player, String data);
-void Server_BroadcastToParty(
-    Server *server, Player *player, int action, int family, String data);
 String Character_BuildSaveQuery(Players *players, Player *player, int flag);
 extern TGUI **MAINFORM;
 MapObject Map_GetTileSpecObject(Mapcontrol *map_control, int map_id, int x, int y);
@@ -291,17 +287,12 @@ int Math_Abs(int value)
     return __abs__(value);
 }
 
-unsigned int Db_GetActiveConnectionCount(Mysqlcontrols *db);
-
 bool Login_CheckConnectionThreshold(Server *server)
 {
-    if (Db_GetActiveConnectionCount(server->mysql_controls) > 0x14)
+    if (Mysqlcontrols::Db_GetActiveConnectionCount(server->mysql_controls) > 0x14)
         return true;
     return false;
 }
-
-Player **Players_Iter_Begin(Players *players);
-Player **Players_Iter_End(Players *players);
 
 int __fastcall Sock_Send(void *sock, char *data);
 

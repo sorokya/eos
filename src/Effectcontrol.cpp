@@ -5,26 +5,12 @@
 #include "Map.h"
 #include "Player.h"
 #include "Protocol.h"
+#include "Packets.h"
 
 #pragma package(smart_init)
 
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
-MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
-unsigned int Map_GetTileSpec(Mapcontrol *map_control, int map_id, int x, int y);
-int Player_HpPercent(Player *player);
-void Client_SendEncoded(Server *server,
-                        Player *player,
-                        unsigned char action,
-                        unsigned char family,
-                        String data);
-void Server_BroadcastNearby(Server *server,
-                            Player *player,
-                            unsigned char action,
-                            unsigned char family,
-                            String data);
-void Player_Respawn(Server *server, Player *player);
-int RandRange(int max);
 
 EffectController::EffectController(Mapcontrol *map_control,
                                    Players *players,
@@ -150,7 +136,7 @@ void EffectController::Tick(EffectController *self)
                             1);
                 Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
                     ->hp_drain_others.Insert(
-                        AppendEncoded(self, Player_HpPercent(*player_iter), 1),
+                        AppendEncoded(self, Player::HpPercent(*player_iter), 1),
                         Mapcontrol_GetByIndex(self->map_control,
                                               (*player_iter)->map_id - 1)
                                 ->hp_drain_others.Length() +
@@ -186,10 +172,10 @@ void EffectController::Tick(EffectController *self)
 
         if ((*player_iter)->map_has_spikes != 0)
         {
-            unsigned int spec = Map_GetTileSpec(self->map_control,
-                                                (*player_iter)->map_id,
-                                                (*player_iter)->x,
-                                                (*player_iter)->y);
+            unsigned int spec = Mapcontrol::Map_GetTileSpec(self->map_control,
+                                                            (*player_iter)->map_id,
+                                                            (*player_iter)->x,
+                                                            (*player_iter)->y);
             if (spec == 0x21 || spec == 0x22)
             {
                 if ((*player_iter)->hp > 0)
@@ -218,7 +204,7 @@ void EffectController::Tick(EffectController *self)
                                        PacketFamily_Effect,
                                        pkt);
                     pkt += AppendEncoded(self, (*player_iter)->player_id, 2);
-                    pkt.Insert(AppendEncoded(self, Player_HpPercent(*player_iter), 1),
+                    pkt.Insert(AppendEncoded(self, Player::HpPercent(*player_iter), 1),
                                pkt.Length() + 1);
                     pkt.Insert(AppendEncoded(self, died, 1), pkt.Length() + 1);
                     pkt.Insert(AppendEncoded(self, dmg, 2), pkt.Length() + 1);

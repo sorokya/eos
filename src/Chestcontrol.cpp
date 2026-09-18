@@ -5,25 +5,16 @@
 #include "Protocol.h"
 #include "Map.h"
 #include "Player.h"
+#include "Packets.h"
 
 #pragma package(smart_init)
 
-MapContainer *MapVector_Begin(Mapcontrol *map_control);
-MapContainer *MapVector_End(Mapcontrol *map_control);
-int Mapcontrol_GetCount(Mapcontrol *map_control);
-MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 MapChest *MapchestVector_Begin(void *chest_list);
 MapChest *MapchestVector_End(void *chest_list);
 MapItem *MapItemVector_Begin(void *slots);
 MapItem *MapItemVector_End(void *slots);
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
-void Client_SendEncoded(Server *server,
-                        Player *player,
-                        unsigned char action,
-                        unsigned char family,
-                        String data);
-int RandRange(int max);
 
 ChestController::ChestController(Mapcontrol *map_control,
                                  Players *players,

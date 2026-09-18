@@ -74,7 +74,7 @@ class Mysqlcontrols
                                               int expected_query_id,
                                               String query);
     static bool ExecDrop(Mysqlcontrols *self, String query);
-    static int Db_GetActiveConnectionCount(Mysqlcontrols *self);
+    static unsigned int Db_GetActiveConnectionCount(Mysqlcontrols *self);
     static bool Database_CanReconnect(Mysqlcontrols *self);
     static bool IsTaskPending(Mysqlcontrols *self, int player_id);
     static bool IsAsciiText(Mysqlcontrols *self, String value);

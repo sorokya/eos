@@ -26,69 +26,18 @@
 #include "Eventcontrol.h"
 #include "Msgboardcontrol.h"
 
+#include "Mapcontrol.h"
+#include "Players.h"
+#include "Packets.h"
+#include "Questengine.h"
+
 #pragma package(smart_init)
 
-// Stub definitions for the controller/subsystem classes the form constructs.
-// Their real layouts live in their own (not yet reconstructed) units; only the
-// size and constructor shape are needed to reproduce the reference codegen.
-// The sizes are pinned by the `operator new` arguments in FormCreate.
-class Mapcontrol
-{
-    char _pad[0x44];
-
-  public:
-    Mapcontrol(Settings *settings);
-};
-class Players
-{
-    char _pad[0x61ab4];
-
-  public:
-    Players(Settings *settings, Mysqlcontrols *mysql);
-};
-class Server
-{
-    char _pad[0xc8];
-
-  public:
-    Server(Mapcontrol *map,
-           Questengine *quest,
-           Players *players,
-           Settings *settings,
-           Mysqlcontrols *mysql,
-           Logins *logins,
-           int version_patch,
-           int version_minor,
-           int version_major);
-};
-class Questengine
-{
-    char _pad[0x94];
-
-  public:
-    Questengine(Settings *settings);
-};
-
-// Cross-unit operations the form invokes. Their mangled names are unobservable
-// in the stripped image, so they are declared here; the argument shapes are
-// pinned by the reference call sites. Replaced by the owning units' headers
-// once those are reconstructed.
-void Server_Shutdown(Server *server);
 void Server_RemovePlayer(Server *server, TCustomWinSocket *socket);
-void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data);
-bool Players_Add(Players *players, TCustomWinSocket *socket);
-void Players_Remove(Players *players, TCustomWinSocket *socket);
-void Players_MarkRemoving(Players *players, TCustomWinSocket *socket);
 void Mapcontrol_AddArenaSpawn(
     Mapcontrol *map, int map_id, int from_x, int from_y, int to_x, int to_y);
-void Mapcontrol_SetArenaBlock(Mapcontrol *map, int map_id, int block);
-void Game_Tick(Server *server);
-void Players_Tick(Players *players);
 String FUN_00473540(Server *server);
 String FUN_004731d0(Server *server);
-int Players_GetStatTotal(Players *players);
-int Players_GetIdleTimeout(Players *players);
-int Players_GetActiveCount(Players *players);
 String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code);
 
 __fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
@@ -110,7 +59,7 @@ void __fastcall TGUI::serverClientError(TObject *Sender,
     if (Socket->SocketHandle < 1 || Socket->SocketHandle >= 100000)
         Socket->Close();
     else
-        Players_MarkRemoving(players, Socket);
+        Players::Players_MarkRemoving(players, Socket);
 }
 
 void __fastcall TGUI::serverClientConnect(TObject *Sender, TCustomWinSocket *Socket)
@@ -130,7 +79,7 @@ void __fastcall TGUI::serverClientConnect(TObject *Sender, TCustomWinSocket *Soc
         Socket->Close();
         return;
     }
-    if (!Players_Add(players, Socket))
+    if (!Players::Players_Add(players, Socket))
     {
         Socket->Close();
         return;
@@ -142,7 +91,7 @@ void __fastcall TGUI::serverClientDisconnect(TObject *Sender, TCustomWinSocket *
     if (Socket->SocketHandle >= 1 && Socket->SocketHandle < 100000)
     {
         Server_RemovePlayer(server_ctrl, Socket);
-        Players_Remove(players, Socket);
+        Players::Players_Remove(players, Socket);
     }
 }
 
@@ -240,10 +189,10 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     Mapcontrol_AddArenaSpawn(map_control, 0x2e, 0x19, 0x2c, 0x18, 0xa);
     Mapcontrol_AddArenaSpawn(map_control, 0x89, 0x11, 9, 0xe, 0xa);
     Mapcontrol_AddArenaSpawn(map_control, 0x89, 0x11, 0xb, 6, 0xa);
-    Mapcontrol_SetArenaBlock(map_control, 0x89, 2);
+    Mapcontrol::Mapcontrol_SetArenaBlock(map_control, 0x89, 2);
     Mapcontrol_AddArenaSpawn(map_control, 0x8a, 0x11, 9, 0xe, 0xa);
     Mapcontrol_AddArenaSpawn(map_control, 0x8a, 0x11, 0xb, 6, 0xa);
-    Mapcontrol_SetArenaBlock(map_control, 0x8a, 2);
+    Mapcontrol::Mapcontrol_SetArenaBlock(map_control, 0x8a, 2);
     Mapcontrol_AddArenaSpawn(map_control, 0xb7, 0x12, 0x27, 0x10, 0xc);
     Mapcontrol_AddArenaSpawn(map_control, 0xb7, 0x14, 0x27, 0x10, 0x1c);
     Mapcontrol_AddArenaSpawn(map_control, 0xb7, 0x16, 0x27, 0x16, 0x14);
@@ -282,7 +231,7 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
     if (tick_counter % 10 == 0)
         Game_Tick(server_ctrl);
     if (tick_counter % 10 == 0)
-        Players_Tick(players);
+        Players::Players_Tick(players);
     if (tick_counter % 20 == 0)
         NpcController::NpcControl_Tick(npc_control);
     if (tick_counter % 100 == 0)
@@ -300,14 +249,14 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
         Mysqlcontrols::UpdateServerStatus(mysql_controls,
                                           Settings::GetRefreshSeconds(settings),
                                           server->Socket->ActiveConnections,
-                                          Players_GetIdleTimeout(players),
-                                          Players_GetStatTotal(players),
+                                          Players::Players_GetIdleTimeout(players),
+                                          Players::Players_GetStatTotal(players),
                                           FUN_004731d0(server_ctrl),
                                           FUN_00473540(server_ctrl));
         if (Visible)
         {
             String s = IntToStr(server->Socket->ActiveConnections) + " con / ";
-            s.Insert(IntToStr(Players_GetIdleTimeout(players)) + " players",
+            s.Insert(IntToStr(Players::Players_GetIdleTimeout(players)) + " players",
                      s.Length() + 1);
             panel_buffer->Caption =
                 IntToStr(Mysqlcontrols::Db_GetActiveConnectionCount(mysql_controls)) +
@@ -324,7 +273,7 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
     }
     if (tick_counter > 100000)
     {
-        if (Players_GetActiveCount(players) > 1)
+        if (Players::Players_GetActiveCount(players) > 1)
         {
             String expected = FUN_00403080(this,
                                            Serial::GetKeyBaseCopy(serial),

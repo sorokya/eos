@@ -3,20 +3,13 @@
 
 #include "Npccontrol.h"
 #include "Player.h"
+#include "Mapcontrol.h"
 #include "Protocol.h"
 
 #pragma package(smart_init)
 
-// Players-unit operations (unit not yet reconstructed). Their argument shapes
-// are pinned by this unit's call sites; the reference uses the container's own
-// begin()/end() template COMDATs.
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
-
-// Mapcontrol-unit operations (unit not yet reconstructed). Argument shapes are
-// pinned by this unit's call sites.
-int Map_IsWalkableNPC(Mapcontrol *map, int map_id, int x, int y, int flag);
-bool Map_IsOccupied(Mapcontrol *map, int map_id, int x, int y);
 
 NpcController::NpcController(Mapcontrol *map,
                              Players *players,
@@ -108,9 +101,11 @@ void NpcController::Npc_Wander(
     {
         if (npc->y < map_h)
         {
-            if (Map_IsWalkableNPC(self->map_control, map_id, npc->x, npc->y + 1, 0) == 0)
+            if (Mapcontrol::Map_IsWalkableNPC(
+                    self->map_control, map_id, npc->x, npc->y + 1, 0) == 0)
             {
-                if (!Map_IsOccupied(self->map_control, map_id, npc->x, npc->y + 1))
+                if (!Mapcontrol::Map_IsOccupied(
+                        self->map_control, map_id, npc->x, npc->y + 1))
                 {
                     if (!Npc_DoMove(self, map_id, npc->x, npc->y + 1))
                     {
@@ -127,9 +122,11 @@ void NpcController::Npc_Wander(
     {
         if (npc->x >= 1)
         {
-            if (Map_IsWalkableNPC(self->map_control, map_id, npc->x - 1, npc->y, 0) == 0)
+            if (Mapcontrol::Map_IsWalkableNPC(
+                    self->map_control, map_id, npc->x - 1, npc->y, 0) == 0)
             {
-                if (!Map_IsOccupied(self->map_control, map_id, npc->x - 1, npc->y))
+                if (!Mapcontrol::Map_IsOccupied(
+                        self->map_control, map_id, npc->x - 1, npc->y))
                 {
                     if (!Npc_DoMove(self, map_id, npc->x - 1, npc->y))
                     {
@@ -146,9 +143,11 @@ void NpcController::Npc_Wander(
     {
         if (npc->y >= 1)
         {
-            if (Map_IsWalkableNPC(self->map_control, map_id, npc->x, npc->y - 1, 0) == 0)
+            if (Mapcontrol::Map_IsWalkableNPC(
+                    self->map_control, map_id, npc->x, npc->y - 1, 0) == 0)
             {
-                if (!Map_IsOccupied(self->map_control, map_id, npc->x, npc->y - 1))
+                if (!Mapcontrol::Map_IsOccupied(
+                        self->map_control, map_id, npc->x, npc->y - 1))
                 {
                     if (!Npc_DoMove(self, map_id, npc->x, npc->y - 1))
                     {
@@ -163,9 +162,11 @@ void NpcController::Npc_Wander(
     }
     else if (npc->nAttack_dir == Direction_Right && npc->x < map_w)
     {
-        if (Map_IsWalkableNPC(self->map_control, map_id, npc->x + 1, npc->y, 0) == 0)
+        if (Mapcontrol::Map_IsWalkableNPC(
+                self->map_control, map_id, npc->x + 1, npc->y, 0) == 0)
         {
-            if (!Map_IsOccupied(self->map_control, map_id, npc->x + 1, npc->y))
+            if (!Mapcontrol::Map_IsOccupied(
+                    self->map_control, map_id, npc->x + 1, npc->y))
             {
                 if (!Npc_DoMove(self, map_id, npc->x + 1, npc->y))
                 {

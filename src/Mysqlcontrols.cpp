@@ -331,7 +331,7 @@ bool Mysqlcontrols::ExecDrop(Mysqlcontrols *self, String query)
     return result;
 }
 
-int Mysqlcontrols::Db_GetActiveConnectionCount(Mysqlcontrols *self)
+unsigned int Mysqlcontrols::Db_GetActiveConnectionCount(Mysqlcontrols *self)
 {
     return self->thread_queue->job_queue.size();
 }

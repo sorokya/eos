@@ -7,31 +7,11 @@
 #include "Protocol.h"
 #include "Mainform.h"
 #include "Itemvalues.h"
+#include "Player.h"
+#include "Players.h"
+#include "Packets.h"
 
 #pragma package(smart_init)
-
-class Player
-{
-  public:
-    char pad_00[0xac];
-    String partner_name;
-    char pad_b0[0x2c];
-    int map_id;
-    int x;
-    int y;
-    char pad_e8[0x54];
-    int weight_current;
-};
-
-extern Player *Players_GetById(Players *self, int id);
-extern void Player_AddItem(Players *self, Player *player, int item_id, int amount);
-extern void Client_SendEncoded(Server *self,
-                               Player *player,
-                               unsigned char type,
-                               unsigned char sub_type,
-                               String data);
-extern void Server_BroadcastToMap(
-    Server *self, int map_id, unsigned char type, unsigned char sub_type, String data);
 
 WeddingController::WeddingController(Players *players, Server *server)
 {
@@ -99,8 +79,10 @@ void WeddingController::Confirm(WeddingController *self,
             }
             if ((*it)->field_10 != 0 && (*it)->field_1c != 0)
             {
-                Player *player1 = Players_GetById(self->players, (*it)->player1_id);
-                Player *player2 = Players_GetById(self->players, (*it)->player2_id);
+                Player *player1 =
+                    Players::Players_GetById(self->players, (*it)->player1_id);
+                Player *player2 =
+                    Players::Players_GetById(self->players, (*it)->player2_id);
                 if (player1 != 0 && player2 != 0)
                 {
                     player1->partner_name = (*it)->player2_name;
@@ -108,7 +90,7 @@ void WeddingController::Confirm(WeddingController *self,
                     int item = 0x176;
                     int weight;
 
-                    Player_AddItem(self->players, player1, item, 1);
+                    Players::Player_AddItem(self->players, player1, item, 1);
                     player1->weight_current +=
                         ItemValues::Eif_GetWeight(GUI->item_values, item);
                     weight = player1->weight_current;
@@ -123,7 +105,7 @@ void WeddingController::Confirm(WeddingController *self,
                                        PacketFamily_Item,
                                        data);
 
-                    Player_AddItem(self->players, player2, item, 1);
+                    Players::Player_AddItem(self->players, player2, item, 1);
                     player2->weight_current +=
                         ItemValues::Eif_GetWeight(GUI->item_values, item);
                     weight = player2->weight_current;
@@ -202,7 +184,8 @@ void WeddingController::Tick(WeddingController *self)
                 }
                 if ((*it)->countdown == 0xa && BothPresent(self, *it))
                 {
-                    Player *player = Players_GetById(self->players, (*it)->player1_id);
+                    Player *player =
+                        Players::Players_GetById(self->players, (*it)->player1_id);
                     if (player != 0)
                     {
                         Client_SendEncoded(self->server,
@@ -217,7 +200,8 @@ void WeddingController::Tick(WeddingController *self)
             {
                 if ((*it)->countdown == 0x13)
                 {
-                    Player *player = Players_GetById(self->players, (*it)->player1_id);
+                    Player *player =
+                        Players::Players_GetById(self->players, (*it)->player1_id);
                     if (player != 0)
                     {
                         String data = AppendEncoded(self, (*it)->player1_id, 2);
@@ -242,7 +226,8 @@ void WeddingController::Tick(WeddingController *self)
                 }
                 if ((*it)->countdown == 0xa && BothPresent(self, *it))
                 {
-                    Player *player = Players_GetById(self->players, (*it)->player2_id);
+                    Player *player =
+                        Players::Players_GetById(self->players, (*it)->player2_id);
                     if (player != 0)
                     {
                         Client_SendEncoded(self->server,
@@ -257,7 +242,8 @@ void WeddingController::Tick(WeddingController *self)
             {
                 if ((*it)->countdown == 0x18)
                 {
-                    Player *player = Players_GetById(self->players, (*it)->player2_id);
+                    Player *player =
+                        Players::Players_GetById(self->players, (*it)->player2_id);
                     if (player != 0)
                     {
                         String data = AppendEncoded(self, (*it)->player2_id, 2);
@@ -305,8 +291,10 @@ void WeddingController::Tick(WeddingController *self)
                         "as long you both shall live.",
                         line.Length() + 1);
                     BroadcastPriestLine(self, *it, line);
-                    Player *player1 = Players_GetById(self->players, (*it)->player1_id);
-                    Player *player2 = Players_GetById(self->players, (*it)->player2_id);
+                    Player *player1 =
+                        Players::Players_GetById(self->players, (*it)->player1_id);
+                    Player *player2 =
+                        Players::Players_GetById(self->players, (*it)->player2_id);
                     if (player1 != 0 && player2 != 0)
                     {
                         String data = AppendEncoded(self, player1->x, 1);
@@ -375,8 +363,8 @@ void WeddingController::BroadcastPriestLine(WeddingController *self,
 
 bool WeddingController::BothPresent(WeddingController *self, Wedding *record)
 {
-    Player *player1 = Players_GetById(self->players, record->player1_id);
-    Player *player2 = Players_GetById(self->players, record->player2_id);
+    Player *player1 = Players::Players_GetById(self->players, record->player1_id);
+    Player *player2 = Players::Players_GetById(self->players, record->player2_id);
     if (player1 == 0 || player2 == 0)
         return false;
     if (!(player1->map_id == record->map_id && player2->map_id == record->map_id))

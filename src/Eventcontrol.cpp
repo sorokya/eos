@@ -5,37 +5,17 @@
 #include "Map.h"
 #include "Mapwarp.h"
 #include "Player.h"
+#include "Players.h"
 #include "Protocol.h"
+#include "Packets.h"
 
 #pragma package(smart_init)
 
-// Cross-unit operations this unit invokes. Their mangled names are unobservable
-// in the stripped image, so they are declared here; the argument shapes are
-// pinned by the reference call sites. Replaced by the owning units' headers
-// once those are reconstructed.
-MapContainer *MapVector_Begin(Mapcontrol *map_control);
-MapContainer *MapVector_End(Mapcontrol *map_control);
 MapWarp *MapwarpVector_Begin(void *arena_spawn_list);
 MapWarp *MapwarpVector_End(void *arena_spawn_list);
 
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
-int Players_CountArenaPlayers(Players *players, int map_id);
-Player *Players_GetByMapTile(Players *players, int map_id, int x, int y);
-
-void Server_BroadcastToMap(Server *server,
-                           int map_id,
-                           unsigned char action,
-                           unsigned char family,
-                           String payload);
-void Player_Warp(Server *server,
-                 Player *player,
-                 int target_map,
-                 TPoint pos,
-                 int warp_anim,
-                 bool do_leave);
-
-int RandRange(int max);
 
 EventController::EventController(Mapcontrol *map_control,
                                  Players *players,
@@ -145,7 +125,7 @@ void EventController::Tick(EventController *self)
                         (*player_iter)->admin_level < AdminLevel_Spy &&
                         (*player_iter)->map_id == map_iter->rid)
                     {
-                        TPoint pos;
+                        MapCoord pos;
                         pos.x = RandRange(3) + 0xe;
                         pos.y = RandRange(3) + 0x25;
                         Player_Warp(self->server, *player_iter, 0x2f, pos, 0, false);
@@ -161,7 +141,7 @@ void EventController::Tick(EventController *self)
                 if (map_iter->arena_ticks > 0x77)
                     map_iter->arena_ticks = 0;
                 int queued_count =
-                    Players_CountArenaPlayers(self->players, map_iter->rid);
+                    Players::Players_CountArenaPlayers(self->players, map_iter->rid);
                 int warped_count = 0;
                 if (queued_count >= map_iter->arena_block)
                 {
@@ -181,14 +161,15 @@ void EventController::Tick(EventController *self)
                          spawn_iter != MapwarpVector_End(&map_iter->arena_spawn_list);
                          spawn_iter++)
                     {
-                        Player *target_player = Players_GetByMapTile(self->players,
-                                                                     map_iter->rid,
-                                                                     spawn_iter->from_x,
-                                                                     spawn_iter->from_y);
+                        Player *target_player =
+                            Players::Players_GetByMapTile(self->players,
+                                                          map_iter->rid,
+                                                          spawn_iter->from_x,
+                                                          spawn_iter->from_y);
                         if (target_player != NULL)
                         {
                             warped_count++;
-                            TPoint pos;
+                            MapCoord pos;
                             pos.x = spawn_iter->to_x;
                             pos.y = spawn_iter->to_y;
                             target_player->arena_playing = true;
