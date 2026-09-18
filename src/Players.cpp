@@ -9,6 +9,7 @@
 #include "Itemvalues.h"
 #include "Settings.h"
 #include "Mysqlcontrols.h"
+#include "Filecache.h"
 #include "Protocol.h"
 
 #pragma package(smart_init)
@@ -205,7 +206,7 @@ void Players::Player_RegenHpTp(Players *self, Player *player)
         player->tp = player->max_tp;
 }
 
-void Players::Player_LevelUp(Server *server, Player *player)
+void Players::Player_LevelUp(Players *players, Player *player)
 {
     player->level = player->level + 1;
     player->stat_points = player->stat_points + 3;
@@ -228,13 +229,13 @@ void Players::Player_LevelUp(Server *server, Player *player)
     Player::CalculateHP_TP_SP(player);
 }
 
-int Players::Player_TryLevelUp(Server *server, Player *player)
+int Players::Player_TryLevelUp(Players *players, Player *player)
 {
     int new_level = 0;
     while ((int)player->experience >= Gamecontrol::Exp_RequiredForLevel(
                                           (*MAINFORM)->game_control, player->level + 1))
     {
-        Player_LevelUp(server, player);
+        Player_LevelUp(players, player);
         new_level = player->level;
     }
     return new_level;
@@ -910,6 +911,207 @@ void Players::Players_Tick(Players *self)
     }
 }
 
+String Character_BuildSaveQuery(Players *players, Player *player, int flags)
+{
+    if (player->logged_in == false)
+        return "";
+    TTimeStamp enter = DateTimeToTimeStamp(player->enter_game_timestamp);
+    TTimeStamp now = DateTimeToTimeStamp(Now());
+    int date_diff = now.Date - enter.Date;
+    int time_diff = now.Time - enter.Time;
+    date_diff = time_diff / 60000 + date_diff * 1440;
+    player->usage += date_diff;
+    String invblob = "";
+    String skillblob = "";
+    String bankblob = "";
+    String questcache = "";
+    String questblob = "";
+    PlayerInventory *inv_it;
+    for (inv_it = player->inventory.begin(); inv_it != player->inventory.end(); inv_it++)
+    {
+        if (inv_it->item_id <= 0)
+            continue;
+        invblob.Insert(IntToStr(inv_it->item_id), invblob.Length() + 1);
+        invblob.Insert(":", invblob.Length() + 1);
+        invblob.Insert(IntToStr(inv_it->amount), invblob.Length() + 1);
+        invblob.Insert(":", invblob.Length() + 1);
+    }
+    PlayerInventory *bank_it;
+    for (bank_it = player->bank.begin(); bank_it != player->bank.end(); bank_it++)
+    {
+        if (bank_it->item_id <= 0)
+            continue;
+        bankblob.Insert(IntToStr(bank_it->item_id), bankblob.Length() + 1);
+        bankblob.Insert(":", bankblob.Length() + 1);
+        bankblob.Insert(IntToStr(bank_it->amount), bankblob.Length() + 1);
+        bankblob.Insert(":", bankblob.Length() + 1);
+    }
+    PlayerSkill *spell_it;
+    for (spell_it = player->spells.begin(); spell_it != player->spells.end(); spell_it++)
+    {
+        if (spell_it->skill_id <= 0)
+            continue;
+        skillblob.Insert(IntToStr(spell_it->skill_id), skillblob.Length() + 1);
+        skillblob.Insert(":", skillblob.Length() + 1);
+        skillblob.Insert(IntToStr(spell_it->level), skillblob.Length() + 1);
+        skillblob.Insert(":", skillblob.Length() + 1);
+    }
+    PlayerQuest *quest_it;
+    for (quest_it = player->quest_trackers.begin();
+         quest_it != player->quest_trackers.end();
+         quest_it++)
+    {
+        if (quest_it->quest_id > 0)
+        {
+            questcache.Insert(IntToStr(quest_it->quest_id), questcache.Length() + 1);
+            questcache.Insert(":", questcache.Length() + 1);
+            questcache.Insert(IntToStr(quest_it->state_index), questcache.Length() + 1);
+            questcache.Insert(":", questcache.Length() + 1);
+            questcache.Insert(IntToStr(quest_it->version), questcache.Length() + 1);
+            questcache.Insert(":", questcache.Length() + 1);
+            for (int j = 0; j < 5; j++)
+            {
+                questcache.Insert(IntToStr(quest_it->counters[j]),
+                                  questcache.Length() + 1);
+                questcache.Insert(":", questcache.Length() + 1);
+            }
+        }
+    }
+    for (quest_it = player->quest_history.begin();
+         quest_it != player->quest_history.end();
+         quest_it++)
+    {
+        if (quest_it->quest_id > 0)
+        {
+            questblob.Insert(IntToStr(quest_it->quest_id), questblob.Length() + 1);
+            questblob.Insert(":", questblob.Length() + 1);
+        }
+    }
+    invblob = invblob + "EOF";
+    skillblob = skillblob + "EOF";
+    bankblob = bankblob + "EOF";
+    questcache = questcache + "EOF";
+    questblob = questblob + "EOF";
+    String invblob2;
+    String bankblob2;
+    String skillblob2;
+    String questblob2;
+    if (invblob.Length() > 255)
+    {
+        invblob2 = invblob.SubString(256, invblob.Length() - 255);
+        invblob.Delete(256, invblob.Length() - 255);
+    }
+    if (bankblob.Length() > 255)
+    {
+        bankblob2 = bankblob.SubString(256, bankblob.Length() - 255);
+        bankblob.Delete(256, bankblob.Length() - 255);
+    }
+    if (skillblob.Length() > 255)
+    {
+        skillblob2 = skillblob.SubString(256, skillblob.Length() - 255);
+        skillblob.Delete(256, invblob.Length() - 255);
+    }
+    if (questblob.Length() > 255)
+    {
+        questblob2 = questblob.SubString(256, questblob.Length() - 255);
+        questblob.Delete(256, questblob.Length() - 255);
+    }
+    String q = "UPDATE endl_characters SET ";
+    q.Insert("ident_class = " + IntToStr(player->class_id), q.Length() + 1);
+    q.Insert(",ident_rank = " + IntToStr(player->guild_rank_id), q.Length() + 1);
+    q.Insert(",ident_guild = '" + player->guild_tag + "'", q.Length() + 1);
+    q.Insert(",partner = '" + player->partner_name + "'", q.Length() + 1);
+    q.Insert(",title = '" + player->title + "'", q.Length() + 1);
+    q.Insert(",guild = '" + player->guild_name + "'", q.Length() + 1);
+    q.Insert(",rank = '" + player->guild_rank_name + "'", q.Length() + 1);
+    q.Insert(",citizenship = '" + IntToStr(player->home_id) + "'", q.Length() + 1);
+    q.Insert(",experience = " + IntToStr(player->experience), q.Length() + 1);
+    q.Insert(",level = " + IntToStr(player->level), q.Length() + 1);
+    q.Insert(",stat_points = " + IntToStr(player->stat_points), q.Length() + 1);
+    q.Insert(",skill_points = " + IntToStr(player->skill_points), q.Length() + 1);
+    q.Insert(",gender = " + IntToStr(player->gender), q.Length() + 1);
+    q.Insert(",hairmodal = " + IntToStr(player->hair_style), q.Length() + 1);
+    q.Insert(",haircolor = " + IntToStr(player->hair_color), q.Length() + 1);
+    q.Insert(",skincolor = " + IntToStr(player->skin), q.Length() + 1);
+    q.Insert(",nav_map = " + IntToStr(player->map_id), q.Length() + 1);
+    q.Insert(",nav_x = " + IntToStr(player->x), q.Length() + 1);
+    q.Insert(",nav_y = " + IntToStr(player->y), q.Length() + 1);
+    q.Insert(",nav_direction = " + IntToStr(player->direction), q.Length() + 1);
+    q.Insert(",hp_max = " + IntToStr(player->base_hp), q.Length() + 1);
+    q.Insert(",hp_now = " + IntToStr(player->hp), q.Length() + 1);
+    q.Insert(",mp_max = " + IntToStr(player->base_tp), q.Length() + 1);
+    q.Insert(",mp_now = " + IntToStr(player->tp), q.Length() + 1);
+    q.Insert(",sp_max = " + IntToStr(player->base_sp), q.Length() + 1);
+    if (player->base_stats_dirty != false ||
+        Settings::GetSqlSmart(players->settings) == false)
+    {
+        q.Insert(",stat_strenght = " + IntToStr(player->base_strength), q.Length() + 1);
+        q.Insert(",stat_wisdom = " + IntToStr(player->base_wisdom), q.Length() + 1);
+        q.Insert(",stat_intelligence = " + IntToStr(player->base_intelligence),
+                 q.Length() + 1);
+        q.Insert(",stat_agility = " + IntToStr(player->base_agility), q.Length() + 1);
+        q.Insert(",stat_constitution = " + IntToStr(player->base_constitution),
+                 q.Length() + 1);
+        q.Insert(",stat_charisma = " + IntToStr(player->base_charisma), q.Length() + 1);
+        player->base_stats_dirty = false;
+    }
+    if (player->money_bank < 0)
+        player->money_bank = 0;
+    q.Insert(",clientusge = " + IntToStr(player->usage), q.Length() + 1);
+    q.Insert(",money_bank = " + IntToStr(player->money_bank), q.Length() + 1);
+    q.Insert(",locker_bank = " + IntToStr(player->locker_bank), q.Length() + 1);
+    q.Insert(",alignment_good = " + IntToStr(player->karma), q.Length() + 1);
+    if (player->equipment_dirty != false ||
+        Settings::GetSqlSmart(players->settings) == false)
+    {
+        q.Insert(",eq_boots = " + IntToStr(player->boots_item_id), q.Length() + 1);
+        q.Insert(",eq_pants = " + IntToStr(player->accessory_item_id), q.Length() + 1);
+        q.Insert(",eq_gloves = " + IntToStr(player->gloves_item_id), q.Length() + 1);
+        q.Insert(",eq_armor = " + IntToStr(player->armor_item_id), q.Length() + 1);
+        q.Insert(",eq_belt = " + IntToStr(player->belt_item_id), q.Length() + 1);
+        q.Insert(",eq_necklage = " + IntToStr(player->necklace_item_id), q.Length() + 1);
+        q.Insert(",eq_hat = " + IntToStr(player->hat_item_id), q.Length() + 1);
+        q.Insert(",eq_shield = " + IntToStr(player->shield_item_id), q.Length() + 1);
+        q.Insert(",eq_weapon = " + IntToStr(player->weapon_item_id), q.Length() + 1);
+        q.Insert(",eq_ring_l = " + IntToStr(player->ring1_item_id), q.Length() + 1);
+        q.Insert(",eq_ring_r = " + IntToStr(player->ring2_item_id), q.Length() + 1);
+        q.Insert(",eq_armlet_l = " + IntToStr(player->armlet1_item_id), q.Length() + 1);
+        q.Insert(",eq_armlet_r = " + IntToStr(player->armlet2_item_id), q.Length() + 1);
+        q.Insert(",eq_bracer_l = " + IntToStr(player->bracer1_item_id), q.Length() + 1);
+        q.Insert(",eq_bracer_r = " + IntToStr(player->bracer2_item_id), q.Length() + 1);
+        player->equipment_dirty = 0;
+    }
+    if (player->inventory_dirty != false ||
+        Settings::GetSqlSmart(players->settings) == false)
+    {
+        q.Insert(",invblob = '" + invblob + "'", q.Length() + 1);
+        q.Insert(",invblob2 = '" + invblob2 + "'", q.Length() + 1);
+        player->inventory_dirty = 0;
+    }
+    if (player->bank_dirty != false || Settings::GetSqlSmart(players->settings) == false)
+    {
+        q.Insert(",invblob3 = '" + bankblob + "'", q.Length() + 1);
+        q.Insert(",invblob4 = '" + bankblob2 + "'", q.Length() + 1);
+        player->bank_dirty = 0;
+    }
+    q.Insert(",skillblob = '" + skillblob + "'", q.Length() + 1);
+    q.Insert(",skillblob2 = '" + skillblob2 + "'", q.Length() + 1);
+    q.Insert(",questcache = '" + questcache + "'", q.Length() + 1);
+    q.Insert(",questblob = '" + questblob + "'", q.Length() + 1);
+    q.Insert(",questblob2 = '" + questblob2 + "'", q.Length() + 1);
+    int sit = 0;
+    if (player->on_chair != false)
+        sit = 1;
+    if (player->sitting != false)
+        sit = 2;
+    q.Insert(",sitting = " + IntToStr(sit), q.Length() + 1);
+    q.Insert(",online = " + IntToStr(flags), q.Length() + 1);
+    q.Insert(" WHERE ident = " + IntToStr(player->character_id), q.Length() + 1);
+    q.Insert(" AND ident_account = " + IntToStr(player->account_id), q.Length() + 1);
+    FileCache::UpdatePlayerCache(players->mysql_controls->file_cache, (char *)player);
+    return q;
+}
+
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
 // STUB(0x00407b30, 80 bytes) FUN_00407b30 - ref: undefined FUN_00407b30(int param_1, byte
@@ -920,48 +1122,6 @@ void FUN_00407b30_Stub(int a0, unsigned char a1)
 // STUB(0x004081c8, 381 bytes) FUN_004081c8 - ref: undefined4 FUN_004081c8(Players *
 // players, int socket)
 int FUN_004081c8_Stub(void *a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00408cac, 91 bytes) FUN_00408cac - ref: undefined4 * FUN_00408cac(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-void *FUN_00408cac_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00408d08, 11 bytes) FUN_00408d08 - ref: undefined4 FUN_00408d08(int param_1)
-int FUN_00408d08_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00408d20, 92 bytes) FUN_00408d20 - ref: undefined4 * FUN_00408d20(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-void *FUN_00408d20_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00408d7c, 42 bytes) FUN_00408d7c - ref: undefined4 * FUN_00408d7c(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_00408d7c_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00408e18, 48 bytes) FUN_00408e18 - ref: undefined4 * FUN_00408e18(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_00408e18_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00408e88, 53 bytes) FUN_00408e88 - ref: undefined4 * FUN_00408e88(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_00408e88_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0040902c, 14592 bytes) Character_BuildSaveQuery - ref: AnsiString *
-// Character_BuildSaveQuery(AnsiString * out_str, Players * players, Player * player, int
-// flags)
-void *Character_BuildSaveQuery_Stub(void *a0, void *a1, void *a2, int a3)
 {
     return 0;
 }
@@ -979,16 +1139,6 @@ int FUN_0040e828_Stub(void *a0, void *a1, int a2)
 // STUB(0x0040e8c0, 33 bytes) FUN_0040e8c0 - ref: int FUN_0040e8c0(int param_1, int
 // param_2, undefined4 * param_3)
 int FUN_0040e8c0_Stub(int a0, int a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0040e8e4, 11 bytes) FUN_0040e8e4 - ref: undefined4 FUN_0040e8e4(int param_1)
-int FUN_0040e8e4_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0040e8f0, 11 bytes) FUN_0040e8f0 - ref: undefined4 FUN_0040e8f0(int param_1)
-int FUN_0040e8f0_Stub(int a0)
 {
     return 0;
 }
@@ -1019,16 +1169,6 @@ void *FUN_0040ea28_Stub(int a0, void *a1)
 // param_1, int param_2)
 void FUN_0040ea90_Stub(int a0, int a1)
 {
-}
-// STUB(0x00410dac, 11 bytes) FUN_00410dac - ref: undefined4 FUN_00410dac(int param_1)
-int FUN_00410dac_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00410dc8, 11 bytes) FUN_00410dc8 - ref: undefined4 FUN_00410dc8(int param_1)
-int FUN_00410dc8_Stub(int a0)
-{
-    return 0;
 }
 #pragma warn.8057
 // END GENERATED STUBS

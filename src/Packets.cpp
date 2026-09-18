@@ -29,6 +29,11 @@ bool FUN_00462374(Server *server, Player *player, String data);
 String Character_BuildSaveQuery(Players *players, Player *player, int flag);
 extern TGUI **MAINFORM;
 MapObject Map_GetTileSpecObject(Mapcontrol *map_control, int map_id, int x, int y);
+void Server_BroadcastToMapExceptSelf(Server *server,
+                                     Player *player,
+                                     unsigned char action,
+                                     unsigned char family,
+                                     String data);
 
 void Game_Tick(Server *server)
 {
@@ -672,6 +677,67 @@ void Player_CalculateStats(Server *server, Player *player)
     player->accuracy = player->accuracy + player->class_accuracy;
     player->evasion = player->evasion + player->class_evasion;
     player->armor = player->armor + player->class_armor;
+}
+
+int Party_ShareExp(Server *server, Player *player, int exp)
+{
+    if (!player->in_party)
+        return exp;
+    if (player->CountPartyMembers() < 2)
+        return exp;
+    int members = 0;
+    for (int i = 0; i < 10; i++)
+    {
+        Player *member = Players::Players_GetById(server->players, player->party_ids[i]);
+        if (member != NULL && member->map_id == player->map_id)
+            members++;
+    }
+    if (members < 2)
+        return exp;
+    if (exp > 3 && members > 2)
+        exp = exp + exp / members;
+    exp = exp / members;
+    if (exp < 1)
+        exp = 1;
+    String pkt = "";
+    bool leveled = false;
+    for (int i = 0; i < 10; i++)
+    {
+        Player *member = Players::Players_GetById(server->players, player->party_ids[i]);
+        if (member == NULL || member->player_id == player->player_id ||
+            member->map_id != player->map_id)
+            continue;
+        if (Settings::GetMaxKills(server->settings) != 0)
+        {
+            if (KillCounters::IncrementAndGet(server->kill_counters, member->name) >
+                Settings::GetMaxKills(server->settings))
+                exp = 0;
+        }
+        member->experience = member->experience + exp;
+        int levelup = Players::Player_TryLevelUp(server->players, member);
+        if (levelup > 0)
+        {
+            String stats = EO_EncodeNumber(server, member->stat_points, 2);
+            stats.Insert(EO_EncodeNumber(server, member->skill_points, 2),
+                         stats.Length() + 1);
+            stats.Insert(EO_EncodeNumber(server, member->max_hp, 2), stats.Length() + 1);
+            stats.Insert(EO_EncodeNumber(server, member->max_tp, 2), stats.Length() + 1);
+            stats.Insert(EO_EncodeNumber(server, member->max_sp, 2), stats.Length() + 1);
+            Client_SendEncoded(
+                server, member, PacketAction_TargetGroup, PacketFamily_Recover, stats);
+            leveled = true;
+        }
+        pkt.Insert(EO_EncodeNumber(server, member->player_id, 2), pkt.Length() + 1);
+        pkt.Insert(EO_EncodeNumber(server, exp, 4), pkt.Length() + 1);
+        pkt.Insert(EO_EncodeNumber(server, levelup, 1), pkt.Length() + 1);
+    }
+    if (leveled)
+        Server_BroadcastToMap(
+            server, player->map_id, PacketAction_TargetGroup, PacketFamily_Party, pkt);
+    else
+        Server_BroadcastToMapExceptSelf(
+            server, player, PacketAction_TargetGroup, PacketFamily_Party, pkt);
+    return exp;
 }
 
 void Player_Respawn(Server *server, Player *player)
@@ -1711,12 +1777,6 @@ void Player_ApplyEquipmentBonuses_Stub(void *a0, void *a1)
 // int map_id)
 void FUN_00466840_Stub(void *a0, int a1)
 {
-}
-// STUB(0x0046690c, 1198 bytes) Party_ShareExp - ref: uint Party_ShareExp(Server * server,
-// Player * player, uint exp)
-unsigned int Party_ShareExp_Stub(void *a0, void *a1, int a2)
-{
-    return 0;
 }
 // STUB(0x00467980, 12223 bytes) Attack_Execute - ref: int Attack_Execute(Server * server,
 // Player * attacker, PacketAction action, AnsiString * packet_data)
