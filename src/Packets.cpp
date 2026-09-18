@@ -1347,12 +1347,75 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
     return;
 }
 
+String Server_BuildOnlineList(Server *server)
+{
+    if (server->online_list_ttl < 1)
+    {
+        String list = EO_GetBreakByte(server, 0xff);
+        int count = 0;
+        for (Player **iter = Players_Iter_Begin(server->players);
+             iter != Players_Iter_End(server->players);
+             iter++)
+        {
+            if ((*iter)->logged_in && !(*iter)->hide_online)
+            {
+                list.Insert((*iter)->name, list.Length() + 1);
+                list.Insert(EO_GetBreakByte(server, 0xff), list.Length() + 1);
+                list.Insert((*iter)->title, list.Length() + 1);
+                list.Insert(EO_GetBreakByte(server, 0xff), list.Length() + 1);
+                list.Insert(EO_EncodeNumber(server, (*iter)->level, 1),
+                            list.Length() + 1);
+                if ((*iter)->in_party)
+                {
+                    if ((*iter)->admin_level <= 1)
+                        list.Insert(EO_EncodeNumber(server, 6, 1), list.Length() + 1);
+                    else if ((*iter)->admin_level > 3)
+                        list.Insert(EO_EncodeNumber(server, 10, 1), list.Length() + 1);
+                    else
+                        list.Insert(EO_EncodeNumber(server, 9, 1), list.Length() + 1);
+                }
+                else
+                {
+                    if ((*iter)->admin_level <= 1)
+                        list.Insert(EO_EncodeNumber(server, 1, 1), list.Length() + 1);
+                    else if ((*iter)->admin_level > 3)
+                        list.Insert(EO_EncodeNumber(server, 5, 1), list.Length() + 1);
+                    else
+                        list.Insert(EO_EncodeNumber(server, 4, 1), list.Length() + 1);
+                }
+                list.Insert(EO_EncodeNumber(server, (*iter)->class_id, 1),
+                            list.Length() + 1);
+                list.Insert((*iter)->guild_tag, list.Length() + 1);
+                if ((*iter)->guild_tag.Length() == 2)
+                    list.Insert(" ", list.Length() + 1);
+                if ((*iter)->guild_tag.Length() == 1)
+                    list.Insert("  ", list.Length() + 1);
+                if ((*iter)->guild_tag.Length() == 0)
+                    list.Insert("   ", list.Length() + 1);
+                list.Insert(EO_GetBreakByte(server, 0xff), list.Length() + 1);
+                count++;
+            }
+        }
+        list.Insert(EO_EncodeNumber(server, count, 2), 1);
+        if (count > 0x18)
+        {
+            server->online_list_cache = list;
+            server->online_list_ttl = 4;
+        }
+        return list;
+    }
+    return server->online_list_cache;
+}
+
 String Walk_BuildReply(Server *server, Player *player)
 {
     String buf = "";
     try
     {
-        for (Player **iter = Players_Iter_Begin(server->players);
+        Player **iter;
+        Npc **niter;
+        ChestItem **iiter;
+        for (iter = Players_Iter_Begin(server->players);
              iter != Players_Iter_End(server->players);
              iter++)
         {
@@ -1369,18 +1432,18 @@ String Walk_BuildReply(Server *server, Player *player)
         {
             if (player->map_id <= Mapcontrol_GetCount(server->map_control))
             {
-                for (Npc **iter = (Npc **)Map_NpcIter_Begin(
+                for (niter = (Npc **)Map_NpcIter_Begin(
                          &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                               ->npc_list);
-                     iter !=
+                     niter !=
                      (Npc **)Map_NpcIter_End(
                          &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                               ->npc_list);
-                     iter++)
+                     niter++)
                 {
                     if (Server_InViewRing(
-                            server, player->x, player->y, (*iter)->x, (*iter)->y))
-                        buf.Insert(EO_EncodeNumber(server, (*iter)->index, 1),
+                            server, player->x, player->y, (*niter)->x, (*niter)->y))
+                        buf.Insert(EO_EncodeNumber(server, (*niter)->index, 1),
                                    buf.Length() + 1);
                 }
             }
@@ -1390,27 +1453,27 @@ String Walk_BuildReply(Server *server, Player *player)
         {
             if (player->map_id <= Mapcontrol_GetCount(server->map_control))
             {
-                for (ChestItem **iter = (ChestItem **)GroundItemPtrVector_Begin(
+                for (iiter = (ChestItem **)GroundItemPtrVector_Begin(
                          &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                               ->ground_items);
-                     iter !=
+                     iiter !=
                      (ChestItem **)PtrVector_GetEnd(
                          &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                               ->ground_items);
-                     iter++)
+                     iiter++)
                 {
                     if (Server_InItemViewRing(
-                            server, player->x, player->y, (*iter)->x, (*iter)->y))
+                            server, player->x, player->y, (*iiter)->x, (*iiter)->y))
                     {
-                        buf.Insert(EO_EncodeNumber(server, (*iter)->index, 2),
+                        buf.Insert(EO_EncodeNumber(server, (*iiter)->index, 2),
                                    buf.Length() + 1);
-                        buf.Insert(EO_EncodeNumber(server, (*iter)->item_id, 2),
+                        buf.Insert(EO_EncodeNumber(server, (*iiter)->item_id, 2),
                                    buf.Length() + 1);
-                        buf.Insert(EO_EncodeNumber(server, (*iter)->x, 1),
+                        buf.Insert(EO_EncodeNumber(server, (*iiter)->x, 1),
                                    buf.Length() + 1);
-                        buf.Insert(EO_EncodeNumber(server, (*iter)->y, 1),
+                        buf.Insert(EO_EncodeNumber(server, (*iiter)->y, 1),
                                    buf.Length() + 1);
-                        buf.Insert(EO_EncodeNumber(server, (*iter)->amount, 3),
+                        buf.Insert(EO_EncodeNumber(server, (*iiter)->amount, 3),
                                    buf.Length() + 1);
                     }
                 }
@@ -2576,12 +2639,6 @@ void *Player_SerializePaperdoll_Stub(void *a0, int a1, int a2)
 // STUB(0x004607c8, 3110 bytes) Paperdoll_BuildReply - ref: int *
 // Paperdoll_BuildReply(AnsiString * data, Server * server, Player * player)
 void *Paperdoll_BuildReply_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0046194c, 1629 bytes) Server_BuildOnlineList - ref: AnsiString *
-// Server_BuildOnlineList(AnsiString * out_str, Server * server)
-void *Server_BuildOnlineList_Stub(void *a0, void *a1)
 {
     return 0;
 }

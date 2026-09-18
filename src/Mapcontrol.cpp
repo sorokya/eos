@@ -1447,11 +1447,37 @@ void *FUN_00482444_Stub(void *a0, void *a1, void *a2)
 {
     return 0;
 }
-// STUB(0x00482834, 7050 bytes) FUN_00482834 - ref: undefined4 FUN_00482834(int param_1,
-// undefined2 * param_2, uint param_3)
-int FUN_00482834_Stub(int a0, void *a1, unsigned int a2)
+int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
 {
-    return 0;
+    String map_buf;
+    String local_c;
+    try
+    {
+        map_buf = IntToStr(map_id);
+        for (int i = map_buf.Length(); i <= 4; i++)
+            map_buf.Insert("0", 0);
+        map_buf.Insert("./maps/", 0);
+        map_buf.Insert(".emf", map_buf.Length() + 1);
+        int file_handle = FileOpen(map_buf.c_str(), 0);
+        if (file_handle < 0)
+            return 0;
+        int size = FileSeek(file_handle, 0, 2);
+        FileSeek(file_handle, 0, 0);
+        char *buf = new char[size + 1];
+        FileRead(file_handle, buf, size);
+        FileClose(file_handle);
+        String t_buf = buf;
+        map_buf = t_buf;
+        map_buf.SetLength(size);
+        delete[] buf;
+        if (map_buf[1] != 'E' || map_buf[2] != 'M' || map_buf[3] != 'F')
+            return 0;
+        return 1;
+    }
+    catch (...)
+    {
+        return 1;
+    }
 }
 // STUB(0x0048441c, 161 bytes) FUN_0048441c - ref: undefined FUN_0048441c(undefined4 *
 // param_1, uint param_2)
