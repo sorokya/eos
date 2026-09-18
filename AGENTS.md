@@ -363,6 +363,15 @@ them to pick the form that matches the reference.
   *sequence* encodes block nesting, so comparing marker streams is the quickest
   way to tell whether an `if`/`for`/block structure matches. Braces on an
   otherwise single-statement `if` add a scope (and a marker).
+- **Passing a value to a `String` parameter: write the implicit conversion, not an
+  explicit `String(...)`.** For a value converted to a `String` argument (e.g. an
+  `int`/`char` from `EO_GetBreakByte`, or a `char` element), the reference
+  materializes the temporary on the stack and passes its address
+  (`lea ecx,[ebp-N]; push ecx`). Writing the explicit `String(x)` instead makes
+  bcc32 reuse the constructor's return in `eax` (`push eax`), which is the sole
+  difference in `Client_SendRaw`, `Face_Execute` and `PacketReader_GetBreakString`.
+  (This is the argument-position counterpart of the `s + ch` -> `s + String(ch)`
+  rule above, which applies to concatenation, not to arguments.)
 - **Parentheses can add a temporary.** `String x = (expr);` may introduce an
   EH-recorded temporary that `String x = expr;` does not (the frame grows), so
   expression parenthesization is observable in codegen.

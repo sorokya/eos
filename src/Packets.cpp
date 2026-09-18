@@ -311,8 +311,8 @@ void Client_SendRaw(Server *server, Player *client, String data, int break_byte)
     if (!client->connected)
         return;
     String built = String(EO_GetBreakByte(server, 0xff));
-    built.Insert(String(EO_GetBreakByte(server, 0xff)), built.Length() + 1);
-    built.Insert(String(EO_GetBreakByte(server, break_byte)), built.Length() + 1);
+    built.Insert(EO_GetBreakByte(server, 0xff), built.Length() + 1);
+    built.Insert(EO_GetBreakByte(server, break_byte), built.Length() + 1);
     built.Insert(data, built.Length() + 1);
     built.Insert(EO_EncodeNumber(server, built.Length(), 2), 1);
     Sock_Send(client->socket, *(char **)&built);
@@ -329,9 +329,9 @@ bool Face_Execute(Server *server, Player *player, int action, String *data)
             return true;
         if (data->Length() < 1)
             return false;
-        if ((unsigned)EO_DecodeNumber(server, String((*data)[1])) > 3)
+        if ((unsigned)EO_DecodeNumber(server, (*data)[1]) > 3)
             return false;
-        player->direction = EO_DecodeNumber(server, String((*data)[1]));
+        player->direction = EO_DecodeNumber(server, (*data)[1]);
         String out = EO_EncodeNumber(server, player->player_id, 2);
         out = out + String((*data)[1]);
         Server_BroadcastNearby(server, player, 8, 7, out);
