@@ -290,8 +290,8 @@ void *PtrVector_GetEnd(void *list)
 
 int GroundItemPtrVector_Count(void *list)
 {
-    return (int)((char *)PtrVector_GetEnd(list)
-                 - (char *)GroundItemPtrVector_Begin(list));
+    return (void **)PtrVector_GetEnd(list)
+           - (void **)GroundItemPtrVector_Begin(list);
 }
 
 int Math_Abs(int value)
