@@ -8,8 +8,8 @@
 // (0x535eec); sizeof(std::vector<ClassValue>) is 32 and sizeof(ClassValue) is
 // 28, matching the reference's element size and member extent:
 //   +0x00 int                       field_0
-//   +0x10 char                      field_10
-//   +0x14 int                       field_14
+//   +0x10 char                      loaded
+//   +0x14 TStringList *             string_list
 //   +0x18 void *                    field_18 = operator new(8)
 //   +0x1c std::vector<ClassValue>   values
 //   +0x3c int                       field_3c = -1
@@ -21,9 +21,9 @@ class ClassValues
     int num_classes;
     int rid_1;
     int rid_2;
-    char field_10;
+    char loaded;
     char pad_11[3];
-    TStringList *field_14;
+    TStringList *string_list;
     void *field_18;
     std::vector<ClassValue> values;
     int field_3c;
@@ -38,15 +38,15 @@ class ClassValues
     static ClassValue GetByIndex(ClassValues *self, int index);
     static void AddClass(ClassValues *self,
                          int id,
-                         int field_4,
+                         int parent_type,
                          String name,
-                         short f0c,
-                         short f0e,
-                         short f10,
-                         short f12,
-                         short f14,
-                         short f16,
-                         short f18);
+                         short stat_group,
+                         short str,
+                         short intl,
+                         short wis,
+                         short agi,
+                         short con,
+                         short cha);
 };
 
 #endif

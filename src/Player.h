@@ -28,9 +28,9 @@ class Player
 {
   public:
     bool connected;                           // +0x000
-    bool unk_char1;                           // +0x001
+    bool initialized;                         // +0x001
     bool removing;                            // +0x002
-    bool field_0x3;                           // +0x003
+    bool account_logged_in;                   // +0x003
     bool logged_in;                           // +0x004
     bool ping_timeout;                        // +0x005
     char pad_06[2];                           // +0x006
@@ -47,16 +47,16 @@ class Player
     int session_id;                           // +0x030
     int field_0x34;                           // +0x034
     String receive_buffer;                    // +0x038
-    String field_0x3c;                        // +0x03c
+    String hdid;                              // +0x03c
     String remote_ip;                         // +0x040
-    String field_0x44;                        // +0x044
+    String account_name;                      // +0x044
     String field_0x48;                        // +0x048
-    int field_0x4c;                           // +0x04c
+    int packet_count;                         // +0x04c
     int remove_timer;                         // +0x050
     bool arena_queued;                        // +0x054
     bool arena_playing;                       // +0x055
     char pad_56[2];                           // +0x056
-    int field_0x58;                           // +0x058
+    int arena_kills;                          // +0x058
     char bank_dirty;                          // +0x05c
     char inventory_dirty;                     // +0x05d
     char equipment_dirty;                     // +0x05e
@@ -68,14 +68,14 @@ class Player
     int read_pos;                             // +0x070
     int read_len;                             // +0x074
     int read_break;                           // +0x078
-    int field_0x7c;                           // +0x07c
+    int npc_index;                            // +0x07c
     int field_0x80;                           // +0x080
-    int field_0x84;                           // +0x084
-    int field_0x88;                           // +0x088
+    int session_token;                        // +0x084
+    int guild_inviter_id;                     // +0x088
     String field_0x8c;                        // +0x08c
     bool trade_accepted;                      // +0x090
     char pad_91[3];                           // +0x091
-    int field_0x94;                           // +0x094
+    int trade_value;                          // +0x094
     int admin_level;                          // +0x098
     int hangup_ticks;                         // +0x09c
     int recover_ticks;                        // +0x0a0
@@ -89,7 +89,7 @@ class Player
     String guild_name;                        // +0x0bc
     int experience;                           // +0x0c0
     int level;                                // +0x0c4
-    bool field_0xc8;                          // +0x0c8
+    bool show_players;                        // +0x0c8
     char pad_c9[3];                           // +0x0c9
     int gender;                               // +0x0cc
     int hair_style;                           // +0x0d0
@@ -107,7 +107,7 @@ class Player
     unsigned short target_x;                  // +0x0fc
     unsigned short target_y;                  // +0x0fe
     bool warp_pending;                        // +0x100
-    bool field_0x101;                         // +0x101
+    bool map_switch_pending;                  // +0x101
     char pad_102[2];                          // +0x102
     int base_hp;                              // +0x104
     int max_hp;                               // +0x108
@@ -205,9 +205,9 @@ class Player
     String skillblob;                         // +0x330
     String quest_cache;                       // +0x334
     String quest_blob;                        // +0x338
-    int field_0x33c;                          // +0x33c
-    int field_0x340;                          // +0x340
-    int field_0x344;                          // +0x344
+    int character_slot_0;                     // +0x33c
+    int character_slot_1;                     // +0x340
+    int character_slot_2;                     // +0x344
     char stats_dirty;                         // +0x348
     bool dead;                                // +0x349
     char pad_34a[2];                          // +0x34a
@@ -223,7 +223,7 @@ class Player
     int expected_cast_timestamp;              // +0x374
     int field_0x378;                          // +0x378
     int field_0x37c;                          // +0x37c
-    int field_0x380;                          // +0x380
+    int drop_counter;                         // +0x380
     int walk_tick;                            // +0x384
     int field_0x388;                          // +0x388
     std::vector<PlayerCommand> action_queue;  // +0x38c
@@ -247,9 +247,9 @@ class Player
     bool on_chair;                            // +0x3e4
     bool sitting;                             // +0x3e5
     bool hidden;                              // +0x3e6
-    bool field_0x3e7;                         // +0x3e7
+    bool hide_online;                         // +0x3e7
     bool cheater_flag;                        // +0x3e8
-    bool field_0x3e9;                         // +0x3e9
+    bool global_chat;                         // +0x3e9
     char pad_3ea[6];                          // +0x3ea
     TDateTime enter_game_timestamp;           // +0x3f0
 

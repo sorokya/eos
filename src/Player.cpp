@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Player.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -10,23 +11,23 @@ Player::Player(void *socket)
     this->socket = socket;
     player_id = *(int *)((char *)socket + 4);
     remote_ip += Socket_GetRemoteIP(socket);
-    field_0x33c = 0;
-    field_0x340 = 0;
-    field_0x344 = 0;
+    character_slot_0 = 0;
+    character_slot_1 = 0;
+    character_slot_2 = 0;
     in_party = false;
     hidden = false;
-    field_0x3e7 = false;
+    hide_online = false;
     ClearPartyRoster(this);
-    unk_char1 = false;
+    initialized = false;
     removing = false;
     connected = false;
-    field_0x3 = false;
+    account_logged_in = false;
     logged_in = false;
-    field_0x101 = false;
+    map_switch_pending = false;
     arena_playing = false;
     arena_queued = false;
-    field_0x3e9 = false;
-    admin_level = 0;
+    global_chat = false;
+    admin_level = AdminLevel_Player;
     account_create_cooldown = 0;
     field_0x2c = 0;
     server_encryption_multiple = RandRange(8) + 5;
@@ -36,7 +37,7 @@ Player::Player(void *socket)
     session_id = RandRange(50000) + 10000;
     receive_buffer += "";
     ping_timeout = false;
-    field_0x4c = 0;
+    packet_count = 0;
     field_0xc = -1;
     character_id = 0xffffffff;
     idle_ticks = 0;
@@ -46,10 +47,10 @@ Player::Player(void *socket)
     hangup_ticks = 0;
     recover_ticks = 0;
     field_0xa4 = 0;
-    field_0xc8 = false;
+    show_players = false;
     read_pos = -1;
     read_len = -1;
-    field_0x84 = -1;
+    session_token = -1;
     trade_accepted = false;
     stats_dirty = 0;
     dead = false;
@@ -63,7 +64,7 @@ Player::Player(void *socket)
     map_has_tp_drain = false;
     last_pass_ms = DateTimeToTimeStamp(Now());
     field_0x37c = 30;
-    field_0x380 = 20;
+    drop_counter = 20;
     field_0x378 = 3;
     attack_tokens = 40;
     attack_token_ticks = 0;

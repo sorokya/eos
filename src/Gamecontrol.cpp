@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Gamecontrol.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -95,9 +96,9 @@ double Gamecontrol::Combat_CalcElementMult(
     Gamecontrol *self, int element, int carry, short atk_power, short target_value)
 {
     double result = 1;
-    if (element > 0)
+    if (element > Element_None)
     {
-        if (element == 2)
+        if (element == Element_Dark)
             result = carry / 10 + atk_power + 8;
         else if (target_value > 0)
             result = Combat_ElementScore(self, atk_power + carry, target_value);

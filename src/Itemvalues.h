@@ -44,7 +44,7 @@ struct ItemSpecXY
 //   +0x08 int                         rid_1
 //   +0x0c int                         rid_2
 //   +0x10 char                        loaded
-//   +0x14 TStringList *               field_14
+//   +0x14 TStringList *               string_list
 //   +0x18 void *                      field_18 = operator new(8)
 //   +0x1c std::vector<ItemValue *>    values
 //   +0x3c int                         field_3c = -1
@@ -57,7 +57,7 @@ class ItemValues
     int rid_2;
     char loaded;
     char pad_11[3];
-    TStringList *field_14;
+    TStringList *string_list;
     void *field_18;
     std::vector<ItemValue *> values;
     int field_3c;

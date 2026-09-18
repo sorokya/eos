@@ -141,7 +141,8 @@ void EventController::Tick(EventController *self)
                      player_iter != Players_Iter_End(self->players);
                      player_iter++)
                 {
-                    if ((*player_iter)->connected && (*player_iter)->admin_level < 1 &&
+                    if ((*player_iter)->connected &&
+                        (*player_iter)->admin_level < AdminLevel_Spy &&
                         (*player_iter)->map_id == map_iter->rid)
                     {
                         TPoint pos;
@@ -192,7 +193,7 @@ void EventController::Tick(EventController *self)
                             pos.y = spawn_iter->to_y;
                             target_player->arena_playing = true;
                             target_player->arena_queued = false;
-                            target_player->field_0x58 = 0;
+                            target_player->arena_kills = 0;
                             Player_Warp(self->server,
                                         target_player,
                                         map_iter->rid,

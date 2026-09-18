@@ -11,7 +11,7 @@ ClassValues::~ClassValues()
 
 void ClassValues::LoadClasses(ClassValues *self)
 {
-    if (self->field_10 == 0)
+    if (self->loaded == 0)
     {
         int file = 1;
         int count = 0;
@@ -42,7 +42,7 @@ void ClassValues::LoadClasses(ClassValues *self)
                 delete[] buf;
                 if (data[1] != 'E' || data[2] != 'C' || data[3] != 'F')
                     return;
-                self->field_14->Add(data);
+                self->string_list->Add(data);
                 if (file == 1)
                 {
                     self->rid_1 = self->DecodeInt(data.SubString(4, 2));
@@ -74,13 +74,13 @@ void ClassValues::LoadClasses(ClassValues *self)
             catch (...)
             {
                 FileClose(h);
-                self->field_10 = 0;
+                self->loaded = 0;
             }
             file++;
         } while (count < total);
 
         self->field_0 = file - 1;
-        self->field_10 = 1;
+        self->loaded = 1;
     }
 }
 
@@ -93,26 +93,26 @@ ClassValue ClassValues::GetByIndex(ClassValues *self, int index)
 
 void ClassValues::AddClass(ClassValues *self,
                            int id,
-                           int field_4,
+                           int parent_type,
                            String name,
-                           short f0c,
-                           short f0e,
-                           short f10,
-                           short f12,
-                           short f14,
-                           short f16,
-                           short f18)
+                           short stat_group,
+                           short str,
+                           short intl,
+                           short wis,
+                           short agi,
+                           short con,
+                           short cha)
 {
     ClassValue v(id);
     v.name = name;
-    v.field_4 = field_4;
-    v.f0c = f0c;
-    v.f0e = f0e;
-    v.f10 = f10;
-    v.f12 = f12;
-    v.f14 = f14;
-    v.f16 = f16;
-    v.f18 = f18;
+    v.parent_type = parent_type;
+    v.stat_group = stat_group;
+    v.str = str;
+    v.intl = intl;
+    v.wis = wis;
+    v.agi = agi;
+    v.con = con;
+    v.cha = cha;
     self->values.insert(self->values.end(), v);
 }
 
@@ -120,9 +120,9 @@ ClassValues::ClassValues()
 {
     field_18 = operator new(8);
     field_3c = -1;
-    field_10 = 0;
+    loaded = 0;
     field_0 = 0;
-    field_14 = new TStringList;
+    string_list = new TStringList;
     LoadClasses(this);
 }
 

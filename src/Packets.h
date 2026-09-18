@@ -38,37 +38,37 @@ class Server
     Settings *settings;            // +0x28
     KillCounters *kill_counters;   // +0x2c
     QuestCounters *quest_counters; // +0x30
-    int field_0x34;                // +0x34
+    int padding_0x34;              // +0x34
     TDateTime start_time;          // +0x38
     char *encode_buffer;           // +0x40
     char *packet_buffer;           // +0x44
     int version_patch;             // +0x48
     int version_minor;             // +0x4c
     int version_major;             // +0x50
-    int field_0x54;                // +0x54
-    int field_0x58;                // +0x58
-    int field_0x5c;                // +0x5c
-    int field_0x60;                // +0x60
-    int field_0x64;                // +0x64
-    int field_0x68;                // +0x68
-    String field_0x6c;             // +0x6c
-    int field_0x70;                // +0x70
-    int field_0x74;                // +0x74
-    char field_0x78;               // +0x78
+    int sent_bytes;                // +0x54
+    int sent_kilobytes;            // +0x58
+    int sent_megabytes;            // +0x5c
+    int received_bytes;            // +0x60
+    int received_kilobytes;        // +0x64
+    int received_megabytes;        // +0x68
+    String reader_data;            // +0x6c
+    int reader_pos;                // +0x70
+    int reader_len;                // +0x74
+    char reader_break_byte;        // +0x78
     int online_names_ttl;          // +0x7c
     String online_names_cache;     // +0x80
     int online_list_ttl;           // +0x84
     String online_list_cache;      // +0x88
     String field_0x8c[7];          // +0x8c
-    int field_0xa8[3];             // +0xa8
+    int ping_history[3];           // +0xa8
     int ticks;                     // +0xb4
     char hangup_gate;              // +0xb8
-    char flag_0xb9;                // +0xb9
-    char flag_0xba;                // +0xba
+    char kill_counters_cleared;    // +0xb9
+    char shutting_down;            // +0xba
     char pad_bb[1];                // +0xbb
     int cheat_offset_x;            // +0xbc
     int cheat_offset_y;            // +0xc0
-    int field_0xc4;                // +0xc4
+    int padding_0xc4;              // +0xc4
 
     Server(Mapcontrol *map_control,
            Questengine *quest_engine,

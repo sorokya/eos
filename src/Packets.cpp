@@ -13,6 +13,7 @@
 #include "Filecache.h"
 #include "Settings.h"
 #include "Logins.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -93,14 +94,22 @@ void Game_Tick(Server *server)
                     hp_str.Insert(EO_EncodeNumber(server, (*player)->tp, 2),
                                   hp_str.Length() + 1);
                     hp_str.Insert(EO_EncodeNumber(server, 0, 2), hp_str.Length() + 1);
-                    Client_SendEncoded(server, *player, 8, 0x2a, hp_str);
+                    Client_SendEncoded(server,
+                                       *player,
+                                       PacketAction_Player,
+                                       PacketFamily_Recover,
+                                       hp_str);
                     if ((*player)->in_party)
                     {
                         String pid_str = EO_EncodeNumber(server, (*player)->player_id, 2);
                         pid_str.Insert(
                             EO_EncodeNumber(server, Player::HpPercent(*player), 1),
                             pid_str.Length() + 1);
-                        Server_BroadcastToParty(server, *player, 5, 0x18, pid_str);
+                        Server_BroadcastToParty(server,
+                                                *player,
+                                                PacketAction_Agree,
+                                                PacketFamily_Party,
+                                                pid_str);
                     }
                     (*player)->recover_ticks = 0;
                 }
@@ -129,7 +138,7 @@ void Game_Tick(Server *server)
             if ((*player)->account_create_cooldown > 0)
                 (*player)->account_create_cooldown--;
         }
-        if (server->flag_0xba != 0 &&
+        if (server->shutting_down != 0 &&
             (unsigned int)Players::Players_ActiveCount(server->players) < 1 &&
             Mysqlcontrols::Database_CanReconnect(server->mysql_controls))
         {
@@ -143,18 +152,18 @@ void Game_Tick(Server *server)
     {
         TTimeStamp ts = DateTimeToTimeStamp(Now());
         int stamp = ts.Time / 10 + 100;
-        if (server->flag_0xb9 == 0)
+        if (server->kill_counters_cleared == 0)
         {
             if (stamp > 0x8387e0)
             {
                 KillCounters::Clear(server->kill_counters);
                 QuestCounters::Clear(server->quest_counters);
-                server->flag_0xb9 = 1;
+                server->kill_counters_cleared = 1;
             }
         }
         else if (stamp < 100000)
         {
-            server->flag_0xb9 = 0;
+            server->kill_counters_cleared = 0;
         }
     }
 }
@@ -197,15 +206,15 @@ Server::Server(Mapcontrol *map_control,
     this->version_patch = version_patch;
     this->version_minor = version_minor;
     this->version_major = version_major;
-    field_0x60 = 0;
-    field_0x64 = 0;
-    field_0x68 = 0;
-    field_0x54 = 0;
-    field_0x58 = 0;
-    field_0x5c = 0;
+    received_bytes = 0;
+    received_kilobytes = 0;
+    received_megabytes = 0;
+    sent_bytes = 0;
+    sent_kilobytes = 0;
+    sent_megabytes = 0;
     ticks = 0;
-    flag_0xba = 0;
-    flag_0xb9 = 0;
+    shutting_down = 0;
+    kill_counters_cleared = 0;
     state_0x00 = 1;
     state_0x04 = 1;
     cheat_offset_x = 0;
@@ -321,7 +330,7 @@ void Client_SendRaw(Server *server, Player *client, String data, int break_byte)
 bool Face_Execute(Server *server, Player *player, int action, String *data)
 {
     *(TTimeStamp *)&player->walk_tick = DateTimeToTimeStamp(Now());
-    if (action == 8)
+    if (action == PacketAction_Player)
     {
         if (!player->logged_in)
             return false;
@@ -329,12 +338,13 @@ bool Face_Execute(Server *server, Player *player, int action, String *data)
             return true;
         if (data->Length() < 1)
             return false;
-        if ((unsigned)EO_DecodeNumber(server, (*data)[1]) > 3)
+        if ((unsigned)EO_DecodeNumber(server, (*data)[1]) > Direction_Right)
             return false;
         player->direction = EO_DecodeNumber(server, (*data)[1]);
         String out = EO_EncodeNumber(server, player->player_id, 2);
         out = out + String((*data)[1]);
-        Server_BroadcastNearby(server, player, 8, 7, out);
+        Server_BroadcastNearby(
+            server, player, PacketAction_Player, PacketFamily_Face, out);
         return true;
     }
     return false;
@@ -448,7 +458,7 @@ void Admin_BroadcastToAll(Server *server,
          player_iter != Players_Iter_End(server->players);
          player_iter++)
     {
-        if ((*player_iter)->admin_level > 0 && (*player_iter)->logged_in)
+        if ((*player_iter)->admin_level > AdminLevel_Player && (*player_iter)->logged_in)
             Client_SendEncoded(server, *player_iter, action, family, data);
     }
 }
@@ -464,7 +474,7 @@ void Admin_ReportToGMs(Server *server,
          player_iter != Players_Iter_End(server->players);
          player_iter++)
     {
-        if ((*player_iter)->field_0x3e9 && (*player_iter)->logged_in &&
+        if ((*player_iter)->global_chat && (*player_iter)->logged_in &&
             (*player_iter)->player_id != player->player_id)
             Client_SendEncoded(server, *player_iter, action, family, data);
     }
@@ -523,13 +533,13 @@ void Server_BroadcastToMap(
 void FUN_00463d40(Server *server, int action, int family, String data);
 void Server_Shutdown(Server *server)
 {
-    FUN_00463d40(server, 0xE, 0x23, "r");
+    FUN_00463d40(server, PacketAction_Close, PacketFamily_Message, "r");
     Players::Players_MarkDirty(server->players);
     for (Player **player_iter = Players_Iter_Begin(server->players);
          player_iter != Players_Iter_End(server->players);
          player_iter++)
         (*player_iter)->removing = 1;
-    server->flag_0xba = 1;
+    server->shutting_down = 1;
 }
 
 void Connection_Ping(Server *server)
@@ -543,16 +553,16 @@ void Connection_Ping(Server *server)
         value = RandRange(0xCA) + 10;
         for (int i = 0; i < 3; i++)
         {
-            int recent = server->field_0xa8[i];
+            int recent = server->ping_history[i];
             if (value == recent)
                 found = false;
         }
     }
     for (int i = 2; i >= 1; i--)
-        server->field_0xa8[i] = server->field_0xa8[i - 1];
-    server->field_0xa8[0] = value;
+        server->ping_history[i] = server->ping_history[i - 1];
+    server->ping_history[0] = value;
     int value2 = RandRange(0xCA) + 10;
-    int sum = server->field_0xa8[0] + value2;
+    int sum = server->ping_history[0] + value2;
     String encoded = EO_EncodeNumber(server, sum, 2);
     encoded.Insert(EO_EncodeNumber(server, value2, 1), encoded.Length() + 1);
     Player **player_iter;
@@ -568,7 +578,11 @@ void Connection_Ping(Server *server)
         else if ((*player_iter)->connected)
         {
             (*player_iter)->ping_timeout++;
-            Client_SendEncoded(server, *player_iter, 8, 1, encoded);
+            Client_SendEncoded(server,
+                               *player_iter,
+                               PacketAction_Player,
+                               PacketFamily_Connection,
+                               encoded);
         }
     }
 }
@@ -603,9 +617,9 @@ void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data)
         }
         if (player->receive_buffer.Length() < packet_len)
             break;
-        if (!player->unk_char1)
+        if (!player->initialized)
         {
-            if (server->flag_0xba != 0)
+            if (server->shutting_down != 0)
             {
                 socket->Close();
                 break;
@@ -714,10 +728,10 @@ char EO_GetBreakByte(void *self, int value)
 
 void PacketReader_Init(Server *reader, String data, unsigned char break_byte)
 {
-    reader->field_0x70 = 1;
-    reader->field_0x6c = data;
-    reader->field_0x74 = data.Length();
-    reader->field_0x78 = break_byte;
+    reader->reader_pos = 1;
+    reader->reader_data = data;
+    reader->reader_len = data.Length();
+    reader->reader_break_byte = break_byte;
 }
 
 unsigned int Server_DecodePacketLength(void *self, String data)

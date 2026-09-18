@@ -19,15 +19,13 @@ class Settings;
 class NpcController
 {
   public:
-    Settings *settings;      // +0x00
-    Mapcontrol *map_control; // +0x04
-    Players *players;        // +0x08
-    Server *server;          // +0x0c
-    void *encode_scratch;    // +0x10 (operator new(8), base-253 encode buffer)
-    char flag_0x14;          // +0x14
-    char field_0x15;         // +0x15
-    char field_0x16;         // +0x16
-    char field_0x17;         // +0x17
+    Settings *settings;        // +0x00
+    Mapcontrol *map_control;   // +0x04
+    Players *players;          // +0x08
+    Server *server;            // +0x0c
+    void *encode_scratch;      // +0x10 (operator new(8), base-253 encode buffer)
+    char player_targets_valid; // +0x14
+    char pad_15[3];            // +0x15
     std::vector<Player *> player_targets; // +0x18
     int act_counter;                      // +0x38
     int talk_counter;                     // +0x3c

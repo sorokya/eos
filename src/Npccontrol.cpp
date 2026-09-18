@@ -3,6 +3,7 @@
 
 #include "Npccontrol.h"
 #include "Player.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -73,7 +74,7 @@ bool NpcController::Npc_IsWithinRange(NpcController *self, int x1, int y1, int x
 
 bool NpcController::Npc_DoMove(NpcController *self, int map_id, int x, int y)
 {
-    if (self->flag_0x14 == 0)
+    if (self->player_targets_valid == 0)
     {
         self->player_targets.clear();
         for (Player **it = Players_Iter_Begin(self->players);
@@ -83,7 +84,7 @@ bool NpcController::Npc_DoMove(NpcController *self, int map_id, int x, int y)
             if ((*it)->logged_in && (*it)->map_id == map_id)
                 self->player_targets.insert(self->player_targets.end(), *it);
         }
-        self->flag_0x14 = 1;
+        self->player_targets_valid = 1;
     }
     for (Player **it = self->player_targets.begin(); it != self->player_targets.end();
          it++)
@@ -103,7 +104,7 @@ void NpcController::Npc_Wander(
         npc->nAttack_dir = RandRange(5);
         npc->nMove_cooldown = RandRange(3) + 2;
     }
-    if (npc->nAttack_dir == 0)
+    if (npc->nAttack_dir == Direction_Down)
     {
         if (npc->y < map_h)
         {
@@ -122,7 +123,7 @@ void NpcController::Npc_Wander(
             }
         }
     }
-    else if (npc->nAttack_dir == 1)
+    else if (npc->nAttack_dir == Direction_Left)
     {
         if (npc->x >= 1)
         {
@@ -141,7 +142,7 @@ void NpcController::Npc_Wander(
             }
         }
     }
-    else if (npc->nAttack_dir == 2)
+    else if (npc->nAttack_dir == Direction_Up)
     {
         if (npc->y >= 1)
         {
@@ -160,7 +161,7 @@ void NpcController::Npc_Wander(
             }
         }
     }
-    else if (npc->nAttack_dir == 3 && npc->x < map_w)
+    else if (npc->nAttack_dir == Direction_Right && npc->x < map_w)
     {
         if (Map_IsWalkableNPC(self->map_control, map_id, npc->x + 1, npc->y, 0) == 0)
         {
@@ -179,7 +180,7 @@ void NpcController::Npc_Wander(
 
 int NpcController::Npc_ValidateMove(NpcController *self, int map_id, int x, int y)
 {
-    if (self->flag_0x14 == 0)
+    if (self->player_targets_valid == 0)
     {
         self->player_targets.clear();
         for (Player **it = Players_Iter_Begin(self->players);
@@ -189,7 +190,7 @@ int NpcController::Npc_ValidateMove(NpcController *self, int map_id, int x, int 
             if ((*it)->logged_in && (*it)->map_id == map_id)
                 self->player_targets.insert(self->player_targets.end(), *it);
         }
-        self->flag_0x14 = 1;
+        self->player_targets_valid = 1;
     }
     for (Player **it = self->player_targets.begin(); it != self->player_targets.end();
          it++)

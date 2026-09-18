@@ -9,6 +9,7 @@ build/
 *.obj
 *.tds
 *.map
+turboc.$ln
 
 # Generated analysis (regenerate with `make analyze`)
 analysis/

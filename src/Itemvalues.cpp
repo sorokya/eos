@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Itemvalues.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -13,7 +14,7 @@ ItemValues::ItemValues()
     rid_1 = -1;
     rid_2 = -1;
     field_0 = 0;
-    field_14 = new TStringList;
+    string_list = new TStringList;
     LoadItems(this);
 }
 
@@ -25,7 +26,7 @@ void ItemValues::LoadItems(ItemValues *self)
 {
     if (self->loaded == 0)
     {
-        self->field_14->Clear();
+        self->string_list->Clear();
         Clear(self);
         int file = 1;
         int count = 0;
@@ -58,7 +59,7 @@ void ItemValues::LoadItems(ItemValues *self)
                 delete[] buf;
                 if (data[1] != 'E' || data[2] != 'I' || data[3] != 'F')
                     return;
-                self->field_14->Add(data);
+                self->string_list->Add(data);
                 if (file == 1)
                 {
                     self->rid_1 = self->DecodeNumber(data.SubString(4, 2));
@@ -255,9 +256,9 @@ int ItemValues::Eif_GetSpec1ForTypes(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            if ((*GetRecordSlot(&self->values, item_id - 1))->type >= 10)
+            if ((*GetRecordSlot(&self->values, item_id - 1))->type >= ItemType_Weapon)
             {
-                if ((*GetRecordSlot(&self->values, item_id - 1))->type <= 0x15)
+                if ((*GetRecordSlot(&self->values, item_id - 1))->type <= ItemType_Bracer)
                 {
                     result = (*GetRecordSlot(&self->values, item_id - 1))->spec1;
                     if (result < 0)
@@ -278,7 +279,7 @@ ItemElement ItemValues::Eif_GetElement(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            if ((*GetRecordSlot(&self->values, item_id - 1))->type == 10)
+            if ((*GetRecordSlot(&self->values, item_id - 1))->type == ItemType_Weapon)
             {
                 result.element = (*GetRecordSlot(&self->values, item_id - 1))->element;
                 result.element_damage =
@@ -298,7 +299,7 @@ ItemSpecXY ItemValues::Eif_GetSpecXY(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            if ((*GetRecordSlot(&self->values, item_id - 1))->type == 4)
+            if ((*GetRecordSlot(&self->values, item_id - 1))->type == ItemType_Teleport)
             {
                 result.spec2 = (*GetRecordSlot(&self->values, item_id - 1))->spec2;
                 result.spec3 = (*GetRecordSlot(&self->values, item_id - 1))->spec3;
@@ -330,7 +331,7 @@ int ItemValues::Eif_GetScrollMap(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            if ((*GetRecordSlot(&self->values, item_id - 1))->type == 4)
+            if ((*GetRecordSlot(&self->values, item_id - 1))->type == ItemType_Teleport)
             {
                 result = (*GetRecordSlot(&self->values, item_id - 1))->spec1;
                 if (result < 0)
@@ -348,7 +349,7 @@ int ItemValues::Eif_GetGender(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            if ((*GetRecordSlot(&self->values, item_id - 1))->type == 0xc)
+            if ((*GetRecordSlot(&self->values, item_id - 1))->type == ItemType_Armor)
             {
                 result = (*GetRecordSlot(&self->values, item_id - 1))->spec2;
                 if (result < 0)

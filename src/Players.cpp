@@ -8,6 +8,7 @@
 #include "Gamecontrol.h"
 #include "Itemvalues.h"
 #include "Settings.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -151,7 +152,8 @@ bool Players::Player_HasKeyItem(Players *self, Player *player, int key_item_id)
          iter != player->inventory.end();
          iter++)
     {
-        if (ItemValues::Eif_GetType((*MAINFORM)->item_values, iter->item_id) == 9)
+        if (ItemValues::Eif_GetType((*MAINFORM)->item_values, iter->item_id) ==
+            ItemType_Key)
         {
             if (ItemValues::Eif_GetSpec1((*MAINFORM)->item_values, iter->item_id) ==
                 key_item_id)
@@ -164,7 +166,7 @@ bool Players::Player_HasKeyItem(Players *self, Player *player, int key_item_id)
 void Players::Player_RegenHpTp(Players *self, Player *player)
 {
     player->field_0x37c = 30;
-    player->field_0x380 = 20;
+    player->drop_counter = 20;
     player->field_0x378 = 3;
     int regen;
     if (player->sitting != false)
