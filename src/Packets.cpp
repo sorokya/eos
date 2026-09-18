@@ -1367,21 +1367,28 @@ String Server_BuildOnlineList(Server *server)
                             list.Length() + 1);
                 if ((*iter)->in_party)
                 {
-                    if ((*iter)->admin_level <= 1)
-                        list.Insert(EO_EncodeNumber(server, 6, 1), list.Length() + 1);
-                    else if ((*iter)->admin_level > 3)
-                        list.Insert(EO_EncodeNumber(server, 10, 1), list.Length() + 1);
+                    if ((*iter)->admin_level > 1)
+                    {
+                        if ((*iter)->admin_level < 4)
+                            list.Insert(EO_EncodeNumber(server, 9, 1), list.Length() + 1);
+                        else
+                            list.Insert(EO_EncodeNumber(server, 10, 1),
+                                        list.Length() + 1);
+                    }
                     else
-                        list.Insert(EO_EncodeNumber(server, 9, 1), list.Length() + 1);
+                        list.Insert(EO_EncodeNumber(server, 6, 1), list.Length() + 1);
                 }
                 else
                 {
-                    if ((*iter)->admin_level <= 1)
-                        list.Insert(EO_EncodeNumber(server, 1, 1), list.Length() + 1);
-                    else if ((*iter)->admin_level > 3)
-                        list.Insert(EO_EncodeNumber(server, 5, 1), list.Length() + 1);
+                    if ((*iter)->admin_level > 1)
+                    {
+                        if ((*iter)->admin_level < 4)
+                            list.Insert(EO_EncodeNumber(server, 4, 1), list.Length() + 1);
+                        else
+                            list.Insert(EO_EncodeNumber(server, 5, 1), list.Length() + 1);
+                    }
                     else
-                        list.Insert(EO_EncodeNumber(server, 4, 1), list.Length() + 1);
+                        list.Insert(EO_EncodeNumber(server, 1, 1), list.Length() + 1);
                 }
                 list.Insert(EO_EncodeNumber(server, (*iter)->class_id, 1),
                             list.Length() + 1);
@@ -1397,7 +1404,7 @@ String Server_BuildOnlineList(Server *server)
             }
         }
         list.Insert(EO_EncodeNumber(server, count, 2), 1);
-        if (count > 0x18)
+        if (count >= 25)
         {
             server->online_list_cache = list;
             server->online_list_ttl = 4;

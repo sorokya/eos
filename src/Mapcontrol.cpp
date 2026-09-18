@@ -1451,6 +1451,9 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
 {
     String map_buf;
     String local_c;
+    int file_handle;
+    int size;
+    char *buf;
     try
     {
         map_buf = IntToStr(map_id);
@@ -1458,20 +1461,20 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
             map_buf.Insert("0", 0);
         map_buf.Insert("./maps/", 0);
         map_buf.Insert(".emf", map_buf.Length() + 1);
-        int file_handle = FileOpen(map_buf.c_str(), 0);
+        file_handle = FileOpen(map_buf.c_str(), 0);
         if (file_handle < 0)
             return 0;
-        int size = FileSeek(file_handle, 0, 2);
+        size = FileSeek(file_handle, 0, 2);
         FileSeek(file_handle, 0, 0);
-        char *buf = new char[size + 1];
+        buf = new char[size + 1];
         FileRead(file_handle, buf, size);
         FileClose(file_handle);
-        String t_buf = buf;
-        map_buf = t_buf;
+        map_buf = buf;
         map_buf.SetLength(size);
         delete[] buf;
         if (map_buf[1] != 'E' || map_buf[2] != 'M' || map_buf[3] != 'F')
             return 0;
+        map->rid = map_id;
         return 1;
     }
     catch (...)
