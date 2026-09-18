@@ -34,7 +34,7 @@ struct Serial
     static String GetDisplayCode(Serial *s);
     static void SetIniPath(Serial *s, String path);
     static void ReloadIni(Serial *s);
-    static String ReadKey(Serial *s, String key, String def);
+    static String ReadKey(Serial *s, String key, String default_value);
     static String DecodeString(Serial *s, String src);
     static void Validate(Serial *s);
 };

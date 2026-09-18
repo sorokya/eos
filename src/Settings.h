@@ -24,7 +24,10 @@
 //   +0x30 int         start_map / start_x / start_y
 //   +0x3c int         rescue_map / rescue_x / rescue_y
 //   +0x48 int         jail_map / jail_x / jail_y
-//   +0x54 int         admin_delay_1..4       "adminlevel1..4" (command delay)
+//   +0x54 int         spy_and_light_guide_flood_rate   "adminlevel1"
+//   +0x58 int         guardian_flood_rate               "adminlevel2"
+//   +0x5c int         game_master_flood_rate            "adminlevel3"
+//   +0x60 int         high_game_master_flood_rate       "adminlevel4"
 //   +0x64 char        account_lock           "accountlock"
 //   +0x65 char        access_lock            "accesslock"
 //   +0x68 int         max_kills              "maxkills"     clamp 10000
@@ -70,10 +73,10 @@ class Settings
     int jail_map;
     int jail_x;
     int jail_y;
-    int admin_delay_1;
-    int admin_delay_2;
-    int admin_delay_3;
-    int admin_delay_4;
+    int spy_and_light_guide_flood_rate;
+    int guardian_flood_rate;
+    int game_master_flood_rate;
+    int high_game_master_flood_rate;
     char account_lock;
     char access_lock;
     char pad_66[2];
@@ -123,18 +126,18 @@ class Settings
     static void SetWorldCommunication(Settings *self, bool value);
     static int GetRefreshSeconds(Settings *self);
     static int GetGroupMax(Settings *self);
-    static int GetAdminDelay1(Settings *self);
-    static int GetAdminDelay2(Settings *self);
-    static int GetAdminDelay3(Settings *self);
-    static int GetAdminDelay4(Settings *self);
+    static int GetSpyAndLightGuideFloodRate(Settings *self);
+    static int GetGuardianFloodRate(Settings *self);
+    static int GetGameMasterFloodRate(Settings *self);
+    static int GetHighGameMasterFloodRate(Settings *self);
     static char GetChatLog(Settings *self);
 
     static void LoadConfig(Settings *self);
     static void SetIniPath(Settings *self, String path);
     static void CloseIni(Settings *self);
-    static int ReadIniInt(Settings *self, String key, int def);
-    static String ReadIniString(Settings *self, String key, String def);
-    static char ReadIniBool(Settings *self, String key, char def);
+    static int ReadIniInt(Settings *self, String key, int default_value);
+    static String ReadIniString(Settings *self, String key, String default_value);
+    static char ReadIniBool(Settings *self, String key, char default_value);
 };
 
 #endif

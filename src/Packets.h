@@ -98,6 +98,7 @@ void Client_SendEncoded(Server *server,
                         unsigned char family,
                         String data);
 bool Face_Execute(Server *server, Player *player, int action, String *data);
+bool Chair_Execute(Server *server, Player *player, int action, String *data);
 void Server_BroadcastToPartyExceptSelf(Server *server,
                                        Player *player,
                                        unsigned char action,

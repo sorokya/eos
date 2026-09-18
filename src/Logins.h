@@ -9,7 +9,7 @@ class Logins
 {
   public:
     Mysqlcontrols *mysql_controls; // +0x00
-    TList *list_a;                 // +0x04
+    TList *login_list;             // +0x04
     TList *reserved_names;         // +0x08
     String field_c;                // +0x0c
 
@@ -32,7 +32,7 @@ class Logins
     static bool HandleAddress(Logins *self, String address);
     static void AddReservedName(Logins *self, String name);
     static void AddLogin(Logins *self, String address);
-    static void SetReservedName(Logins *self, String name, String value);
+    static void SetReservedName(Logins *self, String name, String ip);
     bool ConnectionLog_CheckIP(String ip);
 };
 

@@ -8,7 +8,7 @@
 Logins::Logins(Mysqlcontrols *mysql)
 {
     mysql_controls = mysql;
-    list_a = new TList;
+    login_list = new TList;
     reserved_names = new TList;
     AddReservedName(this, "vult-r");
     AddReservedName(this, "aengie");
@@ -17,7 +17,7 @@ Logins::Logins(Mysqlcontrols *mysql)
 
 Logins::~Logins()
 {
-    delete list_a;
+    delete login_list;
     delete reserved_names;
 }
 
@@ -34,17 +34,17 @@ void Logins::AddLogin(Logins *self, String address)
     LoginEntry *entry = new LoginEntry;
     entry->address = address;
     entry->count = 0x1e;
-    self->list_a->Add(entry);
+    self->login_list->Add(entry);
 }
 
-void Logins::SetReservedName(Logins *self, String name, String value)
+void Logins::SetReservedName(Logins *self, String name, String ip)
 {
     for (int i = 0; i < self->reserved_names->Count; i++)
     {
         ReservedName *entry = (ReservedName *)self->reserved_names->Items[i];
         if (entry->name == name)
         {
-            entry->value = value;
+            entry->value = ip;
             break;
         }
     }
@@ -52,13 +52,13 @@ void Logins::SetReservedName(Logins *self, String name, String value)
 
 void Logins::Tick(Logins *self)
 {
-    for (int i = self->list_a->Count - 1; i >= 0; i--)
+    for (int i = self->login_list->Count - 1; i >= 0; i--)
     {
-        LoginEntry *entry = (LoginEntry *)self->list_a->Items[i];
+        LoginEntry *entry = (LoginEntry *)self->login_list->Items[i];
         entry->count--;
         if (entry->count >= 1)
             continue;
-        self->list_a->Delete(i);
+        self->login_list->Delete(i);
         delete entry;
     }
 }
@@ -70,9 +70,9 @@ bool Logins::HandleAddress(Logins *self, String address)
 
     bool is_new = true;
 
-    for (int i = 0; i < self->list_a->Count; i++)
+    for (int i = 0; i < self->login_list->Count; i++)
     {
-        LoginEntry *entry = (LoginEntry *)self->list_a->Items[i];
+        LoginEntry *entry = (LoginEntry *)self->login_list->Items[i];
         if (entry->address == address)
         {
             is_new = false;
@@ -98,7 +98,7 @@ bool Logins::HandleAddress(Logins *self, String address)
         LoginEntry *entry = new LoginEntry;
         entry->address = address;
         entry->count = 0xc;
-        self->list_a->Add(entry);
+        self->login_list->Add(entry);
     }
 
     return is_new;

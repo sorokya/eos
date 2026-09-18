@@ -111,9 +111,9 @@ void Serial::ReloadIni(Serial *s)
     s->ini_file->Clear();
 }
 
-String Serial::ReadKey(Serial *s, String key, String def)
+String Serial::ReadKey(Serial *s, String key, String default_value)
 {
-    String result = def;
+    String result = default_value;
     if (s->ini_file->Count >= 1)
     {
         try

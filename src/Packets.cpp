@@ -13,6 +13,8 @@
 #include "Filecache.h"
 #include "Settings.h"
 #include "Logins.h"
+#include "Mapcontrol.h"
+#include "Mapobject.h"
 #include "Protocol.h"
 
 #pragma package(smart_init)
@@ -26,6 +28,7 @@ bool FUN_00462374(Server *server, Player *player, String data);
 void Server_BroadcastToParty(
     Server *server, Player *player, int action, int family, String data);
 String Character_BuildSaveQuery(Players *players, Player *player, int flag);
+MapObject Map_GetTileSpecObject(Mapcontrol *map_control, int map_id, int x, int y);
 
 void Game_Tick(Server *server)
 {
@@ -346,6 +349,135 @@ bool Face_Execute(Server *server, Player *player, int action, String *data)
         Server_BroadcastNearby(
             server, player, PacketAction_Player, PacketFamily_Face, out);
         return true;
+    }
+    return false;
+}
+
+bool Chair_Execute(Server *server, Player *player, int action, String *data)
+{
+    *(TTimeStamp *)&player->walk_tick = DateTimeToTimeStamp(Now());
+    if (action == PacketAction_Request)
+    {
+        if (!player->logged_in)
+            return false;
+        if (data->Length() < 1)
+            return false;
+        int sit_action = EO_DecodeNumber(server, (*data)[1]);
+        if (sit_action == SitAction_Sit)
+        {
+            if (data->Length() < 3)
+                return false;
+            int x = EO_DecodeNumber(server, (*data)[2]);
+            int y = EO_DecodeNumber(server, (*data)[3]);
+            if (player->on_chair)
+                return true;
+            if (Players::Players_IsPlayerAt(server->players, player->map_id, x, y))
+                return true;
+            if (player->map_id < 1 ||
+                Mapcontrol_GetCount(server->map_control) < player->map_id)
+                return true;
+            int spec =
+                Mapcontrol::Map_GetTileSpec(server->map_control, player->map_id, x, y);
+            if (spec >= 0 && spec <= 6)
+            {
+                MapObject tile =
+                    Map_GetTileSpecObject(server->map_control, player->map_id, x, y);
+                String out = EO_EncodeNumber(server, player->player_id, 2);
+                out.Insert(EO_EncodeNumber(server, x, 1), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, y, 1), out.Length() + 1);
+                if ((spec == 0 || spec == 4 || spec == 6) &&
+                    (unsigned short)tile.x == player->x &&
+                    (unsigned short)tile.y == player->y - 1)
+                {
+                    player->on_chair = true;
+                    player->sitting = false;
+                    player->x = x;
+                    player->y = y;
+                    player->direction = Direction_Down;
+                    out.Insert(EO_EncodeNumber(server, Direction_Down, 1),
+                               out.Length() + 1);
+                    Client_SendEncoded(
+                        server, player, PacketAction_Reply, PacketFamily_Chair, out);
+                    Server_BroadcastNearby(
+                        server, player, PacketAction_Player, PacketFamily_Chair, out);
+                    return true;
+                }
+                if ((spec == 1 || spec == 5 || spec == 6) &&
+                    (unsigned short)tile.x == (unsigned)(player->x + 1) &&
+                    (unsigned short)tile.y == player->y)
+                {
+                    player->on_chair = true;
+                    player->sitting = false;
+                    player->x = x;
+                    player->y = y;
+                    player->direction = Direction_Left;
+                    out.Insert(EO_EncodeNumber(server, Direction_Left, 1),
+                               out.Length() + 1);
+                    Client_SendEncoded(
+                        server, player, PacketAction_Reply, PacketFamily_Chair, out);
+                    Server_BroadcastNearby(
+                        server, player, PacketAction_Player, PacketFamily_Chair, out);
+                    return true;
+                }
+                if ((spec == 2 || spec == 4 || spec == 6) &&
+                    (unsigned short)tile.x == (unsigned)(player->x - 1) &&
+                    (unsigned short)tile.y == player->y)
+                {
+                    player->on_chair = true;
+                    player->sitting = false;
+                    player->x = x;
+                    player->y = y;
+                    player->direction = Direction_Right;
+                    out.Insert(EO_EncodeNumber(server, Direction_Right, 1),
+                               out.Length() + 1);
+                    Client_SendEncoded(
+                        server, player, PacketAction_Reply, PacketFamily_Chair, out);
+                    Server_BroadcastNearby(
+                        server, player, PacketAction_Player, PacketFamily_Chair, out);
+                    return true;
+                }
+                if ((spec == 3 || spec == 5 || spec == 6) &&
+                    (unsigned short)tile.x == player->x &&
+                    (unsigned short)tile.y == (unsigned)(player->y + 1))
+                {
+                    player->on_chair = true;
+                    player->sitting = false;
+                    player->x = x;
+                    player->y = y;
+                    player->direction = Direction_Up;
+                    out.Insert(EO_EncodeNumber(server, Direction_Up, 1),
+                               out.Length() + 1);
+                    Client_SendEncoded(
+                        server, player, PacketAction_Reply, PacketFamily_Chair, out);
+                    Server_BroadcastNearby(
+                        server, player, PacketAction_Player, PacketFamily_Chair, out);
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            if (!player->on_chair)
+                return true;
+            if (player->direction == Direction_Down)
+                player->y = player->y + 1;
+            if (player->direction == Direction_Left)
+                player->x = player->x + -1;
+            if (player->direction == Direction_Up)
+                player->y = player->y + -1;
+            if (player->direction == Direction_Right)
+                player->x = player->x + 1;
+            player->on_chair = false;
+            player->sitting = false;
+            String out = EO_EncodeNumber(server, player->player_id, 2);
+            out.Insert(EO_EncodeNumber(server, player->x, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->y, 1), out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Close, PacketFamily_Chair, out);
+            Server_BroadcastNearby(
+                server, player, PacketAction_Remove, PacketFamily_Chair, out);
+            return true;
+        }
     }
     return false;
 }

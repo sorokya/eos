@@ -29,10 +29,10 @@ Settings::Settings()
     jail_x = 1;
     jail_y = 1;
     max_kills = 0;
-    admin_delay_1 = 10;
-    admin_delay_2 = 10;
-    admin_delay_3 = 10;
-    admin_delay_4 = 10;
+    spy_and_light_guide_flood_rate = 10;
+    guardian_flood_rate = 10;
+    game_master_flood_rate = 10;
+    high_game_master_flood_rate = 10;
     world_communication = 1;
     chat_log = 0;
     account_lock = 0;
@@ -180,24 +180,24 @@ int Settings::GetGroupMax(Settings *self)
     return self->group_max;
 }
 
-int Settings::GetAdminDelay1(Settings *self)
+int Settings::GetSpyAndLightGuideFloodRate(Settings *self)
 {
-    return self->admin_delay_1;
+    return self->spy_and_light_guide_flood_rate;
 }
 
-int Settings::GetAdminDelay2(Settings *self)
+int Settings::GetGuardianFloodRate(Settings *self)
 {
-    return self->admin_delay_2;
+    return self->guardian_flood_rate;
 }
 
-int Settings::GetAdminDelay3(Settings *self)
+int Settings::GetGameMasterFloodRate(Settings *self)
 {
-    return self->admin_delay_3;
+    return self->game_master_flood_rate;
 }
 
-int Settings::GetAdminDelay4(Settings *self)
+int Settings::GetHighGameMasterFloodRate(Settings *self)
 {
-    return self->admin_delay_4;
+    return self->high_game_master_flood_rate;
 }
 
 char Settings::GetChatLog(Settings *self)
@@ -228,10 +228,14 @@ void Settings::LoadConfig(Settings *self)
     self->jail_map = ReadIniInt(self, "jailmap", self->jail_map);
     self->jail_x = ReadIniInt(self, "jailx", self->jail_x);
     self->jail_y = ReadIniInt(self, "jaily", self->jail_y);
-    self->admin_delay_1 = ReadIniInt(self, "adminlevel1", self->admin_delay_1);
-    self->admin_delay_2 = ReadIniInt(self, "adminlevel2", self->admin_delay_2);
-    self->admin_delay_3 = ReadIniInt(self, "adminlevel3", self->admin_delay_3);
-    self->admin_delay_4 = ReadIniInt(self, "adminlevel4", self->admin_delay_4);
+    self->spy_and_light_guide_flood_rate =
+        ReadIniInt(self, "adminlevel1", self->spy_and_light_guide_flood_rate);
+    self->guardian_flood_rate =
+        ReadIniInt(self, "adminlevel2", self->guardian_flood_rate);
+    self->game_master_flood_rate =
+        ReadIniInt(self, "adminlevel3", self->game_master_flood_rate);
+    self->high_game_master_flood_rate =
+        ReadIniInt(self, "adminlevel4", self->high_game_master_flood_rate);
     self->account_lock = ReadIniBool(self, "accountlock", self->account_lock);
     self->access_lock = ReadIniBool(self, "accesslock", self->access_lock);
     self->max_kills = ReadIniInt(self, "maxkills", self->max_kills);
@@ -324,9 +328,9 @@ void Settings::CloseIni(Settings *self)
     self->ini_file->Clear();
 }
 
-int Settings::ReadIniInt(Settings *self, String key, int def)
+int Settings::ReadIniInt(Settings *self, String key, int default_value)
 {
-    int result = def;
+    int result = default_value;
     if (self->ini_file->Count >= 1)
     {
         try
@@ -367,9 +371,9 @@ int Settings::ReadIniInt(Settings *self, String key, int def)
     return result;
 }
 
-String Settings::ReadIniString(Settings *self, String key, String def)
+String Settings::ReadIniString(Settings *self, String key, String default_value)
 {
-    String result = def;
+    String result = default_value;
     if (self->ini_file->Count >= 1)
     {
         try
@@ -421,9 +425,9 @@ String Settings::ReadIniString(Settings *self, String key, String def)
     return result;
 }
 
-char Settings::ReadIniBool(Settings *self, String key, char def)
+char Settings::ReadIniBool(Settings *self, String key, char default_value)
 {
-    char result = def;
+    char result = default_value;
     if (self->ini_file->Count >= 1)
     {
         try
