@@ -1463,14 +1463,10 @@ NpcRange_Lookup(String *out, Server *server, Player *player, unsigned int npc_in
     return out;
 }
 
-String *Party_EncodeMemberList(String *out_str, Server *server, Player *player)
+String Party_EncodeMemberList(Server *server, Player *player)
 {
     if (!player->in_party)
-    {
-        String s = "";
-        *out_str += s;
-    }
-    else
+        return "";
     {
         String s = "";
         for (int i = 0; i < 10; i++)
@@ -1489,9 +1485,8 @@ String *Party_EncodeMemberList(String *out_str, Server *server, Player *player)
                 s.Insert(EO_GetBreakByte(server, 0xff), s.Length() + 1);
             }
         }
-        *out_str += s;
+        return s;
     }
-    return out_str;
 }
 
 void FUN_00466840(Server *server, int map_id)
