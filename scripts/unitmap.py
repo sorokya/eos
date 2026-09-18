@@ -137,28 +137,41 @@ def _off_to_va(pe: PE, off: int):
 def find_stubs(pe: PE):
     """Locate module initializer/finalizer stubs in a PE.
 
-    A stub begins `push ebp; mov ebp,esp` then either `inc dword ptr [counter]`
-    (`ff 05`), `sub dword ptr [counter],1` (`83 2d`) or `add dword ptr
-    [counter],1` (`83 05`), with the counter in the module-refcount data range.
-    Returns (va, counter, 'init'|'final') sorted by address.
+    A stub is either the common form, which begins `push ebp; mov ebp,esp`, or a
+    leaf form with no prologue (the whole body is the counter operation and a
+    `ret`). Its body is `inc dword ptr [counter]` (`ff 05`), `sub dword ptr
+    [counter],1` (`83 2d`) or `add dword ptr [counter],1` (`83 05`), with the
+    counter in the module-refcount data range. Returns (va, counter,
+    'init'|'final') sorted by address.
+
+    The leaf form is matched only when the byte right after the counter
+    operation is a `ret`; with the counter constrained to the refcount range
+    this cannot be confused with an ordinary `sub [mem],1` in a function body.
+    Leaf stubs matter: a module whose initializer is a leaf is invisible to the
+    prologue-only scan, so a neighbouring unit's span would absorb it (this is
+    why `Itemchest` and `Banned` looked far larger than they are).
     """
     data = pe.data
     out = []
     for i in range(3, len(data) - 8):
-        if data[i - 3:i] != STUB_PROLOGUE:
-            continue
         op = data[i:i + 2]
         counter = None
         kind = None
         if op == b"\xff\x05":
-            counter, kind = struct.unpack_from("<I", data, i + 2)[0], "init"
+            counter, kind, body = struct.unpack_from("<I", data, i + 2)[0], "init", 6
         elif op == b"\x83\x2d" and data[i + 6] == 0x01:
-            counter, kind = struct.unpack_from("<I", data, i + 2)[0], "init"
+            counter, kind, body = struct.unpack_from("<I", data, i + 2)[0], "init", 7
         elif op == b"\x83\x05" and data[i + 6] == 0x01:
-            counter, kind = struct.unpack_from("<I", data, i + 2)[0], "final"
+            counter, kind, body = struct.unpack_from("<I", data, i + 2)[0], "final", 7
         if counter is None or not (REFCOUNT_LO <= counter <= REFCOUNT_HI):
             continue
-        va = _off_to_va(pe, i - 3)
+        if data[i - 3:i] == STUB_PROLOGUE:
+            start = i - 3
+        elif data[i + body] == 0xC3:
+            start = i
+        else:
+            continue
+        va = _off_to_va(pe, start)
         if va is not None:
             out.append((va, counter, kind))
     return sorted(out)

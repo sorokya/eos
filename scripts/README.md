@@ -73,7 +73,10 @@ produced.
   normalization. `MAP=1` adds `ilink32 -s` and writes `build/GameServer.map`
   (the detailed segment map that `unitmap.py --map` consumes).
 - **`build_asm.sh`** — emit a bcc32 `-S` listing for every unit into
-  `build/<Unit>.asm` (one container run). Input to `verify_units.py`.
+  `build/<Unit>.asm` (one container run). Incremental: a unit is recompiled only
+  when its `.cpp` or any header is newer than its listing (`FORCE=1` to rebuild
+  all). Compiles run in parallel; `JOBS=N` overrides the container's CPU count.
+  Input to `verify_units.py`.
 
 ## Make targets
 
@@ -90,7 +93,10 @@ make stubs     # generate stub units for units not yet reconstructed
 make build     # build build/GameServer.exe from src/
 make unit UNIT=Serial     # compile one reconstructed unit
 make unit-asm UNIT=Serial # emit bcc32 assembly for one unit
-make verify    # emit asm for all units + score every source function vs the reference
+make unitmap   # re-segment modules + rebuild the per-unit function inventory
+make track     # regenerate analysis/target/functions.tsv + the README status block
+make verify    # emit stale asm + score every source function vs the reference
+               #   JOBS=N parallel compiles/objdump (default: CPU count); incremental
 make format    # apply the project clang-format style to src/*.cpp, src/*.h
 make format-check # check the style without modifying files
 make compare   # compare build/GameServer.exe against the reference
@@ -109,4 +115,20 @@ make clean     # remove build/
   unit's namespace against that unit's reference ranges from
   `analysis/target/unit_functions.tsv`, printing per-unit matched/total and
   exiting non-zero on any unmatched source function. Unreferenced `$bdtr`
-  COMDATs are counted separately (the linker drops them).
+  COMDATs are counted separately (the linker drops them). `objdump` is invoked
+  per range (a single whole-image sweep desynchronises on data embedded in
+  `.text` and decodes wrong boundaries) and the calls run in parallel
+  (`-j N`, default CPU count).
+- **`track.py [--summary] [--readme FILE] [--reclassify]`** — the central
+  per-function status sheet: `analysis/target/functions.tsv` (generated,
+  gitignored) with one row per reference function and columns
+  `unit order start end size ref_name kind source_name status note`.
+  `kind` is `app` (must be written), `comdat` (compiler-emitted once the owning
+  type is used), `library` (statically linked RTL/VCL/BDE, matched by a
+  reloc-masked byte signature against `ref/Borland5/Lib`), or `stub` (a module
+  initializer boundary). `status` is `byte-exact` / `mismatched` /
+  `unimplemented` / `deferred` / `n/a`, decided from the `build/<Unit>.asm`
+  listings with the same canonicalisation as `verify_units.py`; each source
+  function can satisfy only one reference function. `--readme` rewrites the
+  generated block in README.md. The classification is cached in
+  `analysis/target/function_kinds.tsv`; `--reclassify` recomputes it.

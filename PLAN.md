@@ -571,6 +571,40 @@ These require evidence and must not be answered by guessing:
 - Whether units are contiguous or library objects interleave between them; resolve
   with the `ilink32 -s` detailed map.
 
+## Outstanding cross-unit externs and stubs
+
+Declarations that remain in one unit because no owner header declares them yet.
+Each must be resolved (defined in its owner, or shown to be a compiler/library
+COMDAT) before the final link; none may be guessed away.
+
+| Symbol | Declared in | Owner / status |
+| --- | --- | --- |
+| `Players_Iter_Begin` / `Players_Iter_End` | Chestcontrol, Effectcontrol, Eventcontrol, Npccontrol, Packets | Players unit (`0x407f28`/`0x407f34`). The out-of-line `std::vector<Player*>::begin/end` COMDATs; the mangled names are unobservable, so no header declares them yet. |
+| `MapchestVector_Begin` / `_End` | Chestcontrol | `std::vector<MapChest>::begin/end` COMDATs (Mapchest unit). Same situation. |
+| `MapItemVector_Begin` / `_End` | Chestcontrol | `std::vector<MapItem>::begin/end` COMDATs (Itemchest unit). Same situation. |
+| `MapwarpVector_Begin` / `_End` | Eventcontrol | `std::vector<MapWarp>::begin/end` COMDATs (Mapwarp unit). Same situation. |
+| `Character_BuildSaveQuery` | Packets | Players unit, `0x40902c` (14592 B), not yet reconstructed. |
+| `Map_GetTileSpecObject` | Packets | Mapcontrol `0x47c114`; only caller is `Chair_Execute`. Returns `MapObject` by value. Name not yet settled in the owner. |
+| `Sock_Send` | Packets | Library/RTL helper `0x4cf568`; not in `analysis/target/unit_functions.tsv` (so not a unit function). |
+| `MysqlCallback_Dispatch` | Mysqlthread | Packets `0x450618` (36735 B), not yet reconstructed. |
+| `Mainform_GetServer` | Mysqlthread | Mainform; no definition in `src/` yet. |
+| `extern TGUI **MAINFORM` | Packets, Players | Global `0x58b60c` (initialised to `&GUI` at `0x58bb70`); no owner declaration anywhere. |
+
+## Known-unconverged functions
+
+Tracked so they are not mistaken for done:
+
+- `Players_Add` (Players) — 2 instructions: the image's only LIFO two-temp
+  AnsiString cleanup order; 14 source forms tried.
+- `Questengine::LoadQuest` / `ParseToken` — bcc local-slot/temp allocation.
+- `Weddings::Tick` — three dead `sete` blocks; markers match 57/57.
+- `Packets`: `Player_Warp` (1 instruction: temp construction order in the
+  `do_leave` Avatar-Remove build); `Client_SendEncoded` (blocked on the
+  `EO_ByteRange_FromString` RTL helper ABI); `EO_Encode_Interleave` /
+  `EO_Decode_Deinterleave` (blocked on the `std::deque<char>` ABI);
+  `Walk_Execute`, `Attack_Execute`, `Spell_Execute`, the reply builders, and
+  `Player_HandlePacket` (deferred: one 226 KB function).
+
 ## Risks and mitigations
 
 | Risk | Mitigation |

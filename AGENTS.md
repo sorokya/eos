@@ -227,6 +227,19 @@ documented build, not a manual fix-up.
   (`scripts/build_asm.sh`) and scores every function in a unit's own namespace
   against that unit's reference ranges (`scripts/verify_units.py`), reporting
   per-unit matched/total and failing on any unmatched source function.
+  It is incremental (a unit recompiles only when its `.cpp` or any header is
+  newer than its listing; `FORCE=1` forces all) and parallel
+  (`JOBS=N`, default the container's CPU count). `scripts/verify_units.py`
+  invokes `objdump` once per reference range and runs them in parallel: a single
+  whole-image sweep desynchronises on data embedded in `.text`, so it must not
+  be replaced by one pass over the image.
+
+- `make track` regenerates the central per-function status sheet
+  (`analysis/target/functions.tsv`, generated) and the status block in
+  `README.md`: one row per reference function with its unit, address, name,
+  `kind` (app / comdat / library / stub) and `status` (byte-exact / mismatched /
+  unimplemented / deferred). It is the source of truth for per-function
+  progress; `PLAN.md` keeps phases, risks and the deliberate exclusions.
   `$bdtr` (deleting-destructor) COMDATs that nothing references are reported
   separately — the linker drops them, so the reference has no range for them.
   This is the whole-tree check; `compare_asm.py` remains the per-function tool.
@@ -415,6 +428,13 @@ them to pick the form that matches the reference.
    linkable image exists.
 5. Update the unit's status in [PLAN.md](PLAN.md#translation-unit-inventory) and
    stop.
+
+Outstanding work is tracked in PLAN.md: "Outstanding cross-unit externs and
+stubs" (declarations left because no owner header declares them) and
+"Known-unconverged functions". Add to or remove from those lists whenever you
+introduce or resolve such an item, and never let a cross-unit declaration
+diverge from its owner header — a signature mismatch forms a distinct overload
+that does not link.
 
 ### Driving one function to byte-match
 

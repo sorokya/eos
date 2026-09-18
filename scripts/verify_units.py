@@ -26,6 +26,7 @@ import os
 import re
 import sys
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -70,12 +71,16 @@ UNIT_CLASS_ALIASES = {
 }
 
 
-def load_compare():
+def _load(name):
     spec = importlib.util.spec_from_file_location(
-        "compare_asm", os.path.join(HERE, "compare_asm.py"))
+        name, os.path.join(HERE, name + ".py"))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
+
+
+def load_compare():
+    return _load("compare_asm")
 
 
 def canon(seq):
@@ -87,11 +92,17 @@ def canon(seq):
     return [x for x in head if x not in ("push ebx", "push esi", "push edi")] + seq[8:]
 
 
-def reference_pool(ca, ref_bin, ranges):
-    """Canonical instruction lists for every plausible cut of every range."""
+def reference_pool(ca, ref_bin, ranges, parsed=None, merged=None):
+    """Canonical instruction lists for every plausible cut of every range.
+
+    `objdump` must be invoked per range (not once over the whole image): a linear
+    sweep desynchronises on data embedded in `.text` and then decodes the wrong
+    boundaries, whereas starting at each function re-syncs. The calls are I/O
+    bound, so they are issued in parallel by `parse_ranges`.
+    """
     pool = set()
     for i, (start, end) in enumerate(ranges):
-        ins = ca.parse_ref(ref_bin, start, end)[0]
+        ins = parsed[i]
         pool.add(tuple(canon(ins)))
         for j, x in enumerate(ins):
             if x == "ret" or x.startswith("ret "):
@@ -101,8 +112,7 @@ def reference_pool(ca, ref_bin, ranges):
         # no longer than a prologue is re-joined with its immediate successor.
         if ("ret" not in ins and len(ins) <= 6 and i + 1 < len(ranges)
                 and ranges[i + 1][0] == end):
-            merged = ca.parse_ref(ref_bin, start, ranges[i + 1][1])[0]
-            pool.add(tuple(canon(merged)))
+            pool.add(tuple(canon(merged[i])))
     pool.discard(())
     return pool
 
@@ -127,16 +137,48 @@ def unit_ranges(tsv):
     return out
 
 
+def parse_ranges(ca, ref_bin, ranges, merged_ranges, jobs):
+    """Parse every range with objdump, in parallel (each call re-syncs)."""
+    work = list(ranges) + list(merged_ranges)
+    with ThreadPoolExecutor(max_workers=jobs) as ex:
+        out = list(ex.map(lambda se: ca.parse_ref(ref_bin, se[0], se[1])[0], work))
+    return out[:len(ranges)], out[len(ranges):]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("units", nargs="*", help="unit names (default: all build/*.asm)")
     ap.add_argument("--ref-bin", default="GameServer.exe")
     ap.add_argument("--asm-dir", default="build")
     ap.add_argument("--tsv", default="analysis/target/unit_functions.tsv")
+    ap.add_argument("-j", "--jobs", type=int, default=0,
+                    help="parallel objdump jobs (0 = CPU count)")
     args = ap.parse_args()
 
     ca = load_compare()
     ranges = unit_ranges(args.tsv)
+
+    # objdump is invoked per range (a whole-image sweep desyncs); issue them all
+    # in parallel, including the merged-range case.
+    jobs = args.jobs or (os.cpu_count() or 4)
+    parsed_by_unit, merged_by_unit = {}, {}
+    for unit, rs in ranges.items():
+        merged = [(s, rs[i + 1][1]) for i, (s, e) in enumerate(rs)
+                  if i + 1 < len(rs) and rs[i + 1][0] == e]
+        parsed_by_unit[unit] = (rs, merged)
+    # Flatten every range across every unit into one parallel batch.
+    work = [(u, se) for u, (rs, mg) in parsed_by_unit.items()
+            for se in list(rs) + list(mg)]
+    with ThreadPoolExecutor(max_workers=jobs) as ex:
+        done = list(ex.map(lambda it: ca.parse_ref(args.ref_bin, it[1][0], it[1][1])[0],
+                           work))
+    buckets = defaultdict(list)
+    for (u, _se), ins in zip(work, done):
+        buckets[u].append(ins)
+    for unit, (rs, mg) in parsed_by_unit.items():
+        b = buckets[unit]
+        parsed_by_unit[unit] = b[:len(rs)]
+        merged_by_unit[unit] = b[len(rs):]
 
     if args.units:
         asms = [(u, os.path.join(args.asm_dir, u + ".asm")) for u in args.units]
@@ -151,7 +193,8 @@ def main() -> int:
         if tsv_unit is None:
             print(f"{unit:16s} not a reference unit (skipped)")
             continue
-        pool = reference_pool(ca, args.ref_bin, ranges[tsv_unit])
+        pool = reference_pool(ca, args.ref_bin, ranges[tsv_unit],
+                              parsed_by_unit[tsv_unit], merged_by_unit[tsv_unit])
         txt = open(asm, encoding="latin1").read()
         own = [f"@@{tsv_unit}@".lower()]
         own += [f"@@{c}@".lower() for c in UNIT_CLASS_ALIASES.get(tsv_unit, ())]

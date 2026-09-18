@@ -12,6 +12,9 @@ REF       ?= GameServer.exe
 # expansion), and no optimization (-Od). Keep this in sync with scripts/build.sh.
 CFLAGS    ?= -D__CODEGUARD__ -v -Od -tWM
 
+# Parallel compile jobs for `make verify` (empty = the container's CPU count).
+JOBS      ?=
+
 # Link configuration. The reference's library code byte-matches the Debug VCL/BDE
 # libraries, not Release (see PLAN.md), so Lib/Debug precedes Lib/Release on the
 # search path; same-named .libs there win. Exact library order is finalized in
@@ -22,7 +25,7 @@ VLIB      ?= import32.lib cw32mt.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.l
 CLANG_FORMAT ?= clang-format
 SRC          := $(wildcard src/*.cpp src/*.h)
 
-.PHONY: image analyze units unitmap functions struct disasm sanity compare normalize build stubs unit unit-asm verify format format-check clean
+.PHONY: image analyze units track unitmap functions struct disasm sanity compare normalize build stubs unit unit-asm verify format format-check clean
 
 image:
 	docker build -t $(IMAGE) docker
@@ -30,6 +33,13 @@ image:
 analyze:
 	$(PYTHON) scripts/extract_target.py $(REF) -o analysis/target
 	$(PYTHON) scripts/units.py $(REF)
+
+# Central per-function status sheet (analysis/target/functions.tsv) and the
+# generated README status block. Depends on --units output, so run `make unitmap`
+# first. Caches the library/comdat classification in
+# analysis/target/function_kinds.tsv (--reclassify to rebuild it).
+track:
+	$(PYTHON) scripts/track.py --readme README.md
 
 units:
 	$(PYTHON) scripts/units.py $(REF)
@@ -86,8 +96,8 @@ unit-asm:
 # Emit a bcc32 -S listing for every unit, then score every source function
 # against its unit's reference range (see scripts/verify_units.py).
 verify:
-	scripts/build_asm.sh
-	$(PYTHON) scripts/verify_units.py
+	JOBS=$(JOBS) scripts/build_asm.sh
+	$(PYTHON) scripts/verify_units.py $(if $(JOBS),-j $(JOBS),)
 
 # Apply the project code style (.clang-format) in place.
 format:
