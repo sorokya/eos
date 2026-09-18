@@ -25,10 +25,13 @@ class Player
 
 extern Player *Players_GetById(Players *self, int id);
 extern void Player_AddItem(Players *self, Player *player, int item_id, int amount);
-extern void
-Client_SendEncoded(Server *self, Player *player, int type, int sub_type, String data);
-extern void
-Server_BroadcastToMap(Server *self, int map_id, int type, int sub_type, String data);
+extern void Client_SendEncoded(Server *self,
+                               Player *player,
+                               unsigned char type,
+                               unsigned char sub_type,
+                               String data);
+extern void Server_BroadcastToMap(
+    Server *self, int map_id, unsigned char type, unsigned char sub_type, String data);
 
 WeddingController::WeddingController(Players *players, Server *server)
 {

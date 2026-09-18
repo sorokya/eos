@@ -23,8 +23,11 @@ Player **Players_Iter_End(Players *players);
 int Players_CountArenaPlayers(Players *players, int map_id);
 Player *Players_GetByMapTile(Players *players, int map_id, int x, int y);
 
-void Server_BroadcastToMap(
-    Server *server, int map_id, int action, int family, String payload);
+void Server_BroadcastToMap(Server *server,
+                           int map_id,
+                           unsigned char action,
+                           unsigned char family,
+                           String payload);
 void Player_Warp(Server *server,
                  Player *player,
                  int target_map,

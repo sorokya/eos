@@ -240,6 +240,36 @@ MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index)
     return MapVector_Begin(map_control) + index;
 }
 
+MapContainer *Mapcontrol_Iter_Front(Mapcontrol *map_control)
+{
+    return *(MapContainer **)((char *)map_control + 0x04);
+}
+
+void **Map_NpcIter_Begin(void *npc_list)
+{
+    return *(void ***)((char *)npc_list + 0x04);
+}
+
+void **Map_NpcIter_End(void *npc_list)
+{
+    return *(void ***)((char *)npc_list + 0x08);
+}
+
+void **GroundItemPtrVector_Begin(void *list)
+{
+    return *(void ***)((char *)list + 0x04);
+}
+
+void **PtrVector_GetEnd(void *list)
+{
+    return *(void ***)((char *)list + 0x08);
+}
+
+int GroundItemPtrVector_Count(void *list)
+{
+    return PtrVector_GetEnd(list) - GroundItemPtrVector_Begin(list);
+}
+
 int Math_Abs(int value)
 {
     return __abs__(value);
@@ -256,6 +286,186 @@ bool Login_CheckConnectionThreshold(Server *server)
 
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
+
+void Server_BroadcastToPartyExceptSelf(Server *server,
+                                       Player *player,
+                                       unsigned char action,
+                                       unsigned char family,
+                                       String data)
+{
+    for (int i = 0; i < 0xa; i++)
+    {
+        if (player->party_ids[i] != player->player_id)
+        {
+            Player *member =
+                Players::Players_GetById(server->players, player->party_ids[i]);
+            if (member != NULL && member->logged_in)
+                Client_SendEncoded(server, member, action, family, data);
+        }
+    }
+}
+
+void Server_BroadcastToParty(Server *server,
+                             Player *player,
+                             unsigned char action,
+                             unsigned char family,
+                             String data)
+{
+    for (int i = 0; i < 0xa; i++)
+    {
+        Player *member = Players::Players_GetById(server->players, player->party_ids[i]);
+        if (member != NULL && member->logged_in)
+            Client_SendEncoded(server, member, action, family, data);
+    }
+}
+
+void Guild_BroadcastToAll(Server *server,
+                          Player *player,
+                          unsigned char action,
+                          unsigned char family,
+                          String data)
+{
+    Player **player_iter;
+    for (player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((*player_iter)->guild_tag == player->guild_tag)
+        {
+            if ((*player_iter)->player_id != player->player_id)
+            {
+                if ((*player_iter)->logged_in)
+                    Client_SendEncoded(server, *player_iter, action, family, data);
+            }
+        }
+    }
+}
+
+void Server_BroadcastAdjacent(Server *server,
+                              Player *player,
+                              int x,
+                              int y,
+                              unsigned char action,
+                              unsigned char family,
+                              String data)
+{
+    Player **player_iter;
+    for (player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((*player_iter)->map_id == player->map_id &&
+            Coords_IsAdjacent(server, x, y, (*player_iter)->x, (*player_iter)->y) &&
+            (*player_iter)->logged_in && (*player_iter)->player_id != player->player_id)
+        {
+            Client_SendEncoded(server, *player_iter, action, family, data);
+        }
+    }
+}
+
+void Server_BroadcastNearTile(Server *server,
+                              int skip_id,
+                              int map_id,
+                              int x,
+                              int y,
+                              unsigned char action,
+                              unsigned char family,
+                              String data)
+{
+    Player **player_iter;
+    for (player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((*player_iter)->map_id == map_id && (*player_iter)->player_id != skip_id &&
+            Server_InViewRange(server, x, y, (*player_iter)->x, (*player_iter)->y))
+        {
+            Client_SendEncoded(server, *player_iter, action, family, data);
+        }
+    }
+}
+
+void Admin_BroadcastToAll(Server *server,
+                          unsigned char action,
+                          unsigned char family,
+                          String data)
+{
+    Player **player_iter;
+    for (player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((*player_iter)->admin_level > 0 && (*player_iter)->logged_in)
+            Client_SendEncoded(server, *player_iter, action, family, data);
+    }
+}
+
+void Admin_ReportToGMs(Server *server,
+                       Player *player,
+                       unsigned char action,
+                       unsigned char family,
+                       String data)
+{
+    Player **player_iter;
+    for (player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((*player_iter)->field_0x3e9 && (*player_iter)->logged_in &&
+            (*player_iter)->player_id != player->player_id)
+            Client_SendEncoded(server, *player_iter, action, family, data);
+    }
+}
+
+void Admin_BroadcastToAdmins(Server *server,
+                             Player *player,
+                             unsigned char action,
+                             unsigned char family,
+                             String data)
+{
+    Player **player_iter;
+    for (player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((*player_iter)->logged_in && (*player_iter)->player_id != player->player_id)
+            Client_SendEncoded(server, *player_iter, action, family, data);
+    }
+}
+
+void Server_BroadcastNearby(Server *server,
+                            Player *player,
+                            unsigned char action,
+                            unsigned char family,
+                            String data)
+{
+    Player **player_iter;
+    for (player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((*player_iter)->map_id == player->map_id &&
+            Server_InViewRangeReverse(
+                server, player->x, player->y, (*player_iter)->x, (*player_iter)->y) &&
+            (*player_iter)->logged_in && (*player_iter)->player_id != player->player_id)
+        {
+            Client_SendEncoded(server, *player_iter, action, family, data);
+        }
+    }
+}
+
+void Server_BroadcastToMap(
+    Server *server, int map_id, unsigned char action, unsigned char family, String data)
+{
+    Player **player_iter;
+    for (player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((*player_iter)->map_id == map_id && (*player_iter)->logged_in)
+            Client_SendEncoded(server, *player_iter, action, family, data);
+    }
+}
 
 void FUN_00463d40(Server *server, int action, int family, String data);
 void Server_Shutdown(Server *server)

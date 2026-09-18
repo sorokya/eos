@@ -18,8 +18,11 @@ MapItem *MapItemVector_Begin(void *slots);
 MapItem *MapItemVector_End(void *slots);
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
-void Client_SendEncoded(
-    Server *server, Player *player, int action, int family, String data);
+void Client_SendEncoded(Server *server,
+                        Player *player,
+                        unsigned char action,
+                        unsigned char family,
+                        String data);
 int RandRange(int max);
 
 ChestController::ChestController(Mapcontrol *map_control,

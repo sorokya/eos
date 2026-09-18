@@ -60,6 +60,13 @@ UNIT_CLASS_ALIASES = {
     "Questcounters": ["QuestCounters"],
     "Packets": ["Server"],
     "Banned": ["Asocketban"],
+    "Itemground": ["ChestItem"],
+    "Learnitem": ["LearnItemVal"],
+    "Npcdrop": ["NpcDropItem"],
+    "Shopcraft": ["ShopCraftVal"],
+    "Shopitem": ["ShopItemVal"],
+    "Weaponmap": ["WeaponmapEntry"],
+    "Weddings": ["Wedding", "WeddingController"],
 }
 
 

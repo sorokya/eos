@@ -13,10 +13,16 @@ Player **Players_Iter_End(Players *players);
 MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 unsigned int Map_GetTileSpec(Mapcontrol *map_control, int map_id, int x, int y);
 int Player_HpPercent(Player *player);
-void Client_SendEncoded(
-    Server *server, Player *player, int action, int family, String data);
-void Server_BroadcastNearby(
-    Server *server, Player *player, int action, int family, String data);
+void Client_SendEncoded(Server *server,
+                        Player *player,
+                        unsigned char action,
+                        unsigned char family,
+                        String data);
+void Server_BroadcastNearby(Server *server,
+                            Player *player,
+                            unsigned char action,
+                            unsigned char family,
+                            String data);
 void Player_Respawn(Server *server, Player *player);
 int RandRange(int max);
 

@@ -91,14 +91,71 @@ MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 void Game_Tick(Server *server);
 void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data);
 void Server_Shutdown(Server *server);
-void Client_SendEncoded(
-    Server *server, Player *player, int action, int family, String data);
+void Client_SendEncoded(Server *server,
+                        Player *player,
+                        unsigned char action,
+                        unsigned char family,
+                        String data);
+void Server_BroadcastToPartyExceptSelf(Server *server,
+                                       Player *player,
+                                       unsigned char action,
+                                       unsigned char family,
+                                       String data);
+void Server_BroadcastToParty(Server *server,
+                             Player *player,
+                             unsigned char action,
+                             unsigned char family,
+                             String data);
+void Guild_BroadcastToAll(Server *server,
+                          Player *player,
+                          unsigned char action,
+                          unsigned char family,
+                          String data);
+void Server_BroadcastAdjacent(Server *server,
+                              Player *player,
+                              int x,
+                              int y,
+                              unsigned char action,
+                              unsigned char family,
+                              String data);
+void Server_BroadcastNearTile(Server *server,
+                              int skip_id,
+                              int map_id,
+                              int x,
+                              int y,
+                              unsigned char action,
+                              unsigned char family,
+                              String data);
+void Admin_BroadcastToAll(Server *server,
+                          unsigned char action,
+                          unsigned char family,
+                          String data);
+void Admin_ReportToGMs(Server *server,
+                       Player *player,
+                       unsigned char action,
+                       unsigned char family,
+                       String data);
+void Admin_BroadcastToAdmins(Server *server,
+                             Player *player,
+                             unsigned char action,
+                             unsigned char family,
+                             String data);
+void Server_BroadcastNearby(Server *server,
+                            Player *player,
+                            unsigned char action,
+                            unsigned char family,
+                            String data);
 void Server_BroadcastToMap(
-    Server *server, int map_id, int action, int family, String data);
-void Server_BroadcastNearby(
-    Server *server, Player *player, int action, int family, String data);
+    Server *server, int map_id, unsigned char action, unsigned char family, String data);
 
 int Math_Abs(int value);
+
+MapContainer *Mapcontrol_Iter_Front(Mapcontrol *map_control);
+void **Map_NpcIter_Begin(void *npc_list);
+void **Map_NpcIter_End(void *npc_list);
+void **GroundItemPtrVector_Begin(void *list);
+void **PtrVector_GetEnd(void *list);
+int GroundItemPtrVector_Count(void *list);
 
 String EO_EncodeNumber(Server *server, unsigned int value, int width);
 int EO_DecodeNumber(void *self, String data);
