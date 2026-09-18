@@ -1631,12 +1631,10 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
-                {
-                    spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                            map_buf.SubString(1, 1));
-                    code = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                            map_buf.SubString(1, 2));
-                }
+                spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                        map_buf.SubString(1, 1));
+                code = Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                        map_buf.SubString(1, 2));
                 if (code == 0 || code == 0x12)
                     Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 1);
                 if (code > 0 && code <= 0x11)

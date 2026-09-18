@@ -543,7 +543,7 @@ void Player_EvaluateQuestRules(Server *server,
                         return;
                     }
                 }
-                else if ((*iter)->rule == 4)
+                if ((*iter)->rule == 4)
                 {
                     if (Players::Players_GetItemAmount(server->players, player, arg1) <
                         arg2)
@@ -1422,11 +1422,6 @@ String Refresh_BuildReply(Server *server, Player *player)
     String data = EO_GetBreakByte(server, 0xff);
     int count = 0;
     Player **iter;
-    int sit_state;
-    Npc **niter;
-    int cheat_x;
-    int cheat_y;
-    ChestItem **iiter;
     try
     {
         for (iter = Players_Iter_Begin(server->players);
@@ -1489,7 +1484,7 @@ String Refresh_BuildReply(Server *server, Player *player)
                             data.Length() + 1);
                 data.Insert(EO_EncodeNumber(server, (*iter)->weapon_graphic_id, 2),
                             data.Length() + 1);
-                sit_state = 0;
+                int sit_state = 0;
                 if ((*iter)->on_chair)
                     sit_state = 1;
                 if ((*iter)->sitting)
@@ -1503,6 +1498,7 @@ String Refresh_BuildReply(Server *server, Player *player)
             }
         }
         data.Insert(EO_EncodeNumber(server, count, 1), 1);
+        Npc **niter;
         if (player->map_id > 0 &&
             player->map_id <= Mapcontrol_GetCount(server->map_control))
         {
@@ -1532,8 +1528,8 @@ String Refresh_BuildReply(Server *server, Player *player)
                     }
                     else
                     {
-                        cheat_x = (*niter)->x + server->cheat_offset_x - 1;
-                        cheat_y = (*niter)->y + server->cheat_offset_y - 1;
+                        int cheat_x = (*niter)->x + server->cheat_offset_x - 1;
+                        int cheat_y = (*niter)->y + server->cheat_offset_y - 1;
                         if (cheat_x < 1)
                             cheat_x = 0;
                         if (cheat_y < 1)
@@ -1550,6 +1546,7 @@ String Refresh_BuildReply(Server *server, Player *player)
             }
         }
         data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+        ChestItem **iiter;
         if (player->map_id > 0 &&
             player->map_id <= Mapcontrol_GetCount(server->map_control))
         {

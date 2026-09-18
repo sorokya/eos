@@ -386,6 +386,16 @@ them to pick the form that matches the reference.
   *sequence* encodes block nesting, so comparing marker streams is the quickest
   way to tell whether an `if`/`for`/block structure matches. Braces on an
   otherwise single-statement `if` add a scope (and a marker).
+- **A block-scoped declaration *with an initializer* arms the enclosing scope;
+  a bare `{ }` does not.** A plain block owns nothing destructible, so it emits
+  no marker — but `int sit_state = 0;` declared inside an `if` and
+  `int cheat_x = ...; int cheat_y = ...;` inside an `else` each arm the
+  enclosing scope *after* the initializer store, producing one marker each. This
+  is what `Refresh_BuildReply` needed for its missing `arm 0x20` at `0x45e973`
+  and `0x45ee06`; the frame slot order then pins the declaration positions
+  (`count`, `iter`, `sit_state`, `niter`, `cheat_x`, `cheat_y`, `iiter` =
+  `232, 236, 240, 244, 248, 252, 256`). Before reaching for a `try`/`catch` or a
+  result clause, test whether the missing marker is just a scoped initializer.
 - **Passing a value to a `String` parameter: write the implicit conversion, not an
   explicit `String(...)`.** For a value converted to a `String` argument (e.g. an
   `int`/`char` from `EO_GetBreakByte`, or a `char` element), the reference

@@ -819,21 +819,25 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                 }
 
                                 if (target == NULL)
+                                {
                                     (*npc)->chase_target_id = -1;
+                                    continue;
+                                }
                                 else if (distance <= 1)
                                     goto attack;
                                 else if ((*npc)->chase_target_id < 0)
                                 {
                                     if (distance <= 11)
                                         goto chase;
+                                    continue;
                                 }
                                 else
                                 {
                                     if (distance <= 16)
                                         goto chase;
                                     (*npc)->chase_target_id = -1;
+                                    continue;
                                 }
-                                goto aggro_done;
                             chase:
                                 Npc_ChaseTarget(npc_control,
                                                 *npc,
@@ -859,7 +863,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                             1),
                                         (*npc)->pos_buffer.Length() + 1);
                                 }
-                                goto aggro_done;
+                                continue;
                             attack:
                                 if (Npc_AttackPlayer(npc_control, *npc, target))
                                 {
@@ -919,8 +923,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
     {
         if ((*player)->logged_in != false && 0 < (*player)->map_id &&
             (*player)->map_id <= Mapcontrol_GetCount(npc_control->map_control) &&
-            Mapcontrol_GetByIndex(npc_control->map_control,
-                                  (short)((*player)->map_id - 1))
+            Mapcontrol_GetByIndex(npc_control->map_control, (*player)->map_id - 1)
                     ->npc_dirty != 0)
         {
             try
@@ -930,11 +933,11 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                 String attack = "";
                 Npc **npc2 = (Npc **)Map_NpcIter_Begin(
                     &Mapcontrol_GetByIndex(npc_control->map_control,
-                                           (short)((*player)->map_id - 1))
+                                           (*player)->map_id - 1)
                          ->npc_list);
                 while ((Npc **)Map_NpcIter_End(
                            &Mapcontrol_GetByIndex(npc_control->map_control,
-                                                  (short)((*player)->map_id - 1))
+                                                  (*player)->map_id - 1)
                                 ->npc_list) != npc2)
                 {
                     if ((*npc2)->pos_pending != 0 &&
@@ -960,7 +963,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                         attack.Insert((*npc2)->attack_buffer, attack.Length() + 1);
                     npc2++;
                 }
-                if (3 < pos.Length() || 3 < talk.Length() || 3 < attack.Length())
+                if (4 <= pos.Length() || 4 <= talk.Length() || 4 <= attack.Length())
                 {
                     String data = pos;
                     data.Insert(String((char)-1), data.Length() + 1);
