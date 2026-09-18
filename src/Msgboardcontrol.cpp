@@ -443,10 +443,5 @@ void MsgBoardController::SaveBoards(MsgBoardController *self)
 
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
-// STUB(0x004ad896, 239 bytes) FUN_004ad896 - ref: undefined4 FUN_004ad896(void)
-int FUN_004ad896_Stub()
-{
-    return 0;
-}
 #pragma warn.8057
 // END GENERATED STUBS

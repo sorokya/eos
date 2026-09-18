@@ -108,6 +108,20 @@ bool JukeBoxController::TryPlayTrack(JukeBoxController *self, int map_id, String
     return played;
 }
 
+void FUN_004aa4e4(JukeBoxController *self, int map_id)
+{
+    for (std::vector<JukeBox>::iterator it = self->recent_plays.begin();
+         it != self->recent_plays.end();
+         it++)
+    {
+        if (it->map_id == map_id)
+        {
+            self->recent_plays.erase(it);
+            break;
+        }
+    }
+}
+
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
 // STUB(0x004a9e14, 96 bytes) FUN_004a9e14 - ref: undefined FUN_004a9e14(int param_1, byte
@@ -184,17 +198,6 @@ void FUN_004aa490_Stub(int a0, int a1)
 // STUB(0x004aa4ac, 54 bytes) FUN_004aa4ac - ref: int FUN_004aa4ac(int param_1, int
 // param_2)
 int FUN_004aa4ac_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x004aa4e4, 79 bytes) FUN_004aa4e4 - ref: undefined FUN_004aa4e4(int param_1, int
-// param_2)
-void FUN_004aa4e4_Stub(int a0, int a1)
-{
-}
-// STUB(0x004aa534, 101 bytes) FUN_004aa534 - ref: undefined2 * FUN_004aa534(int param_1,
-// undefined2 * param_2)
-void *FUN_004aa534_Stub(int a0, void *a1)
 {
     return 0;
 }

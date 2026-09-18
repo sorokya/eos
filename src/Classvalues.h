@@ -36,6 +36,7 @@ class ClassValues
     int size();
 
     static ClassValue GetByIndex(ClassValues *self, int index);
+    static bool ClassMatches(ClassValues *self, int class_id, int class_requirement);
     static void AddClass(ClassValues *self,
                          int id,
                          int parent_type,

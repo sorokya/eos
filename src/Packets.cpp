@@ -711,6 +711,92 @@ String *Server_BuildOnlineNames(String *out_str, Server *server)
     return out_str;
 }
 
+String *
+NpcRange_Lookup(String *out, Server *server, Player *player, unsigned int npc_index)
+{
+    String fragment = "";
+    if (player->map_id > 0)
+    {
+        if (player->map_id <= Mapcontrol_GetCount(server->map_control))
+        {
+            for (Npc **iter = (Npc **)Map_NpcIter_Begin(
+                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                          ->npc_list);
+                 iter !=
+                 (Npc **)Map_NpcIter_End(
+                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                          ->npc_list);
+                 iter++)
+            {
+                if ((*iter)->index == npc_index && (*iter)->alive)
+                {
+                    fragment.Insert(EO_EncodeNumber(server, (*iter)->index, 1),
+                                    fragment.Length() + 1);
+                    fragment.Insert(EO_EncodeNumber(server, (*iter)->id, 2),
+                                    fragment.Length() + 1);
+                    if (!player->cheater_flag)
+                    {
+                        fragment.Insert(EO_EncodeNumber(server, (*iter)->x, 1),
+                                        fragment.Length() + 1);
+                        fragment.Insert(EO_EncodeNumber(server, (*iter)->y, 1),
+                                        fragment.Length() + 1);
+                    }
+                    else
+                    {
+                        int cheat_x = (*iter)->x + server->cheat_offset_x - 1;
+                        int cheat_y = (*iter)->y + server->cheat_offset_y - 1;
+                        if (cheat_x < 1)
+                            cheat_x = 0;
+                        if (cheat_y < 1)
+                            cheat_y = 0;
+                        fragment.Insert(EO_EncodeNumber(server, cheat_x, 1),
+                                        fragment.Length() + 1);
+                        fragment.Insert(EO_EncodeNumber(server, cheat_y, 1),
+                                        fragment.Length() + 1);
+                    }
+                    fragment.Insert(
+                        EO_EncodeNumber(server, (unsigned short)(*iter)->direction, 1),
+                        fragment.Length() + 1);
+                    break;
+                }
+            }
+        }
+    }
+    *out += fragment;
+    return out;
+}
+
+String *Party_EncodeMemberList(String *out_str, Server *server, Player *player)
+{
+    if (!player->in_party)
+    {
+        String s = "";
+        *out_str += s;
+    }
+    else
+    {
+        String s = "";
+        for (int i = 0; i < 10; i++)
+        {
+            Player *member =
+                Players::Players_GetById(server->players, player->party_ids[i]);
+            if (member != NULL)
+            {
+                int is_leader = (player->party_leader_id == member->player_id);
+                s.Insert(EO_EncodeNumber(server, member->player_id, 2), s.Length() + 1);
+                s.Insert(EO_EncodeNumber(server, is_leader, 1), s.Length() + 1);
+                s.Insert(EO_EncodeNumber(server, member->level, 1), s.Length() + 1);
+                s.Insert(EO_EncodeNumber(server, Player::HpPercent(member), 1),
+                         s.Length() + 1);
+                s.Insert(member->name, s.Length() + 1);
+                s.Insert(EO_GetBreakByte(server, 0xff), s.Length() + 1);
+            }
+        }
+        *out_str += s;
+    }
+    return out_str;
+}
+
 void FUN_00466840(Server *server, int map_id)
 {
     for (Player **iter = Players_Iter_Begin(server->players);
@@ -1705,12 +1791,6 @@ int FUN_0045b0d0_Stub(int a0)
 void Login_SendCharacterList_Stub(void *a0, void *a1, int a2, int a3, void *a4)
 {
 }
-// STUB(0x0045d5a8, 715 bytes) Party_EncodeMemberList - ref: AnsiString *
-// Party_EncodeMemberList(AnsiString * out_str, Server * server, Player * player)
-void *Party_EncodeMemberList_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
 // STUB(0x0045d874, 1342 bytes) Walk_BuildReply - ref: AnsiString *
 // Walk_BuildReply(AnsiString * out, Server * server, Player * player)
 void *Walk_BuildReply_Stub(void *a0, void *a1, void *a2)
@@ -1750,12 +1830,6 @@ void *Message_BuildServerStatus_Stub(void *a0, int a1)
 // STUB(0x0046194c, 1629 bytes) Server_BuildOnlineList - ref: AnsiString *
 // Server_BuildOnlineList(AnsiString * out_str, Server * server)
 void *Server_BuildOnlineList_Stub(void *a0, void *a1)
-{
-    return 0;
-}
-// STUB(0x00461fb4, 948 bytes) NpcRange_Lookup - ref: int * NpcRange_Lookup(int * out,
-// Server * server, Player * player, uint npc_index)
-void *NpcRange_Lookup_Stub(void *a0, void *a1, void *a2, int a3)
 {
     return 0;
 }

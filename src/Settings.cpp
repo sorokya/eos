@@ -487,10 +487,5 @@ char Settings::ReadIniBool(Settings *self, String key, char default_value)
 
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
-// STUB(0x004158ca, 1186 bytes) FUN_004158ca - ref: undefined1 FUN_004158ca(void)
-char FUN_004158ca_Stub()
-{
-    return 0;
-}
 #pragma warn.8057
 // END GENERATED STUBS

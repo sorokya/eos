@@ -147,14 +147,14 @@ outstanding cross-unit externs and the known-unconverged functions.
 
 <!-- BEGIN GENERATED STATUS -->
 
-**1562/1809 (86.3%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
+**1565/1809 (86.5%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
 
 ```mermaid
 pie showData
     title Application functions by status
-    "byte-exact" : 1562
+    "byte-exact" : 1565
     "mismatched" : 4
-    "stubbed" : 227
+    "stubbed" : 224
     "unimplemented" : 15
     "deferred" : 1
 ```
@@ -175,11 +175,11 @@ pie showData
 | Innvalues | 39 | 39 | 0 | 0 | 0 |
 | Questcounters | 36 | 36 | 0 | 0 | 0 |
 | Skillvalues | 34 | 34 | 0 | 0 | 0 |
-| Jukeboxcontrol | 33 | 16 | 16 | 0 | 1 |
+| Jukeboxcontrol | 33 | 18 | 14 | 0 | 1 |
 | Killcounters | 33 | 33 | 0 | 0 | 0 |
 | Questcounter | 32 | 32 | 0 | 0 | 0 |
 | Weddings | 31 | 30 | 1 | 0 | 0 |
-| Classvalues | 29 | 28 | 1 | 0 | 0 |
+| Classvalues | 29 | 29 | 0 | 0 | 0 |
 | Learnvalue | 26 | 26 | 0 | 0 | 0 |
 | Player | 26 | 26 | 0 | 0 | 0 |
 | Mysqltask | 21 | 21 | 0 | 0 | 0 |

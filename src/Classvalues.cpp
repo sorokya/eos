@@ -164,13 +164,20 @@ int ClassValues::DecodeInt(String value)
     return result;
 }
 
+bool ClassValues::ClassMatches(ClassValues *self, int class_id, int class_requirement)
+{
+    if (class_requirement == 0)
+        return true;
+    while (class_id > 0)
+    {
+        if (class_id == class_requirement)
+            return true;
+        class_id = self->values[class_id - 1].parent_type;
+    }
+    return false;
+}
+
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
-// STUB(0x005371e8, 67 bytes) FUN_005371e8 - ref: undefined4 FUN_005371e8(int param_1, int
-// param_2, int param_3)
-int FUN_005371e8_Stub(int a0, int a1, int a2)
-{
-    return 0;
-}
 #pragma warn.8057
 // END GENERATED STUBS
