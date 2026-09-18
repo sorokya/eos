@@ -430,7 +430,35 @@ them to pick the form that matches the reference.
   `try`/`catch` reproduces the reference's `0x20` arming the source otherwise
   lacks. (Do not assume every "extra scope arming" is a try/catch: check the ECT.
   `Server_BuildOnlineNames` and `Party_EncodeMemberList` have no flags-3 entry
-  and no `0x55623d` call, so their extra armings have a different cause.)
+  and no `0x55623d` call, so their extra armings are the returned-append clause
+  described next.)
+- **A returned `AnsiString` append arms a result clause.** When a function returns
+  an `AnsiString` *by value* and its returned expression appends to a string
+  (`return *out += names;`, or `String result = ...; result += names; return
+  result;`), bcc32 materialises the result and then guards the destructor of the
+  appended temporary:
+  ```
+  arm S;  <append>;  mov eax,[dst];  arm S+0xc;
+  push eax;  <destroy the appended temporary>;  pop eax;  arm S;  inc [scope]
+  ```
+  i.e. the destination pointer is saved across the destructor and the result
+  clause is re-armed and incremented. The scope ids are cleanup-table byte
+  offsets, so they grow with the function — match the *sequence*, not the
+  number; the tell is the second arming (`S+0xc`) between the append and the
+  `push eax`. This is **not** a hidden `try`/`catch`: wrapping the append in
+  `try { ... } catch (...) {}` gives the save/restore but no arms *and* adds a
+  flags-3 cleanup entry the reference lacks. Nor is it a plain append: a
+  `void`- or pointer-returning function with the same statements emits no arms
+  (a pointer return may show the save/restore alone). `tests/append_return_probe.cpp`
+  isolates it — `A`/`B`/`C` (by-value) arm the `S, S+0xc, S` triple (`A` arms
+  `0x20,0x2c,0x20`) while `D` (void) and `E` (pointer) do not and `F`
+  (try/catch) arms the catch instead. The mangler
+  does not encode an `AnsiString` by-value return, so `@@F$qp17System@AnsiString...`
+  reads the same whether `F` returns `void` or `String`; check the body, not the
+  symbol. The three Packets residuals are this idiom — the returned `String` is
+  the append destination — which is why `Server_BuildOnlineNames`,
+  `Message_BuildServerStatus` and `Party_EncodeMemberList` carry the `0x38/0x44`,
+  `0x80/0x8c` and `0x74/0x80` pairs.
 - **Encoded strings.** Where the reference carries an obfuscated literal (decoded
   through `Serial::DecodeString`), name a macro after the decoded text so intent
   is legible, e.g.

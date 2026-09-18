@@ -17,6 +17,7 @@
 #include "Innvalues.h"
 #include "Mapcontrol.h"
 #include "Mapobject.h"
+#include "Itemvalues.h"
 #include "Questengine.h"
 #include "Playerquest.h"
 #include "Classvalues.h"
@@ -804,6 +805,544 @@ void Player_CalculateStats(Server *server, Player *player)
     player->accuracy = player->accuracy + player->class_accuracy;
     player->evasion = player->evasion + player->class_evasion;
     player->armor = player->armor + player->class_armor;
+}
+
+void Player_ApplyEquipmentBonuses(Server *server, Player *player)
+{
+    player->equip_bonus_hp = 0;
+    player->equip_bonus_tp = 0;
+    player->equip_strength_bonus = 0;
+    player->equip_wisdom_bonus = 0;
+    player->equip_intelligence_bonus = 0;
+    player->equip_agility_bonus = 0;
+    player->equip_constitution_bonus = 0;
+    player->equip_charisma_bonus = 0;
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->boots_item_id) ==
+        ItemType_Boots)
+    {
+        ItemValue *boots =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->boots_item_id - 1);
+        if (boots->element < 7)
+        {
+            player->element_resistances[boots->element] =
+                player->element_resistances[boots->element] + boots->element_damage;
+        }
+        player->boots_graphic_id = boots->spec1;
+        player->weight_current = player->weight_current + (int)boots->weight;
+        player->min_damage = player->min_damage + boots->min_damage;
+        player->max_damage = player->max_damage + boots->max_damage;
+        player->accuracy = player->accuracy + boots->accuracy;
+        player->evasion = player->evasion + boots->evade;
+        player->armor = player->armor + boots->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)boots->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)boots->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)boots->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)boots->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)boots->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)boots->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)boots->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)boots->charisma;
+    }
+    else
+    {
+        player->boots_item_id = 0;
+        player->boots_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->accessory_item_id) ==
+        ItemType_Accessory)
+    {
+        ItemValue *accessory = ItemValues::GetByIndex((*MAINFORM)->item_values,
+                                                      player->accessory_item_id - 1);
+        if (accessory->element < 7)
+        {
+            player->element_resistances[accessory->element] =
+                player->element_resistances[accessory->element] +
+                accessory->element_damage;
+        }
+        player->accessory_graphic_id = accessory->spec1;
+        player->weight_current = player->weight_current + (int)accessory->weight;
+        player->min_damage = player->min_damage + accessory->min_damage;
+        player->max_damage = player->max_damage + accessory->max_damage;
+        player->accuracy = player->accuracy + accessory->accuracy;
+        player->evasion = player->evasion + accessory->evade;
+        player->armor = player->armor + accessory->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)accessory->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)accessory->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)accessory->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)accessory->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)accessory->intelligence;
+        player->equip_agility_bonus =
+            player->equip_agility_bonus + (int)accessory->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)accessory->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)accessory->charisma;
+    }
+    else
+    {
+        player->accessory_item_id = 0;
+        player->accessory_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->gloves_item_id) ==
+        ItemType_Gloves)
+    {
+        ItemValue *gloves =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->gloves_item_id - 1);
+        if (gloves->element < 7)
+        {
+            player->element_resistances[gloves->element] =
+                player->element_resistances[gloves->element] + gloves->element_damage;
+        }
+        player->gloves_graphic_id = gloves->spec1;
+        player->weight_current = player->weight_current + (int)gloves->weight;
+        player->min_damage = player->min_damage + gloves->min_damage;
+        player->max_damage = player->max_damage + gloves->max_damage;
+        player->accuracy = player->accuracy + gloves->accuracy;
+        player->evasion = player->evasion + gloves->evade;
+        player->armor = player->armor + gloves->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)gloves->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)gloves->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)gloves->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)gloves->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)gloves->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)gloves->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)gloves->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)gloves->charisma;
+    }
+    else
+    {
+        player->gloves_item_id = 0;
+        player->gloves_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->armor_item_id) ==
+        ItemType_Armor)
+    {
+        ItemValue *armor =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->armor_item_id - 1);
+        if (armor->element < 7)
+        {
+            player->element_resistances[armor->element] =
+                player->element_resistances[armor->element] + armor->element_damage;
+        }
+        player->armor_graphic_id = armor->spec1;
+        player->weight_current = player->weight_current + (int)armor->weight;
+        player->min_damage = player->min_damage + armor->min_damage;
+        player->max_damage = player->max_damage + armor->max_damage;
+        player->accuracy = player->accuracy + armor->accuracy;
+        player->evasion = player->evasion + armor->evade;
+        player->armor = player->armor + armor->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)armor->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)armor->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)armor->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)armor->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)armor->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)armor->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)armor->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)armor->charisma;
+    }
+    else
+    {
+        player->armor_item_id = 0;
+        player->armor_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->belt_item_id) ==
+        ItemType_Belt)
+    {
+        ItemValue *belt =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->belt_item_id - 1);
+        if (belt->element < 7)
+        {
+            player->element_resistances[belt->element] =
+                player->element_resistances[belt->element] + belt->element_damage;
+        }
+        player->belt_graphic_id = belt->spec1;
+        player->weight_current = player->weight_current + (int)belt->weight;
+        player->min_damage = player->min_damage + belt->min_damage;
+        player->max_damage = player->max_damage + belt->max_damage;
+        player->accuracy = player->accuracy + belt->accuracy;
+        player->evasion = player->evasion + belt->evade;
+        player->armor = player->armor + belt->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)belt->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)belt->tp;
+        player->equip_strength_bonus = player->equip_strength_bonus + (int)belt->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)belt->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)belt->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)belt->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)belt->constitution;
+        player->equip_charisma_bonus = player->equip_charisma_bonus + (int)belt->charisma;
+    }
+    else
+    {
+        player->belt_item_id = 0;
+        player->belt_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->necklace_item_id) ==
+        ItemType_Necklace)
+    {
+        ItemValue *necklace = ItemValues::GetByIndex((*MAINFORM)->item_values,
+                                                     player->necklace_item_id - 1);
+        if (necklace->element < 7)
+        {
+            player->element_resistances[necklace->element] =
+                player->element_resistances[necklace->element] + necklace->element_damage;
+        }
+        player->necklace_graphic_id = necklace->spec1;
+        player->weight_current = player->weight_current + (int)necklace->weight;
+        player->min_damage = player->min_damage + necklace->min_damage;
+        player->max_damage = player->max_damage + necklace->max_damage;
+        player->accuracy = player->accuracy + necklace->accuracy;
+        player->evasion = player->evasion + necklace->evade;
+        player->armor = player->armor + necklace->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)necklace->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)necklace->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)necklace->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)necklace->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)necklace->intelligence;
+        player->equip_agility_bonus =
+            player->equip_agility_bonus + (int)necklace->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)necklace->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)necklace->charisma;
+    }
+    else
+    {
+        player->necklace_item_id = 0;
+        player->necklace_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->hat_item_id) ==
+        ItemType_Hat)
+    {
+        ItemValue *hat =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->hat_item_id - 1);
+        if (hat->element < 7)
+        {
+            player->element_resistances[hat->element] =
+                player->element_resistances[hat->element] + hat->element_damage;
+        }
+        player->hat_graphic_id = hat->spec1;
+        player->weight_current = player->weight_current + (int)hat->weight;
+        player->min_damage = player->min_damage + hat->min_damage;
+        player->max_damage = player->max_damage + hat->max_damage;
+        player->accuracy = player->accuracy + hat->accuracy;
+        player->evasion = player->evasion + hat->evade;
+        player->armor = player->armor + hat->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)hat->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)hat->tp;
+        player->equip_strength_bonus = player->equip_strength_bonus + (int)hat->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)hat->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)hat->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)hat->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)hat->constitution;
+        player->equip_charisma_bonus = player->equip_charisma_bonus + (int)hat->charisma;
+    }
+    else
+    {
+        player->hat_item_id = 0;
+        player->hat_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->shield_item_id) ==
+        ItemType_Shield)
+    {
+        ItemValue *shield =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->shield_item_id - 1);
+        if (shield->element < 7)
+        {
+            player->element_resistances[shield->element] =
+                player->element_resistances[shield->element] + shield->element_damage;
+        }
+        player->shield_graphic_id = shield->spec1;
+        player->weight_current = player->weight_current + (int)shield->weight;
+        player->min_damage = player->min_damage + shield->min_damage;
+        player->max_damage = player->max_damage + shield->max_damage;
+        player->accuracy = player->accuracy + shield->accuracy;
+        player->evasion = player->evasion + shield->evade;
+        player->armor = player->armor + shield->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)shield->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)shield->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)shield->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)shield->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)shield->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)shield->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)shield->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)shield->charisma;
+    }
+    else
+    {
+        player->shield_item_id = 0;
+        player->shield_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->weapon_item_id) ==
+        ItemType_Weapon)
+    {
+        ItemValue *weapon =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->weapon_item_id - 1);
+        if (weapon->element < 7)
+        {
+            player->element_resistances[weapon->element] =
+                player->element_resistances[weapon->element] + weapon->element_damage;
+        }
+        player->weapon_graphic_id = weapon->spec1;
+        player->weight_current = player->weight_current + (int)weapon->weight;
+        player->min_damage = player->min_damage + weapon->min_damage;
+        player->max_damage = player->max_damage + weapon->max_damage;
+        player->accuracy = player->accuracy + weapon->accuracy;
+        player->evasion = player->evasion + weapon->evade;
+        player->armor = player->armor + weapon->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)weapon->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)weapon->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)weapon->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)weapon->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)weapon->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)weapon->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)weapon->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)weapon->charisma;
+    }
+    else
+    {
+        player->weapon_item_id = 0;
+        player->weapon_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->ring1_item_id) ==
+        ItemType_Ring)
+    {
+        ItemValue *ring1 =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->ring1_item_id - 1);
+        if (ring1->element < 7)
+        {
+            player->element_resistances[ring1->element] =
+                player->element_resistances[ring1->element] + ring1->element_damage;
+        }
+        player->ring1_graphic_id = ring1->spec1;
+        player->weight_current = player->weight_current + (int)ring1->weight;
+        player->min_damage = player->min_damage + ring1->min_damage;
+        player->max_damage = player->max_damage + ring1->max_damage;
+        player->accuracy = player->accuracy + ring1->accuracy;
+        player->evasion = player->evasion + ring1->evade;
+        player->armor = player->armor + ring1->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)ring1->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)ring1->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)ring1->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)ring1->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)ring1->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)ring1->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)ring1->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)ring1->charisma;
+    }
+    else
+    {
+        player->ring1_item_id = 0;
+        player->ring1_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->ring2_item_id) ==
+        ItemType_Ring)
+    {
+        ItemValue *ring2 =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->ring2_item_id - 1);
+        if (ring2->element < 7)
+        {
+            player->element_resistances[ring2->element] =
+                player->element_resistances[ring2->element] + ring2->element_damage;
+        }
+        player->ring2_graphic_id = ring2->spec1;
+        player->weight_current = player->weight_current + (int)ring2->weight;
+        player->min_damage = player->min_damage + ring2->min_damage;
+        player->max_damage = player->max_damage + ring2->max_damage;
+        player->accuracy = player->accuracy + ring2->accuracy;
+        player->evasion = player->evasion + ring2->evade;
+        player->armor = player->armor + ring2->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)ring2->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)ring2->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)ring2->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)ring2->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)ring2->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)ring2->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)ring2->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)ring2->charisma;
+    }
+    else
+    {
+        player->ring2_item_id = 0;
+        player->ring2_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->armlet1_item_id) ==
+        ItemType_Armlet)
+    {
+        ItemValue *armlet1 =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->armlet1_item_id - 1);
+        if (armlet1->element < 7)
+        {
+            player->element_resistances[armlet1->element] =
+                player->element_resistances[armlet1->element] + armlet1->element_damage;
+        }
+        player->armlet1_graphic_id = armlet1->spec1;
+        player->weight_current = player->weight_current + (int)armlet1->weight;
+        player->min_damage = player->min_damage + armlet1->min_damage;
+        player->max_damage = player->max_damage + armlet1->max_damage;
+        player->accuracy = player->accuracy + armlet1->accuracy;
+        player->evasion = player->evasion + armlet1->evade;
+        player->armor = player->armor + armlet1->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)armlet1->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)armlet1->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)armlet1->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)armlet1->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)armlet1->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)armlet1->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)armlet1->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)armlet1->charisma;
+    }
+    else
+    {
+        player->armlet1_item_id = 0;
+        player->armlet1_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->armlet2_item_id) ==
+        ItemType_Armlet)
+    {
+        ItemValue *armlet2 =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->armlet2_item_id - 1);
+        if (armlet2->element < 7)
+        {
+            player->element_resistances[armlet2->element] =
+                player->element_resistances[armlet2->element] + armlet2->element_damage;
+        }
+        player->armlet2_graphic_id = armlet2->spec1;
+        player->weight_current = player->weight_current + (int)armlet2->weight;
+        player->min_damage = player->min_damage + armlet2->min_damage;
+        player->max_damage = player->max_damage + armlet2->max_damage;
+        player->accuracy = player->accuracy + armlet2->accuracy;
+        player->evasion = player->evasion + armlet2->evade;
+        player->armor = player->armor + armlet2->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)armlet2->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)armlet2->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)armlet2->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)armlet2->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)armlet2->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)armlet2->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)armlet2->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)armlet2->charisma;
+    }
+    else
+    {
+        player->armlet2_item_id = 0;
+        player->armlet2_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->bracer1_item_id) ==
+        ItemType_Bracer)
+    {
+        ItemValue *bracer1 =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->bracer1_item_id - 1);
+        if (bracer1->element < 7)
+        {
+            player->element_resistances[bracer1->element] =
+                player->element_resistances[bracer1->element] + bracer1->element_damage;
+        }
+        player->bracer1_graphic_id = bracer1->spec1;
+        player->weight_current = player->weight_current + (int)bracer1->weight;
+        player->min_damage = player->min_damage + bracer1->min_damage;
+        player->min_damage = player->min_damage + bracer1->min_damage;
+        player->max_damage = player->max_damage + bracer1->max_damage;
+        player->accuracy = player->accuracy + bracer1->accuracy;
+        player->evasion = player->evasion + bracer1->evade;
+        player->armor = player->armor + bracer1->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)bracer1->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)bracer1->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)bracer1->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)bracer1->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)bracer1->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)bracer1->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)bracer1->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)bracer1->charisma;
+    }
+    else
+    {
+        player->bracer1_item_id = 0;
+        player->bracer1_graphic_id = 0;
+    }
+    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->bracer2_item_id) ==
+        ItemType_Bracer)
+    {
+        ItemValue *bracer2 =
+            ItemValues::GetByIndex((*MAINFORM)->item_values, player->bracer2_item_id - 1);
+        if (bracer2->element < 7)
+        {
+            player->element_resistances[bracer2->element] =
+                player->element_resistances[bracer2->element] + bracer2->element_damage;
+        }
+        player->bracer2_graphic_id = bracer2->spec1;
+        player->weight_current = player->weight_current + (int)bracer2->weight;
+        player->min_damage = player->min_damage + bracer2->min_damage;
+        player->max_damage = player->max_damage + bracer2->max_damage;
+        player->accuracy = player->accuracy + bracer2->accuracy;
+        player->evasion = player->evasion + bracer2->evade;
+        player->armor = player->armor + bracer2->armor;
+        player->equip_bonus_hp = player->equip_bonus_hp + (int)bracer2->hp;
+        player->equip_bonus_tp = player->equip_bonus_tp + (int)bracer2->tp;
+        player->equip_strength_bonus =
+            player->equip_strength_bonus + (int)bracer2->strength;
+        player->equip_wisdom_bonus = player->equip_wisdom_bonus + (int)bracer2->wisdom;
+        player->equip_intelligence_bonus =
+            player->equip_intelligence_bonus + (int)bracer2->intelligence;
+        player->equip_agility_bonus = player->equip_agility_bonus + (int)bracer2->agility;
+        player->equip_constitution_bonus =
+            player->equip_constitution_bonus + (int)bracer2->constitution;
+        player->equip_charisma_bonus =
+            player->equip_charisma_bonus + (int)bracer2->charisma;
+    }
+    else
+    {
+        player->bracer2_item_id = 0;
+        player->bracer2_graphic_id = 0;
+    }
+    return;
 }
 
 String *Message_BuildServerStatus(String *out, Server *server)
@@ -2031,11 +2570,6 @@ void FUN_00463d40_Stub(int a0, unsigned char a1, unsigned char a2, int a3)
 // Client_SendEncoded(Server * server, Player * player, PacketAction action, PacketFamily
 // family)
 void Client_SendEncoded_Stub(void *a0, void *a1, int a2, int a3)
-{
-}
-// STUB(0x004651a4, 5786 bytes) Player_ApplyEquipmentBonuses - ref: undefined
-// Player_ApplyEquipmentBonuses(Server * server, Player * player)
-void Player_ApplyEquipmentBonuses_Stub(void *a0, void *a1)
 {
 }
 // STUB(0x00467980, 12223 bytes) Attack_Execute - ref: int Attack_Execute(Server * server,
