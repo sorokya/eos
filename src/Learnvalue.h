@@ -16,7 +16,7 @@
 //   +0x08 short                      min_level
 //   +0x0a short                      max_level
 //   +0x0c short                      class_requirement
-//   +0x0e short                      pad
+//   +0x0e                            compiler padding (not copied)
 //   +0x10 std::vector<LearnItemVal>  skills
 // sizeof = 0x30 (the owning record_list advances its iterator by 0x30).
 //
@@ -30,7 +30,6 @@ struct LearnValue
     short min_level;
     short max_level;
     short class_requirement;
-    short pad_0e;
     std::vector<LearnItemVal> skills;
 
     LearnValue(int id);

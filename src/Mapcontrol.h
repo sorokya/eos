@@ -45,6 +45,7 @@ class Mapcontrol
     Mapcontrol(Settings *settings);
 
     static void Mapcontrol_LoadMaps(Mapcontrol *map_control);
+    static bool Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id);
     static void Mapcontrol_inc_player_count(Mapcontrol *map_control, int map_id);
     static void Mapcontrol_dec_player_count(Mapcontrol *map_control, int map_id);
     static void Mapcontrol_SetArenaBlock(Mapcontrol *map_control, int map_id, int block);
@@ -83,6 +84,21 @@ class Mapcontrol
                                             int map_id,
                                             unsigned int x,
                                             unsigned int y);
+    static void Mapcontrol_AddChestSpawn(Mapcontrol *map_control,
+                                         MapContainer *map,
+                                         unsigned int x,
+                                         unsigned int y,
+                                         int key_id,
+                                         int slot,
+                                         int item_id,
+                                         int spawn_time,
+                                         int amount);
+    static void Mapcontrol_AddChestItem(Mapcontrol *map_control,
+                                        int map_id,
+                                        unsigned int x,
+                                        unsigned int y,
+                                        int item_id,
+                                        int amount);
     static int Pub_DecodeNumber_Map(Mapcontrol *map_control, String value);
     static String
     Mapcontrol_AppendEncoded(Mapcontrol *map_control, unsigned int value, int width);

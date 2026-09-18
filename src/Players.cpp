@@ -365,6 +365,226 @@ Player *Players::Players_FindByName(Players *self, String name)
     return 0;
 }
 
+int Players::Player_GetSpellLevel(Players *self, Player *player, int spell_id)
+{
+    for (PlayerSkill *iter = player->spells.begin(); iter != player->spells.end(); iter++)
+    {
+        if (iter->skill_id == spell_id)
+            return iter->level;
+    }
+    return -1;
+}
+
+bool Players::Player_HasBankItem(Players *self, Player *player, int item_id)
+{
+    for (PlayerInventory *iter = player->bank.begin(); iter != player->bank.end(); iter++)
+    {
+        if (iter->item_id == item_id)
+            return true;
+    }
+    return false;
+}
+
+void Players::Player_RemoveItemNoQuestRules(Players *self,
+                                            Player *player,
+                                            int item_id,
+                                            int amount)
+{
+    player->equipment_dirty = 1;
+    player->inventory_dirty = 1;
+    for (PlayerInventory *iter = player->inventory.begin();
+         iter != player->inventory.end();
+         iter++)
+    {
+        if (iter->item_id == item_id)
+        {
+            if ((unsigned int)amount >= (unsigned int)iter->amount)
+            {
+                player->item_change_id = item_id;
+                player->item_change_count = iter->amount;
+                player->item_change_remaining = 0;
+                player->inventory.erase(iter);
+                return;
+            }
+            iter->amount = iter->amount - amount;
+            player->item_change_id = item_id;
+            player->item_change_count = amount;
+            player->item_change_remaining = iter->amount;
+            return;
+        }
+    }
+}
+
+void Players::Player_AddBankItem(Players *self, Player *player, int item_id, int amount)
+{
+    player->bank_dirty = 1;
+    for (PlayerInventory *iter = player->bank.begin(); iter != player->bank.end(); iter++)
+    {
+        if (iter->item_id == item_id)
+        {
+            iter->amount = iter->amount + amount;
+            if ((unsigned int)iter->amount > 120)
+                iter->amount = 120;
+            return;
+        }
+    }
+    PlayerInventory item(item_id);
+    item.amount = amount;
+    player->bank.insert(player->bank.end(), item);
+}
+
+bool Players::Player_RemoveBankItem(Players *self, Player *player, int item_id)
+{
+    player->bank_dirty = 1;
+    for (PlayerInventory *iter = player->bank.begin(); iter != player->bank.end(); iter++)
+    {
+        if (iter->item_id == item_id)
+        {
+            player->item_change_id = iter->item_id;
+            player->item_change_count = iter->amount;
+            player->bank.erase(iter);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Players::Player_AddTradeItem(Players *self, Player *player, int item_id, int amount)
+{
+    if (player->trade_items.size() > 9)
+        return false;
+    for (PlayerInventory *iter = player->trade_items.begin();
+         iter != player->trade_items.end();
+         iter++)
+    {
+        if (iter->item_id == item_id)
+        {
+            player->trade_accepted = false;
+            iter->amount = amount;
+            return true;
+        }
+    }
+    PlayerInventory item(item_id);
+    item.amount = amount;
+    player->trade_accepted = false;
+    player->trade_items.insert(player->trade_items.end(), item);
+    return true;
+}
+
+bool Players::Player_RemoveTradeItem(Players *self, Player *player, int item_id)
+{
+    if (player->trade_accepted != false)
+        return false;
+    if (player->trade_items.size() > 5)
+        return false;
+    for (PlayerInventory *iter = player->trade_items.begin();
+         iter != player->trade_items.end();
+         iter++)
+    {
+        if (iter->item_id == item_id)
+        {
+            player->trade_items.erase(iter);
+            return true;
+        }
+    }
+    return false;
+}
+
+void Players::Player_AddSpell(Players *self, Player *player, int spell_id)
+{
+    for (PlayerSkill *iter = player->spells.begin(); iter != player->spells.end(); iter++)
+    {
+        if (iter->skill_id == spell_id)
+            return;
+    }
+    PlayerSkill spell(spell_id);
+    spell.level = 0;
+    player->spells.insert(player->spells.end(), spell);
+}
+
+bool Players::Players_HasField0C(Players *self, int field_c)
+{
+    for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
+    {
+        if ((*iter)->field_0xc == field_c)
+            return true;
+    }
+    return false;
+}
+
+int Players::Players_CountGuildInvites(Players *self, Player *player)
+{
+    int count = 0;
+    for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
+    {
+        if ((*iter)->guild_inviter_id == player->player_id &&
+            (*iter)->player_id != player->player_id)
+            count = count + 1;
+    }
+    return count;
+}
+
+int Players::Players_CountGuildOnMap(Players *self, Player *player)
+{
+    int count;
+    for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
+    {
+        if ((*iter)->map_id == player->map_id && (*iter)->guild_tag.Length() < 2 &&
+            (*iter)->player_id != player->player_id)
+            count = count + 1;
+    }
+    return count;
+}
+
+void Players::Players_UpdatePeakOnline(Players *self)
+{
+    self->idle_timeout = 0;
+    for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
+    {
+        if ((*iter)->logged_in != false)
+            self->idle_timeout = self->idle_timeout + 1;
+    }
+    if (self->idle_timeout > self->stat_total)
+        self->stat_total = self->idle_timeout;
+}
+
+void Players::Players_GuildSetMemberInfo(Players *self,
+                                         Player *player,
+                                         String guild_name,
+                                         String guild_tag)
+{
+    int count;
+    for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
+    {
+        if ((*iter)->guild_inviter_id == player->player_id &&
+            (*iter)->player_id != player->player_id)
+        {
+            (*iter)->guild_tag = guild_tag;
+            (*iter)->guild_name = guild_name;
+            (*iter)->guild_rank_name = "";
+            (*iter)->guild_rank_id = 9;
+            (*iter)->guild_inviter_id = -1;
+            count = count + 1;
+            if (count > 10)
+                return;
+        }
+    }
+}
+
+bool Players::Players_IsAccountNameTaken(Players *self,
+                                         String account_name,
+                                         int player_id)
+{
+    if (account_name.Length() < 3)
+        return false;
+    for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
+    {
+        if (account_name == (*iter)->account_name && (*iter)->player_id != player_id)
+            return true;
+    }
+    return false;
+}
+
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
 // STUB(0x00407b30, 80 bytes) FUN_00407b30 - ref: undefined FUN_00407b30(int param_1, byte
@@ -445,12 +665,6 @@ void *FUN_00408c38_Stub(void *a0, void *a1, void *a2)
 {
     return 0;
 }
-// STUB(0x00408c94, 11 bytes) Player_Spells_Iter_Start - ref: PlayerSpell *
-// Player_Spells_Iter_Start(PlayerSpellVector * param_1)
-void *Player_Spells_Iter_Start_Stub(void *a0)
-{
-    return 0;
-}
 // STUB(0x00408cac, 91 bytes) FUN_00408cac - ref: undefined4 * FUN_00408cac(int param_1,
 // undefined4 * param_2, undefined4 * param_3)
 void *FUN_00408cac_Stub(int a0, void *a1, void *a2)
@@ -493,30 +707,6 @@ void *Character_BuildSaveQuery_Stub(void *a0, void *a1, void *a2, int a3)
 {
     return 0;
 }
-// STUB(0x0040c92c, 59 bytes) FUN_0040c92c - ref: undefined4 FUN_0040c92c(int param_1, int
-// param_2)
-int FUN_0040c92c_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x0040c968, 219 bytes) FUN_0040c968 - ref: undefined4 FUN_0040c968(int param_1,
-// undefined4 param_2, int param_3)
-int FUN_0040c968_Stub(int a0, int a1, int a2)
-{
-    return 0;
-}
-// STUB(0x0040cc34, 74 bytes) FUN_0040cc34 - ref: int FUN_0040cc34(undefined4 param_1, int
-// param_2, int param_3)
-int FUN_0040cc34_Stub(int a0, int a1, int a2)
-{
-    return 0;
-}
-// STUB(0x0040ccc8, 69 bytes) FUN_0040ccc8 - ref: undefined4 FUN_0040ccc8(undefined4
-// param_1, int param_2, int param_3)
-int FUN_0040ccc8_Stub(int a0, int a1, int a2)
-{
-    return 0;
-}
 // STUB(0x0040cd10, 1231 bytes) FUN_0040cd10 - ref: undefined4 FUN_0040cd10(undefined4
 // param_1, int param_2, int param_3, int param_4)
 int FUN_0040cd10_Stub(int a0, int a1, int a2, int a3)
@@ -531,73 +721,6 @@ int FUN_0040d248_Stub(int a0, int a1, int a2, int a3)
 }
 // STUB(0x0040dc48, 11 bytes) FUN_0040dc48 - ref: undefined4 FUN_0040dc48(int param_1)
 int FUN_0040dc48_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0040dec8, 207 bytes) FUN_0040dec8 - ref: undefined FUN_0040dec8(undefined4
-// param_1, int param_2, int param_3, uint param_4)
-void FUN_0040dec8_Stub(int a0, int a1, int a2, unsigned int a3)
-{
-}
-// STUB(0x0040dfe4, 223 bytes) FUN_0040dfe4 - ref: undefined FUN_0040dfe4(undefined4
-// param_1, int param_2, int param_3, int param_4)
-void FUN_0040dfe4_Stub(int a0, int a1, int a2, int a3)
-{
-}
-// STUB(0x0040e0c4, 127 bytes) FUN_0040e0c4 - ref: undefined4 FUN_0040e0c4(undefined4
-// param_1, int param_2, int param_3)
-int FUN_0040e0c4_Stub(int a0, int a1, int a2)
-{
-    return 0;
-}
-// STUB(0x0040e144, 266 bytes) FUN_0040e144 - ref: undefined4 FUN_0040e144(undefined4
-// param_1, int param_2, int param_3, int param_4)
-int FUN_0040e144_Stub(int a0, int a1, int a2, int a3)
-{
-    return 0;
-}
-// STUB(0x0040e250, 134 bytes) FUN_0040e250 - ref: undefined4 FUN_0040e250(undefined4
-// param_1, int param_2, int param_3)
-int FUN_0040e250_Stub(int a0, int a1, int a2)
-{
-    return 0;
-}
-// STUB(0x0040e2d8, 189 bytes) FUN_0040e2d8 - ref: undefined4 FUN_0040e2d8(undefined4
-// param_1, int param_2, int param_3)
-int FUN_0040e2d8_Stub(int a0, int a1, int a2)
-{
-    return 0;
-}
-// STUB(0x0040e3e0, 152 bytes) FUN_0040e3e0 - ref: int FUN_0040e3e0(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-int FUN_0040e3e0_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0040e484, 19 bytes) FUN_0040e484 - ref: undefined FUN_0040e484(undefined4
-// param_1, undefined4 param_2, undefined4 * param_3)
-void FUN_0040e484_Stub(int a0, int a1, void *a2)
-{
-}
-// STUB(0x0040e6d0, 90 bytes) FUN_0040e6d0 - ref: undefined FUN_0040e6d0(undefined4
-// param_1, undefined4 * param_2)
-void FUN_0040e6d0_Stub(int a0, void *a1)
-{
-}
-// STUB(0x0040e748, 48 bytes) FUN_0040e748 - ref: undefined4 * FUN_0040e748(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_0040e748_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0040e778, 38 bytes) FUN_0040e778 - ref: int FUN_0040e778(int param_1)
-int FUN_0040e778_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0040e7b8, 111 bytes) FUN_0040e7b8 - ref: int FUN_0040e7b8(undefined4 param_1,
-// int param_2)
-int FUN_0040e7b8_Stub(int a0, int a1)
 {
     return 0;
 }
@@ -628,12 +751,6 @@ int FUN_0040e8f0_Stub(int a0)
 void FUN_0040e8fc_Stub(int a0, int a1)
 {
 }
-// STUB(0x0040e918, 54 bytes) FUN_0040e918 - ref: int FUN_0040e918(int param_1, int
-// param_2)
-int FUN_0040e918_Stub(int a0, int a1)
-{
-    return 0;
-}
 // STUB(0x0040e974, 88 bytes) FUN_0040e974 - ref: int FUN_0040e974(undefined4 param_1, int
 // param_2, int param_3)
 int FUN_0040e974_Stub(int a0, int a1, int a2)
@@ -662,27 +779,6 @@ void FUN_0040ea90_Stub(int a0, int a1)
 char FUN_0040eaa4_Stub(int a0, int a1)
 {
     return 0;
-}
-// STUB(0x0040ff54, 88 bytes) FUN_0040ff54 - ref: int FUN_0040ff54(int param_1, int
-// param_2)
-int FUN_0040ff54_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x0040ffac, 106 bytes) FUN_0040ffac - ref: int FUN_0040ffac(int param_1, int
-// param_2)
-int FUN_0040ffac_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00410018, 357 bytes) FUN_00410018 - ref: undefined FUN_00410018(int param_1, int
-// param_2)
-void FUN_00410018_Stub(int a0, int a1)
-{
-}
-// STUB(0x00410750, 108 bytes) FUN_00410750 - ref: undefined FUN_00410750(int param_1)
-void FUN_00410750_Stub(int a0)
-{
 }
 // STUB(0x00410dac, 11 bytes) FUN_00410dac - ref: undefined4 FUN_00410dac(int param_1)
 int FUN_00410dac_Stub(int a0)

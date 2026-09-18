@@ -312,6 +312,22 @@ void Mapcontrol::Mapcontrol_SetArenaBlock(Mapcontrol *map_control, int map_id, i
         Mapcontrol_GetByIndex(map_control, map_id - 1)->arena_block = block;
 }
 
+void Mapcontrol_AddArenaSpawn(
+    Mapcontrol *map_control, int map_id, int from_x, int from_y, int to_x, int to_y)
+{
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    {
+        Mapcontrol_GetByIndex(map_control, map_id - 1)->arena_enabled = 1;
+        Mapcontrol_GetByIndex(map_control, map_id - 1)->arena_block = 4;
+        Mapcontrol_GetByIndex(map_control, map_id - 1)->arena_ticks = RandRange(0x3c);
+        MapWarp value(from_x, from_y, map_id, 0, to_x, to_y);
+        Mapcontrol_GetByIndex(map_control, map_id - 1)
+            ->arena_spawn_list.insert(
+                Mapcontrol_GetByIndex(map_control, map_id - 1)->arena_spawn_list.end(),
+                value);
+    }
+}
+
 void Mapcontrol::Mapcontrol_SetTileBits(
     Mapcontrol *map_control, MapContainer *map, int x, int y, int code)
 {
@@ -561,6 +577,140 @@ int Mapcontrol::Mapcontrol_GetChestSlotCount(Mapcontrol *map_control,
     return result;
 }
 
+void Mapcontrol::Mapcontrol_AddChestSpawn(Mapcontrol *map_control,
+                                          MapContainer *map,
+                                          unsigned int x,
+                                          unsigned int y,
+                                          int key_id,
+                                          int slot,
+                                          int item_id,
+                                          int spawn_time,
+                                          int amount)
+{
+    bool found = false;
+    std::vector<MapChest>::iterator chest_iter = map->chest_list.begin();
+    while (chest_iter != map->chest_list.end())
+    {
+        if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
+        {
+            found = true;
+            chest_iter->key_id = key_id;
+            if (slot >= (int)chest_iter->slots.size())
+            {
+                MapItem extra_slot(item_id);
+                extra_slot.item_present = false;
+                extra_slot.respawn_enabled = true;
+                extra_slot.respawn_countdown = spawn_time;
+                extra_slot.respawn_delay = spawn_time;
+                extra_slot.amount = amount;
+                extra_slot.alt_item_id[0] = item_id;
+                extra_slot.alt_amount[0] = amount;
+                extra_slot.alt_item_id[1] = 0;
+                extra_slot.alt_item_id[2] = 0;
+                extra_slot.alt_item_id[3] = 0;
+                chest_iter->slots.insert(chest_iter->slots.end(), extra_slot);
+            }
+            else
+            {
+                if (Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id[1] > 0)
+                {
+                    if (Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id[2] > 0)
+                    {
+                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id[3] =
+                            item_id;
+                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_amount[3] =
+                            amount;
+                    }
+                    else
+                    {
+                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id[2] =
+                            item_id;
+                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_amount[2] =
+                            amount;
+                    }
+                }
+                else
+                {
+                    Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id[1] = item_id;
+                    Itemchest_GetSlot(&chest_iter->slots, slot)->alt_amount[1] = amount;
+                }
+            }
+            break;
+        }
+        chest_iter++;
+    }
+    if (!found)
+    {
+        MapChest new_chest(x, y, key_id);
+        MapItem new_item(item_id);
+        new_item.item_present = false;
+        new_item.respawn_enabled = true;
+        new_item.respawn_countdown = spawn_time;
+        new_item.respawn_delay = spawn_time;
+        new_item.amount = amount;
+        new_item.alt_item_id[0] = item_id;
+        new_item.alt_amount[0] = amount;
+        new_item.alt_item_id[1] = 0;
+        new_item.alt_item_id[2] = 0;
+        new_item.alt_item_id[3] = 0;
+        new_chest.slots.insert(new_chest.slots.end(), new_item);
+        map->chest_list.insert(map->chest_list.end(), new_chest);
+    }
+}
+
+void Mapcontrol::Mapcontrol_AddChestItem(Mapcontrol *map_control,
+                                         int map_id,
+                                         unsigned int x,
+                                         unsigned int y,
+                                         int item_id,
+                                         int amount)
+{
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    {
+        for (std::vector<MapChest>::iterator chest_iter =
+                 Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.begin();
+             chest_iter !=
+             Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.end();
+             chest_iter++)
+        {
+            if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
+            {
+                bool found = false;
+                for (std::vector<MapItem>::iterator item_iter = chest_iter->slots.begin();
+                     item_iter != chest_iter->slots.end() && !found;
+                     item_iter++)
+                {
+                    if (item_iter->item_id == item_id && !found)
+                    {
+                        if (item_iter->respawn_enabled != false)
+                        {
+                            if (item_iter->item_present != false)
+                            {
+                                found = true;
+                                item_iter->amount = item_iter->amount + amount;
+                            }
+                        }
+                        else
+                        {
+                            found = true;
+                            item_iter->amount = item_iter->amount + amount;
+                        }
+                    }
+                }
+                if (!found)
+                {
+                    MapItem new_item(item_id);
+                    new_item.amount = amount;
+                    new_item.item_present = true;
+                    new_item.respawn_enabled = false;
+                    chest_iter->slots.insert(chest_iter->slots.end(), new_item);
+                }
+                break;
+            }
+        }
+    }
+}
+
 MapItem *Mapcontrol::Itemchest_GetSlot(std::vector<MapItem> *slot_list, int slot)
 {
     return slot_list->begin() + slot;
@@ -594,6 +744,18 @@ int Mapcontrol::Pub_DecodeNumber_Map(Mapcontrol *map_control, String value)
         result = 0;
     }
     return result;
+}
+
+void Mapcontrol::Mapcontrol_LoadMaps(Mapcontrol *map_control)
+{
+    for (int map_id = 1; map_id <= 0xfa00 && map_id <= map_control->max_maps; map_id++)
+    {
+        if (!Mapcontrol_LoadMap(map_control, map_id))
+        {
+            MapContainer value(map_id, 0, 0);
+            map_control->maps.insert(map_control->maps.end(), value);
+        }
+    }
 }
 
 String Mapcontrol::Mapcontrol_AppendEncoded(Mapcontrol *map_control,
@@ -636,17 +798,231 @@ String Mapcontrol::Mapcontrol_AppendEncoded(Mapcontrol *map_control,
     return encoded_str;
 }
 
+char FUN_0047c3a4(int map_control, int map_id)
+{
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
+    {
+        if (Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)->quest_cooldown <
+            1)
+        {
+            Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)->quest_cooldown =
+                10;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+char FUN_0047c3f0(int map_control, int map_id)
+{
+    char result = 0;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
+        result = Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)->can_scroll;
+    return result;
+}
+
+MapCoord FUN_0047c428(int map_control, int map_id)
+{
+    MapCoord coords;
+    coords.x = 0;
+    coords.y = 0;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
+    {
+        coords.x = Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)->relog_x;
+        coords.y = Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)->relog_y;
+        if (coords.x >= (int)Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                            ->width ||
+            coords.y >=
+                (int)Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)->height)
+        {
+            coords.x = 0;
+            coords.y = 0;
+        }
+    }
+    return coords;
+}
+
+unsigned int FUN_0047c634(int map_control, int map_id, unsigned int npc_index)
+{
+    unsigned int result = 0xffffffff;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
+    {
+        for (std::vector<Npc *>::iterator npc_iter =
+                 Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                     ->npc_list.begin();
+             npc_iter !=
+             Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)->npc_list.end();
+             npc_iter++)
+        {
+            if ((*npc_iter)->index == npc_index)
+            {
+                result = (*npc_iter)->id;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+MapCoord FUN_0047c6c0(int map_control, int map_id, unsigned int npc_index)
+{
+    MapCoord coords;
+    coords.x = -1;
+    coords.y = -1;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
+    {
+        for (std::vector<Npc *>::iterator npc_iter =
+                 Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                     ->npc_list.begin();
+             npc_iter !=
+             Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)->npc_list.end();
+             npc_iter++)
+        {
+            if ((*npc_iter)->index == npc_index)
+            {
+                coords.x = (*npc_iter)->x;
+                coords.y = (*npc_iter)->y;
+                break;
+            }
+        }
+    }
+    return coords;
+}
+
+char FUN_0047c890(int map_control, int map_id, int x, int y)
+{
+    char result = 1;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
+    {
+        int tile_offset =
+            Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)->width * 2 * y +
+            x * 2;
+        if (x >= 0 && y >= 0 &&
+            x < (int)Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                    ->width &&
+            y < (int)Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)->height)
+        {
+            if (Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                    ->tile_bits[tile_offset])
+            {
+                if (!Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                         ->tile_bits[tile_offset + 1])
+                {
+                    result = 0;
+                    for (std::vector<MapObject>::iterator spec_iter =
+                             Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                                 ->tile_specs.begin();
+                         spec_iter !=
+                         Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                             ->tile_specs.end();
+                         spec_iter++)
+                    {
+                        if ((unsigned short)spec_iter->x == x &&
+                            (unsigned short)spec_iter->y == y)
+                        {
+                            if ((unsigned short)spec_iter->value != 0x10)
+                                break;
+                            result = 1;
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                        ->tile_bits[tile_offset + 1])
+                    result = 0;
+            }
+        }
+        else
+        {
+            result = 0;
+        }
+    }
+    return result;
+}
+
+unsigned int FUN_0047c27c(int map_control, int map_id, unsigned int x, unsigned int y)
+{
+    unsigned int result = 0xffffffff;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
+    {
+        int tile_offset =
+            Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)->width * 2 * y +
+            x * 2;
+        if (Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                ->tile_bits[tile_offset])
+        {
+            if (!Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                     ->tile_bits[tile_offset + 1])
+            {
+                for (std::vector<MapObject>::iterator spec_iter =
+                         Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                             ->tile_specs.begin();
+                     spec_iter !=
+                     Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                         ->tile_specs.end();
+                     spec_iter++)
+                {
+                    if ((unsigned short)spec_iter->x == x &&
+                        (unsigned short)spec_iter->y == y)
+                    {
+                        result = (unsigned short)spec_iter->value;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return result;
+}
+
+int FUN_00486e64(int map_control, int map_id, unsigned int x, unsigned int y)
+{
+    int result = 0;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
+    {
+        for (std::vector<MapChest>::iterator chest_iter =
+                 Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                     ->chest_list.begin();
+             chest_iter != Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
+                               ->chest_list.end();
+             chest_iter++)
+        {
+            if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
+            {
+                result = (unsigned short)chest_iter->key_id;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+int FUN_0047cd28(int map_control, int map_id, unsigned int x, unsigned int y)
+{
+    int result = 0;
+    if (Mapcontrol::Map_IsWalkableNPC((Mapcontrol *)map_control, map_id, x - 1, y, 1) ==
+        0)
+        result = result + 1;
+    if (Mapcontrol::Map_IsWalkableNPC((Mapcontrol *)map_control, map_id, x, y - 1, 1) ==
+        0)
+        result = result + 1;
+    if (Mapcontrol::Map_IsWalkableNPC((Mapcontrol *)map_control, map_id, x + 1, y, 1) ==
+        0)
+        result = result + 1;
+    if (Mapcontrol::Map_IsWalkableNPC((Mapcontrol *)map_control, map_id, x, y + 1, 1) ==
+        0)
+        result = result + 1;
+    return result;
+}
+
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
 // STUB(0x0047af68, 80 bytes) FUN_0047af68 - ref: undefined FUN_0047af68(int param_1, byte
 // param_2)
 void FUN_0047af68_Stub(int a0, unsigned char a1)
-{
-}
-// STUB(0x0047afe8, 257 bytes) Mapcontrol_AddArenaSpawn - ref: void
-// Mapcontrol_AddArenaSpawn(Mapcontrol * this, int map_id, short from_x, short from_y,
-// short to_x, short to_y)
-void Mapcontrol_AddArenaSpawn_Stub(void *a0, int a1, int a2, int a3, int a4, int a5)
 {
 }
 // STUB(0x0047badc, 511 bytes) FUN_0047badc - ref: int * FUN_0047badc(int * param_1, int
@@ -661,64 +1037,9 @@ void *FUN_0047c114_Stub(void *a0, int a1, int a2, unsigned int a3, unsigned int 
 {
     return 0;
 }
-// STUB(0x0047c27c, 294 bytes) FUN_0047c27c - ref: uint FUN_0047c27c(int param_1, int
-// param_2, uint param_3, uint param_4)
-unsigned int FUN_0047c27c_Stub(int a0, int a1, unsigned int a2, unsigned int a3)
-{
-    return 0;
-}
-// STUB(0x0047c3a4, 76 bytes) FUN_0047c3a4 - ref: undefined4 FUN_0047c3a4(int param_1, int
-// param_2)
-int FUN_0047c3a4_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x0047c3f0, 56 bytes) FUN_0047c3f0 - ref: undefined1 FUN_0047c3f0(int param_1, int
-// param_2)
-char FUN_0047c3f0_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x0047c428, 173 bytes) FUN_0047c428 - ref: int * FUN_0047c428(int * param_1, int
-// param_2, int param_3)
-void *FUN_0047c428_Stub(void *a0, int a1, int a2)
-{
-    return 0;
-}
-// STUB(0x0047c634, 137 bytes) FUN_0047c634 - ref: uint FUN_0047c634(int param_1, int
-// param_2, uint param_3)
-unsigned int FUN_0047c634_Stub(int a0, int a1, unsigned int a2)
-{
-    return 0;
-}
-// STUB(0x0047c6c0, 180 bytes) FUN_0047c6c0 - ref: uint * FUN_0047c6c0(uint * param_1, int
-// param_2, int param_3, uint param_4)
-void *FUN_0047c6c0_Stub(void *a0, int a1, int a2, unsigned int a3)
-{
-    return 0;
-}
-// STUB(0x0047c890, 447 bytes) FUN_0047c890 - ref: undefined1 FUN_0047c890(int param_1,
-// int param_2, uint param_3, uint param_4)
-char FUN_0047c890_Stub(int a0, int a1, unsigned int a2, unsigned int a3)
-{
-    return 0;
-}
-// STUB(0x0047cd28, 139 bytes) FUN_0047cd28 - ref: char FUN_0047cd28(int param_1, int
-// param_2, uint param_3, uint param_4)
-char FUN_0047cd28_Stub(int a0, int a1, unsigned int a2, unsigned int a3)
-{
-    return 0;
-}
 // STUB(0x0047e30c, 248 bytes) FUN_0047e30c - ref: undefined FUN_0047e30c(undefined4
 // param_1, undefined4 * param_2)
 void FUN_0047e30c_Stub(int a0, void *a1)
-{
-}
-// STUB(0x0047e494, 869 bytes) Mapcontrol_AddChestSpawn - ref: void
-// Mapcontrol_AddChestSpawn(Mapcontrol * this, Map * map, uint x, uint y, ushort key_id,
-// int slot, int item_id, int spawn_time, int amount)
-void Mapcontrol_AddChestSpawn_Stub(
-    void *a0, void *a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
 {
 }
 // STUB(0x0047e8f0, 19 bytes) FUN_0047e8f0 - ref: undefined FUN_0047e8f0(undefined4
@@ -737,11 +1058,6 @@ void *FUN_0047eb38_Stub(void *a0, void *a1, void *a2)
 int FUN_0047eb70_Stub(void *a0, void *a1, int a2)
 {
     return 0;
-}
-// STUB(0x0047ebf8, 219 bytes) Mapcontrol_LoadMaps - ref: void
-// Mapcontrol_LoadMaps(Mapcontrol * this)
-void Mapcontrol_LoadMaps_Stub(void *a0)
-{
 }
 // STUB(0x0047ed7c, 19 bytes) FUN_0047ed7c - ref: undefined FUN_0047ed7c(undefined4
 // param_1, undefined4 param_2, undefined2 * param_3)
@@ -1349,18 +1665,6 @@ void FUN_00484e04_Stub(int a0)
 bool Mapcontrol_LoadMap_Stub(void *a0, int a1)
 {
     return 0;
-}
-// STUB(0x00486e64, 143 bytes) FUN_00486e64 - ref: ushort FUN_00486e64(int param_1, int
-// param_2, uint param_3, uint param_4)
-unsigned short FUN_00486e64_Stub(int a0, int a1, unsigned int a2, unsigned int a3)
-{
-    return 0;
-}
-// STUB(0x00486ef4, 390 bytes) Mapcontrol_AddChestItem - ref: undefined
-// Mapcontrol_AddChestItem(Mapcontrol * map_control, int map_id, uint x, uint y, int
-// item_id, int amount)
-void Mapcontrol_AddChestItem_Stub(void *a0, int a1, int a2, int a3, int a4, int a5)
-{
 }
 // STUB(0x0048707c, 667 bytes) Mapcontrol_AddGroundItem - ref: undefined4
 // Mapcontrol_AddGroundItem(Mapcontrol * map_control, int map_id, uint item_id, int x, int

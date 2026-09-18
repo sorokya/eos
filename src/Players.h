@@ -56,6 +56,27 @@ class Players
     static void Players_MarkDirty(Players *self);
     static void Player_AddItem(Players *self, Player *player, int item_id, int amount);
     static bool Player_RemoveItem(Players *self, Player *player, int item_id, int amount);
+    static int Player_GetSpellLevel(Players *self, Player *player, int spell_id);
+    static bool Player_HasBankItem(Players *self, Player *player, int item_id);
+    static void
+    Player_RemoveItemNoQuestRules(Players *self, Player *player, int item_id, int amount);
+    static void
+    Player_AddBankItem(Players *self, Player *player, int item_id, int amount);
+    static bool Player_RemoveBankItem(Players *self, Player *player, int item_id);
+    static bool
+    Player_AddTradeItem(Players *self, Player *player, int item_id, int amount);
+    static bool Player_RemoveTradeItem(Players *self, Player *player, int item_id);
+    static void Player_AddSpell(Players *self, Player *player, int spell_id);
+    static bool Players_HasField0C(Players *self, int field_c);
+    static int Players_CountGuildInvites(Players *self, Player *player);
+    static int Players_CountGuildOnMap(Players *self, Player *player);
+    static void Players_UpdatePeakOnline(Players *self);
+    static void Players_GuildSetMemberInfo(Players *self,
+                                           Player *player,
+                                           String guild_name,
+                                           String guild_tag);
+    static bool
+    Players_IsAccountNameTaken(Players *self, String account_name, int player_id);
 };
 
 #endif

@@ -13,8 +13,8 @@
 // std::vector<ShopItemVal> and std::vector<ShopCraftVal> per the RTTI. Offsets
 // 8/0xa/0xc hold the ShopRecord header fields min_level/max_level/
 // class_requirement, each stored as a short by Pub_LoadShops (0x4b1b11,
-// 0x4b1b66, 0x4b1bbb); 8..0xf keeps the same 8-byte extent the constructor
-// matched with.
+// 0x4b1b66, 0x4b1bbb); the two bytes at 0xe are compiler padding, not copied
+// by the reference's copy helpers.
 struct ShopValue
 {
     int id;
@@ -22,7 +22,6 @@ struct ShopValue
     short min_level;
     short max_level;
     short class_requirement;
-    short pad_0e;
     std::vector<ShopItemVal> trades;
     std::vector<ShopCraftVal> crafts;
 

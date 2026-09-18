@@ -80,187 +80,196 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
     String text;
     String unused_str;
 
+    int handle;
+    int file_size;
+    char *file_buf;
+
     Quest *quest = new Quest(quest_id);
     self->quest_list.insert(self->quest_list.end(), quest);
 
-    text = IntToStr(quest_id);
-
-    for (int i = text.Length(); i <= 4; i++)
-        text.Insert("0", 0);
-
-    text.Insert("./quests/", 0);
-    text.Insert(".txt", text.Length() + 1);
-
-    int handle = FileOpen(text.c_str(), 0);
-    if (handle < 0)
-        return false;
-
-    int file_size = FileSeek(handle, 0, 2);
-    FileSeek(handle, 0, 0);
-    char *file_buf = new char[file_size + 1];
-    FileRead(handle, file_buf, file_size);
-    FileClose(handle);
-
-    text = file_buf;
-    text.SetLength(file_size);
-    delete[] file_buf;
-
-    self->field_38 = 0;
-    self->field_39 = 0;
-    self->field_3a = 0;
-    self->field_40 = 0;
-    self->field_41 = 0;
-    self->field_42 = 0;
-    self->field_51 = 0;
-    self->field_52 = 0;
-    self->field_3c = 0;
-    self->field_44 = 0;
-    self->field_4c = 0;
-
-    int pos = 1;
-    bool in_quote = false;
-    bool in_comment = false;
-
-    while (text.Length() > 0)
+    try
     {
-        if (in_quote)
+        text = IntToStr(quest_id);
+
+        for (int i = text.Length(); i <= 4; i++)
+            text.Insert("0", 0);
+
+        text.Insert("./quests/", 0);
+        text.Insert(".txt", text.Length() + 1);
+
+        handle = FileOpen(text.c_str(), 0);
+        if (handle < 0)
+            return false;
+
+        file_size = FileSeek(handle, 0, 2);
+        FileSeek(handle, 0, 0);
+        file_buf = new char[file_size + 1];
+        FileRead(handle, file_buf, file_size);
+        FileClose(handle);
+
+        text = file_buf;
+        text.SetLength(file_size);
+        delete[] file_buf;
+
+        self->field_38 = 0;
+        self->field_39 = 0;
+        self->field_3a = 0;
+        self->field_40 = 0;
+        self->field_41 = 0;
+        self->field_42 = 0;
+        self->field_51 = 0;
+        self->field_52 = 0;
+        self->field_3c = 0;
+        self->field_44 = 0;
+        self->field_4c = 0;
+
+        int pos = 1;
+        bool in_quote = false;
+        bool in_comment = false;
+
+        while (text.Length() > 0)
         {
-            if (text[pos] == '"')
+            if (in_quote)
             {
-                in_quote = false;
-                if (pos > 1)
+                if (text[pos] == '"')
                 {
-                    ParseToken(self, quest, text.SubString(1, pos - 1));
+                    in_quote = false;
+                    if (pos > 1)
+                    {
+                        ParseToken(self, quest, text.SubString(1, pos - 1));
+                    }
+                    text.Delete(1, pos);
+                    pos = 1;
                 }
-                text.Delete(1, pos);
-                pos = 1;
+                else if (text[pos] == '\n')
+                {
+                    in_quote = false;
+                    if (pos > 2)
+                    {
+                        ParseToken(self, quest, text.SubString(1, pos - 2));
+                    }
+                    text.Delete(1, pos);
+                    pos = 1;
+                }
+                else
+                {
+                    if (text.Length() == pos)
+                        break;
+                    pos++;
+                }
             }
-            else if (text[pos] == '\n')
+            else if (in_comment)
             {
-                in_quote = false;
-                if (pos > 2)
+                if (text[pos] == '\n')
                 {
-                    ParseToken(self, quest, text.SubString(1, pos - 2));
+                    in_comment = false;
+                    text.Delete(1, pos);
+                    pos = 1;
                 }
-                text.Delete(1, pos);
-                pos = 1;
+                else
+                {
+                    if (text.Length() == pos)
+                        break;
+                    pos++;
+                }
             }
             else
             {
-                if (text.Length() == pos)
-                    break;
-                pos++;
-            }
-        }
-        else if (in_comment)
-        {
-            if (text[pos] == '\n')
-            {
-                in_comment = false;
-                text.Delete(1, pos);
-                pos = 1;
-            }
-            else
-            {
-                if (text.Length() == pos)
-                    break;
-                pos++;
-            }
-        }
-        else
-        {
-            char c = text[pos];
-            if (c == '"')
-            {
-                in_quote = true;
-                text.Delete(1, pos);
-                pos = 1;
-            }
-            else if (c == '/' && text.Length() != pos && text[pos + 1] == '/')
-            {
-                in_comment = true;
-                text.Delete(1, pos + 1);
-                pos = 1;
-            }
-            else if (c == ' ')
-            {
-                if (pos > 1)
+                if (text[pos] == '"')
                 {
-                    ParseToken(self, quest, text.SubString(1, pos - 1));
+                    in_quote = true;
+                    text.Delete(1, pos);
+                    pos = 1;
                 }
-                text.Delete(1, pos);
-                pos = 1;
-            }
-            else if (c == ',')
-            {
-                if (pos > 1)
+                else if (text[pos] == '/' && text.Length() != pos && text[pos + 1] == '/')
                 {
-                    ParseToken(self, quest, text.SubString(1, pos - 1));
+                    in_comment = true;
+                    text.Delete(1, pos + 1);
+                    pos = 1;
                 }
-                text.Delete(1, pos);
-                pos = 1;
-            }
-            else if (c == '(' || c == ')' || c == '{' || c == '}')
-            {
-                if (pos > 1)
+                else if (text[pos] == ' ')
                 {
-                    ParseToken(self, quest, text.SubString(1, pos - 1));
+                    if (pos > 1)
+                    {
+                        ParseToken(self, quest, text.SubString(1, pos - 1));
+                    }
+                    text.Delete(1, pos);
+                    pos = 1;
                 }
-                ParseToken(self, quest, text[pos]);
-                text.Delete(1, pos);
-                pos = 1;
-            }
-            else if (c == ';')
-            {
-                if (pos > 1)
+                else if (text[pos] == ',')
                 {
-                    ParseToken(self, quest, text.SubString(1, pos - 1));
+                    if (pos > 1)
+                    {
+                        ParseToken(self, quest, text.SubString(1, pos - 1));
+                    }
+                    text.Delete(1, pos);
+                    pos = 1;
                 }
-                text.Delete(1, pos);
-                pos = 1;
-            }
-            else if (c == '\t')
-            {
-                if (pos > 1)
+                else if (text[pos] == '(' || text[pos] == ')' || text[pos] == '{' ||
+                         text[pos] == '}')
                 {
-                    ParseToken(self, quest, text.SubString(1, pos - 1));
+                    if (pos > 1)
+                    {
+                        ParseToken(self, quest, text.SubString(1, pos - 1));
+                    }
+                    ParseToken(self, quest, text[pos]);
+                    text.Delete(1, pos);
+                    pos = 1;
                 }
-                text.Delete(1, pos);
-                pos = 1;
-            }
-            else if (c == '\n')
-            {
-                if (pos > 2)
+                else if (text[pos] == ';')
                 {
-                    ParseToken(self, quest, text.SubString(1, pos - 2));
+                    if (pos > 1)
+                    {
+                        ParseToken(self, quest, text.SubString(1, pos - 1));
+                    }
+                    text.Delete(1, pos);
+                    pos = 1;
                 }
-                text.Delete(1, pos);
-                pos = 1;
-            }
-            else
-            {
-                if (text.Length() == pos)
+                else if (text[pos] == '\t')
                 {
-                    if (pos > 0)
-                        ParseToken(self, quest, text);
-                    break;
+                    if (pos > 1)
+                    {
+                        ParseToken(self, quest, text.SubString(1, pos - 1));
+                    }
+                    text.Delete(1, pos);
+                    pos = 1;
                 }
-                pos++;
+                else if (text[pos] == '\n')
+                {
+                    if (pos > 2)
+                    {
+                        ParseToken(self, quest, text.SubString(1, pos - 2));
+                    }
+                    text.Delete(1, pos);
+                    pos = 1;
+                }
+                else
+                {
+                    if (text.Length() == pos)
+                    {
+                        if (pos > 0)
+                            ParseToken(self, quest, text);
+                        break;
+                    }
+                    pos++;
+                }
             }
         }
     }
-
-    for (std::vector<QuestState *>::iterator step = quest->states.begin();
-         step != quest->states.end();
-         ++step)
+    catch (...)
     {
-        for (std::vector<QuestRule *>::iterator ref = (*step)->rules.begin();
-             ref != (*step)->rules.end();
-             ++ref)
+        FileClose(handle);
+        return false;
+    }
+
+    std::vector<QuestState *>::iterator step;
+    std::vector<QuestState *>::iterator lookup;
+    std::vector<QuestRule *>::iterator ref;
+    for (step = quest->states.begin(); step != quest->states.end(); ++step)
+    {
+        for (ref = (*step)->rules.begin(); ref != (*step)->rules.end(); ++ref)
         {
-            for (std::vector<QuestState *>::iterator lookup = quest->states.begin();
-                 lookup != quest->states.end();
-                 ++lookup)
+            for (lookup = quest->states.begin(); lookup != quest->states.end(); ++lookup)
             {
                 if ((*lookup)->name == (*ref)->name)
                 {
@@ -302,9 +311,9 @@ void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
             }
             if (token == "(")
             {
-                QuestAction *action = new QuestAction(self->field_44);
-                self->field_30 = action;
-                self->field_2c->actions.push_back(action);
+                self->field_30 = new QuestAction(self->field_44);
+                self->field_2c->actions.insert(self->field_2c->actions.end(),
+                                               self->field_30);
                 self->field_48 = 1;
                 return;
             }
@@ -350,7 +359,7 @@ void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
             }
             if (token == "(")
             {
-                if (self->field_2c->fast_dispatch_rule_index == 0 &&
+                if (self->field_2c->fast_dispatch_condition_type == 0 &&
                     (self->field_4c == 3 || self->field_4c == 8 || self->field_4c == 9 ||
                      self->field_4c == 10 || self->field_4c == 11))
                 {
@@ -358,9 +367,8 @@ void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
                     self->field_2c->fast_dispatch_rule_index =
                         self->field_2c->rules.size();
                 }
-                QuestRule *rule = new QuestRule(self->field_4c);
-                self->field_34 = rule;
-                self->field_2c->rules.push_back(rule);
+                self->field_34 = new QuestRule(self->field_4c);
+                self->field_2c->rules.insert(self->field_2c->rules.end(), self->field_34);
                 self->field_50 = 1;
                 self->field_51 = 0;
                 self->field_52 = 0;
@@ -368,7 +376,7 @@ void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
             }
         }
 
-        if (token.LowerCase() == "desc")
+        if (AnsiLowerCase(token) == "desc")
         {
             self->field_42 = 1;
             return;
@@ -395,17 +403,17 @@ void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
         }
     }
 
-    if (token.LowerCase() == "questname")
+    if (AnsiLowerCase(token) == "questname")
     {
         self->field_40 = 1;
         return;
     }
-    if (token.LowerCase() == "version")
+    if (AnsiLowerCase(token) == "version")
     {
         self->field_41 = 1;
         return;
     }
-    if (token.LowerCase() == "state")
+    if (AnsiLowerCase(token) == "state")
     {
         self->field_38 = 1;
         self->field_39 = 1;
@@ -419,7 +427,13 @@ void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
     }
     if (self->field_41 != 0)
     {
-        quest->version = StrToInt(token);
+        try
+        {
+            quest->version = StrToInt(token);
+        }
+        catch (...)
+        {
+        }
         self->field_41 = 0;
     }
     if (self->field_39 != 0)
@@ -441,11 +455,15 @@ void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
         self->field_3a = 0;
         return;
     }
-    if (token == "}" && self->field_3a != 0)
+    if (token == "}")
     {
-        quest->states.push_back(self->field_2c);
-        self->field_42 = 0;
-        self->field_3a = 0;
+        if (self->field_3a != 0)
+        {
+            quest->states.insert(quest->states.end(), self->field_2c);
+            self->field_42 = 0;
+            self->field_3a = 0;
+        }
+        return;
     }
 }
 
@@ -649,37 +667,3 @@ int Questengine::GetRuleValue2(Questengine *self,
     }
     return -1;
 }
-
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
-// STUB(0x005387ec, 2712 bytes) Questengine_LoadQuest - ref: bool
-// Questengine_LoadQuest(Questengine * this, int quest_id)
-bool Questengine_LoadQuest_Stub(void *a0, int a1)
-{
-    return 0;
-}
-// STUB(0x005397c8, 2616 bytes) FUN_005397c8 - ref: undefined FUN_005397c8(int param_1,
-// int param_2, byte * param_3)
-void FUN_005397c8_Stub(int a0, int a1, void *a2)
-{
-}
-// STUB(0x0053a25c, 152 bytes) FUN_0053a25c - ref: int FUN_0053a25c(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-int FUN_0053a25c_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0053a31c, 152 bytes) FUN_0053a31c - ref: int FUN_0053a31c(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-int FUN_0053a31c_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0053a3b4, 152 bytes) FUN_0053a3b4 - ref: int FUN_0053a3b4(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-int FUN_0053a3b4_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-#pragma warn.8057
-// END GENERATED STUBS
