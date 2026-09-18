@@ -1466,6 +1466,7 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
     int tile_y;
     int spec;
     int code;
+    int lock_key;
     char *buf;
     try
     {
@@ -1675,6 +1676,46 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
                     map->has_spikes = 1;
                 }
                 map_buf.Delete(1, 2);
+            }
+        }
+        count = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+        map_buf.Delete(1, 1);
+        for (int i = 0; i < count; i++)
+        {
+            tile_x =
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+            tile_y =
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 2));
+            map_buf.Delete(1, 2);
+            for (int k = 0; k < tile_y; k++)
+            {
+                spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                        map_buf.SubString(1, 1));
+                lock_key = Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                            map_buf.SubString(2, 7));
+                Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 3);
+                Mapcontrol::Mapcontrol_AddWarp(map_control,
+                                               map,
+                                               spec,
+                                               tile_x,
+                                               Mapcontrol::Pub_DecodeNumber_Map(
+                                                   map_control, map_buf.SubString(2, 2)),
+                                               Mapcontrol::Pub_DecodeNumber_Map(
+                                                   map_control, map_buf.SubString(1, 6)),
+                                               Mapcontrol::Pub_DecodeNumber_Map(
+                                                   map_control, map_buf.SubString(1, 4)),
+                                               Mapcontrol::Pub_DecodeNumber_Map(
+                                                   map_control, map_buf.SubString(1, 5)));
+                if (lock_key > 0)
+                {
+                    Mapcontrol::Mapcontrol_AddTileSpec(
+                        map_control, map, spec, tile_x, 0xa);
+                    Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 2);
+                    if (lock_key > 1)
+                        Mapcontrol::Mapcontrol_AddLockKey(
+                            map_control, map, spec, tile_x, lock_key);
+                }
+                map_buf.Delete(1, 8);
             }
         }
         return 1;

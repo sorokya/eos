@@ -589,6 +589,7 @@ COMDAT) before the final link; none may be guessed away.
 | `MysqlCallback_Dispatch` | Mysqlthread | Packets `0x450618` (36735 B), not yet reconstructed. |
 | `Mainform_GetServer` | Mysqlthread | Mainform; no definition in `src/` yet. |
 | `extern TGUI **MAINFORM` | Packets, Players | Global `0x58b60c` (initialised to `&GUI` at `0x58bb70`); no owner declaration anywhere. |
+| `EO_ByteRange_FromString` (`0x5432d8`) | Packets | No owner: the address is **not a function row** in `unit_functions.tsv` — it sits in a module the inventory classifies as library inside GUI's span, so no header declares it. Body takes three arguments `(range, str, obj)` and calls `0x543480(range, 0, obj)`. Needed by `Client_SendEncoded`. |
 
 ## Known-unconverged functions
 
@@ -640,20 +641,68 @@ Tracked so they are not mistaken for done:
   argument with a 4-byte `mov dword ptr [slot],eax`, where a `short` truncates.
   (`src/Npc.h`/`src/Npc.cpp` were changed together; the ctor body stays
   byte-exact at 115/115 and the mangled name becomes `@@Npc@$bctr$qissssis`.)
-- `NpcControl_Tick` (`0x4ae45c`) — the broadcaster block IS wrapped in
-  `try { ... } catch (...) { }`; with it the whole EH scope-marker stream matches
-  the reference exactly (39 markers, identical values). The frame was one 4-byte
-  slot too large because we declared a second `Player **player` iterator: the
-  reference reuses one iterator across the broadcaster and respawn loops.
-  Progress 912 -> 788 mismatched, 51 -> 31 hunks. Also pinned: the
-  target-selection branch is `if (target != NULL) { <party> } else {
-  <player_targets> }`; the scan loop assigns `distance = d; target = *it;`; and
-  the party loop tests `member != NULL && member->map_id == target->map_id`
-  before calling `Npc_GetDistance`. Residual: `ref[766]` (`jng` vs `jnle`, so the
-  `Npc_AttackPlayer` block layout), the aggro/chase register allocation, and the
-  packet-build clusters. The extra `allocator<Player*>::deallocate` /
-  `_ReThrowException` seen earlier belongs to the `NpcController` constructor, not
-  this function.
+- `NpcControl_Tick` (`0x4ae45c`) — CONVERGED (1583/1583); listed here only for
+  the facts it pinned. The broadcaster block is wrapped in
+  `try { ... } catch (...) { }` (scope-marker stream 39/39 identical); the frame
+  must be `-236`, which requires ONE shared `Player **player` iterator across the
+  broadcaster and respawn loops; the target-selection branch is
+  `if (target != NULL) { <party> } else { <player_targets> }`; the scan loop
+  assigns `distance = d; target = *it;`; the party loop tests `member != NULL &&
+  member->map_id == target->map_id` before calling `Npc_GetDistance`;
+  `Player::map_id` (+0xdc) is an `int` (no `(short)` cast); the broadcast guard is
+  `4 <= x`; the non-respawn path is an early `return`; and the chase condition is
+  written `if (11 < distance) continue;` (operand order and polarity are
+  observable). Its stored range end `0x4afc0c` truncates the epilogue; the real
+  end is `0x4afc17`.
+- `Mapcontrol` `FUN_00482834` — the BODY IS COMPLETE (sections 1-5 written, 1500
+  of 1506 instructions; `Mapcontrol_LoadMap` is still a stub). The residual is a
+  set of missing one-instruction **re-arms of the enclosing cleanup scope
+  `0x2c`** at `0x483cb5`, `0x483ed1`, `0x484140` and ~3 more. Proven by inserting
+  a bare arming instruction at each suspected point: after the `code` decode the
+  divergence moves 1108 -> 1227, and adding the inner-loop back-edge re-arm moves
+  it 1227 -> 1346, so each gap is exactly one marker and the stream is otherwise
+  in phase. Our descriptor already emits no-op terminator entries of the same
+  shape as the reference's, so this is a cleanup-table topological difference;
+  revisit once the whole frame exists. Section-5 layout pinned:
+  `lock_key = dec(SubString(2,7))` (slot `-0x1f0`) and
+  `Mapcontrol_AddWarp(map_control, map, spec, tile_x, dec(2,2), dec(1,6),
+  dec(1,4), dec(1,5))`.
+- Packets `EO_Encode_Interleave` (`0x470ef0`) / `EO_Decode_Deinterleave`
+  (`0x472414`) — **settled ABI: these are application functions using
+  `std::stack<char>` / `std::deque<char>`**, not library members. Their RTTI name
+  strings are embedded in the code region: `0x471358` is
+  `stack<char,deque<char,allocator<char> > > *` and `0x4713f4` is
+  `deque<char,allocator<char> > *`. Signature, from the body:
+  `void EO_Encode_Interleave(String *out, Server *server, int multiple,
+  char *begin, char *end)` — `[ebp+8]` is assigned through `$basg$` /
+  `String(char *, int)`, `[ebp+0xc]` is indexed into `Server::packet_buffer`
+  (`+0x44`), `[ebp+0x10]` is the `idiv` divisor, and `[ebp+0x14]`/`[ebp+0x18]` are
+  compared and byte-dereferenced. Algorithm is the EOLib "dickwinding" interleave
+  (`ref/eolib-rs/src/encrypt/encrypt_packet.rs`): push every byte whose signed
+  value is divisible by `multiple` onto the stack, otherwise drain the stack into
+  a deque, drain once more at the end, then copy the deque into
+  `server->packet_buffer` and build the returned `String`. Frame `-284`, with two
+  `std::allocator<char>` temporaries at `[ebp-268]`/`[ebp-276]`, one per deque. A
+  first implementation compiled (proving the container ABI) but was 202 ref / 161
+  our with frame `-280`, one 4-byte local short, and was reverted rather than left
+  unverified.
+- `MysqlCallback_Dispatch` (`0x450618`, 36,735 B) — reconnaissance map. 15
+  top-level cases for query kinds `0x40,0x42,0x44,0x45,0x47,0x48,0x49,0x4b,0x4d,
+  0x4e,0x4f,0x50,0x51,0x52,0x53`, reached by a linear `if` chain (no jump table);
+  58 distinct callees over 1,610 call sites; frame `0x7bc`. The prologue resolves
+  `Players_GetById(server->players, query_result[1])`, NULL-checks it and matches
+  `+0x10` against `query_result[2]`; each case re-reads the request packet
+  (`PacketReader_Init` + `EO_GetBreakByte`), runs `Mysql_SubmitQuery_FromCallback`
+  / `Mysql_ExecDirect_FromCallback` plus `Db_GetString`/`Db_GetInt`/
+  `Db_SanitizeString`, packs a reply with `EO_EncodeNumber`, sends it through
+  `Client_SendEncoded`, then jumps to the shared epilogue. **Biggest hazard: its
+  DB string locals are Rogue-Wave `std::string`, not `AnsiString`** — the
+  `0x559308` destructor funnels into `0x528ab8` (ref-counted) and `c_str()`
+  (`0x40243c`) reads `rep-4`; `Mysqlcontrols::Db_GetString` returns that type.
+  Transcribing them as `AnsiString` will not converge the frame or the cleanup
+  table. Also note the `0x58b60c` singleton with a virtual call at vtable `+0x14c`
+  (unknown class), and that the stored range end `0x459597` truncates case `0x53`
+  and the epilogue (true end `0x45961e`).
 
 ## Risks and mitigations
 
