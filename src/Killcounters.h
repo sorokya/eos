@@ -8,7 +8,7 @@
 // Recovered from the reference (KillCounters unit, 0x53e4b4..0x53f5e4).
 // Object layout pinned by the constructor (0x53e4e8) and IncrementAndGet
 // (0x53e784), and by the 0x368-byte allocation at the call site (0x416864):
-//   +0x00 TStringList *                             field_0 = new TStringList
+//   +0x00 TStringList *                             string_list = new TStringList
 //   +0x04 String                                    name
 //   +0x08 std::vector<KillCounter> buckets[27]      inline fixed array
 // The ctor passes &buckets as a *pre-allocated* destination to the 7-argument
@@ -17,7 +17,7 @@
 // IncrementAndGet/Get/Add push into bucket (name[1] - 'a') clamped to 26.
 struct KillCounters
 {
-    TStringList *field_0;
+    TStringList *string_list;
     String name;
     std::vector<KillCounter> buckets[27];
 

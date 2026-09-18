@@ -99,6 +99,7 @@ void Client_SendEncoded(Server *server,
                         String data);
 bool Face_Execute(Server *server, Player *player, int action, String *data);
 bool Chair_Execute(Server *server, Player *player, int action, String *data);
+bool Player_CheckIdleWarp(Server *server, Player *player, int x, int y);
 void Player_Respawn(Server *server, Player *player);
 void Player_Warp(Server *server,
                  Player *player,

@@ -7,7 +7,7 @@
 
 JukeBoxController::JukeBoxController()
 {
-    field_0 = (char *)operator new(8);
+    encode_scratch = (char *)operator new(8);
     recent_plays.clear();
 }
 
@@ -28,7 +28,7 @@ JukeBoxController::EncodeNumber(JukeBoxController *self, unsigned int value, int
                 quotient = d;
                 rem = value % 0xfd;
                 c = rem + 1;
-                self->field_0[i] = c;
+                self->encode_scratch[i] = c;
                 value = quotient;
                 if (quotient < 1)
                     flag = false;
@@ -38,7 +38,7 @@ JukeBoxController::EncodeNumber(JukeBoxController *self, unsigned int value, int
             else
             {
                 char pad = 0xfe;
-                self->field_0[i] = pad;
+                self->encode_scratch[i] = pad;
             }
         }
     }
@@ -46,62 +46,62 @@ JukeBoxController::EncodeNumber(JukeBoxController *self, unsigned int value, int
     {
         width = 0;
     }
-    String result(self->field_0, width);
+    String result(self->encode_scratch, width);
     return result;
 }
 
-String JukeBoxController::BuildRecentTracksString(JukeBoxController *self, int npc_id)
+String JukeBoxController::BuildRecentTracksString(JukeBoxController *self, int map_id)
 {
     String result = "";
     for (std::vector<JukeBox>::iterator it = self->recent_plays.begin();
          it != self->recent_plays.end();
          it++)
     {
-        if (it->id != npc_id)
+        if (it->map_id != map_id)
             continue;
-        result.Insert(EncodeNumber(self, npc_id, 2), result.Length() + 1);
-        if (it->playing == 0)
+        result.Insert(EncodeNumber(self, map_id, 2), result.Length() + 1);
+        if (it->active == 0)
             continue;
         TDateTime now = Now();
-        TTimeStamp a = DateTimeToTimeStamp(it->timer);
+        TTimeStamp a = DateTimeToTimeStamp(it->last_play);
         TTimeStamp b = DateTimeToTimeStamp(now);
         int days = b.Date - a.Date;
         int ms = b.Time - a.Time;
         int secs = ms / 1000 + days * 86400;
         if (secs < 90)
-            result.Insert(it->name, result.Length() + 1);
+            result.Insert(it->track_name, result.Length() + 1);
         else
-            it->playing = 0;
+            it->active = 0;
     }
     return result;
 }
 
-bool JukeBoxController::TryPlayTrack(JukeBoxController *self, int npc_id, String track)
+bool JukeBoxController::TryPlayTrack(JukeBoxController *self, int map_id, String track)
 {
     bool played = false;
     for (std::vector<JukeBox>::iterator it = self->recent_plays.begin();
          it != self->recent_plays.end();
          it++)
     {
-        if (it->id != npc_id)
+        if (it->map_id != map_id)
             continue;
-        if (it->playing)
+        if (it->active)
         {
             TDateTime now = Now();
-            TTimeStamp a = DateTimeToTimeStamp(it->timer);
+            TTimeStamp a = DateTimeToTimeStamp(it->last_play);
             TTimeStamp b = DateTimeToTimeStamp(now);
             int days = b.Date - a.Date;
             int ms = b.Time - a.Time;
             int secs = ms / 1000 + days * 86400;
             if (secs > 90)
-                it->playing = 0;
+                it->active = 0;
         }
-        if (it->playing == 0)
+        if (it->active == 0)
         {
             played = true;
-            it->playing = 1;
-            it->timer = Now();
-            it->name = track;
+            it->active = 1;
+            it->last_play = Now();
+            it->track_name = track;
             break;
         }
     }

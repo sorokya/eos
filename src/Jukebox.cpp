@@ -5,10 +5,10 @@
 
 #pragma package(smart_init)
 
-JukeBox::JukeBox(short id)
+JukeBox::JukeBox(short map_id)
 {
-    this->id = id;
-    playing = 0;
+    this->map_id = map_id;
+    active = 0;
 }
 
 JukeBox::~JukeBox()

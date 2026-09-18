@@ -9,7 +9,7 @@
 
 KillCounters::KillCounters()
 {
-    field_0 = new TStringList;
+    string_list = new TStringList;
     Init(this);
 }
 
@@ -19,17 +19,17 @@ KillCounters::~KillCounters()
 
 void KillCounters::Init(KillCounters *self)
 {
-    self->field_0->Clear();
+    self->string_list->Clear();
     try
     {
-        self->field_0->LoadFromFile("./cache/kills.chk");
+        self->string_list->LoadFromFile("./cache/kills.chk");
     }
     catch (...)
     {
     }
-    for (int i = 0; i < self->field_0->Count; i++)
+    for (int i = 0; i < self->string_list->Count; i++)
     {
-        self->name += self->field_0->Strings[i];
+        self->name += self->string_list->Strings[i];
         String key = Extract(self);
         Add(self, key, StrToInt(Extract(self)));
     }
@@ -112,7 +112,7 @@ void KillCounters::Save(KillCounters *self)
     {
         remove(path.c_str());
     }
-    self->field_0->Clear();
+    self->string_list->Clear();
     std::vector<KillCounter>::iterator it;
     for (int i = 0; i < 26; i++)
     {
@@ -120,8 +120,8 @@ void KillCounters::Save(KillCounters *self)
         {
             String line = (*it).name + ";";
             line = line + IntToStr((*it).count) + ";";
-            self->field_0->Add(line);
+            self->string_list->Add(line);
         }
     }
-    self->field_0->SaveToFile("./cache/kills.chk");
+    self->string_list->SaveToFile("./cache/kills.chk");
 }

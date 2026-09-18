@@ -7,7 +7,7 @@
 // The class table (ECF). Layout recovered from the reference constructor
 // (0x535eec); sizeof(std::vector<ClassValue>) is 32 and sizeof(ClassValue) is
 // 28, matching the reference's element size and member extent:
-//   +0x00 int                       field_0
+//   +0x00 int                       file_id
 //   +0x10 char                      loaded
 //   +0x14 TStringList *             string_list
 //   +0x18 void *                    field_18 = operator new(8)
@@ -17,7 +17,7 @@
 class ClassValues
 {
   public:
-    int field_0;
+    int file_id;
     int num_classes;
     int rid_1;
     int rid_2;

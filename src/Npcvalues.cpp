@@ -12,7 +12,7 @@ NpcValues::NpcValues()
     loaded = 0;
     drops_loaded = 0;
     talk_loaded = 0;
-    field_0 = 0;
+    file_id = 0;
     string_list = new TStringList;
     Pub_LoadNpcs(this);
     Pub_LoadDrops(this);
@@ -104,7 +104,7 @@ void NpcValues::Pub_LoadNpcs(NpcValues *self)
             file++;
         } while (count < total);
 
-        self->field_0 = file - 1;
+        self->file_id = file - 1;
         self->loaded = 1;
     }
 }

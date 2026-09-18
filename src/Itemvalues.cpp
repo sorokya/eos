@@ -13,7 +13,7 @@ ItemValues::ItemValues()
     loaded = 0;
     rid_1 = -1;
     rid_2 = -1;
-    field_0 = 0;
+    file_id = 0;
     string_list = new TStringList;
     LoadItems(this);
 }
@@ -128,7 +128,7 @@ void ItemValues::LoadItems(ItemValues *self)
             file++;
         } while (count < total);
 
-        self->field_0 = file - 1;
+        self->file_id = file - 1;
         self->loaded = 1;
     }
 }

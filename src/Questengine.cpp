@@ -264,7 +264,7 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
             {
                 if ((*lookup)->name == (*ref)->name)
                 {
-                    *(short *)&(*ref)->field_28 = (short)(*lookup)->state_index;
+                    *(short *)&(*ref)->goto_state_index = (short)(*lookup)->state_index;
                     break;
                 }
             }
@@ -625,7 +625,7 @@ int Questengine::GetRuleValue(Questengine *self,
          ++it)
     {
         if ((*it)->rule == 1 && (*it)->args[0] == rule_type)
-            return *(short *)&(*it)->field_28;
+            return *(short *)&(*it)->goto_state_index;
     }
     return -1;
 }
@@ -645,7 +645,7 @@ int Questengine::GetRuleValue2(Questengine *self,
          ++it)
     {
         if ((*it)->rule == 2 && (*it)->args[0] == rule_type)
-            return *(short *)&(*it)->field_28;
+            return *(short *)&(*it)->goto_state_index;
     }
     return -1;
 }

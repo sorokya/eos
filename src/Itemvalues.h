@@ -39,7 +39,7 @@ struct ItemSpecXY
 // The item table (EIF). Layout recovered from the reference constructor
 // (0x47826c); sizeof(std::vector<ItemValue*>) is 32 and the member extent runs
 // to 0x3c / the vector element type is ItemValue*:
-//   +0x00 int                         field_0
+//   +0x00 int                         file_id
 //   +0x04 int                         num_items
 //   +0x08 int                         rid_1
 //   +0x0c int                         rid_2
@@ -51,7 +51,7 @@ struct ItemSpecXY
 class ItemValues
 {
   public:
-    int field_0;
+    int file_id;
     int num_items;
     int rid_1;
     int rid_2;

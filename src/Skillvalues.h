@@ -34,7 +34,7 @@ struct SkillElement
 // The skill table (ESF). Layout recovered from the reference constructor
 // (0x4a3018) and the parser/accessors: sizeof(std::vector<SkillValue>) is 32 and
 // sizeof(SkillValue) is 76, matching the reference's element size:
-//   +0x00 int                        field_0
+//   +0x00 int                        file_id
 //   +0x04 int                        num_skills
 //   +0x08 int                        rid1
 //   +0x0c int                        rid2
@@ -46,7 +46,7 @@ struct SkillElement
 class SkillValues
 {
   public:
-    int field_0;
+    int file_id;
     int num_skills;
     int rid1;
     int rid2;

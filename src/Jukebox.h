@@ -11,12 +11,12 @@
 // (`std::vector<JukeBox,std::allocator<JukeBox> >`).
 struct JukeBox
 {
-    short id;
-    char playing;
-    TDateTime timer;
-    AnsiString name;
+    short map_id;
+    char active;
+    TDateTime last_play;
+    AnsiString track_name;
 
-    JukeBox(short id);
+    JukeBox(short map_id);
     ~JukeBox();
 };
 

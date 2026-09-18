@@ -40,7 +40,7 @@ struct NpcDropInfo
 
 // The npc table (ENF/EDF/ETF). Layout recovered from the reference constructor
 // (0x4a5420) and the parsers/accessors:
-//   +0x00 int                       field_0 = file - 1 (files loaded)
+//   +0x00 int                       file_id = file - 1 (files loaded)
 //   +0x04 int                       rid1
 //   +0x08 int                       rid2
 //   +0x0c int                       count (total npcs from the first ENF)
@@ -54,7 +54,7 @@ struct NpcDropInfo
 class NpcValues
 {
   public:
-    int field_0;
+    int file_id;
     int count;
     int rid1;
     int rid2;

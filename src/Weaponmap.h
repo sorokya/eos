@@ -20,6 +20,6 @@ struct WeaponmapEntry
     ~WeaponmapEntry();
 };
 
-bool Combat_IsRangedWeapon(void *entry, int doll_graphic_id);
+bool Combat_IsRangedWeapon(void *unused, int doll_graphic_id);
 
 #endif

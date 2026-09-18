@@ -485,6 +485,127 @@ bool Chair_Execute(Server *server, Player *player, int action, String *data)
     return false;
 }
 
+void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value);
+
+void Player_Warp(Server *server,
+                 Player *player,
+                 int target_map,
+                 MapCoord coords,
+                 int warp_anim,
+                 bool do_leave)
+{
+    if (target_map == 0x50 || target_map == 0x51)
+        return;
+    if (target_map < 1 && Mapcontrol_GetCount(server->map_control) < target_map)
+        return;
+    if (Mapcontrol_GetByIndex(server->map_control, target_map - 1)->width < 1 ||
+        Mapcontrol_GetByIndex(server->map_control, target_map - 1)->height < 1)
+        return;
+    if (player->warp_state < 0)
+        player->session_id = RandRange(50000) + 10000;
+    int old_map = player->map_id;
+    player->warp_state = warp_anim;
+    player->warp_pending = true;
+    player->dead = false;
+    player->warp_map = target_map;
+    player->warp_x = coords.x;
+    player->warp_y = coords.y;
+    if (do_leave)
+    {
+        String out = EO_EncodeNumber(server, player->warp_state, 1) +
+                     EO_EncodeNumber(server, player->player_id, 2);
+        Server_BroadcastNearby(
+            server, player, PacketAction_Remove, PacketFamily_Avatar, out);
+        if (target_map > 0)
+        {
+            player->target_map = target_map;
+            player->target_x = coords.x;
+            player->target_y = coords.y;
+        }
+        if (player->map_id > 0)
+        {
+            player->map_has_quakes = false;
+            player->map_has_hp_drain = false;
+            player->map_has_tp_drain = false;
+            player->map_has_spikes = false;
+            Mapcontrol::Mapcontrol_dec_player_count(server->map_control, player->map_id);
+        }
+        player->map_id = 0;
+        player->x = 0;
+        player->y = 0;
+        player->idle_ticks = 0;
+        player->read_len = -1;
+        player->guild_inviter_id = -1;
+        player->session_token = -1;
+    }
+    if (target_map == old_map)
+    {
+        String out = EO_EncodeNumber(server, WarpType_Local, 1);
+        out.Insert(EO_EncodeNumber(
+                       server,
+                       Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid,
+                       2),
+                   out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->session_id, 2), out.Length() + 1);
+        Client_SendEncoded(server, player, PacketAction_Request, PacketFamily_Warp, out);
+    }
+    else
+    {
+        String out = EO_EncodeNumber(server, WarpType_MapSwitch, 1);
+        out.Insert(EO_EncodeNumber(
+                       server,
+                       Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid,
+                       2),
+                   out.Length() + 1);
+        out.Insert(EO_EncodeNumber(
+                       server,
+                       Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid1,
+                       2),
+                   out.Length() + 1);
+        out.Insert(EO_EncodeNumber(
+                       server,
+                       Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid2,
+                       2),
+                   out.Length() + 1);
+        out.Insert(
+            EO_EncodeNumber(
+                server,
+                Mapcontrol_GetByIndex(server->map_control, target_map - 1)->filesize,
+                3),
+            out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->session_id, 2), out.Length() + 1);
+        Client_SendEncoded(server, player, PacketAction_Request, PacketFamily_Warp, out);
+        Player_FireQuestTriggers(server, player, 0xc, old_map);
+    }
+}
+
+bool Player_CheckIdleWarp(Server *server, Player *player, int x, int y)
+{
+    if (Mapcontrol::Map_IsTileWalkable(server->map_control, player->map_id, x, y))
+    {
+        MapCoord coords;
+        coords.x = x;
+        coords.y = y;
+        if (Mapcontrol::Map_GetWarpDoorAt(server->map_control, player->map_id, coords) <
+            2)
+        {
+            MapCoord dest;
+            int target_map =
+                Mapcontrol::Map_GetWarpMap(server->map_control, player->map_id, x, y);
+            int level_req = Mapcontrol::Map_GetWarpLevelReq(
+                server->map_control, player->map_id, x, y);
+            dest.x = Mapcontrol::Map_GetWarpX(server->map_control, player->map_id, x, y);
+            dest.y = Mapcontrol::Map_GetWarpY(server->map_control, player->map_id, x, y);
+            if (player->level < level_req)
+                return false;
+            player->flush_queue = 1;
+            Player_Warp(server, player, target_map, dest, 0, false);
+            return true;
+        }
+    }
+    return false;
+}
+
 void Player_Respawn(Server *server, Player *player)
 {
     MapCoord coords;

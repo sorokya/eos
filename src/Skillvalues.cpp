@@ -105,7 +105,7 @@ void SkillValues::LoadSpells(SkillValues *self)
             file++;
         } while (count < total);
 
-        self->field_0 = file - 1;
+        self->file_id = file - 1;
         self->loaded = 1;
     }
 }
@@ -186,7 +186,7 @@ SkillValues::SkillValues()
     field_18 = operator new(8);
     field_3c = -1;
     loaded = 0;
-    field_0 = 0;
+    file_id = 0;
     string_list = new TStringList;
     LoadSpells(this);
 }

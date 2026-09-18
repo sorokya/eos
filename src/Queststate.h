@@ -9,10 +9,11 @@
 //
 // QuestAction (0x24): int action (+0), int args[4] (+4), AnsiString data[4] (+0x14)
 // QuestRule   (0x2c): int rule (+0), int args[4] (+4), AnsiString data[4] (+0x14),
-//                     AnsiString name (+0x24), int field_28 (+0x28) -- the low
-//                     short is the goto state index (Ghidra Questrule::
+//                     AnsiString name (+0x24), int goto_state_index (+0x28) -- the
+//                     low short is the goto state index (Ghidra Questrule::
 //                     goto_state_index; Questengine sets it from the target
-//                     state and reads it back through `*(short *)&field_28`)
+//                     state and reads it back through
+//                     `*(short *)&goto_state_index`)
 // QuestState  (0x54): int state_index (+0), String name (+4), String description
 //                     (+8), int fast_dispatch_rule_index (+0xc),
 //                     int fast_dispatch_condition_type (+0x10),
@@ -36,7 +37,7 @@ class QuestRule
     int args[4];
     AnsiString data[4];
     AnsiString name;
-    int field_28;
+    int goto_state_index;
 
     QuestRule(int rule);
     ~QuestRule();

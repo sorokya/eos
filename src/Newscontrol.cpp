@@ -51,8 +51,8 @@ void Newscontrol::LoadFile(Newscontrol *self, String file_name)
         String dir = "";
         if (exe.Length() >= 1 && last_slash_pos >= 1)
         {
-            for (int p = 1; p < last_slash_pos; p++)
-                dir = dir + exe[p];
+            for (int char_index = 1; char_index < last_slash_pos; char_index++)
+                dir = dir + exe[char_index];
         }
 
         exe = dir;
