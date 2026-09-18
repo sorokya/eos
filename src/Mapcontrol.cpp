@@ -4,6 +4,7 @@
 #include "Mapcontrol.h"
 #include "Npc.h"
 #include "Settings.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -213,8 +214,10 @@ bool Mapcontrol::Map_IsTileWalkable(Mapcontrol *map_control, int map_id, int x, 
                         if ((unsigned short)spec_iter->x == x &&
                             (unsigned short)spec_iter->y == y)
                         {
-                            if ((unsigned short)spec_iter->value == 10 ||
-                                (unsigned short)spec_iter->value == 0xb)
+                            if ((unsigned short)spec_iter->value ==
+                                    MapTileSpec_Reserved10 ||
+                                (unsigned short)spec_iter->value ==
+                                    MapTileSpec_Reserved11)
                                 result = true;
                             break;
                         }
@@ -258,11 +261,12 @@ int Mapcontrol::Map_IsWalkableNPC(
                         if ((unsigned short)spec_iter->x == x &&
                             (unsigned short)spec_iter->y == y)
                         {
-                            if ((unsigned short)spec_iter->value == 9)
+                            if ((unsigned short)spec_iter->value == MapTileSpec_Chest)
                                 result = 0;
-                            if ((unsigned short)spec_iter->value == 0xb)
+                            if ((unsigned short)spec_iter->value ==
+                                MapTileSpec_Reserved11)
                                 result = 2;
-                            if ((unsigned short)spec_iter->value != 0x10)
+                            if ((unsigned short)spec_iter->value != MapTileSpec_BankVault)
                                 break;
                             if (ignore_spec_block != 0)
                                 result = 0;
@@ -482,25 +486,25 @@ unsigned char Mapcontrol::Mapcontrol_ToggleDoor(Mapcontrol *map_control,
         {
             if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
             {
-                if (((unsigned short)spec_iter->value == 9 ||
-                     (unsigned short)spec_iter->value == 0xb) &&
+                if (((unsigned short)spec_iter->value == MapTileSpec_Chest ||
+                     (unsigned short)spec_iter->value == MapTileSpec_Reserved11) &&
                     (unsigned short)spec_iter->ticks != 2)
                 {
                     spec_iter->ticks = 2;
                     result = 1;
                 }
-                if ((unsigned short)spec_iter->value == 7)
+                if ((unsigned short)spec_iter->value == MapTileSpec_ChairAll)
                 {
                     result = 1;
                     Mapcontrol_GetByIndex(map_control, map_id - 1)->has_open_doors = 1;
-                    spec_iter->value = 9;
+                    spec_iter->value = MapTileSpec_Chest;
                     spec_iter->ticks = 2;
                 }
-                if ((unsigned short)spec_iter->value == 10)
+                if ((unsigned short)spec_iter->value == MapTileSpec_Reserved10)
                 {
                     result = 1;
                     Mapcontrol_GetByIndex(map_control, map_id - 1)->has_open_doors = 1;
-                    spec_iter->value = 0xb;
+                    spec_iter->value = MapTileSpec_Reserved11;
                     spec_iter->ticks = 2;
                 }
                 break;

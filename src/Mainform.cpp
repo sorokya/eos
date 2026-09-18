@@ -79,7 +79,8 @@ void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data);
 bool Players_Add(Players *players, TCustomWinSocket *socket);
 void Players_Remove(Players *players, TCustomWinSocket *socket);
 void Players_MarkRemoving(Players *players, TCustomWinSocket *socket);
-void Mapcontrol_AddArenaSpawn(Mapcontrol *map, int map_id, int a, int b, int c, int d);
+void Mapcontrol_AddArenaSpawn(
+    Mapcontrol *map, int map_id, int from_x, int from_y, int to_x, int to_y);
 void Mapcontrol_SetArenaBlock(Mapcontrol *map, int map_id, int block);
 void Game_Tick(Server *server);
 void Players_Tick(Players *players);
@@ -88,7 +89,7 @@ String FUN_004731d0(Server *server);
 int Players_GetStatTotal(Players *players);
 int Players_GetIdleTimeout(Players *players);
 int Players_GetActiveCount(Players *players);
-String FUN_00403080(TGUI *self, String a, String b, String c);
+String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code);
 
 __fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
 {

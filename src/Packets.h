@@ -167,6 +167,9 @@ unsigned int Server_DecodePacketLength(void *self, String data);
 bool Login_CheckConnectionThreshold(Server *server);
 void Connection_Ping(Server *server);
 void PacketReader_Init(Server *reader, String data, unsigned char break_byte);
+String PacketReader_GetBreakString(Server *reader);
+String
+PacketReader_GetBreakStringAt(void *reader, int end, String break_str, char append);
 
 bool Coords_IsAdjacent(void *self, int x1, int y1, int x2, int y2);
 bool Server_InViewRange(void *self, int x1, int y1, int x2, int y2);

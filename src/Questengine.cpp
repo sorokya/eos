@@ -83,10 +83,9 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
     Quest *quest = new Quest(quest_id);
     self->quest_list.insert(self->quest_list.end(), quest);
 
-    String quest_id_str = IntToStr(quest_id);
-    text = quest_id_str;
+    text = IntToStr(quest_id);
 
-    for (int i = text.Length(); i < 5; i++)
+    for (int i = text.Length(); i <= 4; i++)
         text.Insert("0", 0);
 
     text.Insert("./quests/", 0);
@@ -102,8 +101,7 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
     FileRead(handle, file_buf, file_size);
     FileClose(handle);
 
-    String file_str = file_buf;
-    text = file_str;
+    text = file_buf;
     text.SetLength(file_size);
     delete[] file_buf;
 
@@ -132,8 +130,7 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
                 in_quote = false;
                 if (pos > 1)
                 {
-                    String token = text.SubString(1, pos - 1);
-                    ParseToken(self, quest, token);
+                    ParseToken(self, quest, text.SubString(1, pos - 1));
                 }
                 text.Delete(1, pos);
                 pos = 1;
@@ -143,8 +140,7 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
                 in_quote = false;
                 if (pos > 2)
                 {
-                    String token = text.SubString(1, pos - 2);
-                    ParseToken(self, quest, token);
+                    ParseToken(self, quest, text.SubString(1, pos - 2));
                 }
                 text.Delete(1, pos);
                 pos = 1;
@@ -190,8 +186,7 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
             {
                 if (pos > 1)
                 {
-                    String token = text.SubString(1, pos - 1);
-                    ParseToken(self, quest, token);
+                    ParseToken(self, quest, text.SubString(1, pos - 1));
                 }
                 text.Delete(1, pos);
                 pos = 1;
@@ -200,8 +195,7 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
             {
                 if (pos > 1)
                 {
-                    String token = text.SubString(1, pos - 1);
-                    ParseToken(self, quest, token);
+                    ParseToken(self, quest, text.SubString(1, pos - 1));
                 }
                 text.Delete(1, pos);
                 pos = 1;
@@ -210,11 +204,9 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
             {
                 if (pos > 1)
                 {
-                    String token = text.SubString(1, pos - 1);
-                    ParseToken(self, quest, token);
+                    ParseToken(self, quest, text.SubString(1, pos - 1));
                 }
-                String bracket_char = text[pos];
-                ParseToken(self, quest, bracket_char);
+                ParseToken(self, quest, text[pos]);
                 text.Delete(1, pos);
                 pos = 1;
             }
@@ -222,8 +214,7 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
             {
                 if (pos > 1)
                 {
-                    String token = text.SubString(1, pos - 1);
-                    ParseToken(self, quest, token);
+                    ParseToken(self, quest, text.SubString(1, pos - 1));
                 }
                 text.Delete(1, pos);
                 pos = 1;
@@ -232,8 +223,7 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
             {
                 if (pos > 1)
                 {
-                    String token = text.SubString(1, pos - 1);
-                    ParseToken(self, quest, token);
+                    ParseToken(self, quest, text.SubString(1, pos - 1));
                 }
                 text.Delete(1, pos);
                 pos = 1;
@@ -242,8 +232,7 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
             {
                 if (pos > 2)
                 {
-                    String token = text.SubString(1, pos - 2);
-                    ParseToken(self, quest, token);
+                    ParseToken(self, quest, text.SubString(1, pos - 2));
                 }
                 text.Delete(1, pos);
                 pos = 1;

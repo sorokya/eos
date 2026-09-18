@@ -209,7 +209,7 @@ void WeddingController::Tick(WeddingController *self)
                                            player,
                                            PacketAction_Reply,
                                            PacketFamily_Priest,
-                                           AppendEncoded(self, 6, 2));
+                                           AppendEncoded(self, PriestReply_DoYou, 2));
                     }
                 }
             }
@@ -249,7 +249,7 @@ void WeddingController::Tick(WeddingController *self)
                                            player,
                                            PacketAction_Reply,
                                            PacketFamily_Priest,
-                                           AppendEncoded(self, 6, 2));
+                                           AppendEncoded(self, PriestReply_DoYou, 2));
                     }
                 }
             }

@@ -342,7 +342,7 @@ bool Face_Execute(Server *server, Player *player, int action, String *data)
             return false;
         player->direction = EO_DecodeNumber(server, (*data)[1]);
         String out = EO_EncodeNumber(server, player->player_id, 2);
-        out = out + String((*data)[1]);
+        out = out + (*data)[1];
         Server_BroadcastNearby(
             server, player, PacketAction_Player, PacketFamily_Face, out);
         return true;
@@ -732,6 +732,66 @@ void PacketReader_Init(Server *reader, String data, unsigned char break_byte)
     reader->reader_data = data;
     reader->reader_len = data.Length();
     reader->reader_break_byte = break_byte;
+}
+
+String PacketReader_GetBreakString(Server *reader)
+{
+    String result = "";
+    try
+    {
+        if (reader->reader_len >= 1)
+        {
+            while (reader->reader_pos <= reader->reader_len)
+            {
+                if (reader->reader_data[reader->reader_pos] != reader->reader_break_byte)
+                {
+                    result.Insert(reader->reader_data[reader->reader_pos],
+                                  result.Length() + 1);
+                }
+                else
+                {
+                    reader->reader_pos++;
+                    break;
+                }
+                reader->reader_pos++;
+            }
+        }
+    }
+    catch (...)
+    {
+        result = "";
+    }
+    return result;
+}
+
+String PacketReader_GetBreakStringAt(void *reader, int end, String break_str, char append)
+{
+    String result = "";
+    try
+    {
+        if (break_str.Length() >= 1)
+        {
+            int i = 1;
+            int len = break_str.Length();
+            int j = 1;
+            String x = "";
+            while (i <= len)
+            {
+                if (j == end && break_str[i] != append)
+                    result.Insert(break_str[i], result.Length() + 1);
+                if (j <= end && break_str[i] == append)
+                    j++;
+                if (j > end)
+                    break;
+                i++;
+            }
+        }
+    }
+    catch (...)
+    {
+        result = "";
+    }
+    return result;
 }
 
 unsigned int Server_DecodePacketLength(void *self, String data)
