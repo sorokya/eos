@@ -173,6 +173,21 @@ int GroundItemPtrVector_Count(void *list);
 
 String EO_EncodeNumber(Server *server, unsigned int value, int width);
 String EO_Encode_Interleave(Server *server, int multiple, char *begin, char *end);
+
+struct EOEncodedObj
+{
+    struct
+    {
+        int value;
+    };
+    EOEncodedObj()
+    {
+    }
+};
+
+void EO_ByteRange_FromString(std::vector<char> *range,
+                             const char *str,
+                             EOEncodedObj *obj);
 int EO_DecodeNumber(void *self, String data);
 int EO_DecodeByte(void *self, char value);
 char EO_GetBreakByte(void *self, int value);

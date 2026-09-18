@@ -591,7 +591,7 @@ COMDAT) before the final link; none may be guessed away.
 | `MysqlCallback_Dispatch` | Mysqlthread | Packets `0x450618` (36735 B), not yet reconstructed. |
 | `Mainform_GetServer` | Mysqlthread | Mainform; no definition in `src/` yet. |
 | `extern TGUI **MAINFORM` | Packets, Players | Global `0x58b60c` (initialised to `&GUI` at `0x58bb70`); no owner declaration anywhere. |
-| `EO_ByteRange_FromString` (`0x5432d8`) | Packets | No owner: the address is **not a function row** in `unit_functions.tsv` — it sits in a module the inventory classifies as library inside GUI's span, so no header declares it. Body takes three arguments `(range, str, obj)` and calls `0x543480(range, 0, obj)`. Needed by `Client_SendEncoded`. |
+| `EO_ByteRange_FromString` (`0x5432d8`) | Packets (`src/Packets.h`) | No owner: the address is **not a function row** in `unit_functions.tsv` — it sits in a module the inventory classifies as library inside GUI's span, so no header declares it. Body takes three arguments `(range, str, obj)` and calls `0x543480(range, 0, obj)`. Needed by `Client_SendEncoded`. |
 
 ## Known-unconverged functions
 
@@ -610,7 +610,11 @@ Tracked so they are not mistaken for done:
   functions. `GroundItemPtrVector_Count` (`0x44f8b0`) is the `(end - begin)`
   ptrdiff over 4-byte elements, i.e. a `T** - T**` subtraction.
 - `Packets`: `Player_Warp` (1 instruction: temp construction order in the
-  `do_leave` Avatar-Remove build); `Client_SendEncoded` (blocked on the
+  `do_leave` Avatar-Remove build); `Client_SendEncoded` (**partial**: `String out`
+  from `String((char)action)` + family + `data` written; frame `-44` vs the
+  reference's `-136`, so the `>20000` log path and the range/encode block are still
+  missing; `EO_ByteRange_FromString` is declared in `src/Packets.h` and `EOEncodedObj`
+  (4-byte empty-ctor pass-through) is defined; blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
   byte-exact (`std::stack<char>`/`std::deque<char>`, by-value `String` return);
   `EO_Decode_Deinterleave` is drafted at **163 mismatched (219/281)** — the

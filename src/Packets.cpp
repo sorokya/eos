@@ -3051,8 +3051,14 @@ void FUN_00463d40_Stub(int a0, unsigned char a1, unsigned char a2, int a3)
 // STUB(0x00464030, 1286 bytes) Client_SendEncoded - ref: undefined
 // Client_SendEncoded(Server * server, Player * player, PacketAction action, PacketFamily
 // family)
-void Client_SendEncoded_Stub(void *a0, void *a1, int a2, int a3)
+void Client_SendEncoded(
+    Server *server, Player *player, PacketAction action, PacketFamily family, String data)
 {
+    if (data.Length() > 20000)
+        return;
+    String out = String((char)action);
+    out.Insert(String((char)family), out.Length() + 1);
+    out.Insert(data, out.Length() + 1);
 }
 // STUB(0x00467980, 12223 bytes) Attack_Execute - ref: int Attack_Execute(Server * server,
 // Player * attacker, PacketAction action, AnsiString * packet_data)
