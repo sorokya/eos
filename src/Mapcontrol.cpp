@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Mapcontrol.h"
+#include "Mainform.h"
 #include "Npc.h"
 #include "Settings.h"
 #include "Protocol.h"
@@ -12,6 +13,11 @@
 // controllers declare the same prototypes.
 int Mapcontrol_GetCount(Mapcontrol *map_control);
 MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
+
+// Cross-unit helpers owned by other units (Jukeboxcontrol, Mapcontrol).
+extern TGUI **MAINFORM;
+void FUN_004aa4e4(JukeBoxController *jukebox_control, int map_id);
+int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id);
 
 typedef std::vector<ChestItem *> GroundItemPtrVector;
 
@@ -1346,6 +1352,21 @@ void FUN_004876c0(int map_control, int map_id, int index)
     }
 }
 
+char FUN_004827c8(int map_control, int map_id)
+{
+    char result = 0;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
+    {
+        FUN_00481e0c(map_control, map_id);
+        FUN_004aa4e4((*MAINFORM)->jukebox_control, map_id);
+        result = (char)FUN_00482834(
+            (Mapcontrol *)map_control,
+            Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1),
+            map_id);
+    }
+    return result;
+}
+
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
 // STUB(0x00482470, 836 bytes) Map_ReadRawFile - ref: AnsiString *
@@ -1479,12 +1500,6 @@ void *FUN_00482418_Stub(void *a0, void *a1, void *a2)
 // STUB(0x00482444, 42 bytes) FUN_00482444 - ref: undefined4 * FUN_00482444(undefined4 *
 // param_1, undefined4 * param_2, undefined4 * param_3)
 void *FUN_00482444_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x004827c8, 106 bytes) FUN_004827c8 - ref: undefined1 FUN_004827c8(int param_1,
-// uint param_2)
-char FUN_004827c8_Stub(int a0, unsigned int a1)
 {
     return 0;
 }

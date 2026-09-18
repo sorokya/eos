@@ -679,6 +679,58 @@ void Player_CalculateStats(Server *server, Player *player)
     player->armor = player->armor + player->class_armor;
 }
 
+String *Server_BuildOnlineNames(String *out_str, Server *server)
+{
+    if (server->online_names_ttl < 1)
+    {
+        String names = EO_GetBreakByte(server, 0xff);
+        int count = 0;
+        for (Player **iter = Players_Iter_Begin(server->players);
+             iter != Players_Iter_End(server->players);
+             iter++)
+        {
+            if ((*iter)->logged_in && !(*iter)->hide_online)
+            {
+                names.Insert((*iter)->name, names.Length() + 1);
+                names.Insert(EO_GetBreakByte(server, 0xff), names.Length() + 1);
+                count++;
+            }
+        }
+        names.Insert(EO_EncodeNumber(server, count, 2), 1);
+        if (count > 0x18)
+        {
+            server->online_names_cache += names;
+            server->online_names_ttl = 4;
+        }
+        *out_str += names;
+    }
+    else
+    {
+        *out_str += server->online_names_cache;
+    }
+    return out_str;
+}
+
+void FUN_00466840(Server *server, int map_id)
+{
+    for (Player **iter = Players_Iter_Begin(server->players);
+         iter != Players_Iter_End(server->players);
+         iter++)
+    {
+        if ((*iter)->map_id == map_id)
+        {
+            (*iter)->map_has_quakes =
+                Mapcontrol_GetByIndex(server->map_control, map_id - 1)->has_quakes;
+            (*iter)->map_has_hp_drain =
+                Mapcontrol_GetByIndex(server->map_control, map_id - 1)->has_hp_drain;
+            (*iter)->map_has_tp_drain =
+                Mapcontrol_GetByIndex(server->map_control, map_id - 1)->has_tp_drain;
+            (*iter)->map_has_spikes =
+                Mapcontrol_GetByIndex(server->map_control, map_id - 1)->has_spikes;
+        }
+    }
+}
+
 int Party_ShareExp(Server *server, Player *player, int exp)
 {
     if (!player->in_party)
@@ -1689,12 +1741,6 @@ void *Paperdoll_BuildReply_Stub(void *a0, void *a1, void *a2)
 {
     return 0;
 }
-// STUB(0x004613fc, 459 bytes) Server_BuildOnlineNames - ref: AnsiString *
-// Server_BuildOnlineNames(AnsiString * out_str, Server * server)
-void *Server_BuildOnlineNames_Stub(void *a0, void *a1)
-{
-    return 0;
-}
 // STUB(0x004615d0, 889 bytes) Message_BuildServerStatus - ref: int *
 // Message_BuildServerStatus(int * param_1, int param_2)
 void *Message_BuildServerStatus_Stub(void *a0, int a1)
@@ -1771,11 +1817,6 @@ void Client_SendEncoded_Stub(void *a0, void *a1, int a2, int a3)
 // STUB(0x004651a4, 5786 bytes) Player_ApplyEquipmentBonuses - ref: undefined
 // Player_ApplyEquipmentBonuses(Server * server, Player * player)
 void Player_ApplyEquipmentBonuses_Stub(void *a0, void *a1)
-{
-}
-// STUB(0x00466840, 204 bytes) FUN_00466840 - ref: undefined FUN_00466840(Server * server,
-// int map_id)
-void FUN_00466840_Stub(void *a0, int a1)
 {
 }
 // STUB(0x00467980, 12223 bytes) Attack_Execute - ref: int Attack_Execute(Server * server,
