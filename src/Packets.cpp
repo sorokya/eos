@@ -715,52 +715,59 @@ String *
 NpcRange_Lookup(String *out, Server *server, Player *player, unsigned int npc_index)
 {
     String fragment = "";
-    if (player->map_id > 0)
+    try
     {
-        if (player->map_id <= Mapcontrol_GetCount(server->map_control))
+        if (player->map_id > 0)
         {
-            for (Npc **iter = (Npc **)Map_NpcIter_Begin(
-                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                          ->npc_list);
-                 iter !=
-                 (Npc **)Map_NpcIter_End(
-                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                          ->npc_list);
-                 iter++)
+            if (player->map_id <= Mapcontrol_GetCount(server->map_control))
             {
-                if ((*iter)->index == npc_index && (*iter)->alive)
+                for (Npc **iter = (Npc **)Map_NpcIter_Begin(
+                         &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                              ->npc_list);
+                     iter !=
+                     (Npc **)Map_NpcIter_End(
+                         &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                              ->npc_list);
+                     iter++)
                 {
-                    fragment.Insert(EO_EncodeNumber(server, (*iter)->index, 1),
-                                    fragment.Length() + 1);
-                    fragment.Insert(EO_EncodeNumber(server, (*iter)->id, 2),
-                                    fragment.Length() + 1);
-                    if (!player->cheater_flag)
+                    if ((*iter)->index == npc_index && (*iter)->alive)
                     {
-                        fragment.Insert(EO_EncodeNumber(server, (*iter)->x, 1),
+                        fragment.Insert(EO_EncodeNumber(server, (*iter)->index, 1),
                                         fragment.Length() + 1);
-                        fragment.Insert(EO_EncodeNumber(server, (*iter)->y, 1),
+                        fragment.Insert(EO_EncodeNumber(server, (*iter)->id, 2),
                                         fragment.Length() + 1);
+                        if (!player->cheater_flag)
+                        {
+                            fragment.Insert(EO_EncodeNumber(server, (*iter)->x, 1),
+                                            fragment.Length() + 1);
+                            fragment.Insert(EO_EncodeNumber(server, (*iter)->y, 1),
+                                            fragment.Length() + 1);
+                        }
+                        else
+                        {
+                            int cheat_x = (*iter)->x + server->cheat_offset_x - 1;
+                            int cheat_y = (*iter)->y + server->cheat_offset_y - 1;
+                            if (cheat_x < 1)
+                                cheat_x = 0;
+                            if (cheat_y < 1)
+                                cheat_y = 0;
+                            fragment.Insert(EO_EncodeNumber(server, cheat_x, 1),
+                                            fragment.Length() + 1);
+                            fragment.Insert(EO_EncodeNumber(server, cheat_y, 1),
+                                            fragment.Length() + 1);
+                        }
+                        fragment.Insert(
+                            EO_EncodeNumber(
+                                server, (unsigned short)(*iter)->direction, 1),
+                            fragment.Length() + 1);
+                        break;
                     }
-                    else
-                    {
-                        int cheat_x = (*iter)->x + server->cheat_offset_x - 1;
-                        int cheat_y = (*iter)->y + server->cheat_offset_y - 1;
-                        if (cheat_x < 1)
-                            cheat_x = 0;
-                        if (cheat_y < 1)
-                            cheat_y = 0;
-                        fragment.Insert(EO_EncodeNumber(server, cheat_x, 1),
-                                        fragment.Length() + 1);
-                        fragment.Insert(EO_EncodeNumber(server, cheat_y, 1),
-                                        fragment.Length() + 1);
-                    }
-                    fragment.Insert(
-                        EO_EncodeNumber(server, (unsigned short)(*iter)->direction, 1),
-                        fragment.Length() + 1);
-                    break;
                 }
             }
         }
+    }
+    catch (...)
+    {
     }
     *out += fragment;
     return out;

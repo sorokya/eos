@@ -418,6 +418,19 @@ them to pick the form that matches the reference.
   byte-identical, so the difference is invisible except in the marker stream.
   This is what closed `ClassValues::DecodeInt`; suspect it for any function whose
   marker stream ends one scope short and whose record lacks a flags-3 entry.
+  To confirm it on a reference function, read its EH frame descriptor (`mov
+  eax,<desc>; call __InitExceptBlockLDTC` at the entry): the descriptor's entries
+  have a `dw 3` flags word when a catch is present, and the catch's handler emits
+  `mov word ptr [ebp-N],imm; call 0x55623d` (`__CatchCleanup`). `tests/scope_probe.cpp`
+  isolates the effect: function `A` (no try) arms `0x14,0x8,0x20`; function
+  `B` (the same body wrapped in `try { ... } catch (...) {}`) additionally arms
+  `0x2c` (the try body) and `0x28` (the catch), and its ECT gains a flags-3
+  entry. `NpcRange_Lookup` is a concrete case: the reference has a flags-3 entry
+  and a `call 0x55623d` at `0x462328`, and wrapping its outer `if` in
+  `try`/`catch` reproduces the reference's `0x20` arming the source otherwise
+  lacks. (Do not assume every "extra scope arming" is a try/catch: check the ECT.
+  `Server_BuildOnlineNames` and `Party_EncodeMemberList` have no flags-3 entry
+  and no `0x55623d` call, so their extra armings have a different cause.)
 - **Encoded strings.** Where the reference carries an obfuscated literal (decoded
   through `Serial::DecodeString`), name a macro after the decoded text so intent
   is legible, e.g.

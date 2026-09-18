@@ -74,6 +74,11 @@ def canon(ins: str) -> str:
     if m:
         a, b = sorted((m.group(2).strip(), m.group(3).strip()))
         s = f"{m.group(1)} {a},{b}"
+    # A shift/rotate by one has an implicit operand: objdump prints `sar eax`
+    # where bcc32 prints `sar eax,1`. They encode the same byte (`d1 f8`).
+    m = re.match(r"^(rcl|rcr|rol|ror|sal|sar|shl|shr)\s+([^,]+)$", s)
+    if m:
+        s = f"{m.group(1)} {m.group(2)},1"
     return s
 
 

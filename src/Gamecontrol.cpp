@@ -92,16 +92,18 @@ int Gamecontrol::Combat_CalcHitRate(Gamecontrol *self,
     return (int)result;
 }
 
-double Gamecontrol::Combat_CalcElementMult(
-    Gamecontrol *self, int element, int carry, short atk_power, short target_value)
+double Gamecontrol::Combat_CalcElementMult(Gamecontrol *self,
+                                           MapCoord coord,
+                                           short atk_power,
+                                           short target_value)
 {
     double result = 1;
-    if (element > Element_None)
+    if (coord.x > Element_None)
     {
-        if (element == Element_Dark)
-            result = carry / 10 + atk_power + 8;
+        if (coord.x == Element_Dark)
+            result = coord.y / 10 + atk_power + 8;
         else if (target_value > 0)
-            result = Combat_ElementScore(self, atk_power + carry, target_value);
+            result = Combat_ElementScore(self, atk_power + coord.y, target_value);
     }
     if (result > 1)
         result = 0.01L * result + 1;
