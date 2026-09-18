@@ -514,7 +514,7 @@ unsigned char Mapcontrol::Mapcontrol_ToggleDoor(Mapcontrol *map_control,
     return result;
 }
 
-int Mapcontrol::Map_GetWarpDoorAt(Mapcontrol *map_control, int map_id, int x, int y)
+int Mapcontrol::Map_GetWarpDoorAt(Mapcontrol *map_control, int map_id, MapCoord coords)
 {
     int result = 0;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
@@ -526,7 +526,8 @@ int Mapcontrol::Map_GetWarpDoorAt(Mapcontrol *map_control, int map_id, int x, in
              Mapcontrol_GetByIndex(map_control, map_id - 1)->legacy_door_key_list.end();
              door_iter++)
         {
-            if ((unsigned short)door_iter->x == x && (unsigned short)door_iter->y == y)
+            if ((unsigned short)door_iter->x == coords.x &&
+                (unsigned short)door_iter->y == coords.y)
             {
                 result = (unsigned short)door_iter->value;
                 break;

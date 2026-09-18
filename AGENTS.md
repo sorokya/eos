@@ -375,6 +375,14 @@ them to pick the form that matches the reference.
 - **Parentheses can add a temporary.** `String x = (expr);` may introduce an
   EH-recorded temporary that `String x = expr;` does not (the frame grows), so
   expression parenthesization is observable in codegen.
+- **A struct local with an empty user constructor triggers the folded EH thunk.**
+  bcc32 emits its `___InitExceptBlockLDTC` frame-only constructor for a local whose
+  type has a user-declared empty constructor and an anonymous aggregate member
+  (the pattern already used for `ItemElement`/`ItemSpecXY`/`MapCoord`); the linker
+  folds every copy to `0x44f58c`, giving `lea eax,[&local]; push eax; call 0x44f58c;
+  pop ecx` instead of the direct `mov eax,<desc>; call 0x54ba98`. A function that
+  declares such a local gets the thunk; one that only uses scalars does not. This is
+  what distinguishes `Player_Respawn`/`Player_CheckIdleWarp` from `Chair_Execute`.
 - **Frame size is a fast filter.** A source-form guess that changes `add esp,-N`
   or the `[ebp-N]` offsets is wrong even if the instruction count looks close.
 - **A `try`/`catch` around a body is a fingerprint, not an optional style.**

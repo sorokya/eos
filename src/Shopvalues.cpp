@@ -20,17 +20,17 @@ void ShopValues::LoadShops(ShopValues *self)
         String data;
         String path = "./pub/dts001.esf";
 
-        int h;
+        int file_handle;
         int size;
         char *buf;
         try
         {
-            h = FileOpen(path.c_str(), 0);
-            size = FileSeek(h, 0, 2);
-            FileSeek(h, 0, 0);
+            file_handle = FileOpen(path.c_str(), 0);
+            size = FileSeek(file_handle, 0, 2);
+            FileSeek(file_handle, 0, 0);
             buf = new char[size + 1];
-            FileRead(h, buf, size);
-            FileClose(h);
+            FileRead(file_handle, buf, size);
+            FileClose(file_handle);
             data += buf;
             data.SetLength(size);
             delete[] buf;
@@ -81,7 +81,7 @@ void ShopValues::LoadShops(ShopValues *self)
         }
         catch (...)
         {
-            FileClose(h);
+            FileClose(file_handle);
             self->loaded = 0;
         }
     }
@@ -353,8 +353,8 @@ String ShopValues::BuildOpenData(ShopValues *self, int behavior_id)
 {
     String result = "";
     std::vector<ShopValue>::iterator it = self->record_list.begin();
-    std::vector<ShopItemVal>::iterator t;
-    std::vector<ShopCraftVal>::iterator c;
+    std::vector<ShopItemVal>::iterator trade_iter;
+    std::vector<ShopCraftVal>::iterator craft_iter;
     while (it != self->record_list.end())
     {
         if (it->id == behavior_id)
@@ -363,37 +363,49 @@ String ShopValues::BuildOpenData(ShopValues *self, int behavior_id)
             result.Insert(it->name, result.Length() + 1);
             result.Insert((char)0xff, result.Length() + 1);
             if (it->trades.size() > 0)
-                for (t = it->trades.begin(); t != it->trades.end(); t++)
+                for (trade_iter = it->trades.begin(); trade_iter != it->trades.end();
+                     trade_iter++)
                 {
-                    result.Insert(EncodeNumber(self, t->item_id, 2), result.Length() + 1);
-                    result.Insert(EncodeNumber(self, t->buy_price, 3),
+                    result.Insert(EncodeNumber(self, trade_iter->item_id, 2),
                                   result.Length() + 1);
-                    result.Insert(EncodeNumber(self, t->sell_price, 3),
+                    result.Insert(EncodeNumber(self, trade_iter->buy_price, 3),
                                   result.Length() + 1);
-                    result.Insert(EncodeNumber(self, t->max_amount, 1),
+                    result.Insert(EncodeNumber(self, trade_iter->sell_price, 3),
+                                  result.Length() + 1);
+                    result.Insert(EncodeNumber(self, trade_iter->max_amount, 1),
                                   result.Length() + 1);
                 }
             result.Insert((char)0xff, result.Length() + 1);
             if (it->crafts.size() > 0)
-                for (c = it->crafts.begin(); c != it->crafts.end(); c++)
+                for (craft_iter = it->crafts.begin(); craft_iter != it->crafts.end();
+                     craft_iter++)
                 {
-                    result.Insert(EncodeNumber(self, c->id, 2), result.Length() + 1);
-                    result.Insert(EncodeNumber(self, c->ingredient_item_ids[0], 2),
+                    result.Insert(EncodeNumber(self, craft_iter->id, 2),
                                   result.Length() + 1);
-                    result.Insert(EncodeNumber(self, c->ingredient_amounts[0], 1),
-                                  result.Length() + 1);
-                    result.Insert(EncodeNumber(self, c->ingredient_item_ids[1], 2),
-                                  result.Length() + 1);
-                    result.Insert(EncodeNumber(self, c->ingredient_amounts[1], 1),
-                                  result.Length() + 1);
-                    result.Insert(EncodeNumber(self, c->ingredient_item_ids[2], 2),
-                                  result.Length() + 1);
-                    result.Insert(EncodeNumber(self, c->ingredient_amounts[2], 1),
-                                  result.Length() + 1);
-                    result.Insert(EncodeNumber(self, c->ingredient_item_ids[3], 2),
-                                  result.Length() + 1);
-                    result.Insert(EncodeNumber(self, c->ingredient_amounts[3], 1),
-                                  result.Length() + 1);
+                    result.Insert(
+                        EncodeNumber(self, craft_iter->ingredient_item_ids[0], 2),
+                        result.Length() + 1);
+                    result.Insert(
+                        EncodeNumber(self, craft_iter->ingredient_amounts[0], 1),
+                        result.Length() + 1);
+                    result.Insert(
+                        EncodeNumber(self, craft_iter->ingredient_item_ids[1], 2),
+                        result.Length() + 1);
+                    result.Insert(
+                        EncodeNumber(self, craft_iter->ingredient_amounts[1], 1),
+                        result.Length() + 1);
+                    result.Insert(
+                        EncodeNumber(self, craft_iter->ingredient_item_ids[2], 2),
+                        result.Length() + 1);
+                    result.Insert(
+                        EncodeNumber(self, craft_iter->ingredient_amounts[2], 1),
+                        result.Length() + 1);
+                    result.Insert(
+                        EncodeNumber(self, craft_iter->ingredient_item_ids[3], 2),
+                        result.Length() + 1);
+                    result.Insert(
+                        EncodeNumber(self, craft_iter->ingredient_amounts[3], 1),
+                        result.Length() + 1);
                 }
         }
         it++;

@@ -8,6 +8,18 @@
 
 class Settings;
 
+struct MapCoord
+{
+    struct
+    {
+        int x;
+        int y;
+    };
+    MapCoord()
+    {
+    }
+};
+
 // Layout recovered from the reference constructor (Mapcontrol unit,
 // 0x47ad3c..0x487d38). The constructor runs the std::vector<MapContainer>
 // default constructor first (member auto-init), then allocates the 8-byte
@@ -66,7 +78,7 @@ class Mapcontrol
                                                unsigned int x,
                                                unsigned int y);
     static MapItem *Itemchest_GetSlot(std::vector<MapItem> *slot_list, int slot);
-    static int Map_GetWarpDoorAt(Mapcontrol *map_control, int map_id, int x, int y);
+    static int Map_GetWarpDoorAt(Mapcontrol *map_control, int map_id, MapCoord coords);
     static int Mapcontrol_GetChestSlotCount(Mapcontrol *map_control,
                                             int map_id,
                                             unsigned int x,

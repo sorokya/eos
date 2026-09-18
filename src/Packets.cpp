@@ -13,6 +13,8 @@
 #include "Filecache.h"
 #include "Settings.h"
 #include "Logins.h"
+#include "Mainform.h"
+#include "Innvalues.h"
 #include "Mapcontrol.h"
 #include "Mapobject.h"
 #include "Protocol.h"
@@ -28,6 +30,7 @@ bool FUN_00462374(Server *server, Player *player, String data);
 void Server_BroadcastToParty(
     Server *server, Player *player, int action, int family, String data);
 String Character_BuildSaveQuery(Players *players, Player *player, int flag);
+extern TGUI **MAINFORM;
 MapObject Map_GetTileSpecObject(Mapcontrol *map_control, int map_id, int x, int y);
 
 void Game_Tick(Server *server)
@@ -482,6 +485,34 @@ bool Chair_Execute(Server *server, Player *player, int action, String *data)
     return false;
 }
 
+void Player_Respawn(Server *server, Player *player)
+{
+    MapCoord coords;
+    int map_id =
+        InnValues::GetSpawnMap((*MAINFORM)->inn_values, player->home_id, player->level);
+    if (map_id < 0)
+    {
+        map_id = Settings::GetRescueMap(server->settings);
+        coords.x = Settings::GetRescueX(server->settings);
+        coords.y = Settings::GetRescueY(server->settings);
+    }
+    else
+    {
+        coords.x =
+            InnValues::GetSpawnX((*MAINFORM)->inn_values, player->home_id, player->level);
+        coords.y =
+            InnValues::GetSpawnY((*MAINFORM)->inn_values, player->home_id, player->level);
+    }
+    if (player->level <= 3)
+    {
+        map_id = Settings::GetStartMap(server->settings);
+        coords.x = Settings::GetStartX(server->settings);
+        coords.y = Settings::GetStartY(server->settings);
+    }
+    player->flush_queue = 1;
+    Player_Warp(server, player, map_id, coords, 0, true);
+}
+
 void Server_BroadcastToPartyExceptSelf(Server *server,
                                        Player *player,
                                        unsigned char action,
@@ -924,6 +955,26 @@ String PacketReader_GetBreakStringAt(void *reader, int end, String break_str, ch
         result = "";
     }
     return result;
+}
+
+bool CharName_CheckUnique(Server *server, String name)
+{
+    for (int i = 0; i < server->wordfilter->Count; i++)
+    {
+        if (server->wordfilter->Strings[i].Length() <= name.Length())
+        {
+            for (int j = 1; j <= name.Length(); j++)
+            {
+                if (server->wordfilter->Strings[i][1] == name[j])
+                {
+                    if (name.SubString(j, server->wordfilter->Strings[i].Length()) ==
+                        server->wordfilter->Strings[i])
+                        return false;
+                }
+            }
+        }
+    }
+    return true;
 }
 
 unsigned int Server_DecodePacketLength(void *self, String data)

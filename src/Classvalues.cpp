@@ -26,17 +26,17 @@ void ClassValues::LoadClasses(ClassValues *self)
             else
                 path = path + "0" + IntToStr(file) + ".ecf";
 
-            int h;
+            int file_handle;
             int size;
             char *buf;
             try
             {
-                h = FileOpen(path.c_str(), 0);
-                size = FileSeek(h, 0, 2);
-                FileSeek(h, 0, 0);
+                file_handle = FileOpen(path.c_str(), 0);
+                size = FileSeek(file_handle, 0, 2);
+                FileSeek(file_handle, 0, 0);
                 buf = new char[size + 1];
-                FileRead(h, buf, size);
-                FileClose(h);
+                FileRead(file_handle, buf, size);
+                FileClose(file_handle);
                 data += buf;
                 data.SetLength(size);
                 delete[] buf;
@@ -73,7 +73,7 @@ void ClassValues::LoadClasses(ClassValues *self)
             }
             catch (...)
             {
-                FileClose(h);
+                FileClose(file_handle);
                 self->loaded = 0;
             }
             file++;

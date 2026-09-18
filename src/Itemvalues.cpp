@@ -43,17 +43,17 @@ void ItemValues::LoadItems(ItemValues *self)
             else
                 path = path + "0" + IntToStr(file) + ".eif";
 
-            int h;
+            int file_handle;
             int size;
             char *buf;
             try
             {
-                h = FileOpen(path.c_str(), 0);
-                size = FileSeek(h, 0, 2);
-                FileSeek(h, 0, 0);
+                file_handle = FileOpen(path.c_str(), 0);
+                size = FileSeek(file_handle, 0, 2);
+                FileSeek(file_handle, 0, 0);
                 buf = new char[size + 1];
-                FileRead(h, buf, size);
-                FileClose(h);
+                FileRead(file_handle, buf, size);
+                FileClose(file_handle);
                 data += buf;
                 data.SetLength(size);
                 delete[] buf;
@@ -122,7 +122,7 @@ void ItemValues::LoadItems(ItemValues *self)
             }
             catch (...)
             {
-                FileClose(h);
+                FileClose(file_handle);
                 self->loaded = 0;
             }
             file++;
@@ -174,7 +174,7 @@ void ItemValues::AddItem(ItemValues *self,
                          short element,
                          short element_damage,
                          short weight,
-                         short unused,
+                         short weapon_target_area,
                          short size)
 {
     ItemValue *value = new ItemValue(id);
@@ -213,7 +213,7 @@ void ItemValues::AddItem(ItemValues *self,
     value->constitution_requirement = constitution_requirement;
     value->charisma_requirement = charisma_requirement;
     value->size = size;
-    value->unused = unused;
+    value->weapon_target_area = weapon_target_area;
     value->weight = weight;
     value->element = element;
     value->element_damage = element_damage;
@@ -273,7 +273,7 @@ int ItemValues::Eif_GetSpec1ForTypes(ItemValues *self, int item_id)
 ItemElement ItemValues::Eif_GetElement(ItemValues *self, int item_id)
 {
     ItemElement result;
-    result.element = 0;
+    result.element = Element_None;
     result.element_damage = 0;
     if (item_id > 0)
     {
@@ -362,14 +362,14 @@ int ItemValues::Eif_GetGender(ItemValues *self, int item_id)
 
 int ItemValues::Eif_GetType(ItemValues *self, int item_id)
 {
-    int result = 0;
+    int result = ItemType_General;
     if (item_id > 0)
     {
         if (item_id < GetCount(self))
         {
             result = (*GetRecordSlot(&self->values, item_id - 1))->type;
             if (result < 0)
-                result = 0;
+                result = ItemType_General;
         }
     }
     return result;
@@ -382,7 +382,7 @@ int ItemValues::Eif_GetSubtype(ItemValues *self, int item_id)
         if (item_id < GetCount(self))
             return (*GetRecordSlot(&self->values, item_id - 1))->subtype;
     }
-    return 0;
+    return ItemSubtype_None;
 }
 
 int ItemValues::Eif_GetLevelRequirement(ItemValues *self, int item_id)
@@ -409,7 +409,7 @@ int ItemValues::Eif_GetSpecial(ItemValues *self, int item_id)
         {
             result = (*GetRecordSlot(&self->values, item_id - 1))->special;
             if (result < 0)
-                result = 0;
+                result = ItemSpecial_Normal;
         }
     }
     return result;

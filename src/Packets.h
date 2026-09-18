@@ -99,6 +99,13 @@ void Client_SendEncoded(Server *server,
                         String data);
 bool Face_Execute(Server *server, Player *player, int action, String *data);
 bool Chair_Execute(Server *server, Player *player, int action, String *data);
+void Player_Respawn(Server *server, Player *player);
+void Player_Warp(Server *server,
+                 Player *player,
+                 int target_map,
+                 MapCoord coords,
+                 int warp_anim,
+                 bool do_leave);
 void Server_BroadcastToPartyExceptSelf(Server *server,
                                        Player *player,
                                        unsigned char action,
@@ -171,6 +178,7 @@ void PacketReader_Init(Server *reader, String data, unsigned char break_byte);
 String PacketReader_GetBreakString(Server *reader);
 String
 PacketReader_GetBreakStringAt(void *reader, int end, String break_str, char append);
+bool CharName_CheckUnique(Server *server, String name);
 
 bool Coords_IsAdjacent(void *self, int x1, int y1, int x2, int y2);
 bool Server_InViewRange(void *self, int x1, int y1, int x2, int y2);

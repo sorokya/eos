@@ -40,17 +40,17 @@ void NpcValues::Pub_LoadNpcs(NpcValues *self)
             else
                 path = path + "0" + IntToStr(file) + ".enf";
 
-            int h;
+            int file_handle;
             int size;
             char *buf;
             try
             {
-                h = FileOpen(path.c_str(), 0);
-                size = FileSeek(h, 0, 2);
-                FileSeek(h, 0, 0);
+                file_handle = FileOpen(path.c_str(), 0);
+                size = FileSeek(file_handle, 0, 2);
+                FileSeek(file_handle, 0, 0);
                 buf = new char[size + 1];
-                FileRead(h, buf, size);
-                FileClose(h);
+                FileRead(file_handle, buf, size);
+                FileClose(file_handle);
                 data += buf;
                 data.SetLength(size);
                 delete[] buf;
@@ -98,7 +98,7 @@ void NpcValues::Pub_LoadNpcs(NpcValues *self)
             }
             catch (...)
             {
-                FileClose(h);
+                FileClose(file_handle);
                 self->loaded = 0;
             }
             file++;
@@ -116,17 +116,17 @@ void NpcValues::Pub_LoadDrops(NpcValues *self)
         String data;
         String path = "./pub/dtd001.edf";
 
-        int h;
+        int file_handle;
         int size;
         char *buf;
         try
         {
-            h = FileOpen(path.c_str(), 0);
-            size = FileSeek(h, 0, 2);
-            FileSeek(h, 0, 0);
+            file_handle = FileOpen(path.c_str(), 0);
+            size = FileSeek(file_handle, 0, 2);
+            FileSeek(file_handle, 0, 0);
             buf = new char[size + 1];
-            FileRead(h, buf, size);
-            FileClose(h);
+            FileRead(file_handle, buf, size);
+            FileClose(file_handle);
             data += buf;
             data.SetLength(size);
             delete[] buf;
@@ -153,7 +153,7 @@ void NpcValues::Pub_LoadDrops(NpcValues *self)
         }
         catch (...)
         {
-            FileClose(h);
+            FileClose(file_handle);
             self->drops_loaded = 0;
         }
     }
@@ -166,17 +166,17 @@ void NpcValues::Pub_LoadTalk(NpcValues *self)
         String data;
         String path = "./pub/ttd001.etf";
 
-        int h;
+        int file_handle;
         int size;
         char *buf;
         try
         {
-            h = FileOpen(path.c_str(), 0);
-            size = FileSeek(h, 0, 2);
-            FileSeek(h, 0, 0);
+            file_handle = FileOpen(path.c_str(), 0);
+            size = FileSeek(file_handle, 0, 2);
+            FileSeek(file_handle, 0, 0);
             buf = new char[size + 1];
-            FileRead(h, buf, size);
-            FileClose(h);
+            FileRead(file_handle, buf, size);
+            FileClose(file_handle);
             data += buf;
             data.SetLength(size);
             delete[] buf;
@@ -200,7 +200,7 @@ void NpcValues::Pub_LoadTalk(NpcValues *self)
         }
         catch (...)
         {
-            FileClose(h);
+            FileClose(file_handle);
             self->talk_loaded = 0;
         }
     }
@@ -304,7 +304,7 @@ void NpcValues::AddNpc(NpcValues *self,
                        short race,
                        short boss,
                        short child,
-                       short type,
+                       short npc_type,
                        short behavior_id,
                        int hp,
                        short tp,
@@ -328,7 +328,7 @@ void NpcValues::AddNpc(NpcValues *self,
     value.race = race;
     value.boss = boss;
     value.child = child;
-    value.npc_type = type;
+    value.npc_type = npc_type;
     value.behavior_id = behavior_id;
     value.hp = hp;
     value.tp = tp;

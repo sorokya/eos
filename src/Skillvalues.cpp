@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Skillvalues.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -26,17 +27,17 @@ void SkillValues::LoadSpells(SkillValues *self)
             else
                 path = path + "0" + IntToStr(file) + ".esf";
 
-            int h;
+            int file_handle;
             int size;
             char *buf;
             try
             {
-                h = FileOpen(path.c_str(), 0);
-                size = FileSeek(h, 0, 2);
-                FileSeek(h, 0, 0);
+                file_handle = FileOpen(path.c_str(), 0);
+                size = FileSeek(file_handle, 0, 2);
+                FileSeek(file_handle, 0, 0);
                 buf = new char[size + 1];
-                FileRead(h, buf, size);
-                FileClose(h);
+                FileRead(file_handle, buf, size);
+                FileClose(file_handle);
                 data += buf;
                 data.SetLength(size);
                 delete[] buf;
@@ -98,7 +99,7 @@ void SkillValues::LoadSpells(SkillValues *self)
             }
             catch (...)
             {
-                FileClose(h);
+                FileClose(file_handle);
                 self->loaded = 0;
             }
             file++;
@@ -214,7 +215,7 @@ SkillDamage SkillValues::GetDamage(SkillValues *self, int skill_id)
 SkillElement SkillValues::GetElement(SkillValues *self, int skill_id)
 {
     SkillElement result;
-    result.element = 0;
+    result.element = Element_None;
     result.element_power = 0;
     if (skill_id > 0)
     {
@@ -229,14 +230,14 @@ SkillElement SkillValues::GetElement(SkillValues *self, int skill_id)
 
 int SkillValues::GetTargetType(SkillValues *self, int skill_id)
 {
-    int result = 0;
+    int result = SkillTargetType_Normal;
     if (skill_id > 0)
     {
         if (self->GetCount() > skill_id)
         {
             result = self->record_list[skill_id - 1].target_type;
             if (result < 0)
-                result = 0;
+                result = SkillTargetType_Normal;
         }
     }
     return result;
@@ -244,14 +245,14 @@ int SkillValues::GetTargetType(SkillValues *self, int skill_id)
 
 int SkillValues::GetSkillType(SkillValues *self, int skill_id)
 {
-    int result = 0;
+    int result = SkillType_Heal;
     if (skill_id > 0)
     {
         if (self->GetCount() > skill_id)
         {
             result = self->record_list[skill_id - 1].skill_type;
             if (result < 0)
-                result = 0;
+                result = SkillType_Heal;
         }
     }
     return result;

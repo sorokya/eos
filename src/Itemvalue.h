@@ -50,7 +50,7 @@ struct ItemValue
     short charisma_requirement;     // +0x4a
     short weight;                   // +0x4c (Eif_GetWeight)
     short size;                     // +0x4e
-    short unused;                   // +0x50
+    short weapon_target_area;       // +0x50 (unnamed "Weapon Target Area" EIF field)
     short element;                  // +0x52 (Eif_GetElement)
     short element_damage;           // +0x54 (Eif_GetElement)
 
