@@ -3535,8 +3535,8 @@ String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *e
             while (!woven.empty())
             {
                 char c = woven.front();
-                int value = (unsigned char)c;
-                if (value % multiple == 0)
+                unsigned char v = woven.front();
+                if (v % multiple == 0)
                     pending.push(c);
                 else
                 {
