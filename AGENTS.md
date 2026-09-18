@@ -386,6 +386,20 @@ them to pick the form that matches the reference.
   *sequence* encodes block nesting, so comparing marker streams is the quickest
   way to tell whether an `if`/`for`/block structure matches. Braces on an
   otherwise single-statement `if` add a scope (and a marker).
+- **A destructible temporary forces an arms-then-re-arm pair.** bcc32 arms a
+  cleanup scope for every statement that binds a **destructible temporary**
+  (`String`/`AnsiString`, a class with a destructor), then immediately re-arms
+  the **enclosing** scope before the next statement; the no-op terminator entry
+  (`flags=5, extra=0, action=0`, whose `scope` field chains back outward) is its
+  descriptor signature. This is a property of the temporary, *not* of `try` and
+  *not* of loops — a variant with no `try` still re-arms, just renumbered. Two
+  consecutive `String x = decode(...);` statements in a loop body produce the
+  `arm tempA, re-arm enclosing, arm tempB, re-arm enclosing` sequence. A plain
+  **scalar** decode (`int code = decode(...)`) never arms a cleanup scope at all,
+  which is the usual reason a marker stream is one arming short. Falsified as
+  causes: temporaries in a `for`-condition, single-statement `for` bodies, and
+  declarations without initialisers (they arm nothing). Established by an
+  exhaustive 28-variant probe matrix; see `tests/rearm_probe.cpp`.
 - **A block-scoped declaration *with an initializer* arms the enclosing scope;
   a bare `{ }` does not.** A plain block owns nothing destructible, so it emits
   no marker — but `int sit_state = 0;` declared inside an `if` and
