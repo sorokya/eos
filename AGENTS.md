@@ -234,6 +234,16 @@ documented build, not a manual fix-up.
   whole-image sweep desynchronises on data embedded in `.text`, so it must not
   be replaced by one pass over the image.
 
+- Library members are identified by matching reference functions against the
+  *linked* build (`scripts/libmatch.py`, `MAP=1 scripts/build.sh`): the Borland
+  libraries are the same code compiled by the same toolchain, so a match inside a
+  named library module of the linked image is exact and gives the member name.
+  This is how a named unit's span that absorbs stub-less library members is
+  classified correctly (Banned's first ~57 KB is the RTL `System` member, not
+  application code). Without a linked build the classifier falls back to a
+  reloc-masked signature over `ref/Borland5/Lib`, which is complete but noisier;
+  the cache records which mode produced it.
+
 - `make track` regenerates the central per-function status sheet
   (`analysis/target/functions.tsv`, generated) and the status block in
   `README.md`: one row per reference function with its unit, address, name,

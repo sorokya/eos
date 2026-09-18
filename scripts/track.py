@@ -40,15 +40,15 @@ import argparse
 import importlib.util
 import os
 import re
-import subprocess
 import sys
-from bisect import bisect_left
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import unitmap  # noqa: E402  (load_libs / _masked_pattern / _va_to_off)
+import libmatch  # noqa: E402  (linked-build library matching)
 
 # A function is a compiler COMDAT if its hint name matches; the owning class's
 # declaration makes the compiler emit it, so it is not reconstructed by hand.
@@ -89,6 +89,7 @@ def load_inventory(path):
 
 
 def load_stub_addrs(path):
+    """Every module boundary: the Initialize stub and its Finalize at +0x10."""
     addrs = set()
     with open(path, encoding="utf-8") as fh:
         next(fh, None)
@@ -97,36 +98,27 @@ def load_stub_addrs(path):
             if len(p) >= 6:
                 try:
                     addrs.add(int(p[2], 16))
+                    addrs.add(int(p[2], 16) + 0x10)
                 except ValueError:
                     pass
     return addrs
 
 
-def text_range(pe):
-    """[lo, hi) of the executable image, from the PE section table."""
-    secs = [s for s in pe.sections if s.characteristics & 0x20000000]
-    if not secs:
-        return TEXT_LO, TEXT_HI
-    return (unitmap.IMAGE_BASE + min(s.virtual_address for s in secs),
-            unitmap.IMAGE_BASE + max(s.virtual_address + s.virtual_size
-                                     for s in secs))
+def parse_rows(ca, ref_bin, rows, jobs):
+    """Parse each row's reference range with objdump, in parallel.
+
+    Per range, not one sweep over the image: a sweep desynchronises on data
+    embedded in .text and decodes the wrong boundaries (the same trap
+    verify_units avoids).
+    """
+    work = [(r["_lo"], r["_hi"]) for r in rows]
+    with ThreadPoolExecutor(max_workers=jobs) as ex:
+        out = list(ex.map(lambda se: ca.parse_ref(ref_bin, se[0], se[1])[0], work))
+    for r, ins in zip(rows, out):
+        r["_ins"] = ins
 
 
-def ref_index(ca, ref_bin, lo, hi):
-    """One objdump pass: [(address, per-instruction canonical form)] over .text."""
-    txt = subprocess.check_output(
-        ["objdump", "-d", "-M", "intel",
-         f"--start-address={lo}", f"--stop-address={hi}", ref_bin],
-        stderr=subprocess.DEVNULL).decode("latin1")
-    seq = []
-    for line in txt.split("\n"):
-        m = re.match(r"^\s*([0-9a-f]+):\s+(?:[0-9a-f]{2}\s+)+(\S+)\s*(.*)$", line)
-        if m:
-            seq.append((int(m.group(1), 16), ca.canon(f"{m.group(2)} {m.group(3)}")))
-    return seq
-
-
-def range_forms(seq, addrs, lo, hi, list_canon, truncate):
+def range_forms(ins, list_canon, truncate):
     """Canonical forms of reference range [lo,hi).
 
     `truncate=False` returns only the whole range; `truncate=True` also returns
@@ -134,9 +126,6 @@ def range_forms(seq, addrs, lo, hi, list_canon, truncate):
     sometimes short of its real epilogue (the last function before the EH
     cleanup table, or a Ghidra split).
     """
-    i = bisect_left(addrs, lo)
-    j = bisect_left(addrs, hi)
-    ins = [c for _a, c in seq[i:j]]
     out = [tuple(list_canon(ins))]
     if truncate:
         for k, x in enumerate(ins):
@@ -163,9 +152,22 @@ def our_functions(ca, list_canon, asm_dir, units):
     return by_unit, names
 
 
-def classify(rows, stub_addrs, lib_blob, pe):
-    """Assign kind to every row (library / comdat / stub / app)."""
+def classify(rows, stub_addrs, pe, libs_dir, linked=None, map_path=None):
+    """Assign kind to every row (library / comdat / stub / app).
+
+    The library test matches the reference function against the LINKED build's
+    library modules (libmatch): those members are the same code compiled by the
+    same toolchain, so a hit is exact and comes with a member name. It covers the
+    members the current build pulls in; a member our (still incomplete) units do
+    not reference yet will show as `app` -- the safe direction, since that only
+    overstates the remaining work. When no linked build is available it falls
+    back to the raw `.lib` blob signature, which is complete but noisier.
+    """
     relocs = {rva + unitmap.IMAGE_BASE for rva, _t in pe.relocations()}
+    blob = spans = None
+    if linked is not None and map_path and os.path.exists(map_path):
+        blob, spans = libmatch.library_block(linked, map_path)
+    lib_blob = None
     for row in rows:
         if row["start"] in stub_addrs:
             row["kind"] = "stub"
@@ -174,14 +176,59 @@ def classify(rows, stub_addrs, lib_blob, pe):
         elif row["name"].startswith("@"):
             row["kind"] = "library"
         else:
-            n = min(row["size"], unitmap.SIG_LEN)
-            off = unitmap._va_to_off(pe, row["start"]) if n >= 12 else None
-            s = pe.data[off:off + n] if off is not None else None
-            if s is not None and (s in lib_blob or
-                                  (_masked(row["start"], s, relocs, lib_blob))):
-                row["kind"] = "library"
-            else:
-                row["kind"] = "app"
+            # Primary: inside a library module of the linked build (exact).
+            hit = False
+            off = unitmap._va_to_off(pe, row["start"])
+            if blob is not None:
+                sig = pe.data[off:off + min(row["size"], libmatch.MAX_SIG)]
+                pat = libmatch.masked_pattern(row["start"], sig, relocs)
+                m = pat.search(blob) if pat else None
+                hit = bool(m and libmatch.module_at(spans, m.start()))
+                if hit:
+                    row["_lib_exact"] = True
+            # Fallback: the raw .lib blob, for members the (incomplete) build does
+            # not pull in yet. Longer signature: a 16-byte window matches all over
+            # a 50 MB blob, and a false "library" would hide real work.
+            if not hit and off is not None and row["size"] >= 24:
+                if lib_blob is None:
+                    lib_blob = unitmap.load_libs(libs_dir)
+                sig = pe.data[off:off + min(row["size"], 24)]
+                hit = sig in lib_blob or _masked(row["start"], sig, relocs, lib_blob)
+            row["kind"] = "library" if hit else "app"
+
+
+def _extend_library_runs(rows, run=0x1000):
+    """Grow library classification from exact hits across a contiguous run.
+
+    Library members are laid out in dense runs, and a hit inside a named library
+    module of the linked build is exact. A function within `run` bytes of such a
+    hit is library too -- this recovers the members the (still incomplete) build
+    does not pull in yet, without the false positives a bare 16-byte signature
+    produces in a 50 MB blob. Reproduced functions are restored afterwards.
+    """
+    by_unit = defaultdict(list)
+    for r in rows:
+        by_unit[r["unit"]].append(r)
+    for group in by_unit.values():
+        anchors = sorted(r["start"] for r in group if r.get("_lib_exact"))
+        if not anchors:
+            continue
+        import bisect
+        barriers = sorted(r["start"] for r in group if r["status"] == "byte-exact")
+        for r in group:
+            if r["kind"] in ("stub", "comdat"):
+                continue
+            if r["status"] == "byte-exact":
+                continue
+            i = bisect.bisect_left(anchors, r["start"])
+            near = min((abs(r["start"] - anchors[j]) for j in (i - 1, i)
+                        if 0 <= j < len(anchors)), default=None)
+            # A reproduced function is application code: never reach across one.
+            blocked = any(abs(r["start"] - b) <= run
+                          and min(r["start"], b) < b < max(r["start"], b)
+                          for b in barriers)
+            if near is not None and near <= run and not blocked:
+                r["kind"] = "library"
 
 
 def _masked(addr, sig, relocs, blob):
@@ -199,22 +246,33 @@ def _masked(addr, sig, relocs, blob):
 
 
 def load_kinds(path):
+    """(kinds, mode); `mode` records how the verdicts were produced so a run
+    with a linked build present does not reuse fallback verdicts."""
     kinds = {}
+    mode = ""
     if os.path.exists(path):
         with open(path, encoding="utf-8") as fh:
-            next(fh, None)
             for line in fh:
+                if line.startswith("#mode="):
+                    mode = line.strip()[6:]
+                    continue
                 p = line.rstrip("\n").split("\t")
-                if len(p) >= 3:
-                    kinds[(p[0], int(p[1], 16))] = p[2]
-    return kinds
+                if len(p) >= 3 and p[0] != "unit":
+                    try:
+                        kinds[(p[0], int(p[1], 16))] = (p[2],
+                                                        len(p) > 3 and p[3] == "exact")
+                    except ValueError:
+                        pass
+    return kinds, mode
 
 
-def save_kinds(rows, path):
+def save_kinds(rows, path, mode):
     with open(path, "w", encoding="utf-8") as fh:
-        fh.write("unit\tstart\tkind\n")
+        fh.write(f"#mode={mode}\n")
+        fh.write("unit\tstart\tkind\texact\n")
         for r in sorted(rows, key=lambda r: (r["unit"], r["start"])):
-            fh.write(f"{r['unit']}\t{r['start']:#010x}\t{r['kind']}\n")
+            exact = "exact" if r.get("_lib_exact") else "-"
+            fh.write(f"{r['unit']}\t{r['start']:#010x}\t{r['kind']}\t{exact}\n")
 
 
 HEAD = ("unit", "order", "start", "end", "size", "ref_name", "kind",
@@ -300,8 +358,14 @@ def main() -> int:
     ap.add_argument("--ref", default="GameServer.exe")
     ap.add_argument("--asm-dir", default="build")
     ap.add_argument("--libs", default="ref/Borland5/Lib")
+    ap.add_argument("--linked", default="build/GameServer.exe",
+                    help="linked build used to identify library members")
+    ap.add_argument("--map", default="build/GameServer.map",
+                    help="its ilink32 -s map (MAP=1 scripts/build.sh)")
     ap.add_argument("--out", default="analysis/target/functions.tsv")
     ap.add_argument("--readme", default="")
+    ap.add_argument("-j", "--jobs", type=int, default=0,
+                    help="parallel objdump jobs (0 = CPU count)")
     ap.add_argument("--summary", action="store_true")
     args = ap.parse_args()
 
@@ -311,31 +375,46 @@ def main() -> int:
     units = {r["unit"] for r in rows}
     stub_addrs = load_stub_addrs(args.modules)
 
-    kinds = {} if args.reclassify else load_kinds(args.kinds_cache)
-    fresh = all((r["unit"], r["start"]) in kinds for r in rows)
+    linked_ok = os.path.exists(args.linked) and os.path.exists(args.map)
+    mode = "linked" if linked_ok else "blob"
+    kinds, have = ({}, "") if args.reclassify else load_kinds(args.kinds_cache)
+    fresh = have == mode and all((r["unit"], r["start"]) in kinds for r in rows)
     pe = load("pe.py").PE.from_file(args.ref)
     if not fresh:
-        classify(rows, stub_addrs, unitmap.load_libs(args.libs), pe)
-        save_kinds(rows, args.kinds_cache)
+        linked = load("pe.py").PE.from_file(args.linked) if linked_ok else None
+        classify(rows, stub_addrs, pe, args.libs,
+                 linked=linked, map_path=args.map)
+        save_kinds(rows, args.kinds_cache, mode)
     else:
         for r in rows:
-            r["kind"] = kinds[(r["unit"], r["start"])]
+            r["kind"], r["_lib_exact"] = kinds[(r["unit"], r["start"])]
 
     by_unit, names = our_functions(ca, vu.canon, args.asm_dir, units)
-    ref_pe = load("pe.py").PE.from_file(args.ref)
-    seq = ref_index(ca, args.ref, *text_range(ref_pe))
-    addrs = [a for a, _c in seq]
     groups = defaultdict(list)
     for r in rows:
         groups[r["unit"]].append(r)
+    # A row's range ends at the next row of the same unit (any kind), which keeps
+    # it tight when library members inside the span are excluded; the last one
+    # uses its recorded end.
+    for _u, group in groups.items():
+        group.sort(key=lambda r: r["start"])
+        for i, r in enumerate(group):
+            r["_lo"] = r["start"]
+            r["_hi"] = group[i + 1]["start"] if i + 1 < len(group) else r["end"]
+    parse_rows(ca, args.ref, rows, args.jobs or (os.cpu_count() or 4))
     for unit, group in groups.items():
         group.sort(key=lambda r: r["start"])
         pool = by_unit.get(unit, {})
         used = set()
 
-        def take(r, truncate):
-            for cand in range_forms(seq, addrs, r["start"], r["end"],
-                                    vu.canon, truncate):
+        def take(r, truncate, nxt=None):
+            forms = range_forms(r["_ins"], vu.canon, truncate)
+            # Ghidra sometimes splits a function after its prologue; a short
+            # ret-less fragment followed by its successor is one function.
+            if (nxt is not None and "ret" not in r["_ins"]
+                    and len(r["_ins"]) <= 6 and nxt["_lo"] == r["_hi"]):
+                forms.append(tuple(vu.canon(r["_ins"] + nxt["_ins"])))
+            for cand in forms:
                 if not cand:
                     continue
                 for name in pool.get(cand, ()):
@@ -348,14 +427,18 @@ def main() -> int:
         # Each source function corresponds to exactly one reference function, so
         # a match consumes it. Whole-range matches are taken first, then the
         # truncated forms (only one source function can stand behind a range).
+        def next_of(r):
+            i = group.index(r)
+            return group[i + 1] if i + 1 < len(group) else None
+
         pending = [r for r in group if r["kind"] not in ("library", "stub")]
         for r in pending:
-            if take(r, truncate=False):
+            if take(r, truncate=False, nxt=next_of(r)):
                 r["status"] = "byte-exact"
         for r in pending:
             if r.get("status") == "byte-exact":
                 continue
-            if take(r, truncate=True):
+            if take(r, truncate=True, nxt=next_of(r)):
                 r["status"] = "byte-exact"
             else:
                 probe = r["name"].lower()
@@ -366,9 +449,27 @@ def main() -> int:
                     r["status"], r["source_name"] = "mismatched", sorted(same)[0]
                 else:
                     r["status"], r["source_name"] = "unimplemented", ""
+        # A row the heuristic called `library` may still be application code we
+        # have reproduced (the smoother can pull a function at the edge of a
+        # library run across the line). Give the leftovers to those rows; a match
+        # is proof of application code, so it flips the kind back.
         for r in group:
-            if r["kind"] in ("library", "stub"):
+            if r["kind"] == "library":
+                if take(r, truncate=False) or take(r, truncate=True):
+                    r["status"], r["kind"] = "byte-exact", "app"
+                else:
+                    r["status"], r["source_name"] = "n/a", ""
+        for r in group:
+            if r["kind"] == "stub":
                 r["status"], r["source_name"] = "n/a", ""
+
+    _extend_library_runs(rows)
+
+    # A function we have reproduced is application code by definition; never let
+    # the (heuristic) library vote hide it.
+    for r in rows:
+        if r["status"] == "byte-exact":
+            r["kind"] = "app" if r["kind"] != "comdat" else "comdat"
 
     write_tsv(rows, args.out)
     print("\n".join(summary(rows)), file=sys.stderr)

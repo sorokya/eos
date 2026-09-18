@@ -95,6 +95,7 @@ make unit UNIT=Serial     # compile one reconstructed unit
 make unit-asm UNIT=Serial # emit bcc32 assembly for one unit
 make unitmap   # re-segment modules + rebuild the per-unit function inventory
 make track     # regenerate analysis/target/functions.tsv + the README status block
+               #   (run `MAP=1 scripts/build.sh` first for exact library classification)
 make verify    # emit stale asm + score every source function vs the reference
                #   JOBS=N parallel compiles/objdump (default: CPU count); incremental
 make format    # apply the project clang-format style to src/*.cpp, src/*.h
@@ -119,14 +120,22 @@ make clean     # remove build/
   per range (a single whole-image sweep desynchronises on data embedded in
   `.text` and decodes wrong boundaries) and the calls run in parallel
   (`-j N`, default CPU count).
+- **`libmatch.py [--list UNIT,...]`** — identify library members by matching
+  reference functions against the *linked build*: the Borland libraries are the
+  same code compiled by the same toolchain, so linking the project (with
+  `MAP=1 scripts/build.sh`) yields a library block that can be searched directly,
+  and the map names each module. Far more precise than the raw `.lib` blob
+  (`build/GameServer.map` is required).
 - **`track.py [--summary] [--readme FILE] [--reclassify]`** — the central
   per-function status sheet: `analysis/target/functions.tsv` (generated,
   gitignored) with one row per reference function and columns
   `unit order start end size ref_name kind source_name status note`.
   `kind` is `app` (must be written), `comdat` (compiler-emitted once the owning
   type is used), `library` (statically linked RTL/VCL/BDE, matched by a
-  reloc-masked byte signature against `ref/Borland5/Lib`), or `stub` (a module
-  initializer boundary). `status` is `byte-exact` / `mismatched` /
+  matching a library module of the linked build (`libmatch.py`; falls back to a
+  reloc-masked signature over `ref/Borland5/Lib`), or `stub` (a module
+  initializer boundary). Run `MAP=1 scripts/build.sh` first for the exact
+  classification; without it the fallback is used and the cache records which. `status` is `byte-exact` / `mismatched` /
   `unimplemented` / `deferred` / `n/a`, decided from the `build/<Unit>.asm`
   listings with the same canonicalisation as `verify_units.py`; each source
   function can satisfy only one reference function. `--readme` rewrites the
