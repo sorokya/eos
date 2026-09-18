@@ -1462,6 +1462,10 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
     int file_handle;
     int size;
     int count;
+    int tile_x;
+    int tile_y;
+    int spec;
+    int code;
     char *buf;
     try
     {
@@ -1620,17 +1624,19 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            unsigned int tile_x =
+            tile_x =
                 Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
-            unsigned int tile_y =
+            tile_y =
                 Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 2));
             map_buf.Delete(1, 2);
-            for (int k = 0; k < (int)tile_y; k++)
+            for (int k = 0; k < tile_y; k++)
             {
-                int spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                {
+                    spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
                                                             map_buf.SubString(1, 1));
-                int code = Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                    code = Mapcontrol::Pub_DecodeNumber_Map(map_control,
                                                             map_buf.SubString(1, 2));
+                }
                 if (code == 0 || code == 0x12)
                     Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 1);
                 if (code > 0 && code <= 0x11)

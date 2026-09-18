@@ -1411,7 +1411,10 @@ String Server_BuildOnlineList(Server *server)
         }
         return list;
     }
-    return server->online_list_cache;
+    else
+    {
+        return server->online_list_cache;
+    }
 }
 
 String Refresh_BuildReply(Server *server, Player *player)
@@ -1419,144 +1422,166 @@ String Refresh_BuildReply(Server *server, Player *player)
     String data = EO_GetBreakByte(server, 0xff);
     int count = 0;
     Player **iter;
+    int sit_state;
     Npc **niter;
-    ChestItem **iiter;
     int cheat_x;
     int cheat_y;
-    int sit_state;
-    for (iter = Players_Iter_Begin(server->players);
-         iter != Players_Iter_End(server->players);
-         iter++)
+    ChestItem **iiter;
+    try
     {
-        if ((*iter)->map_id == player->map_id &&
-            Server_InViewRange(server, player->x, player->y, (*iter)->x, (*iter)->y))
+        for (iter = Players_Iter_Begin(server->players);
+             iter != Players_Iter_End(server->players);
+             iter++)
         {
-            count++;
-            data.Insert((*iter)->name, data.Length() + 1);
-            data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->player_id, 2),
-                        data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->map_id, 2), data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->x, 2), data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->y, 2), data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->direction, 1),
-                        data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->class_id, 1), data.Length() + 1);
-            data.Insert((*iter)->guild_tag, data.Length() + 1);
-            if ((*iter)->guild_tag.Length() == 2)
-                data.Insert(" ", data.Length() + 1);
-            if ((*iter)->guild_tag.Length() == 1)
-                data.Insert("  ", data.Length() + 1);
-            if ((*iter)->guild_tag.Length() == 0)
-                data.Insert("   ", data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->level, 1), data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->gender, 1), data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->hair_style, 1),
-                        data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->hair_color, 1),
-                        data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->skin, 1), data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->max_hp, 2), data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->hp, 2), data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->max_tp, 2), data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->tp, 2), data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->boots_graphic_id, 2),
-                        data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->accessory_graphic_id, 2),
-                        data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->gloves_graphic_id, 2),
-                        data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->belt_graphic_id, 2),
-                        data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->armor_graphic_id, 2),
-                        data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->necklace_graphic_id, 2),
-                        data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->hat_graphic_id, 2),
-                        data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->shield_graphic_id, 2),
-                        data.Length() + 1);
-            data.Insert(EO_EncodeNumber(server, (*iter)->weapon_graphic_id, 2),
-                        data.Length() + 1);
-            sit_state = 0;
-            if ((*iter)->on_chair)
-                sit_state = 1;
-            if ((*iter)->sitting)
-                sit_state = 2;
-            data.Insert(EO_EncodeNumber(server, sit_state, 1), data.Length() + 1);
-            if ((*iter)->hidden)
-                data.Insert(EO_EncodeNumber(server, 1, 1), data.Length() + 1);
-            else
-                data.Insert(EO_EncodeNumber(server, 0, 1), data.Length() + 1);
-            data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
-        }
-    }
-    data.Insert(EO_EncodeNumber(server, count, 1), 1);
-    if (player->map_id > 0 && player->map_id <= Mapcontrol_GetCount(server->map_control))
-    {
-        for (niter = (Npc **)Map_NpcIter_Begin(
-                 &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                      ->npc_list);
-             niter != (Npc **)Map_NpcIter_End(
-                          &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                               ->npc_list);
-             niter++)
-        {
-            if ((*niter)->alive &&
-                Server_InViewRange(
-                    server, player->x, player->y, (*niter)->x, (*niter)->y))
+            if ((*iter)->map_id == player->map_id &&
+                Server_InViewRange(server, player->x, player->y, (*iter)->x, (*iter)->y))
             {
-                data.Insert(EO_EncodeNumber(server, (*niter)->index, 1),
+                count++;
+                data.Insert((*iter)->name, data.Length() + 1);
+                data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->player_id, 2),
                             data.Length() + 1);
-                data.Insert(EO_EncodeNumber(server, (*niter)->id, 2), data.Length() + 1);
-                if (!player->cheater_flag)
-                {
-                    data.Insert(EO_EncodeNumber(server, (*niter)->x, 1),
-                                data.Length() + 1);
-                    data.Insert(EO_EncodeNumber(server, (*niter)->y, 1),
-                                data.Length() + 1);
-                }
+                data.Insert(EO_EncodeNumber(server, (*iter)->map_id, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->x, 2), data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->y, 2), data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->direction, 1),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->class_id, 1),
+                            data.Length() + 1);
+                data.Insert((*iter)->guild_tag, data.Length() + 1);
+                if ((*iter)->guild_tag.Length() == 2)
+                    data.Insert(" ", data.Length() + 1);
+                if ((*iter)->guild_tag.Length() == 1)
+                    data.Insert("  ", data.Length() + 1);
+                if ((*iter)->guild_tag.Length() == 0)
+                    data.Insert("   ", data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->level, 1),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->gender, 1),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->hair_style, 1),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->hair_color, 1),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->skin, 1), data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->max_hp, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->hp, 2), data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->max_tp, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->tp, 2), data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->boots_graphic_id, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->accessory_graphic_id, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->gloves_graphic_id, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->belt_graphic_id, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->armor_graphic_id, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->necklace_graphic_id, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->hat_graphic_id, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->shield_graphic_id, 2),
+                            data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, (*iter)->weapon_graphic_id, 2),
+                            data.Length() + 1);
+                sit_state = 0;
+                if ((*iter)->on_chair)
+                    sit_state = 1;
+                if ((*iter)->sitting)
+                    sit_state = 2;
+                data.Insert(EO_EncodeNumber(server, sit_state, 1), data.Length() + 1);
+                if ((*iter)->hidden)
+                    data.Insert(EO_EncodeNumber(server, 1, 1), data.Length() + 1);
                 else
+                    data.Insert(EO_EncodeNumber(server, 0, 1), data.Length() + 1);
+                data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+            }
+        }
+        data.Insert(EO_EncodeNumber(server, count, 1), 1);
+        if (player->map_id > 0 &&
+            player->map_id <= Mapcontrol_GetCount(server->map_control))
+        {
+            for (niter = (Npc **)Map_NpcIter_Begin(
+                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                          ->npc_list);
+                 niter !=
+                 (Npc **)Map_NpcIter_End(
+                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                          ->npc_list);
+                 niter++)
+            {
+                if ((*niter)->alive &&
+                    Server_InViewRange(
+                        server, player->x, player->y, (*niter)->x, (*niter)->y))
                 {
-                    cheat_x = (*niter)->x + server->cheat_offset_x - 1;
-                    cheat_y = (*niter)->y + server->cheat_offset_y - 1;
-                    if (cheat_x < 1)
-                        cheat_x = 0;
-                    if (cheat_y < 1)
-                        cheat_y = 0;
-                    data.Insert(EO_EncodeNumber(server, cheat_x, 1), data.Length() + 1);
-                    data.Insert(EO_EncodeNumber(server, cheat_y, 1), data.Length() + 1);
+                    data.Insert(EO_EncodeNumber(server, (*niter)->index, 1),
+                                data.Length() + 1);
+                    data.Insert(EO_EncodeNumber(server, (*niter)->id, 2),
+                                data.Length() + 1);
+                    if (!player->cheater_flag)
+                    {
+                        data.Insert(EO_EncodeNumber(server, (*niter)->x, 1),
+                                    data.Length() + 1);
+                        data.Insert(EO_EncodeNumber(server, (*niter)->y, 1),
+                                    data.Length() + 1);
+                    }
+                    else
+                    {
+                        cheat_x = (*niter)->x + server->cheat_offset_x - 1;
+                        cheat_y = (*niter)->y + server->cheat_offset_y - 1;
+                        if (cheat_x < 1)
+                            cheat_x = 0;
+                        if (cheat_y < 1)
+                            cheat_y = 0;
+                        data.Insert(EO_EncodeNumber(server, cheat_x, 1),
+                                    data.Length() + 1);
+                        data.Insert(EO_EncodeNumber(server, cheat_y, 1),
+                                    data.Length() + 1);
+                    }
+                    data.Insert(
+                        EO_EncodeNumber(server, (unsigned short)(*niter)->direction, 1),
+                        data.Length() + 1);
                 }
-                data.Insert(
-                    EO_EncodeNumber(server, (unsigned short)(*niter)->direction, 1),
-                    data.Length() + 1);
+            }
+        }
+        data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+        if (player->map_id > 0 &&
+            player->map_id <= Mapcontrol_GetCount(server->map_control))
+        {
+            for (iiter = (ChestItem **)GroundItemPtrVector_Begin(
+                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                          ->ground_items);
+                 iiter !=
+                 (ChestItem **)PtrVector_GetEnd(
+                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                          ->ground_items);
+                 iiter++)
+            {
+                if (Server_InViewRange(
+                        server, player->x, player->y, (*iiter)->x, (*iiter)->y))
+                {
+                    data.Insert(EO_EncodeNumber(server, (*iiter)->index, 2),
+                                data.Length() + 1);
+                    data.Insert(EO_EncodeNumber(server, (*iiter)->item_id, 2),
+                                data.Length() + 1);
+                    data.Insert(EO_EncodeNumber(server, (*iiter)->x, 1),
+                                data.Length() + 1);
+                    data.Insert(EO_EncodeNumber(server, (*iiter)->y, 1),
+                                data.Length() + 1);
+                    data.Insert(EO_EncodeNumber(server, (*iiter)->amount, 3),
+                                data.Length() + 1);
+                }
             }
         }
     }
-    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
-    if (player->map_id > 0 && player->map_id <= Mapcontrol_GetCount(server->map_control))
+    catch (...)
     {
-        for (iiter = (ChestItem **)GroundItemPtrVector_Begin(
-                 &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                      ->ground_items);
-             iiter != (ChestItem **)PtrVector_GetEnd(
-                          &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                               ->ground_items);
-             iiter++)
-        {
-            if (Server_InViewRange(
-                    server, player->x, player->y, (*iiter)->x, (*iiter)->y))
-            {
-                data.Insert(EO_EncodeNumber(server, (*iiter)->index, 2),
-                            data.Length() + 1);
-                data.Insert(EO_EncodeNumber(server, (*iiter)->item_id, 2),
-                            data.Length() + 1);
-                data.Insert(EO_EncodeNumber(server, (*iiter)->x, 1), data.Length() + 1);
-                data.Insert(EO_EncodeNumber(server, (*iiter)->y, 1), data.Length() + 1);
-                data.Insert(EO_EncodeNumber(server, (*iiter)->amount, 3),
-                            data.Length() + 1);
-            }
-        }
+        data = "";
     }
     return data;
 }
@@ -1564,60 +1589,75 @@ String Refresh_BuildReply(Server *server, Player *player)
 String Paperdoll_BuildReply(Server *server, Player *player)
 {
     String data = "";
-    data.Insert(player->name, data.Length() + 1);
-    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
-    data.Insert(player->home_name, data.Length() + 1);
-    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
-    data.Insert(player->partner_name, data.Length() + 1);
-    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
-    data.Insert(player->title, data.Length() + 1);
-    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
-    data.Insert(player->guild_name, data.Length() + 1);
-    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
-    data.Insert(player->guild_rank_name, data.Length() + 1);
-    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->player_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->class_id, 1), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->gender, 1), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->admin_level, 1), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->boots_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->accessory_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->gloves_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->belt_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->armor_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->necklace_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->hat_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->shield_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->weapon_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->ring1_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->ring2_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->armlet1_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->armlet2_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->bracer1_item_id, 2), data.Length() + 1);
-    data.Insert(EO_EncodeNumber(server, player->bracer2_item_id, 2), data.Length() + 1);
-    if (player->in_party)
+    try
     {
-        if (player->admin_level > 1)
+        data.Insert(player->name, data.Length() + 1);
+        data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+        data.Insert(player->home_name, data.Length() + 1);
+        data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+        data.Insert(player->partner_name, data.Length() + 1);
+        data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+        data.Insert(player->title, data.Length() + 1);
+        data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+        data.Insert(player->guild_name, data.Length() + 1);
+        data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+        data.Insert(player->guild_rank_name, data.Length() + 1);
+        data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->player_id, 2), data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->class_id, 1), data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->gender, 1), data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->admin_level, 1), data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->boots_item_id, 2), data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->accessory_item_id, 2),
+                    data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->gloves_item_id, 2),
+                    data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->belt_item_id, 2), data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->armor_item_id, 2), data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->necklace_item_id, 2),
+                    data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->hat_item_id, 2), data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->shield_item_id, 2),
+                    data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->weapon_item_id, 2),
+                    data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->ring1_item_id, 2), data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->ring2_item_id, 2), data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->armlet1_item_id, 2),
+                    data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->armlet2_item_id, 2),
+                    data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->bracer1_item_id, 2),
+                    data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server, player->bracer2_item_id, 2),
+                    data.Length() + 1);
+        if (player->in_party)
         {
-            if (player->admin_level < 4)
-                data.Insert(EO_EncodeNumber(server, 9, 1), data.Length() + 1);
+            if (player->admin_level > 1)
+            {
+                if (player->admin_level < 4)
+                    data.Insert(EO_EncodeNumber(server, 9, 1), data.Length() + 1);
+                else
+                    data.Insert(EO_EncodeNumber(server, 10, 1), data.Length() + 1);
+            }
             else
-                data.Insert(EO_EncodeNumber(server, 10, 1), data.Length() + 1);
+                data.Insert(EO_EncodeNumber(server, 6, 1), data.Length() + 1);
         }
         else
-            data.Insert(EO_EncodeNumber(server, 6, 1), data.Length() + 1);
+        {
+            if (player->admin_level > 1)
+            {
+                if (player->admin_level < 4)
+                    data.Insert(EO_EncodeNumber(server, 4, 1), data.Length() + 1);
+                else
+                    data.Insert(EO_EncodeNumber(server, 5, 1), data.Length() + 1);
+            }
+            else
+                data.Insert(EO_EncodeNumber(server, 1, 1), data.Length() + 1);
+        }
     }
-    else
+    catch (...)
     {
-        if (player->admin_level > 1)
-        {
-            if (player->admin_level < 4)
-                data.Insert(EO_EncodeNumber(server, 4, 1), data.Length() + 1);
-            else
-                data.Insert(EO_EncodeNumber(server, 5, 1), data.Length() + 1);
-        }
-        else
-            data.Insert(EO_EncodeNumber(server, 1, 1), data.Length() + 1);
     }
     return data;
 }

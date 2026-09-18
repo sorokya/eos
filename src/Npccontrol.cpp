@@ -821,47 +821,11 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                 if (target == NULL)
                                     (*npc)->chase_target_id = -1;
                                 else if (distance <= 1)
-                                {
-                                    if (Npc_AttackPlayer(npc_control, *npc, target))
-                                    {
-                                        (*npc)->chase_target_id = -1;
-                                        flag = false;
-                                    }
-                                    map->npc_dirty = 1;
-                                    (*npc)->attack_pending = 1;
-                                }
+                                    goto attack;
                                 else if ((*npc)->chase_target_id < 0)
                                 {
                                     if (distance <= 11)
-                                    {
-                                    chase:
-                                        Npc_ChaseTarget(npc_control,
-                                                        *npc,
-                                                        target,
-                                                        map->rid,
-                                                        map->width,
-                                                        map->height);
-                                        if ((*npc)->pos_pending != 0)
-                                        {
-                                            map->npc_dirty = 1;
-                                            (*npc)->pos_buffer = Packet_AppendEncoded(
-                                                npc_control, (*npc)->index, 1);
-                                            (*npc)->pos_buffer.Insert(
-                                                Packet_AppendEncoded(
-                                                    npc_control, (*npc)->x, 1),
-                                                (*npc)->pos_buffer.Length() + 1);
-                                            (*npc)->pos_buffer.Insert(
-                                                Packet_AppendEncoded(
-                                                    npc_control, (*npc)->y, 1),
-                                                (*npc)->pos_buffer.Length() + 1);
-                                            (*npc)->pos_buffer.Insert(
-                                                Packet_AppendEncoded(
-                                                    npc_control,
-                                                    (unsigned short)(*npc)->direction,
-                                                    1),
-                                                (*npc)->pos_buffer.Length() + 1);
-                                        }
-                                    }
+                                        goto chase;
                                 }
                                 else
                                 {
@@ -869,6 +833,42 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                         goto chase;
                                     (*npc)->chase_target_id = -1;
                                 }
+                                goto aggro_done;
+                            chase:
+                                Npc_ChaseTarget(npc_control,
+                                                *npc,
+                                                target,
+                                                map->rid,
+                                                map->width,
+                                                map->height);
+                                if ((*npc)->pos_pending != 0)
+                                {
+                                    map->npc_dirty = 1;
+                                    (*npc)->pos_buffer = Packet_AppendEncoded(
+                                        npc_control, (*npc)->index, 1);
+                                    (*npc)->pos_buffer.Insert(
+                                        Packet_AppendEncoded(npc_control, (*npc)->x, 1),
+                                        (*npc)->pos_buffer.Length() + 1);
+                                    (*npc)->pos_buffer.Insert(
+                                        Packet_AppendEncoded(npc_control, (*npc)->y, 1),
+                                        (*npc)->pos_buffer.Length() + 1);
+                                    (*npc)->pos_buffer.Insert(
+                                        Packet_AppendEncoded(
+                                            npc_control,
+                                            (unsigned short)(*npc)->direction,
+                                            1),
+                                        (*npc)->pos_buffer.Length() + 1);
+                                }
+                                goto aggro_done;
+                            attack:
+                                if (Npc_AttackPlayer(npc_control, *npc, target))
+                                {
+                                    (*npc)->chase_target_id = -1;
+                                    flag = false;
+                                }
+                                map->npc_dirty = 1;
+                                (*npc)->attack_pending = 1;
+                            aggro_done:;
                             }
                         }
                     }
