@@ -1350,66 +1350,76 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
 String Walk_BuildReply(Server *server, Player *player)
 {
     String buf = "";
-    for (Player **iter = Players_Iter_Begin(server->players);
-         iter != Players_Iter_End(server->players);
-         iter++)
+    try
     {
-        if ((*iter)->map_id == player->map_id)
+        for (Player **iter = Players_Iter_Begin(server->players);
+             iter != Players_Iter_End(server->players);
+             iter++)
         {
-            if (Server_InViewRing(server, player->x, player->y, (*iter)->x, (*iter)->y))
-                buf.Insert(EO_EncodeNumber(server, (*iter)->player_id, 2),
-                           buf.Length() + 1);
-        }
-    }
-    buf.Insert(EO_GetBreakByte(server, 0xff), buf.Length() + 1);
-    if (player->map_id > 0)
-    {
-        if (player->map_id <= Mapcontrol_GetCount(server->map_control))
-        {
-            for (Npc **iter = (Npc **)Map_NpcIter_Begin(
-                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                          ->npc_list);
-                 iter !=
-                 (Npc **)Map_NpcIter_End(
-                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                          ->npc_list);
-                 iter++)
+            if ((*iter)->map_id == player->map_id)
             {
                 if (Server_InViewRing(
                         server, player->x, player->y, (*iter)->x, (*iter)->y))
-                    buf.Insert(EO_EncodeNumber(server, (*iter)->index, 1),
+                    buf.Insert(EO_EncodeNumber(server, (*iter)->player_id, 2),
                                buf.Length() + 1);
             }
         }
-    }
-    buf.Insert(EO_GetBreakByte(server, 0xff), buf.Length() + 1);
-    if (player->map_id > 0)
-    {
-        if (player->map_id <= Mapcontrol_GetCount(server->map_control))
+        buf.Insert(EO_GetBreakByte(server, 0xff), buf.Length() + 1);
+        if (player->map_id > 0)
         {
-            for (ChestItem **iter = (ChestItem **)GroundItemPtrVector_Begin(
-                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                          ->ground_items);
-                 iter !=
-                 (ChestItem **)PtrVector_GetEnd(
-                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                          ->ground_items);
-                 iter++)
+            if (player->map_id <= Mapcontrol_GetCount(server->map_control))
             {
-                if (Server_InItemViewRing(
-                        server, player->x, player->y, (*iter)->x, (*iter)->y))
+                for (Npc **iter = (Npc **)Map_NpcIter_Begin(
+                         &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                              ->npc_list);
+                     iter !=
+                     (Npc **)Map_NpcIter_End(
+                         &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                              ->npc_list);
+                     iter++)
                 {
-                    buf.Insert(EO_EncodeNumber(server, (*iter)->index, 2),
-                               buf.Length() + 1);
-                    buf.Insert(EO_EncodeNumber(server, (*iter)->item_id, 2),
-                               buf.Length() + 1);
-                    buf.Insert(EO_EncodeNumber(server, (*iter)->x, 1), buf.Length() + 1);
-                    buf.Insert(EO_EncodeNumber(server, (*iter)->y, 1), buf.Length() + 1);
-                    buf.Insert(EO_EncodeNumber(server, (*iter)->amount, 3),
-                               buf.Length() + 1);
+                    if (Server_InViewRing(
+                            server, player->x, player->y, (*iter)->x, (*iter)->y))
+                        buf.Insert(EO_EncodeNumber(server, (*iter)->index, 1),
+                                   buf.Length() + 1);
                 }
             }
         }
+        buf.Insert(EO_GetBreakByte(server, 0xff), buf.Length() + 1);
+        if (player->map_id > 0)
+        {
+            if (player->map_id <= Mapcontrol_GetCount(server->map_control))
+            {
+                for (ChestItem **iter = (ChestItem **)GroundItemPtrVector_Begin(
+                         &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                              ->ground_items);
+                     iter !=
+                     (ChestItem **)PtrVector_GetEnd(
+                         &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                              ->ground_items);
+                     iter++)
+                {
+                    if (Server_InItemViewRing(
+                            server, player->x, player->y, (*iter)->x, (*iter)->y))
+                    {
+                        buf.Insert(EO_EncodeNumber(server, (*iter)->index, 2),
+                                   buf.Length() + 1);
+                        buf.Insert(EO_EncodeNumber(server, (*iter)->item_id, 2),
+                                   buf.Length() + 1);
+                        buf.Insert(EO_EncodeNumber(server, (*iter)->x, 1),
+                                   buf.Length() + 1);
+                        buf.Insert(EO_EncodeNumber(server, (*iter)->y, 1),
+                                   buf.Length() + 1);
+                        buf.Insert(EO_EncodeNumber(server, (*iter)->amount, 3),
+                                   buf.Length() + 1);
+                    }
+                }
+            }
+        }
+    }
+    catch (...)
+    {
+        buf += "";
     }
     return buf;
 }
