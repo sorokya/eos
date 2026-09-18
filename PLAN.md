@@ -613,14 +613,16 @@ Tracked so they are not mistaken for done:
   `do_leave` Avatar-Remove build); `Client_SendEncoded` (blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
   byte-exact (`std::stack<char>`/`std::deque<char>`, by-value `String` return);
-  `EO_Decode_Deinterleave` is drafted at **169 mismatched (217/281)** — the
+  `EO_Decode_Deinterleave` is drafted at **167 mismatched (215/281)** — the
   reference builds a `std::stack<char>` + a `std::queue<char>` (`0x472810`, RTTI
   `queue<char,deque<char,allocator<char> > >`), frame `-356` (now exact) and
   indices 0-100 exact. The residual is the drain/merge boundary: the reference
   emits the drain's bottom test (`je body`) then a redundant `empty()` followed by
-  an unconditional `jmp` over the merge; wrapping the merge in
-  `if (pending.empty())` (or `!pending.empty()`) reproduces the redundant call but
-  adds a `test/je` the reference does not have, so 1 extra branch remains;
+  an unconditional `jmp` over the merge; the winning form is a
+  **bare discarded `pending.empty();`** statement before the merge (not an `if`),
+  which reproduces the redundant call with no extra branch; the residual is now the
+  merge body's value computation (reference re-calls `queue.front()` for the
+  modulo at `0x4725bd`, ours reuses the already-loaded byte);
   `Walk_Execute`, `Attack_Execute`, `Spell_Execute`, the reply builders, and
   `Player_HandlePacket` (deferred: one 226 KB function).
 - `Mapcontrol` `FUN_00482834` (`0x482834`) and `Mapcontrol_LoadMap` (`0x484e28`)
