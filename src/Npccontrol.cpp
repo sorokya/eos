@@ -7,6 +7,9 @@
 #include "Protocol.h"
 #include "Gamecontrol.h"
 #include "Mainform.h"
+#include "Npcvalues.h"
+#include "Players.h"
+#include "Packets.h"
 
 #pragma package(smart_init)
 
@@ -579,6 +582,403 @@ void NpcController::Npc_ChaseTarget(
             return;
         }
     }
+}
+
+void NpcController::NpcControl_Tick(NpcController *npc_control)
+{
+    bool flag = true;
+    npc_control->act_counter++;
+    npc_control->regen_counter++;
+    for (MapContainer *map = MapVector_Begin(npc_control->map_control);
+         map != MapVector_End(npc_control->map_control);
+         map++)
+    {
+        map->npc_dirty = 0;
+        npc_control->player_targets_valid = 0;
+        for (Npc **npc = (Npc **)Map_NpcIter_Begin(&map->npc_list);
+             npc != (Npc **)Map_NpcIter_End(&map->npc_list);
+             npc++)
+        {
+            if ((*npc)->alive == false)
+            {
+                if (npc_control->act_counter % 6 == 0)
+                {
+                    TDateTime now = Now();
+                    TTimeStamp stamp = DateTimeToTimeStamp(now);
+                    int date_delta = stamp.Date - (*npc)->nDeath_ms.Date;
+                    int time_delta = stamp.Time - (*npc)->nDeath_ms.Time;
+                    int elapsed = time_delta / 1000 + date_delta * 86400;
+                    if ((int)(unsigned short)(*npc)->spawn_time <= elapsed)
+                    {
+                        int sx = (*npc)->wSpawn_x;
+                        int sy = (*npc)->wSpawn_y;
+                        if (sx > 1 && sy > 1 && sx + 2 < map->width &&
+                            sy + 2 < map->height)
+                        {
+                            sx = RandRange(5) + (*npc)->wSpawn_x - 2;
+                            sy = RandRange(5) + (*npc)->wSpawn_y - 2;
+                        }
+                        if (!Mapcontrol::Map_IsTileClear(
+                                npc_control->map_control, map->rid, sx, sy))
+                        {
+                            (*npc)->spawn_time = (*npc)->spawn_time + 1;
+                        }
+                        else
+                        {
+                            if ((unsigned short)(*npc)->child <= 0 ||
+                                map->boss_alive != false)
+                            {
+                                (*npc)->alive = true;
+                                (*npc)->spawn_time =
+                                    RandRange(0x14) + (*npc)->wSpawn_type;
+                                (*npc)->act_ticks = (*npc)->death_ticks;
+                                (*npc)->x = sx;
+                                (*npc)->y = sy;
+                                (*npc)->pos_pending = 1;
+                                map->npc_dirty = 1;
+                                (*npc)->direction = RandRange(4);
+                                (*npc)->nMove_cooldown = RandRange(3) + 2;
+                                if ((*npc)->boss != 0)
+                                    map->boss_alive = true;
+                                if (24 <= (*npc)->death_ticks)
+                                {
+                                    (*npc)->x = (*npc)->wSpawn_x;
+                                    (*npc)->y = (*npc)->wSpawn_y;
+                                    (*npc)->direction = (*npc)->wSpawn_type & 3;
+                                }
+                                (*npc)->aggressive = false;
+                                (*npc)->nStuck_pos = -1;
+                                (*npc)->target_player_id = -1;
+                                (*npc)->chase_target_id = -1;
+                                (*npc)->nLeash_timer = 0;
+                                (*npc)->hp = NpcValues::GetMaxHp((*MAINFORM)->npc_values,
+                                                                 (*npc)->id);
+                                (*npc)->max_hp = (*npc)->hp;
+                                (*npc)->hp_regen = (*npc)->max_hp / 10;
+                                (*npc)->hp_regen = (*npc)->hp_regen + 1;
+                                NpcDropInfo drop = NpcValues::GetDrop(
+                                    (*MAINFORM)->npc_values, (*npc)->id);
+                                (*npc)->wDrop_item_id = drop.item_id;
+                                (*npc)->wDrop_amount = drop.amount;
+                                (*npc)->pos_buffer =
+                                    Packet_AppendEncoded(npc_control, (*npc)->index, 1);
+                                (*npc)->pos_buffer.Insert(
+                                    Packet_AppendEncoded(npc_control, (*npc)->x, 1),
+                                    (*npc)->pos_buffer.Length() + 1);
+                                (*npc)->pos_buffer.Insert(
+                                    Packet_AppendEncoded(npc_control, (*npc)->y, 1),
+                                    (*npc)->pos_buffer.Length() + 1);
+                                (*npc)->pos_buffer.Insert(
+                                    Packet_AppendEncoded(
+                                        npc_control,
+                                        (unsigned short)(*npc)->direction,
+                                        1),
+                                    (*npc)->pos_buffer.Length() + 1);
+                            }
+                            else
+                                (*npc)->spawn_time = (*npc)->spawn_time + 1;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (0x1c2 < npc_control->regen_counter)
+                {
+                    (*npc)->hp = (*npc)->hp + (*npc)->hp_regen;
+                    if ((*npc)->max_hp < (*npc)->hp)
+                        (*npc)->hp = (*npc)->max_hp;
+                }
+                if ((*npc)->aggressive != false &&
+                    ((*npc)->nLeash_timer = (*npc)->nLeash_timer - 1,
+                     (*npc)->nLeash_timer == 0) &&
+                    0x1e < (*npc)->nHp_pct)
+                {
+                    (*npc)->aggressive = false;
+                    (*npc)->chase_target_id = -1;
+                }
+                if (0 < map->npc_act_ticks)
+                {
+                    (*npc)->pos_pending = 0;
+                    (*npc)->talk_pending = 0;
+                    (*npc)->attack_pending = 0;
+                    if (map->player_count < 1)
+                        map->npc_act_ticks = map->npc_act_ticks - 1;
+                    if ((*npc)->act_ticks == 0)
+                        (*npc)->act_ticks = 1;
+                    if (0x17 < npc_control->act_counter &&
+                        (npc_control->talk_counter = npc_control->talk_counter + 1,
+                         4 < npc_control->talk_counter))
+                    {
+                        npc_control->talk_counter = 0;
+                        String line =
+                            NpcValues::RollTalk((*MAINFORM)->npc_values, (*npc)->id);
+                        if (0 < line.Length())
+                        {
+                            map->npc_dirty = 1;
+                            (*npc)->talk_pending = 1;
+                            (*npc)->talk_buffer =
+                                Packet_AppendEncoded(npc_control, (*npc)->index, 1);
+                            (*npc)->talk_buffer.Insert(
+                                Packet_AppendEncoded(npc_control, line.Length(), 1),
+                                (*npc)->talk_buffer.Length() + 1);
+                            (*npc)->talk_buffer.Insert(line,
+                                                       (*npc)->talk_buffer.Length() + 1);
+                        }
+                    }
+                    if ((*npc)->aggressive == false && (*npc)->in_combat == false)
+                    {
+                        if (npc_control->act_counter % (*npc)->act_ticks == 0 &&
+                            ((*npc)->nAct_counter = (*npc)->nAct_counter + 1,
+                             2 <= (unsigned short)(*npc)->nAct_counter))
+                        {
+                            (*npc)->nAct_counter = 0;
+                            (*npc)->nMove_cooldown = (*npc)->nMove_cooldown - 1;
+                            Npc_Wander(
+                                npc_control, *npc, map->rid, map->width, map->height);
+                            if ((*npc)->pos_pending != 0)
+                            {
+                                map->npc_dirty = 1;
+                                (*npc)->pos_buffer =
+                                    Packet_AppendEncoded(npc_control, (*npc)->index, 1);
+                                (*npc)->pos_buffer.Insert(
+                                    Packet_AppendEncoded(npc_control, (*npc)->x, 1),
+                                    (*npc)->pos_buffer.Length() + 1);
+                                (*npc)->pos_buffer.Insert(
+                                    Packet_AppendEncoded(npc_control, (*npc)->y, 1),
+                                    (*npc)->pos_buffer.Length() + 1);
+                                (*npc)->pos_buffer.Insert(
+                                    Packet_AppendEncoded(
+                                        npc_control,
+                                        (unsigned short)(*npc)->direction,
+                                        1),
+                                    (*npc)->pos_buffer.Length() + 1);
+                            }
+                        }
+                    }
+                    else if (npc_control->act_counter % (*npc)->act_ticks == 0 &&
+                             ((*npc)->nAct_counter = (*npc)->nAct_counter + 1,
+                              2 <= (unsigned short)(*npc)->nAct_counter))
+                    {
+                        (*npc)->nAct_counter = 0;
+                        (*npc)->nMove_cooldown = (*npc)->nMove_cooldown - 1;
+                        Player *target = NULL;
+                        int distance = 10000;
+                        if (0 < (*npc)->chase_target_id)
+                        {
+                            if ((*npc)->target_player_id < 0)
+                                target = Players::Players_GetById(
+                                    npc_control->players, (*npc)->chase_target_id);
+                            else
+                                target = Players::Players_GetById(
+                                    npc_control->players, (*npc)->target_player_id);
+                            if (target == NULL)
+                                (*npc)->chase_target_id = -1;
+                            else if (target->map_id != map->rid)
+                            {
+                                (*npc)->chase_target_id = -1;
+                                target = NULL;
+                            }
+                        }
+                        if (target == NULL)
+                        {
+                            if (npc_control->player_targets_valid == 0)
+                            {
+                                npc_control->player_targets.clear();
+                                for (Player **it =
+                                         Players_Iter_Begin(npc_control->players);
+                                     it != Players_Iter_End(npc_control->players);
+                                     it++)
+                                {
+                                    if ((*it)->logged_in != false &&
+                                        (*it)->map_id == map->rid)
+                                        npc_control->player_targets.insert(
+                                            npc_control->player_targets.end(), *it);
+                                }
+                                npc_control->player_targets_valid = 1;
+                            }
+                            for (Player **it = npc_control->player_targets.begin();
+                                 it != npc_control->player_targets.end();
+                                 it++)
+                            {
+                                int d = Npc_GetDistance(npc_control, *npc, *it);
+                                if (d <= distance)
+                                {
+                                    target = *it;
+                                    distance = d;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            distance = Npc_GetDistance(npc_control, *npc, target);
+                            if (target->in_party != false && 1 < distance)
+                            {
+                                for (int i = 0; i < 10; i++)
+                                {
+                                    Player *member = Players::Players_GetById(
+                                        npc_control->players, target->party_ids[i]);
+                                    int d = Npc_GetDistance(npc_control, *npc, member);
+                                    if (member != NULL &&
+                                        member->map_id == target->map_id && d <= distance)
+                                    {
+                                        distance = d;
+                                        target = member;
+                                    }
+                                }
+                            }
+                        }
+                        if (target == NULL)
+                            (*npc)->chase_target_id = -1;
+                        else if (distance < 2)
+                        {
+                            if (Npc_AttackPlayer(npc_control, *npc, target))
+                            {
+                                (*npc)->chase_target_id = -1;
+                                flag = false;
+                            }
+                            map->npc_dirty = 1;
+                            (*npc)->attack_pending = 1;
+                        }
+                        else if ((*npc)->chase_target_id < 0)
+                        {
+                            if (distance < 12)
+                            {
+                            chase:
+                                Npc_ChaseTarget(npc_control,
+                                                *npc,
+                                                target,
+                                                map->rid,
+                                                map->width,
+                                                map->height);
+                                if ((*npc)->pos_pending != 0)
+                                {
+                                    map->npc_dirty = 1;
+                                    (*npc)->pos_buffer = Packet_AppendEncoded(
+                                        npc_control, (*npc)->index, 1);
+                                    (*npc)->pos_buffer.Insert(
+                                        Packet_AppendEncoded(npc_control, (*npc)->x, 1),
+                                        (*npc)->pos_buffer.Length() + 1);
+                                    (*npc)->pos_buffer.Insert(
+                                        Packet_AppendEncoded(npc_control, (*npc)->y, 1),
+                                        (*npc)->pos_buffer.Length() + 1);
+                                    (*npc)->pos_buffer.Insert(
+                                        Packet_AppendEncoded(
+                                            npc_control,
+                                            (unsigned short)(*npc)->direction,
+                                            1),
+                                        (*npc)->pos_buffer.Length() + 1);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (distance < 0x11)
+                                goto chase;
+                            (*npc)->chase_target_id = -1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (0x17 < npc_control->act_counter)
+        npc_control->act_counter = 0;
+    if (0x1c2 < npc_control->regen_counter)
+        npc_control->regen_counter = 0;
+    for (Player **player = Players_Iter_Begin(npc_control->players);
+         player != Players_Iter_End(npc_control->players);
+         player++)
+    {
+        if ((*player)->logged_in != false && 0 < (*player)->map_id &&
+            (*player)->map_id <= Mapcontrol_GetCount(npc_control->map_control) &&
+            Mapcontrol_GetByIndex(npc_control->map_control,
+                                  (short)((*player)->map_id - 1))
+                    ->npc_dirty != 0)
+        {
+            String pos = "";
+            String talk = "";
+            String attack = "";
+            Npc **npc2 = (Npc **)Map_NpcIter_Begin(
+                &Mapcontrol_GetByIndex(npc_control->map_control,
+                                       (short)((*player)->map_id - 1))
+                     ->npc_list);
+            while ((Npc **)Map_NpcIter_End(
+                       &Mapcontrol_GetByIndex(npc_control->map_control,
+                                              (short)((*player)->map_id - 1))
+                            ->npc_list) != npc2)
+            {
+                if ((*npc2)->pos_pending != 0 && Npc_IsWithinRange(npc_control,
+                                                                   (*player)->x,
+                                                                   (*player)->y,
+                                                                   (*npc2)->x,
+                                                                   (*npc2)->y) != false)
+                    pos.Insert((*npc2)->pos_buffer, pos.Length() + 1);
+                if ((*npc2)->talk_pending != 0 && Npc_IsWithinRange(npc_control,
+                                                                    (*player)->x,
+                                                                    (*player)->y,
+                                                                    (*npc2)->x,
+                                                                    (*npc2)->y) != false)
+                    talk.Insert((*npc2)->talk_buffer, talk.Length() + 1);
+                if ((*npc2)->attack_pending != 0 &&
+                    Npc_IsWithinRange(npc_control,
+                                      (*player)->x,
+                                      (*player)->y,
+                                      (*npc2)->x,
+                                      (*npc2)->y) != false)
+                    attack.Insert((*npc2)->attack_buffer, attack.Length() + 1);
+                npc2++;
+            }
+            if (3 < pos.Length() || 3 < talk.Length() || 3 < attack.Length())
+            {
+                String data = pos;
+                data.Insert(String((char)-1), data.Length() + 1);
+                data.Insert(attack, data.Length() + 1);
+                data.Insert(String((char)-1), data.Length() + 1);
+                data.Insert(talk, data.Length() + 1);
+                data.Insert(String((char)-1), data.Length() + 1);
+                if ((*player)->stats_dirty != 0)
+                {
+                    data.Insert(Packet_AppendEncoded(npc_control, (*player)->hp, 2),
+                                data.Length() + 1);
+                    data.Insert(Packet_AppendEncoded(npc_control, (*player)->tp, 2),
+                                data.Length() + 1);
+                    if ((*player)->in_party != false)
+                    {
+                        String party_data =
+                            Packet_AppendEncoded(npc_control, (*player)->player_id, 2);
+                        party_data.Insert(Packet_AppendEncoded(
+                                              npc_control, Player::HpPercent(*player), 1),
+                                          party_data.Length() + 1);
+                        Server_BroadcastToParty(npc_control->server,
+                                                *player,
+                                                PacketAction_Agree,
+                                                PacketFamily_Party,
+                                                party_data);
+                    }
+                    (*player)->stats_dirty = 0;
+                }
+                Client_SendEncoded(npc_control->server,
+                                   *player,
+                                   PacketAction_Player,
+                                   PacketFamily_Npc,
+                                   data);
+            }
+        }
+    }
+    if (flag == false)
+    {
+        for (Player **player = Players_Iter_Begin(npc_control->players);
+             player != Players_Iter_End(npc_control->players);
+             player++)
+        {
+            if ((*player)->logged_in != false && 0 < (*player)->map_id &&
+                (*player)->map_id <= Mapcontrol_GetCount(npc_control->map_control) &&
+                (*player)->dead != false)
+                Player_Respawn(npc_control->server, *player);
+        }
+    }
+    return;
 }
 
 // BEGIN GENERATED STUBS (scripts/genstubs.py)

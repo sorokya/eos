@@ -551,34 +551,16 @@ void Player_EvaluateQuestRules(Server *server,
                     }
                 }
             }
-            else
+            if ((*iter)->rule == 8)
             {
-                if ((*iter)->rule == 8)
+                if (index <= 4)
                 {
-                    if (index <= 4)
+                    int a1 = (*iter)->args[0];
+                    int a2 = (*iter)->args[1];
+                    if (arg == a1)
                     {
-                        int a1 = (*iter)->args[0];
-                        int a2 = (*iter)->args[1];
-                        if (arg == a1)
-                        {
-                            tracker->counters[index]++;
-                            if (tracker->counters[index] >= a2)
-                            {
-                                tracker->state_index =
-                                    *(short *)&(*iter)->goto_state_index;
-                                Player_ApplyQuestActions(server, player, tracker, true);
-                                return;
-                            }
-                        }
-                    }
-                }
-                if ((*iter)->rule == 9)
-                {
-                    if (index <= 4)
-                    {
-                        int a1 = (*iter)->args[0];
                         tracker->counters[index]++;
-                        if (tracker->counters[index] >= a1)
+                        if (tracker->counters[index] >= a2)
                         {
                             tracker->state_index = *(short *)&(*iter)->goto_state_index;
                             Player_ApplyQuestActions(server, player, tracker, true);
@@ -586,30 +568,44 @@ void Player_EvaluateQuestRules(Server *server,
                         }
                     }
                 }
-                if ((*iter)->rule == 10)
+            }
+            if ((*iter)->rule == 9)
+            {
+                if (index <= 4)
                 {
                     int a1 = (*iter)->args[0];
-                    int a2 = (*iter)->args[1];
-                    int a3 = (*iter)->args[2];
-                    if (player->map_id == a1 && player->x == a2 && player->y == a3)
+                    tracker->counters[index]++;
+                    if (tracker->counters[index] >= a1)
                     {
                         tracker->state_index = *(short *)&(*iter)->goto_state_index;
                         Player_ApplyQuestActions(server, player, tracker, true);
                         return;
                     }
                 }
-                if ((*iter)->rule == 11 && player->map_id == (*iter)->args[0])
+            }
+            if ((*iter)->rule == 10)
+            {
+                int a1 = (*iter)->args[0];
+                int a2 = (*iter)->args[1];
+                int a3 = (*iter)->args[2];
+                if (player->map_id == a1 && player->x == a2 && player->y == a3)
                 {
                     tracker->state_index = *(short *)&(*iter)->goto_state_index;
                     Player_ApplyQuestActions(server, player, tracker, true);
                     return;
                 }
-                if ((*iter)->rule == 12 && (*iter)->args[0] == arg)
-                {
-                    tracker->state_index = *(short *)&(*iter)->goto_state_index;
-                    Player_ApplyQuestActions(server, player, tracker, true);
-                    return;
-                }
+            }
+            if ((*iter)->rule == 11 && player->map_id == (*iter)->args[0])
+            {
+                tracker->state_index = *(short *)&(*iter)->goto_state_index;
+                Player_ApplyQuestActions(server, player, tracker, true);
+                return;
+            }
+            if ((*iter)->rule == 12 && (*iter)->args[0] == arg)
+            {
+                tracker->state_index = *(short *)&(*iter)->goto_state_index;
+                Player_ApplyQuestActions(server, player, tracker, true);
+                return;
             }
         }
     }
@@ -808,6 +804,35 @@ void Player_CalculateStats(Server *server, Player *player)
     player->accuracy = player->accuracy + player->class_accuracy;
     player->evasion = player->evasion + player->class_evasion;
     player->armor = player->armor + player->class_armor;
+}
+
+String *Message_BuildServerStatus(String *out, Server *server)
+{
+    String names = EO_GetBreakByte(server, 0xff);
+    int count = 0;
+    for (Player **iter = Players_Iter_Begin(server->players);
+         iter != Players_Iter_End(server->players);
+         iter++)
+    {
+        if ((*iter)->logged_in && !(*iter)->hide_online)
+        {
+            names.Insert((*iter)->name, names.Length() + 1);
+            names.Insert(EO_GetBreakByte(server, 0xff), names.Length() + 1);
+            names.Insert((*iter)->title, names.Length() + 1);
+            names.Insert(EO_GetBreakByte(server, 0xff), names.Length() + 1);
+            names.Insert(EO_EncodeNumber(server, (*iter)->level, 1), names.Length() + 1);
+            names.Insert(EO_EncodeNumber(server, (*iter)->experience, 4),
+                         names.Length() + 1);
+            names.Insert(EO_EncodeNumber(server, (*iter)->gender, 1), names.Length() + 1);
+            names.Insert(EO_EncodeNumber(server, (*iter)->admin_level, 1),
+                         names.Length() + 1);
+            names.Insert(EO_GetBreakByte(server, 0xff), names.Length() + 1);
+            count++;
+        }
+    }
+    names.Insert(EO_EncodeNumber(server, count, 2), 1);
+    *out += names;
+    return out;
 }
 
 String *Server_BuildOnlineNames(String *out_str, Server *server)
@@ -1944,12 +1969,6 @@ void *Player_SerializePaperdoll_Stub(void *a0, int a1, int a2)
 // STUB(0x004607c8, 3110 bytes) Paperdoll_BuildReply - ref: int *
 // Paperdoll_BuildReply(AnsiString * data, Server * server, Player * player)
 void *Paperdoll_BuildReply_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x004615d0, 889 bytes) Message_BuildServerStatus - ref: int *
-// Message_BuildServerStatus(int * param_1, int param_2)
-void *Message_BuildServerStatus_Stub(void *a0, int a1)
 {
     return 0;
 }

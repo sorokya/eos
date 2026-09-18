@@ -5,7 +5,7 @@
 
 #pragma package(smart_init)
 
-JukeBox::JukeBox(short map_id)
+JukeBox::JukeBox(int map_id)
 {
     this->map_id = map_id;
     active = 0;

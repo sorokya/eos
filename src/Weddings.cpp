@@ -263,6 +263,10 @@ void WeddingController::Tick(WeddingController *self)
                         "Let these rings be given and received as a token of "
                         "your affection, sincerity and trust in one another.");
                 }
+                else
+                {
+                    (*it)->countdown == 1;
+                }
                 if ((*it)->countdown == 0xc)
                 {
                     BroadcastPriestLine(
@@ -280,6 +284,10 @@ void WeddingController::Tick(WeddingController *self)
                                           PacketAction_Player,
                                           PacketFamily_Effect,
                                           data);
+                }
+                else
+                {
+                    (*it)->countdown == 1;
                 }
                 if ((*it)->countdown == 6 && BothPresent(self, *it))
                 {
@@ -313,6 +321,10 @@ void WeddingController::Tick(WeddingController *self)
                                               data);
                     }
                 }
+                else
+                {
+                    (*it)->countdown == 1;
+                }
                 if ((*it)->countdown == 1)
                 {
                     BroadcastPriestLine(self, *it, "Congratulations to the couple!");
@@ -343,8 +355,11 @@ void WeddingController::Tick(WeddingController *self)
                         delete wedding;
                         break;
                     }
-                    (*it)->step = 1;
-                    (*it)->countdown = 0x1a;
+                    else
+                    {
+                        (*it)->step = 1;
+                        (*it)->countdown = 0x1a;
+                    }
                 }
             }
         }
@@ -410,13 +425,3 @@ WeddingController::AppendEncoded(WeddingController *self, unsigned int value, in
     String result(self->encode_scratch, width);
     return result;
 }
-
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
-// STUB(0x0052efa0, 4371 bytes) Weddings_Tick - ref: undefined Weddings_Tick(Weddings *
-// this)
-void Weddings_Tick_Stub(void *a0)
-{
-}
-#pragma warn.8057
-// END GENERATED STUBS

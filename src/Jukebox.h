@@ -16,7 +16,7 @@ struct JukeBox
     TDateTime last_play;
     AnsiString track_name;
 
-    JukeBox(short map_id);
+    JukeBox(int map_id);
     ~JukeBox();
 };
 
