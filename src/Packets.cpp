@@ -3103,8 +3103,56 @@ int FUN_00470dee_Stub()
 }
 // STUB(0x00470ef0, 759 bytes) EO_Encode_Interleave - ref: void EO_Encode_Interleave(char
 // * data, int len, char * out)
-void EO_Encode_Interleave_Stub(void *a0, int a1, void *a2)
+String EO_Encode_Interleave(Server *server, int multiple, char *begin, char *end)
 {
+    int len = 0;
+    try
+    {
+        std::stack<char> pending;
+        std::deque<char> woven;
+        for (; begin != end; begin++)
+        {
+            char c = *begin;
+            int value = (unsigned char)c;
+            if (value % multiple == 0)
+                pending.push(*begin);
+            else
+            {
+                while (!pending.empty())
+                {
+                    woven.push_back(pending.top());
+                    pending.pop();
+                }
+                woven.push_back(*begin);
+            }
+        }
+        while (!pending.empty())
+        {
+            woven.push_back(pending.top());
+            pending.pop();
+        }
+        while (!woven.empty())
+        {
+            if (!woven.empty())
+            {
+                server->packet_buffer[len] = woven.front();
+                woven.pop_front();
+                len++;
+            }
+            if (!woven.empty())
+            {
+                server->packet_buffer[len] = woven.back();
+                woven.pop_back();
+                len++;
+            }
+        }
+    }
+    catch (...)
+    {
+        len = 0;
+    }
+    String data(server->packet_buffer, len);
+    return data;
 }
 // STUB(0x004712e4, 50 bytes) FUN_004712e4 - ref: undefined FUN_004712e4(undefined4 *
 // param_1, byte param_2)

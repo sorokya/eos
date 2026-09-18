@@ -667,25 +667,36 @@ Tracked so they are not mistaken for done:
   `lock_key = dec(SubString(2,7))` (slot `-0x1f0`) and
   `Mapcontrol_AddWarp(map_control, map, spec, tile_x, dec(2,2), dec(1,6),
   dec(1,4), dec(1,5))`.
-- Packets `EO_Encode_Interleave` (`0x470ef0`) / `EO_Decode_Deinterleave`
-  (`0x472414`) — **settled ABI: these are application functions using
-  `std::stack<char>` / `std::deque<char>`**, not library members. Their RTTI name
-  strings are embedded in the code region: `0x471358` is
-  `stack<char,deque<char,allocator<char> > > *` and `0x4713f4` is
-  `deque<char,allocator<char> > *`. Signature, from the body:
-  `void EO_Encode_Interleave(String *out, Server *server, int multiple,
-  char *begin, char *end)` — `[ebp+8]` is assigned through `$basg$` /
-  `String(char *, int)`, `[ebp+0xc]` is indexed into `Server::packet_buffer`
-  (`+0x44`), `[ebp+0x10]` is the `idiv` divisor, and `[ebp+0x14]`/`[ebp+0x18]` are
-  compared and byte-dereferenced. Algorithm is the EOLib "dickwinding" interleave
-  (`ref/eolib-rs/src/encrypt/encrypt_packet.rs`): push every byte whose signed
-  value is divisible by `multiple` onto the stack, otherwise drain the stack into
-  a deque, drain once more at the end, then copy the deque into
-  `server->packet_buffer` and build the returned `String`. Frame `-284`, with two
-  `std::allocator<char>` temporaries at `[ebp-268]`/`[ebp-276]`, one per deque. A
-  first implementation compiled (proving the container ABI) but was 202 ref / 161
-  our with frame `-280`, one 4-byte local short, and was reverted rather than left
-  unverified.
+- Packets `EO_Encode_Interleave` (`0x470ef0`) — **CONVERGED (210/210)**. Listed
+  here for the facts it pinned. ABI: application code over `std::stack<char>` /
+  `std::deque<char>` (the RTTI names are embedded in the code region — `0x471358`
+  is `stack<char,deque<char,allocator<char> > > *`, `0x4713f4` is
+  `deque<char,allocator<char> > *`); adding `<deque>`/`<stack>` and using those
+  types materialises ~60 helper COMDATs, which alone moved the sheet from 1607 to
+  1669 byte-exact. **Signature is `String EO_Encode_Interleave(Server *server,
+  int multiple, char *begin, char *end)` — a BY-VALUE `String` return (hidden
+  result at `[ebp+8]`, epilogue is the result clause `arm 0x50; result = data;
+  arm 0x5c; push eax; dtor data; pop eax; arm 0x50; inc`), not a `String *`
+  out-parameter.** Frame `-284`. Body: `try { ... } catch (...) { len = 0; }`,
+  `for (; begin != end; begin++)` driving the parameter itself (not a copy),
+  `char c = *begin; int value = (unsigned char)c;` (zero-extend before `idiv`),
+  push onto the stack when `value % multiple == 0` else drain the stack into the
+  deque and `push_back`, one post-loop drain, then a final loop that emits
+  **front and back alternately** (`if (!woven.empty()) { buffer[len++] =
+  woven.front(); woven.pop_front(); } if (!woven.empty()) { buffer[len++] =
+  woven.back(); woven.pop_back(); }`), then
+  `String data(server->packet_buffer, len); return data;`. Its stored byte count
+  is short — the real end is `0x4711fd`.
+- `EO_Decode_Deinterleave` (`0x472414`, 870 B) — NOT YET WRITTEN. Same container
+  set (a stack, two deques, and a third container via `0x472810`), scope word
+  `[ebp-0x138]`. Args: `[ebp+0xc]` = `Server` (writes `packet_buffer` at `+0x44`),
+  `[ebp+0x10]` = the divisor (guarded `<= 0` early-out), `[ebp+0x14]`/`[ebp+0x18]`
+  = begin/end. Decoded so far: a `bool toggle = 1` loop alternating bytes into a
+  deque vs the stack, a drain into the deque, then the inverse-dickwinding merge
+  (for each `c = deque.front()`: if `(unsigned char)c % multiple == 0` push to the
+  stack, else drain the stack into `server->packet_buffer[len++]` and emit `c`).
+  The by-value-vs-`void` return and the third container's type are still
+  unproven, which is why it was not drafted.
 - `MysqlCallback_Dispatch` (`0x450618`, 36,735 B) — reconnaissance map. 15
   top-level cases for query kinds `0x40,0x42,0x44,0x45,0x47,0x48,0x49,0x4b,0x4d,
   0x4e,0x4f,0x50,0x51,0x52,0x53`, reached by a linear `if` chain (no jump table);

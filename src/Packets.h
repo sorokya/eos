@@ -4,6 +4,8 @@
 #include <Classes.hpp>
 #include <ScktComp.hpp>
 #include <vector>
+#include <deque>
+#include <stack>
 
 #include "Map.h"
 #include "Mapcontrol.h"
@@ -169,6 +171,7 @@ void *PtrVector_GetEnd(void *list);
 int GroundItemPtrVector_Count(void *list);
 
 String EO_EncodeNumber(Server *server, unsigned int value, int width);
+String EO_Encode_Interleave(Server *server, int multiple, char *begin, char *end);
 int EO_DecodeNumber(void *self, String data);
 int EO_DecodeByte(void *self, char value);
 char EO_GetBreakByte(void *self, int value);
