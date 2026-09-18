@@ -268,29 +268,30 @@ MapContainer *Mapcontrol_Iter_Front(Mapcontrol *map_control)
     return *(MapContainer **)((char *)map_control + 0x04);
 }
 
-void **Map_NpcIter_Begin(void *npc_list)
+void *Map_NpcIter_Begin(void *npc_list)
 {
-    return *(void ***)((char *)npc_list + 0x04);
+    return *(void **)((char *)npc_list + 0x04);
 }
 
-void **Map_NpcIter_End(void *npc_list)
+void *Map_NpcIter_End(void *npc_list)
 {
-    return *(void ***)((char *)npc_list + 0x08);
+    return *(void **)((char *)npc_list + 0x08);
 }
 
-void **GroundItemPtrVector_Begin(void *list)
+void *GroundItemPtrVector_Begin(void *list)
 {
-    return *(void ***)((char *)list + 0x04);
+    return *(void **)((char *)list + 0x04);
 }
 
-void **PtrVector_GetEnd(void *list)
+void *PtrVector_GetEnd(void *list)
 {
-    return *(void ***)((char *)list + 0x08);
+    return *(void **)((char *)list + 0x08);
 }
 
 int GroundItemPtrVector_Count(void *list)
 {
-    return PtrVector_GetEnd(list) - GroundItemPtrVector_Begin(list);
+    return (int)((char *)PtrVector_GetEnd(list)
+                 - (char *)GroundItemPtrVector_Begin(list));
 }
 
 int Math_Abs(int value)

@@ -162,10 +162,10 @@ void Server_BroadcastToMap(
 int Math_Abs(int value);
 
 MapContainer *Mapcontrol_Iter_Front(Mapcontrol *map_control);
-void **Map_NpcIter_Begin(void *npc_list);
-void **Map_NpcIter_End(void *npc_list);
-void **GroundItemPtrVector_Begin(void *list);
-void **PtrVector_GetEnd(void *list);
+void *Map_NpcIter_Begin(void *npc_list);
+void *Map_NpcIter_End(void *npc_list);
+void *GroundItemPtrVector_Begin(void *list);
+void *PtrVector_GetEnd(void *list);
 int GroundItemPtrVector_Count(void *list);
 
 String EO_EncodeNumber(Server *server, unsigned int value, int width);
