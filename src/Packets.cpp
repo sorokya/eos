@@ -1345,7 +1345,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
     return;
 }
 
-String *Message_BuildServerStatus(String *out, Server *server)
+String Message_BuildServerStatus(Server *server)
 {
     String names = EO_GetBreakByte(server, 0xff);
     int count = 0;
@@ -1370,11 +1370,10 @@ String *Message_BuildServerStatus(String *out, Server *server)
         }
     }
     names.Insert(EO_EncodeNumber(server, count, 2), 1);
-    *out += names;
-    return out;
+    return names;
 }
 
-String *Server_BuildOnlineNames(String *out_str, Server *server)
+String Server_BuildOnlineNames(Server *server)
 {
     if (server->online_names_ttl < 1)
     {
@@ -1394,16 +1393,12 @@ String *Server_BuildOnlineNames(String *out_str, Server *server)
         names.Insert(EO_EncodeNumber(server, count, 2), 1);
         if (count > 0x18)
         {
-            server->online_names_cache += names;
+            server->online_names_cache = names;
             server->online_names_ttl = 4;
         }
-        *out_str += names;
+        return names;
     }
-    else
-    {
-        *out_str += server->online_names_cache;
-    }
-    return out_str;
+    return server->online_names_cache;
 }
 
 String *
