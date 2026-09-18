@@ -16,6 +16,9 @@ class JukeBoxController
     std::vector<JukeBox> recent_plays;
 
     JukeBoxController();
+    ~JukeBoxController();
+
+    static void Add(JukeBoxController *self, int map_id);
 
     static String EncodeNumber(JukeBoxController *self, unsigned int value, int width);
     static String BuildRecentTracksString(JukeBoxController *self, int map_id);

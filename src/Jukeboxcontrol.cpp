@@ -11,6 +11,17 @@ JukeBoxController::JukeBoxController()
     recent_plays.clear();
 }
 
+JukeBoxController::~JukeBoxController()
+{
+    recent_plays.clear();
+}
+
+void JukeBoxController::Add(JukeBoxController *self, int map_id)
+{
+    JukeBox record(map_id);
+    self->recent_plays.insert(self->recent_plays.end(), record);
+}
+
 String
 JukeBoxController::EncodeNumber(JukeBoxController *self, unsigned int value, int width)
 {
@@ -121,85 +132,3 @@ void FUN_004aa4e4(JukeBoxController *self, int map_id)
         }
     }
 }
-
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
-// STUB(0x004a9e14, 96 bytes) FUN_004a9e14 - ref: undefined FUN_004a9e14(int param_1, byte
-// param_2)
-void FUN_004a9e14_Stub(int a0, unsigned char a1)
-{
-}
-// STUB(0x004a9e74, 111 bytes) FUN_004a9e74 - ref: undefined FUN_004a9e74(int param_1,
-// undefined2 param_2)
-void FUN_004a9e74_Stub(int a0, short a1)
-{
-}
-// STUB(0x004a9ee4, 155 bytes) FUN_004a9ee4 - ref: int FUN_004a9ee4(int param_1,
-// undefined2 * param_2, undefined2 * param_3)
-int FUN_004a9ee4_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x004a9f80, 19 bytes) FUN_004a9f80 - ref: undefined FUN_004a9f80(undefined4
-// param_1, undefined4 param_2, undefined2 * param_3)
-void FUN_004a9f80_Stub(int a0, int a1, void *a2)
-{
-}
-// STUB(0x004aa20c, 132 bytes) FUN_004aa20c - ref: undefined FUN_004aa20c(undefined4
-// param_1, undefined2 * param_2)
-void FUN_004aa20c_Stub(int a0, void *a1)
-{
-}
-// STUB(0x004aa290, 55 bytes) FUN_004aa290 - ref: undefined4 * FUN_004aa290(undefined4 *
-// param_1, undefined4 * param_2)
-void *FUN_004aa290_Stub(void *a0, void *a1)
-{
-    return 0;
-}
-// STUB(0x004aa2c8, 107 bytes) FUN_004aa2c8 - ref: undefined2 * FUN_004aa2c8(undefined2 *
-// param_1, undefined2 * param_2, undefined2 * param_3)
-void *FUN_004aa2c8_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x004aa334, 36 bytes) FUN_004aa334 - ref: int FUN_004aa334(int param_1)
-int FUN_004aa334_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x004aa358, 114 bytes) FUN_004aa358 - ref: int FUN_004aa358(undefined4 param_1,
-// int param_2)
-int FUN_004aa358_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x004aa3cc, 99 bytes) FUN_004aa3cc - ref: int FUN_004aa3cc(undefined2 * param_1,
-// undefined2 * param_2, int param_3)
-int FUN_004aa3cc_Stub(void *a0, void *a1, int a2)
-{
-    return 0;
-}
-// STUB(0x004aa454, 33 bytes) FUN_004aa454 - ref: int FUN_004aa454(int param_1, int
-// param_2, undefined4 * param_3)
-int FUN_004aa454_Stub(int a0, int a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x004aa484, 11 bytes) FUN_004aa484 - ref: undefined4 FUN_004aa484(int param_1)
-int FUN_004aa484_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x004aa490, 25 bytes) FUN_004aa490 - ref: undefined FUN_004aa490(int param_1, int
-// param_2)
-void FUN_004aa490_Stub(int a0, int a1)
-{
-}
-// STUB(0x004aa4ac, 54 bytes) FUN_004aa4ac - ref: int FUN_004aa4ac(int param_1, int
-// param_2)
-int FUN_004aa4ac_Stub(int a0, int a1)
-{
-    return 0;
-}
-#pragma warn.8057
-// END GENERATED STUBS

@@ -35,6 +35,7 @@ class ShopValues
     int field_24;
 
     ShopValues();
+    ~ShopValues();
 
     int DecodeNumber(String value);
     static String EncodeNumber(ShopValues *self, unsigned int value, int width);

@@ -464,155 +464,119 @@ void NpcController::Npc_ChaseTarget(
         attempt++;
         if (dir == 0)
         {
-            if (npc->y < map_h)
+            if (npc->y >= map_h)
+                continue;
+            if (npc->x == npc->nStuck_pos && npc->y + 1 == *(int *)&npc->pad_90)
+                continue;
+            if (Mapcontrol::Map_IsWalkableNPC(
+                    mc->map_control, map_id, npc->x, npc->y + 1, 0) != 0)
+                continue;
+            if (Mapcontrol::Map_IsOccupied(mc->map_control, map_id, npc->x, npc->y + 1))
+                continue;
+            int player_id = Npc_ValidateMove(mc, map_id, npc->x, npc->y + 1);
+            if (player_id > 0)
             {
-                if (npc->x != npc->nStuck_pos || npc->y + 1 != *(int *)&npc->pad_90)
+                if (attempt > 1)
                 {
-                    if (Mapcontrol::Map_IsWalkableNPC(
-                            mc->map_control, map_id, npc->x, npc->y + 1, 0) == 0)
-                    {
-                        if (!Mapcontrol::Map_IsOccupied(
-                                mc->map_control, map_id, npc->x, npc->y + 1))
-                        {
-                            int player_id =
-                                Npc_ValidateMove(mc, map_id, npc->x, npc->y + 1);
-                            if (player_id > 0)
-                            {
-                                if (attempt > 1)
-                                {
-                                    npc->target_player_id = player_id;
-                                    return;
-                                }
-                                continue;
-                            }
-                            else
-                            {
-                                if (attempt == 1)
-                                    npc->nStuck_pos = -1;
-                                npc->target_player_id = -1;
-                                npc->direction = dir;
-                                npc->pos_pending = 1;
-                                npc->y = npc->y + 1;
-                                return;
-                            }
-                        }
-                    }
+                    npc->target_player_id = player_id;
+                    return;
                 }
+                continue;
             }
+            if (attempt == 1)
+                npc->nStuck_pos = -1;
+            npc->target_player_id = -1;
+            npc->direction = dir;
+            npc->pos_pending = 1;
+            npc->y = npc->y + 1;
+            return;
         }
-        else if (dir == 1)
+        if (dir == 1)
         {
-            if (npc->x >= 1)
+            if (npc->x < 1)
+                continue;
+            if (npc->x - 1 == npc->nStuck_pos && npc->y == *(int *)&npc->pad_90)
+                continue;
+            if (Mapcontrol::Map_IsWalkableNPC(
+                    mc->map_control, map_id, npc->x - 1, npc->y, 0) != 0)
+                continue;
+            if (Mapcontrol::Map_IsOccupied(mc->map_control, map_id, npc->x - 1, npc->y))
+                continue;
+            int player_id = Npc_ValidateMove(mc, map_id, npc->x - 1, npc->y);
+            if (player_id > 0)
             {
-                if (npc->x - 1 != npc->nStuck_pos || npc->y != *(int *)&npc->pad_90)
+                if (attempt > 1)
                 {
-                    if (Mapcontrol::Map_IsWalkableNPC(
-                            mc->map_control, map_id, npc->x - 1, npc->y, 0) == 0)
-                    {
-                        if (!Mapcontrol::Map_IsOccupied(
-                                mc->map_control, map_id, npc->x - 1, npc->y))
-                        {
-                            int player_id =
-                                Npc_ValidateMove(mc, map_id, npc->x - 1, npc->y);
-                            if (player_id > 0)
-                            {
-                                if (attempt > 1)
-                                {
-                                    npc->target_player_id = player_id;
-                                    return;
-                                }
-                                continue;
-                            }
-                            else
-                            {
-                                if (attempt == 1)
-                                    npc->nStuck_pos = -1;
-                                npc->target_player_id = -1;
-                                npc->direction = dir;
-                                npc->pos_pending = 1;
-                                npc->x--;
-                                return;
-                            }
-                        }
-                    }
+                    npc->target_player_id = player_id;
+                    return;
                 }
+                continue;
             }
+            if (attempt == 1)
+                npc->nStuck_pos = -1;
+            npc->target_player_id = -1;
+            npc->direction = dir;
+            npc->pos_pending = 1;
+            npc->x--;
+            return;
         }
-        else if (dir == 2)
+        if (dir == 2)
         {
-            if (npc->y >= 1)
+            if (npc->y < 1)
+                continue;
+            if (npc->x == npc->nStuck_pos && npc->y - 1 == *(int *)&npc->pad_90)
+                continue;
+            if (Mapcontrol::Map_IsWalkableNPC(
+                    mc->map_control, map_id, npc->x, npc->y - 1, 0) != 0)
+                continue;
+            if (Mapcontrol::Map_IsOccupied(mc->map_control, map_id, npc->x, npc->y - 1))
+                continue;
+            int player_id = Npc_ValidateMove(mc, map_id, npc->x, npc->y - 1);
+            if (player_id > 0)
             {
-                if (npc->x != npc->nStuck_pos || npc->y - 1 != *(int *)&npc->pad_90)
+                if (attempt > 1)
                 {
-                    if (Mapcontrol::Map_IsWalkableNPC(
-                            mc->map_control, map_id, npc->x, npc->y - 1, 0) == 0)
-                    {
-                        if (!Mapcontrol::Map_IsOccupied(
-                                mc->map_control, map_id, npc->x, npc->y - 1))
-                        {
-                            int player_id =
-                                Npc_ValidateMove(mc, map_id, npc->x, npc->y - 1);
-                            if (player_id > 0)
-                            {
-                                if (attempt > 1)
-                                {
-                                    npc->target_player_id = player_id;
-                                    return;
-                                }
-                                continue;
-                            }
-                            else
-                            {
-                                if (attempt == 1)
-                                    npc->nStuck_pos = -1;
-                                npc->target_player_id = -1;
-                                npc->direction = dir;
-                                npc->pos_pending = 1;
-                                npc->y--;
-                                return;
-                            }
-                        }
-                    }
+                    npc->target_player_id = player_id;
+                    return;
                 }
+                continue;
             }
+            if (attempt == 1)
+                npc->nStuck_pos = -1;
+            npc->target_player_id = -1;
+            npc->direction = dir;
+            npc->pos_pending = 1;
+            npc->y--;
+            return;
         }
-        else if (dir == 3)
+        if (dir == 3)
         {
-            if (npc->x < map_w)
+            if (npc->x >= map_w)
+                continue;
+            if (npc->x + 1 == npc->nStuck_pos && npc->y == *(int *)&npc->pad_90)
+                continue;
+            if (Mapcontrol::Map_IsWalkableNPC(
+                    mc->map_control, map_id, npc->x + 1, npc->y, 0) != 0)
+                continue;
+            if (Mapcontrol::Map_IsOccupied(mc->map_control, map_id, npc->x + 1, npc->y))
+                continue;
+            int player_id = Npc_ValidateMove(mc, map_id, npc->x + 1, npc->y);
+            if (player_id > 0)
             {
-                if (npc->x + 1 != npc->nStuck_pos || npc->y != *(int *)&npc->pad_90)
+                if (attempt > 1)
                 {
-                    if (Mapcontrol::Map_IsWalkableNPC(
-                            mc->map_control, map_id, npc->x + 1, npc->y, 0) == 0)
-                    {
-                        if (!Mapcontrol::Map_IsOccupied(
-                                mc->map_control, map_id, npc->x + 1, npc->y))
-                        {
-                            int player_id =
-                                Npc_ValidateMove(mc, map_id, npc->x + 1, npc->y);
-                            if (player_id > 0)
-                            {
-                                if (attempt > 1)
-                                {
-                                    npc->target_player_id = player_id;
-                                    return;
-                                }
-                                continue;
-                            }
-                            else
-                            {
-                                if (attempt == 1)
-                                    npc->nStuck_pos = -1;
-                                npc->target_player_id = -1;
-                                npc->direction = dir;
-                                npc->pos_pending = 1;
-                                npc->x = npc->x + 1;
-                                return;
-                            }
-                        }
-                    }
+                    npc->target_player_id = player_id;
+                    return;
                 }
+                continue;
             }
+            if (attempt == 1)
+                npc->nStuck_pos = -1;
+            npc->target_player_id = -1;
+            npc->direction = dir;
+            npc->pos_pending = 1;
+            npc->x = npc->x + 1;
+            return;
         }
     }
 }
@@ -622,16 +586,6 @@ void NpcController::Npc_ChaseTarget(
 // STUB(0x004ae45c, 6064 bytes) NpcControl_Tick - ref: void NpcControl_Tick(Npccontrol *
 // npc_control)
 void NpcControl_Tick_Stub(void *a0)
-{
-}
-// STUB(0x004afd20, 1648 bytes) Npc_AttackPlayer - ref: void Npc_AttackPlayer(Npccontrol *
-// mc, Npc * npc, Player * player)
-void Npc_AttackPlayer_Stub(void *a0, void *a1, void *a2)
-{
-}
-// STUB(0x004b06b0, 1942 bytes) Npc_ChaseTarget - ref: void Npc_ChaseTarget(Npccontrol *
-// mc, Npc * npc, Player * player, int map_id, int map_w, int map_h)
-void Npc_ChaseTarget_Stub(void *a0, void *a1, void *a2, int a3, int a4, int a5)
 {
 }
 #pragma warn.8057

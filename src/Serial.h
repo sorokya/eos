@@ -24,6 +24,7 @@ struct Serial
     int counter;
 
     Serial();
+    ~Serial();
 
     static int GetCounter(Serial *s);
     static void SetCounter(Serial *s, int value);

@@ -12,6 +12,10 @@ LearnValues::LearnValues()
     Pub_LoadSkillMasters(this);
 }
 
+LearnValues::~LearnValues()
+{
+}
+
 void LearnValues::Pub_LoadSkillMasters(LearnValues *self)
 {
     if (self->loaded == 0)
@@ -314,14 +318,3 @@ int LearnValues::Pub_DecodeNumber_Learn(LearnValues *self, String value)
     }
     return result;
 }
-
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
-// STUB(0x0053260c, 140 bytes) FUN_0053260c - ref: undefined4 * FUN_0053260c(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_0053260c_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-#pragma warn.8057
-// END GENERATED STUBS

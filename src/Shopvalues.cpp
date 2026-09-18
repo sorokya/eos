@@ -12,6 +12,10 @@ ShopValues::ShopValues()
     LoadShops(this);
 }
 
+ShopValues::~ShopValues()
+{
+}
+
 void ShopValues::LoadShops(ShopValues *self)
 {
     if (self->loaded == 0)
@@ -447,14 +451,3 @@ int ShopValues::DecodeNumber(String value)
     }
     return result;
 }
-
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
-// STUB(0x004b39c4, 170 bytes) FUN_004b39c4 - ref: undefined4 * FUN_004b39c4(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_004b39c4_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-#pragma warn.8057
-// END GENERATED STUBS

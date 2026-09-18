@@ -17,6 +17,8 @@
 #include "Innvalues.h"
 #include "Mapcontrol.h"
 #include "Mapobject.h"
+#include "Questengine.h"
+#include "Playerquest.h"
 #include "Classvalues.h"
 #include "Protocol.h"
 
@@ -483,6 +485,135 @@ bool Chair_Execute(Server *server, Player *player, int action, String *data)
 }
 
 void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value);
+
+void Player_ApplyQuestActions(Server *server,
+                              Player *player,
+                              PlayerQuest *tracker,
+                              bool flag);
+
+void Player_EvaluateQuestRules(Server *server,
+                               Player *player,
+                               PlayerQuest *tracker,
+                               QuestState *state,
+                               int event,
+                               int arg)
+{
+    std::vector<QuestRule *>::iterator iter;
+    int index = -1;
+    for (iter = state->rules.begin(); iter != state->rules.end(); iter++)
+    {
+        index++;
+        if ((*iter)->rule == event || event == 400)
+        {
+            if ((*iter)->rule == 14)
+            {
+                if ((*iter)->args[0] <=
+                    QuestCounters::GetCompletionCount(
+                        server->quest_counters, player->name, tracker->quest_id))
+                {
+                    tracker->state_index = *(short *)&(*iter)->goto_state_index;
+                    Player_ApplyQuestActions(server, player, tracker, true);
+                    return;
+                }
+            }
+            if (event == 400)
+            {
+                int arg1 = (*iter)->args[0];
+                int arg2 = (*iter)->args[1];
+                if ((*iter)->rule == 13)
+                {
+                    tracker->state_index = *(short *)&(*iter)->goto_state_index;
+                    Player_ApplyQuestActions(server, player, tracker, true);
+                }
+                if ((*iter)->rule == 3)
+                {
+                    int amount =
+                        Players::Players_GetItemAmount(server->players, player, arg1);
+                    if (amount >= 0)
+                        tracker->counters[index] = (short)amount;
+                    else
+                        tracker->counters[index] = 0;
+                    if (amount >= arg2)
+                    {
+                        tracker->state_index = *(short *)&(*iter)->goto_state_index;
+                        Player_ApplyQuestActions(server, player, tracker, true);
+                        return;
+                    }
+                }
+                else if ((*iter)->rule == 4)
+                {
+                    if (Players::Players_GetItemAmount(server->players, player, arg1) <
+                        arg2)
+                    {
+                        tracker->state_index = *(short *)&(*iter)->goto_state_index;
+                        Player_ApplyQuestActions(server, player, tracker, true);
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                if ((*iter)->rule == 8)
+                {
+                    if (index <= 4)
+                    {
+                        int a1 = (*iter)->args[0];
+                        int a2 = (*iter)->args[1];
+                        if (arg == a1)
+                        {
+                            tracker->counters[index]++;
+                            if (tracker->counters[index] >= a2)
+                            {
+                                tracker->state_index =
+                                    *(short *)&(*iter)->goto_state_index;
+                                Player_ApplyQuestActions(server, player, tracker, true);
+                                return;
+                            }
+                        }
+                    }
+                }
+                if ((*iter)->rule == 9)
+                {
+                    if (index <= 4)
+                    {
+                        int a1 = (*iter)->args[0];
+                        tracker->counters[index]++;
+                        if (tracker->counters[index] >= a1)
+                        {
+                            tracker->state_index = *(short *)&(*iter)->goto_state_index;
+                            Player_ApplyQuestActions(server, player, tracker, true);
+                            return;
+                        }
+                    }
+                }
+                if ((*iter)->rule == 10)
+                {
+                    int a1 = (*iter)->args[0];
+                    int a2 = (*iter)->args[1];
+                    int a3 = (*iter)->args[2];
+                    if (player->map_id == a1 && player->x == a2 && player->y == a3)
+                    {
+                        tracker->state_index = *(short *)&(*iter)->goto_state_index;
+                        Player_ApplyQuestActions(server, player, tracker, true);
+                        return;
+                    }
+                }
+                if ((*iter)->rule == 11 && player->map_id == (*iter)->args[0])
+                {
+                    tracker->state_index = *(short *)&(*iter)->goto_state_index;
+                    Player_ApplyQuestActions(server, player, tracker, true);
+                    return;
+                }
+                if ((*iter)->rule == 12 && (*iter)->args[0] == arg)
+                {
+                    tracker->state_index = *(short *)&(*iter)->goto_state_index;
+                    Player_ApplyQuestActions(server, player, tracker, true);
+                    return;
+                }
+            }
+        }
+    }
+}
 
 void Player_Warp(Server *server,
                  Player *player,
@@ -1757,18 +1888,6 @@ void *FUN_004596a0_Stub(void *a0, void *a1, void *a2)
 }
 // STUB(0x00459700, 5 bytes) FUN_00459700 - ref: undefined FUN_00459700(void)
 void FUN_00459700_Stub()
-{
-}
-// STUB(0x00459708, 182 bytes) Player_FireQuestTriggers - ref: void
-// Player_FireQuestTriggers(Server * server, Player * player, int event, int arg)
-void Player_FireQuestTriggers_Stub(void *a0, void *a1, int a2, int a3)
-{
-}
-// STUB(0x004597c0, 930 bytes) Player_EvaluateQuestRules - ref: void
-// Player_EvaluateQuestRules(Server * server, Player * player, Questtracker * tracker,
-// Queststate * state, int event, int arg)
-void Player_EvaluateQuestRules_Stub(
-    void *a0, void *a1, void *a2, void *a3, int a4, int a5)
 {
 }
 // STUB(0x00459b64, 11 bytes) FUN_00459b64 - ref: undefined4 FUN_00459b64(int param_1)

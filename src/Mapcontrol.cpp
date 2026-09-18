@@ -1367,14 +1367,48 @@ char FUN_004827c8(int map_control, int map_id)
     return result;
 }
 
+String Map_ReadRawFile(Mapcontrol *map_control, int map_id)
+{
+    String result;
+    if (Mapcontrol_GetByIndex(map_control, map_id - 1)->buf == "")
+    {
+        String file_name;
+        int file_handle;
+        int size;
+        char *buf;
+        try
+        {
+            file_name = IntToStr(map_id);
+            for (int i = file_name.Length(); i <= 4; i++)
+                file_name.Insert("0", 0);
+            file_name.Insert("./maps/", 0);
+            file_name.Insert(".emf", file_name.Length() + 1);
+            file_handle = FileOpen(file_name.c_str(), 0);
+            if (file_handle < 0)
+                return "";
+            size = FileSeek(file_handle, 0, 2);
+            FileSeek(file_handle, 0, 0);
+            buf = new char[size + 1];
+            FileRead(file_handle, buf, size);
+            FileClose(file_handle);
+            result = buf;
+            result.SetLength(size);
+            delete[] buf;
+        }
+        catch (...)
+        {
+            FileClose(file_handle);
+        }
+    }
+    else
+    {
+        result = Mapcontrol_GetByIndex(map_control, map_id - 1)->buf;
+    }
+    return result;
+}
+
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
-// STUB(0x00482470, 836 bytes) Map_ReadRawFile - ref: AnsiString *
-// Map_ReadRawFile(AnsiString * out_data, Mapcontrol * map_control, int map_id)
-void *Map_ReadRawFile_Stub(void *a0, void *a1, int a2)
-{
-    return 0;
-}
 // STUB(0x0047af68, 80 bytes) FUN_0047af68 - ref: undefined FUN_0047af68(int param_1, byte
 // param_2)
 void FUN_0047af68_Stub(int a0, unsigned char a1)
@@ -1404,96 +1438,6 @@ int FUN_00480240_Stub(int a0, int a1)
 }
 // STUB(0x00481254, 42 bytes) FUN_00481254 - ref: int FUN_00481254(int param_1)
 int FUN_00481254_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00481fe0, 25 bytes) FUN_00481fe0 - ref: int FUN_00481fe0(int param_1, int
-// param_2)
-int FUN_00481fe0_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00481ffc, 36 bytes) FUN_00481ffc - ref: undefined FUN_00481ffc(int param_1)
-void FUN_00481ffc_Stub(int a0)
-{
-}
-// STUB(0x00482020, 36 bytes) FUN_00482020 - ref: undefined FUN_00482020(int param_1)
-void FUN_00482020_Stub(int a0)
-{
-}
-// STUB(0x00482044, 36 bytes) FUN_00482044 - ref: undefined FUN_00482044(int param_1)
-void FUN_00482044_Stub(int a0)
-{
-}
-// STUB(0x00482068, 36 bytes) FUN_00482068 - ref: undefined FUN_00482068(int param_1)
-void FUN_00482068_Stub(int a0)
-{
-}
-// STUB(0x0048208c, 36 bytes) FUN_0048208c - ref: undefined FUN_0048208c(int param_1)
-void FUN_0048208c_Stub(int a0)
-{
-}
-// STUB(0x004820b0, 36 bytes) FUN_004820b0 - ref: undefined FUN_004820b0(int param_1)
-void FUN_004820b0_Stub(int a0)
-{
-}
-// STUB(0x004820d4, 89 bytes) FUN_004820d4 - ref: undefined4 * FUN_004820d4(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-void *FUN_004820d4_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00482130, 91 bytes) FUN_00482130 - ref: undefined4 * FUN_00482130(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-void *FUN_00482130_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0048218c, 92 bytes) FUN_0048218c - ref: undefined2 * FUN_0048218c(int param_1,
-// undefined2 * param_2, undefined2 * param_3)
-void *FUN_0048218c_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x004821e8, 91 bytes) FUN_004821e8 - ref: undefined4 * FUN_004821e8(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-void *FUN_004821e8_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00482244, 91 bytes) FUN_00482244 - ref: undefined4 * FUN_00482244(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-void *FUN_00482244_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x004822a0, 91 bytes) FUN_004822a0 - ref: undefined4 * FUN_004822a0(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-void *FUN_004822a0_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00482334, 48 bytes) FUN_00482334 - ref: undefined4 * FUN_00482334(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_00482334_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00482364, 123 bytes) FUN_00482364 - ref: undefined2 * FUN_00482364(undefined2 *
-// param_1, undefined2 * param_2, undefined2 * param_3)
-void *FUN_00482364_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x004823e0, 53 bytes) FUN_004823e0 - ref: undefined4 * FUN_004823e0(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_004823e0_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00482418, 42 bytes) FUN_00482418 - ref: undefined4 * FUN_00482418(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_00482418_Stub(void *a0, void *a1, void *a2)
 {
     return 0;
 }

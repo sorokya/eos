@@ -34,6 +34,10 @@ Serial::Serial()
     ReloadIni(this);
 }
 
+Serial::~Serial()
+{
+}
+
 int Serial::GetCounter(Serial *s)
 {
     return s->counter;
@@ -305,13 +309,3 @@ String Serial::GetDisplayCode(Serial *s)
         result = s->serial_code;
     return result;
 }
-
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
-// STUB(0x0041246c, 159 bytes) FUN_0041246c - ref: undefined FUN_0041246c(int param_1,
-// byte param_2)
-void FUN_0041246c_Stub(int a0, unsigned char a1)
-{
-}
-#pragma warn.8057
-// END GENERATED STUBS

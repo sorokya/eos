@@ -147,35 +147,35 @@ outstanding cross-unit externs and the known-unconverged functions.
 
 <!-- BEGIN GENERATED STATUS -->
 
-**1566/1809 (86.6%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
+**1587/1809 (87.7%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
 
 ```mermaid
 pie showData
     title Application functions by status
-    "byte-exact" : 1566
+    "byte-exact" : 1587
     "mismatched" : 4
-    "stubbed" : 223
-    "unimplemented" : 15
+    "stubbed" : 205
+    "unimplemented" : 12
     "deferred" : 1
 ```
 
 | Unit | functions | byte-exact | stubbed | mismatched | unimplemented |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Mapcontrol | 279 | 248 | 27 | 0 | 4 |
-| Packets | 249 | 73 | 167 | 4 | 4 |
+| Mapcontrol | 279 | 249 | 26 | 0 | 4 |
+| Packets | 249 | 75 | 165 | 4 | 4 |
 | Players | 160 | 154 | 6 | 0 | 0 |
 | Questengine | 123 | 123 | 0 | 0 | 0 |
-| Shopvalues | 86 | 85 | 0 | 0 | 1 |
+| Shopvalues | 86 | 86 | 0 | 0 | 0 |
 | Npcvalues | 80 | 77 | 3 | 0 | 0 |
 | Mysqlcontrols | 73 | 73 | 0 | 0 | 0 |
 | Msgboardcontrol | 57 | 56 | 1 | 0 | 0 |
 | Itemvalues | 44 | 44 | 0 | 0 | 0 |
-| Learnvalues | 41 | 40 | 0 | 0 | 1 |
+| Learnvalues | 41 | 41 | 0 | 0 | 0 |
 | Settings | 40 | 39 | 1 | 0 | 0 |
 | Innvalues | 39 | 39 | 0 | 0 | 0 |
 | Questcounters | 36 | 36 | 0 | 0 | 0 |
 | Skillvalues | 34 | 34 | 0 | 0 | 0 |
-| Jukeboxcontrol | 33 | 18 | 14 | 0 | 1 |
+| Jukeboxcontrol | 33 | 32 | 1 | 0 | 0 |
 | Killcounters | 33 | 33 | 0 | 0 | 0 |
 | Questcounter | 32 | 32 | 0 | 0 | 0 |
 | Weddings | 31 | 30 | 1 | 0 | 0 |
@@ -185,10 +185,10 @@ pie showData
 | Mysqltask | 21 | 21 | 0 | 0 | 0 |
 | Npcvalue | 21 | 21 | 0 | 0 | 0 |
 | Filecache | 18 | 18 | 0 | 0 | 0 |
-| Serial | 18 | 17 | 1 | 0 | 0 |
+| Serial | 18 | 18 | 0 | 0 | 0 |
 | Shopvalue | 16 | 16 | 0 | 0 | 0 |
 | Quest | 14 | 14 | 0 | 0 | 0 |
-| Npccontrol | 13 | 11 | 2 | 0 | 0 |
+| Npccontrol | 13 | 12 | 1 | 0 | 0 |
 | Queststate | 12 | 12 | 0 | 0 | 0 |
 | Banned | 11 | 7 | 0 | 0 | 4 |
 | Logins | 10 | 10 | 0 | 0 | 0 |

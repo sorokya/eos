@@ -23,6 +23,7 @@ class LearnValues
     int field_24;
 
     LearnValues();
+    ~LearnValues();
 
     static void Pub_LoadSkillMasters(LearnValues *self);
     static void Clear(LearnValues *self);
