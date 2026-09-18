@@ -53,15 +53,13 @@ class Server
     String field_0x6c;                    // +0x6c
     int field_0x70;                       // +0x70
     int field_0x74;                       // +0x74
-    int field_0x78;                       // +0x78
+    char field_0x78;                      // +0x78
     int online_names_ttl;                 // +0x7c
     String online_names_cache;            // +0x80
     int online_list_ttl;                  // +0x84
     String online_list_cache;             // +0x88
     String field_0x8c[7];                 // +0x8c
-    int field_0xa8;                       // +0xa8
-    int field_0xac;                       // +0xac
-    int field_0xb0;                       // +0xb0
+    int field_0xa8[3];                    // +0xa8
     int ticks;                            // +0xb4
     char field_0xb8;                      // +0xb8
     char flag_0xb9;                       // +0xb9
@@ -91,6 +89,7 @@ int Mapcontrol_GetCount(Mapcontrol *map_control);
 MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 void Game_Tick(Server *server);
 void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data);
+void Server_Shutdown(Server *server);
 void Client_SendEncoded(
     Server *server, Player *player, int action, int family, String data);
 void Server_BroadcastToMap(
@@ -99,5 +98,19 @@ void Server_BroadcastNearby(
     Server *server, Player *player, int action, int family, String data);
 
 int Math_Abs(int value);
+
+String EO_EncodeNumber(Server *server, unsigned int value, int width);
+int EO_DecodeNumber(void *self, String data);
+int EO_DecodeByte(void *self, char value);
+char EO_GetBreakByte(void *self, char value);
+int Server_DecodePacketLength(void *self, String data);
+bool Login_CheckConnectionThreshold(Server *server);
+void PacketReader_Init(Server *reader, String data, unsigned char break_byte);
+
+bool Coords_IsAdjacent(void *self, int x1, int y1, int x2, int y2);
+bool Server_InViewRange(void *self, int x1, int y1, int x2, int y2);
+bool Server_InViewRing(void *self, int x1, int y1, int x2, int y2);
+bool Server_InViewRangeReverse(void *self, int x1, int y1, int x2, int y2);
+bool Server_InItemViewRing(void *self, int x1, int y1, int x2, int y2);
 
 #endif
