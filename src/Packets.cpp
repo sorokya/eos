@@ -3531,22 +3531,25 @@ String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *e
                 woven.push(pending.top());
                 pending.pop();
             }
-            while (!woven.empty())
+            if (pending.empty())
             {
-                char c = woven.front();
-                int value = (unsigned char)c;
-                if (value % multiple == 0)
-                    pending.push(c);
-                else
+                while (!woven.empty())
                 {
-                    while (!pending.empty())
+                    char c = woven.front();
+                    int value = (unsigned char)c;
+                    if (value % multiple == 0)
+                        pending.push(c);
+                    else
                     {
-                        server->packet_buffer[len++] = pending.top();
-                        pending.pop();
+                        while (!pending.empty())
+                        {
+                            server->packet_buffer[len++] = pending.top();
+                            pending.pop();
+                        }
+                        server->packet_buffer[len++] = c;
                     }
-                    server->packet_buffer[len++] = c;
+                    woven.pop();
                 }
-                woven.pop();
             }
         }
         catch (...)
