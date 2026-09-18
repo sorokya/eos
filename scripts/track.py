@@ -495,6 +495,20 @@ def main() -> int:
                 "unimplemented", "mismatched"):
             r["status"] = "stubbed"
 
+    # A placeholder proves application code, so the (heuristic) run extension
+    # must not hide it behind a library vote.
+    for r in rows:
+        if r["status"] == "stubbed" and r["kind"] == "library":
+            r["kind"] = "app"
+
+    # `_extend_library_runs` grows the library classification past the group
+    # loop above, so the rows it newly marks keep a stale `unimplemented` unless
+    # they are n/a'd here. A statically linked RTL/VCL/BDE member and a module
+    # initializer stub have no source to write, whatever their earlier status.
+    for r in rows:
+        if r["kind"] in ("library", "stub") and r["status"] != "byte-exact":
+            r["status"], r["source_name"] = "n/a", ""
+
     # A function we have reproduced is application code by definition; never let
     # the (heuristic) library vote hide it.
     for r in rows:
