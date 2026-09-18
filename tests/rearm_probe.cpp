@@ -249,4 +249,51 @@ int I(AnsiString buf, int n)
     }
 }
 
+
+// J: two consecutive statements that each BIND a String temporary, then scalar.
+int J(AnsiString buf, int n)
+{
+    int spec = 0;
+    int code = 0;
+    try
+    {
+        for (int k = 0; k < n; k++)
+        {
+            String spec_str = buf.SubString(1, 1);
+            spec = dec(spec_str);
+            String code_str = buf.SubString(1, 2);
+            code = dec(code_str);
+            if (code == 0)
+                n++;
+        }
+        return 1;
+    }
+    catch (...)
+    {
+        return 0;
+    }
+}
+
+// K: the decode called with an inline SubString directly (anonymous temp).
+int K(AnsiString buf, int n)
+{
+    int spec = 0;
+    int code = 0;
+    try
+    {
+        for (int k = 0; k < n; k++)
+        {
+            spec = dec(buf.SubString(1, 1));
+            code = dec(buf.SubString(1, 2));
+            if (code == 0)
+                n++;
+        }
+        return 1;
+    }
+    catch (...)
+    {
+        return 0;
+    }
+}
+
 #pragma warn .8057

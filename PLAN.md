@@ -736,7 +736,19 @@ Tracked so they are not mistaken for done:
     sites; **no `std::string`**; no embedded stubs. Risks: the five near-identical
     arm prologues (transcribe from a spec) and the action-numbering divergence
     against the Rust names. The shared `0x58b60c` skill/item singleton still needs
-    its type identified.
+    its type identified. **Progress: prologue guards + the `action == 1` arm are
+    transcribed** (`caster->walk_tick = DateTimeToTimeStamp(Now()).Time`, `map_id
+    < 1` and `weight_max + 2 >= weight_current` guard `return 1`; then
+    `SubString(1,2)` -> `EO_DecodeNumber` -> `queued_spell_id`,
+    `Player_HasSpellId`, `GetCastTime * 30`, `SubString(3,3)` ->
+    `expected_cast_timestamp`, `EO_EncodeNumber` pair, `Server_BroadcastNearby`);
+    the remaining five arms are `return 0` placeholders. Current frame `-64` vs the
+    reference's `-704`, so no instruction aligns yet — the frame only fills once
+    the later arms' locals exist. Callees for arm 1 are all reconstructed:
+    `Player_HasSpellId` `0x40cc80`, `Server_BroadcastNearby` `0x463f34`,
+    `EO_EncodeNumber` `0x470b9c`, `EO_DecodeNumber` `0x470de8`,
+    `SkillValues::GetCastTime` `0x4a5268`; `Now`/`DateTimeToTimeStamp` are the
+    library `0x520500`/`0x51ff7c`.
 
 ## Risks and mitigations
 

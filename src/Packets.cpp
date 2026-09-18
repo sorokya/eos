@@ -22,6 +22,7 @@
 #include "Itemvalues.h"
 #include "Questengine.h"
 #include "Playerquest.h"
+#include "Skillvalues.h"
 #include "Classvalues.h"
 #include "Protocol.h"
 
@@ -3061,8 +3062,31 @@ int Attack_Execute_Stub(void *a0, void *a1, int a2, void *a3)
 }
 // STUB(0x0046a9b0, 17449 bytes) Spell_Execute - ref: int Spell_Execute(Server * server,
 // Player * caster, int action, AnsiString * packet_data)
-int Spell_Execute_Stub(void *a0, void *a1, int a2, void *a3)
+int Spell_Execute(Server *server, Player *caster, int action, String *packet_data)
 {
+    caster->walk_tick = DateTimeToTimeStamp(Now()).Time;
+    if (caster->map_id < 1)
+        return 1;
+    if (caster->weight_max + 2 >= caster->weight_current)
+        return 1;
+    if (action == 1)
+    {
+        if (packet_data->Length() < 5)
+            return 0;
+        String spell = packet_data->SubString(1, 2);
+        caster->queued_spell_id = EO_DecodeNumber(server, spell);
+        if (!Players::Player_HasSpellId(server->players, caster, caster->queued_spell_id))
+            return 0;
+        int cast_time =
+            SkillValues::GetCastTime((*MAINFORM)->skill_values, caster->queued_spell_id) *
+            30;
+        String target = packet_data->SubString(3, 3);
+        caster->expected_cast_timestamp = EO_DecodeNumber(server, target) + cast_time - 1;
+        String pkt = EO_EncodeNumber(server, caster->player_id, 2);
+        pkt.Insert(EO_EncodeNumber(server, caster->queued_spell_id, 2), pkt.Length() + 1);
+        Server_BroadcastNearby(server, caster, 1, 0xc, pkt);
+        return 1;
+    }
     return 0;
 }
 // STUB(0x0046ee4c, 5466 bytes) Walk_Execute - ref: undefined4 Walk_Execute(Server *
