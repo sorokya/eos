@@ -1112,6 +1112,38 @@ String Character_BuildSaveQuery(Players *players, Player *player, int flags)
     return q;
 }
 
+int Players::Player_LevelUpSpell(Players *self, Player *player, int spell_id)
+{
+    for (PlayerSkill *iter = player->spells.begin(); iter != player->spells.end(); iter++)
+    {
+        if (iter->skill_id == spell_id)
+        {
+            if ((unsigned int)iter->level < 100)
+                iter->level++;
+            return iter->level;
+        }
+    }
+    return 0;
+}
+
+bool Players::Player_RemoveSpell(Players *self, Player *player, int spell_id)
+{
+    for (PlayerSkill *iter = player->spells.begin(); iter != player->spells.end(); iter++)
+    {
+        if (iter->skill_id == spell_id)
+        {
+            player->spells.erase(iter);
+            return true;
+        }
+    }
+    return false;
+}
+
+void Players::Player_ClearSpells(Players *self, Player *player)
+{
+    player->spells.clear();
+}
+
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
 // STUB(0x00407b30, 80 bytes) FUN_00407b30 - ref: undefined FUN_00407b30(int param_1, byte
@@ -1145,29 +1177,6 @@ int FUN_0040e8c0_Stub(int a0, int a1, void *a2)
 // STUB(0x0040e8fc, 25 bytes) FUN_0040e8fc - ref: undefined FUN_0040e8fc(int param_1, int
 // param_2)
 void FUN_0040e8fc_Stub(int a0, int a1)
-{
-}
-// STUB(0x0040e974, 88 bytes) FUN_0040e974 - ref: int FUN_0040e974(undefined4 param_1, int
-// param_2, int param_3)
-int FUN_0040e974_Stub(int a0, int a1, int a2)
-{
-    return 0;
-}
-// STUB(0x0040e9cc, 89 bytes) FUN_0040e9cc - ref: undefined4 FUN_0040e9cc(undefined4
-// param_1, int param_2, int param_3)
-int FUN_0040e9cc_Stub(int a0, int a1, int a2)
-{
-    return 0;
-}
-// STUB(0x0040ea28, 101 bytes) FUN_0040ea28 - ref: undefined4 * FUN_0040ea28(int param_1,
-// undefined4 * param_2)
-void *FUN_0040ea28_Stub(int a0, void *a1)
-{
-    return 0;
-}
-// STUB(0x0040ea90, 20 bytes) FUN_0040ea90 - ref: undefined FUN_0040ea90(undefined4
-// param_1, int param_2)
-void FUN_0040ea90_Stub(int a0, int a1)
 {
 }
 #pragma warn.8057

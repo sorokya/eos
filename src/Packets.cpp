@@ -17,6 +17,8 @@
 #include "Innvalues.h"
 #include "Mapcontrol.h"
 #include "Mapobject.h"
+#include "Npc.h"
+#include "Itemground.h"
 #include "Itemvalues.h"
 #include "Questengine.h"
 #include "Playerquest.h"
@@ -1345,6 +1347,73 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
     return;
 }
 
+String Walk_BuildReply(Server *server, Player *player)
+{
+    String buf = "";
+    for (Player **iter = Players_Iter_Begin(server->players);
+         iter != Players_Iter_End(server->players);
+         iter++)
+    {
+        if ((*iter)->map_id == player->map_id)
+        {
+            if (Server_InViewRing(server, player->x, player->y, (*iter)->x, (*iter)->y))
+                buf.Insert(EO_EncodeNumber(server, (*iter)->player_id, 2),
+                           buf.Length() + 1);
+        }
+    }
+    buf.Insert(EO_GetBreakByte(server, 0xff), buf.Length() + 1);
+    if (player->map_id > 0)
+    {
+        if (player->map_id <= Mapcontrol_GetCount(server->map_control))
+        {
+            for (Npc **iter = (Npc **)Map_NpcIter_Begin(
+                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                          ->npc_list);
+                 iter !=
+                 (Npc **)Map_NpcIter_End(
+                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                          ->npc_list);
+                 iter++)
+            {
+                if (Server_InViewRing(
+                        server, player->x, player->y, (*iter)->x, (*iter)->y))
+                    buf.Insert(EO_EncodeNumber(server, (*iter)->index, 1),
+                               buf.Length() + 1);
+            }
+        }
+    }
+    buf.Insert(EO_GetBreakByte(server, 0xff), buf.Length() + 1);
+    if (player->map_id > 0)
+    {
+        if (player->map_id <= Mapcontrol_GetCount(server->map_control))
+        {
+            for (ChestItem **iter = (ChestItem **)GroundItemPtrVector_Begin(
+                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                          ->ground_items);
+                 iter !=
+                 (ChestItem **)PtrVector_GetEnd(
+                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                          ->ground_items);
+                 iter++)
+            {
+                if (Server_InItemViewRing(
+                        server, player->x, player->y, (*iter)->x, (*iter)->y))
+                {
+                    buf.Insert(EO_EncodeNumber(server, (*iter)->index, 2),
+                               buf.Length() + 1);
+                    buf.Insert(EO_EncodeNumber(server, (*iter)->item_id, 2),
+                               buf.Length() + 1);
+                    buf.Insert(EO_EncodeNumber(server, (*iter)->x, 1), buf.Length() + 1);
+                    buf.Insert(EO_EncodeNumber(server, (*iter)->y, 1), buf.Length() + 1);
+                    buf.Insert(EO_EncodeNumber(server, (*iter)->amount, 3),
+                               buf.Length() + 1);
+                }
+            }
+        }
+    }
+    return buf;
+}
+
 String Message_BuildServerStatus(Server *server)
 {
     String names = EO_GetBreakByte(server, 0xff);
@@ -1467,26 +1536,25 @@ String Party_EncodeMemberList(Server *server, Player *player)
 {
     if (!player->in_party)
         return "";
+    String s = "";
+    for (int i = 0; i < 10; i++)
     {
-        String s = "";
-        for (int i = 0; i < 10; i++)
+        Player *member = Players::Players_GetById(server->players, player->party_ids[i]);
+        if (member != NULL)
         {
-            Player *member =
-                Players::Players_GetById(server->players, player->party_ids[i]);
-            if (member != NULL)
-            {
-                int is_leader = (player->party_leader_id == member->player_id);
-                s.Insert(EO_EncodeNumber(server, member->player_id, 2), s.Length() + 1);
-                s.Insert(EO_EncodeNumber(server, is_leader, 1), s.Length() + 1);
-                s.Insert(EO_EncodeNumber(server, member->level, 1), s.Length() + 1);
-                s.Insert(EO_EncodeNumber(server, Player::HpPercent(member), 1),
-                         s.Length() + 1);
-                s.Insert(member->name, s.Length() + 1);
-                s.Insert(EO_GetBreakByte(server, 0xff), s.Length() + 1);
-            }
+            int is_leader = 0;
+            if (player->party_leader_id == member->player_id)
+                is_leader = 1;
+            s.Insert(EO_EncodeNumber(server, member->player_id, 2), s.Length() + 1);
+            s.Insert(EO_EncodeNumber(server, is_leader, 1), s.Length() + 1);
+            s.Insert(EO_EncodeNumber(server, member->level, 1), s.Length() + 1);
+            s.Insert(EO_EncodeNumber(server, Player::HpPercent(member), 1),
+                     s.Length() + 1);
+            s.Insert(member->name, s.Length() + 1);
+            s.Insert(EO_GetBreakByte(server, 0xff), s.Length() + 1);
         }
-        return s;
     }
+    return s;
 }
 
 void FUN_00466840(Server *server, int map_id)

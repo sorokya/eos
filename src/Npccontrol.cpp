@@ -818,7 +818,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
 
                                 if (target == NULL)
                                     (*npc)->chase_target_id = -1;
-                                else if (distance < 2)
+                                else if (distance <= 1)
                                 {
                                     if (Npc_AttackPlayer(npc_control, *npc, target))
                                     {
@@ -830,7 +830,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                 }
                                 else if ((*npc)->chase_target_id < 0)
                                 {
-                                    if (distance < 12)
+                                    if (distance <= 11)
                                     {
                                     chase:
                                         Npc_ChaseTarget(npc_control,
@@ -863,7 +863,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                 }
                                 else
                                 {
-                                    if (distance < 0x11)
+                                    if (distance <= 16)
                                         goto chase;
                                     (*npc)->chase_target_id = -1;
                                 }
