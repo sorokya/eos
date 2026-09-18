@@ -3087,6 +3087,24 @@ int Spell_Execute(Server *server, Player *caster, int action, String *packet_dat
         Server_BroadcastNearby(server, caster, 1, 0xc, pkt);
         return 1;
     }
+    if (action == 0x1f)
+    {
+        if (!caster->logged_in)
+            return 0;
+        if (caster->sitting || caster->on_chair)
+            return 1;
+        if (packet_data->Length() < 11)
+            return 0;
+        String spell = packet_data->SubString(2, 3);
+        int spell_id = EO_DecodeNumber(server, spell);
+        int elapsed = spell_id - caster->last_client_walk_tick;
+        if (elapsed < 0 && caster->last_client_walk_tick > 0x7270e0)
+            elapsed = 0x2c;
+        caster->last_client_walk_tick = spell_id;
+        if (elapsed < 0x2c)
+            return 0;
+        return 0;
+    }
     return 0;
 }
 // STUB(0x0046ee4c, 5466 bytes) Walk_Execute - ref: undefined4 Walk_Execute(Server *

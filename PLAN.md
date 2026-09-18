@@ -742,8 +742,12 @@ Tracked so they are not mistaken for done:
     `SubString(1,2)` -> `EO_DecodeNumber` -> `queued_spell_id`,
     `Player_HasSpellId`, `GetCastTime * 30`, `SubString(3,3)` ->
     `expected_cast_timestamp`, `EO_EncodeNumber` pair, `Server_BroadcastNearby`);
-    the remaining five arms are `return 0` placeholders. Current frame `-64` vs the
-    reference's `-704`, so no instruction aligns yet — the frame only fills once
+    the `action == 0x1f` arm's prefix (`!logged_in -> 0`; `sitting || on_chair ->
+    1`; `Length() < 11 -> 0`; `SubString(2,3)` -> `EO_DecodeNumber` ->
+    `last_client_walk_tick`; the `elapsed = id - last_client_walk_tick`, the
+    `> 0x7270e0` wrap to `0x2c`, and the `elapsed < 0x2c -> 0` guard) is written;
+    the rest of that ~12 KB arm and the other four arms are placeholders. Current
+    frame `-0x4c` vs the reference's `-0x2c0`, so no instruction aligns yet — the frame only fills once
     the later arms' locals exist. Callees for arm 1 are all reconstructed:
     `Player_HasSpellId` `0x40cc80`, `Server_BroadcastNearby` `0x463f34`,
     `EO_EncodeNumber` `0x470b9c`, `EO_DecodeNumber` `0x470de8`,
