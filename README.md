@@ -147,14 +147,14 @@ outstanding cross-unit externs and the known-unconverged functions.
 
 <!-- BEGIN GENERATED STATUS -->
 
-**1606/1809 (88.8%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
+**1607/1809 (88.8%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
 
 ```mermaid
 pie showData
     title Application functions by status
-    "byte-exact" : 1606
+    "byte-exact" : 1607
     "mismatched" : 8
-    "stubbed" : 176
+    "stubbed" : 175
     "unimplemented" : 18
     "deferred" : 1
 ```
@@ -188,7 +188,7 @@ pie showData
 | Serial | 18 | 18 | 0 | 0 | 0 |
 | Shopvalue | 16 | 16 | 0 | 0 | 0 |
 | Quest | 14 | 14 | 0 | 0 | 0 |
-| Npccontrol | 13 | 12 | 1 | 0 | 0 |
+| Npccontrol | 13 | 13 | 0 | 0 | 0 |
 | Queststate | 12 | 12 | 0 | 0 | 0 |
 | Banned | 11 | 7 | 0 | 0 | 4 |
 | Logins | 10 | 10 | 0 | 0 | 0 |

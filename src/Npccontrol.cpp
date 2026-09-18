@@ -827,9 +827,9 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                     goto attack;
                                 else if ((*npc)->chase_target_id < 0)
                                 {
-                                    if (distance <= 11)
-                                        goto chase;
-                                    continue;
+                                    if (11 < distance)
+                                        continue;
+                                    goto chase;
                                 }
                                 else
                                 {
@@ -1005,27 +1005,21 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
             }
         }
     }
-    if (flag == false)
+    if (flag != false)
+        return;
+    for (player = Players_Iter_Begin(npc_control->players);
+         player != Players_Iter_End(npc_control->players);
+         player++)
     {
-        for (player = Players_Iter_Begin(npc_control->players);
-             player != Players_Iter_End(npc_control->players);
-             player++)
-        {
-            if ((*player)->logged_in != false && 0 < (*player)->map_id &&
-                (*player)->map_id <= Mapcontrol_GetCount(npc_control->map_control) &&
-                (*player)->dead != false)
-                Player_Respawn(npc_control->server, *player);
-        }
+        if ((*player)->logged_in != false && 0 < (*player)->map_id &&
+            (*player)->map_id <= Mapcontrol_GetCount(npc_control->map_control) &&
+            (*player)->dead != false)
+            Player_Respawn(npc_control->server, *player);
     }
     return;
 }
 
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
-// STUB(0x004ae45c, 6064 bytes) NpcControl_Tick - ref: void NpcControl_Tick(Npccontrol *
-// npc_control)
-void NpcControl_Tick_Stub(void *a0)
-{
-}
 #pragma warn.8057
 // END GENERATED STUBS
