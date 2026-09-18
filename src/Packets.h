@@ -6,6 +6,7 @@
 #include <vector>
 #include <deque>
 #include <stack>
+#include <queue>
 
 #include "Map.h"
 #include "Mapcontrol.h"

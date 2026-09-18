@@ -3470,13 +3470,12 @@ String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *e
         try
         {
             std::stack<char> pending;
-            std::deque<char> split;
-            std::deque<char> woven;
+            std::queue<char> woven;
             for (bool toggle = true; begin != end; begin++)
             {
                 if (toggle)
                 {
-                    split.push_back(*begin);
+                    woven.push(*begin);
                     toggle = false;
                 }
                 else
@@ -3487,12 +3486,12 @@ String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *e
             }
             while (!pending.empty())
             {
-                split.push_back(pending.top());
+                woven.push(pending.top());
                 pending.pop();
             }
-            while (!split.empty())
+            while (!woven.empty())
             {
-                char c = split.front();
+                char c = woven.front();
                 int value = (unsigned char)c;
                 if (value % multiple == 0)
                     pending.push(c);
@@ -3505,9 +3504,8 @@ String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *e
                     }
                     server->packet_buffer[len++] = c;
                 }
-                split.pop_front();
+                woven.pop();
             }
-            (void)woven;
         }
         catch (...)
         {
