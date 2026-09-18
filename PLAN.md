@@ -585,6 +585,8 @@ COMDAT) before the final link; none may be guessed away.
 | `MapwarpVector_Begin` / `_End` | Eventcontrol | `std::vector<MapWarp>::begin/end` COMDATs (Mapwarp unit). Same situation. |
 | `Character_BuildSaveQuery` | Packets | Players unit, `0x40902c` (14592 B), not yet reconstructed. |
 | `Map_GetTileSpecObject` | Packets | Mapcontrol `0x47c114`; only caller is `Chair_Execute`. Returns `MapObject` by value. Name not yet settled in the owner. |
+| `Map_InitBlank` (`0x487e84`), `FUN_0048835c` (`0x48835c`) | Mapcontrol | Map unit. `Map_InitBlank` returns `MapContainer` by value and takes `(map_id, width, height)`; `FUN_0048835c` is its destructor (`(&map, 2)`). Needed by `Mapcontrol_LoadMap`; no owner header declares them yet. |
+| `MapVector_End` (`0x47ecd4`), `MapVector_Insert` (`0x47ece0`) | Mapcontrol | Mapcontrol itself: the `std::vector<MapContainer>::end` / `insert` COMDATs. Called as `MapVector_Insert(map_control, MapVector_End(map_control), &map)` (the vector is `map_control->maps` at offset 0). No header declares them. |
 | `Sock_Send` | Packets | Library/RTL helper `0x4cf568`; not in `analysis/target/unit_functions.tsv` (so not a unit function). |
 | `MysqlCallback_Dispatch` | Mysqlthread | Packets `0x450618` (36735 B), not yet reconstructed. |
 | `Mainform_GetServer` | Mysqlthread | Mainform; no definition in `src/` yet. |
@@ -609,8 +611,12 @@ Tracked so they are not mistaken for done:
   ptrdiff over 4-byte elements, i.e. a `T** - T**` subtraction.
 - `Packets`: `Player_Warp` (1 instruction: temp construction order in the
   `do_leave` Avatar-Remove build); `Client_SendEncoded` (blocked on the
-  `EO_ByteRange_FromString` RTL helper ABI); `EO_Encode_Interleave` /
-  `EO_Decode_Deinterleave` (blocked on the `std::deque<char>` ABI);
+  `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
+  byte-exact (`std::stack<char>`/`std::deque<char>`, by-value `String` return);
+  `EO_Decode_Deinterleave` is drafted but mismatched (198/281) — the reference
+  builds **four** containers (`[ebp-0xdc]` temp deque + `[ebp-0x4c]` stack via
+  `0x471318`, and `[ebp-0x124]` temp deque + `[ebp-0x94]` deque via `0x472810`),
+  frame `-356`, so one more deque-from-deque construction is still missing;
   `Walk_Execute`, `Attack_Execute`, `Spell_Execute`, the reply builders, and
   `Player_HandlePacket` (deferred: one 226 KB function).
 - `Mapcontrol` `FUN_00482834` (`0x482834`) and `Mapcontrol_LoadMap` (`0x484e28`)

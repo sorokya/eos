@@ -3462,9 +3462,62 @@ int FUN_004723b8_Stub(int a0, int a1)
 }
 // STUB(0x00472414, 870 bytes) EO_Decode_Deinterleave - ref: void
 // EO_Decode_Deinterleave(char * data, int len, char * out)
-void EO_Decode_Deinterleave_Stub(void *a0, int a1, void *a2)
+String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *end)
 {
+    int len = 0;
+    if (multiple > 0)
+    {
+        try
+        {
+            std::stack<char> pending;
+            std::deque<char> split;
+            std::deque<char> woven;
+            for (bool toggle = true; begin != end; begin++)
+            {
+                if (toggle)
+                {
+                    split.push_back(*begin);
+                    toggle = false;
+                }
+                else
+                {
+                    pending.push(*begin);
+                    toggle = true;
+                }
+            }
+            while (!pending.empty())
+            {
+                split.push_back(pending.top());
+                pending.pop();
+            }
+            while (!split.empty())
+            {
+                char c = split.front();
+                int value = (unsigned char)c;
+                if (value % multiple == 0)
+                    pending.push(c);
+                else
+                {
+                    while (!pending.empty())
+                    {
+                        server->packet_buffer[len++] = pending.top();
+                        pending.pop();
+                    }
+                    server->packet_buffer[len++] = c;
+                }
+                split.pop_front();
+            }
+            (void)woven;
+        }
+        catch (...)
+        {
+            len = 0;
+        }
+    }
+    String data(server->packet_buffer, len);
+    return data;
 }
+
 // STUB(0x00472810, 56 bytes) FUN_00472810 - ref: int FUN_00472810(int param_1, int
 // param_2)
 int FUN_00472810_Stub(int a0, int a1)
