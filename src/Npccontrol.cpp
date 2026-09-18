@@ -920,73 +920,82 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                   (short)((*player)->map_id - 1))
                     ->npc_dirty != 0)
         {
-            String pos = "";
-            String talk = "";
-            String attack = "";
-            Npc **npc2 = (Npc **)Map_NpcIter_Begin(
-                &Mapcontrol_GetByIndex(npc_control->map_control,
-                                       (short)((*player)->map_id - 1))
-                     ->npc_list);
-            while ((Npc **)Map_NpcIter_End(
-                       &Mapcontrol_GetByIndex(npc_control->map_control,
-                                              (short)((*player)->map_id - 1))
-                            ->npc_list) != npc2)
+            try
             {
-                if ((*npc2)->pos_pending != 0 && Npc_IsWithinRange(npc_control,
-                                                                   (*player)->x,
-                                                                   (*player)->y,
-                                                                   (*npc2)->x,
-                                                                   (*npc2)->y) != false)
-                    pos.Insert((*npc2)->pos_buffer, pos.Length() + 1);
-                if ((*npc2)->talk_pending != 0 && Npc_IsWithinRange(npc_control,
-                                                                    (*player)->x,
-                                                                    (*player)->y,
-                                                                    (*npc2)->x,
-                                                                    (*npc2)->y) != false)
-                    talk.Insert((*npc2)->talk_buffer, talk.Length() + 1);
-                if ((*npc2)->attack_pending != 0 &&
-                    Npc_IsWithinRange(npc_control,
-                                      (*player)->x,
-                                      (*player)->y,
-                                      (*npc2)->x,
-                                      (*npc2)->y) != false)
-                    attack.Insert((*npc2)->attack_buffer, attack.Length() + 1);
-                npc2++;
-            }
-            if (3 < pos.Length() || 3 < talk.Length() || 3 < attack.Length())
-            {
-                String data = pos;
-                data.Insert(String((char)-1), data.Length() + 1);
-                data.Insert(attack, data.Length() + 1);
-                data.Insert(String((char)-1), data.Length() + 1);
-                data.Insert(talk, data.Length() + 1);
-                data.Insert(String((char)-1), data.Length() + 1);
-                if ((*player)->stats_dirty != 0)
+                String pos = "";
+                String talk = "";
+                String attack = "";
+                Npc **npc2 = (Npc **)Map_NpcIter_Begin(
+                    &Mapcontrol_GetByIndex(npc_control->map_control,
+                                           (short)((*player)->map_id - 1))
+                         ->npc_list);
+                while ((Npc **)Map_NpcIter_End(
+                           &Mapcontrol_GetByIndex(npc_control->map_control,
+                                                  (short)((*player)->map_id - 1))
+                                ->npc_list) != npc2)
                 {
-                    data.Insert(Packet_AppendEncoded(npc_control, (*player)->hp, 2),
-                                data.Length() + 1);
-                    data.Insert(Packet_AppendEncoded(npc_control, (*player)->tp, 2),
-                                data.Length() + 1);
-                    if ((*player)->in_party != false)
-                    {
-                        String party_data =
-                            Packet_AppendEncoded(npc_control, (*player)->player_id, 2);
-                        party_data.Insert(Packet_AppendEncoded(
-                                              npc_control, Player::HpPercent(*player), 1),
-                                          party_data.Length() + 1);
-                        Server_BroadcastToParty(npc_control->server,
-                                                *player,
-                                                PacketAction_Agree,
-                                                PacketFamily_Party,
-                                                party_data);
-                    }
-                    (*player)->stats_dirty = 0;
+                    if ((*npc2)->pos_pending != 0 &&
+                        Npc_IsWithinRange(npc_control,
+                                          (*player)->x,
+                                          (*player)->y,
+                                          (*npc2)->x,
+                                          (*npc2)->y) != false)
+                        pos.Insert((*npc2)->pos_buffer, pos.Length() + 1);
+                    if ((*npc2)->talk_pending != 0 &&
+                        Npc_IsWithinRange(npc_control,
+                                          (*player)->x,
+                                          (*player)->y,
+                                          (*npc2)->x,
+                                          (*npc2)->y) != false)
+                        talk.Insert((*npc2)->talk_buffer, talk.Length() + 1);
+                    if ((*npc2)->attack_pending != 0 &&
+                        Npc_IsWithinRange(npc_control,
+                                          (*player)->x,
+                                          (*player)->y,
+                                          (*npc2)->x,
+                                          (*npc2)->y) != false)
+                        attack.Insert((*npc2)->attack_buffer, attack.Length() + 1);
+                    npc2++;
                 }
-                Client_SendEncoded(npc_control->server,
-                                   *player,
-                                   PacketAction_Player,
-                                   PacketFamily_Npc,
-                                   data);
+                if (3 < pos.Length() || 3 < talk.Length() || 3 < attack.Length())
+                {
+                    String data = pos;
+                    data.Insert(String((char)-1), data.Length() + 1);
+                    data.Insert(attack, data.Length() + 1);
+                    data.Insert(String((char)-1), data.Length() + 1);
+                    data.Insert(talk, data.Length() + 1);
+                    data.Insert(String((char)-1), data.Length() + 1);
+                    if ((*player)->stats_dirty != 0)
+                    {
+                        data.Insert(Packet_AppendEncoded(npc_control, (*player)->hp, 2),
+                                    data.Length() + 1);
+                        data.Insert(Packet_AppendEncoded(npc_control, (*player)->tp, 2),
+                                    data.Length() + 1);
+                        if ((*player)->in_party != false)
+                        {
+                            String party_data = Packet_AppendEncoded(
+                                npc_control, (*player)->player_id, 2);
+                            party_data.Insert(
+                                Packet_AppendEncoded(
+                                    npc_control, Player::HpPercent(*player), 1),
+                                party_data.Length() + 1);
+                            Server_BroadcastToParty(npc_control->server,
+                                                    *player,
+                                                    PacketAction_Agree,
+                                                    PacketFamily_Party,
+                                                    party_data);
+                        }
+                        (*player)->stats_dirty = 0;
+                    }
+                    Client_SendEncoded(npc_control->server,
+                                       *player,
+                                       PacketAction_Player,
+                                       PacketFamily_Npc,
+                                       data);
+                }
+            }
+            catch (...)
+            {
             }
         }
     }

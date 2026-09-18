@@ -18,6 +18,8 @@ MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 extern TGUI **MAINFORM;
 void FUN_004aa4e4(JukeBoxController *jukebox_control, int map_id);
 int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id);
+int FUN_004813c8(void *list);
+void FUN_0048441c(void *list, int count, int value);
 
 typedef std::vector<ChestItem *> GroundItemPtrVector;
 
@@ -1453,6 +1455,7 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
     String local_c;
     int file_handle;
     int size;
+    int count;
     char *buf;
     try
     {
@@ -1475,6 +1478,52 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
         if (map_buf[1] != 'E' || map_buf[2] != 'M' || map_buf[3] != 'F')
             return 0;
         map->rid = map_id;
+        map->width =
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x26)) + 1;
+        map->height =
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x27)) + 1;
+        map->rid1 =
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 4));
+        map->rid2 =
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 6));
+        map->map_type =
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x20));
+        map->timed_effect =
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x21));
+        map->relog_x =
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x2c));
+        map->relog_y =
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x2d));
+        map->has_hp_drain = false;
+        map->has_tp_drain = false;
+        map->has_quakes = false;
+        map->has_spikes = false;
+        if (map->timed_effect == 1)
+            map->has_hp_drain = true;
+        if (map->timed_effect == 2)
+            map->has_tp_drain = true;
+        if (map->timed_effect > 2 && map->timed_effect < 7)
+            map->has_quakes = true;
+        if (FUN_004813c8(&map->tile_bits) != map->width * map->height * 2)
+            FUN_0048441c(&map->tile_bits, map->width * map->height * 2, 0);
+        if (Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x2b)) ==
+            0)
+            map->can_scroll = 1;
+        map->filesize = size;
+        if (map_control->start_map == map_id || map_control->memory_map == 0)
+        {
+            map->buf_copied = true;
+            map->buf = map_buf;
+        }
+        else
+            map->buf_copied = false;
+        map_buf.Delete(1, 0x2e);
+        count = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+        map_buf.Delete(1, 1);
+        for (int i = 0; i < count; i++)
+        {
+            return 1;
+        }
         return 1;
     }
     catch (...)

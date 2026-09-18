@@ -56,7 +56,7 @@ class Mapcontrol
 {
   public:
     std::vector<MapContainer> maps; // +0x00
-    short start_map;                // +0x20
+    unsigned short start_map;       // +0x20
     int start_x;                    // +0x24
     int start_y;                    // +0x28
     short rescue_map;               // +0x2c

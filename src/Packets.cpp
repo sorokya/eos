@@ -1414,6 +1414,66 @@ String Server_BuildOnlineList(Server *server)
     return server->online_list_cache;
 }
 
+String Player_SerializePaperdoll(Server *server, Player *player)
+{
+    String out = "";
+    try
+    {
+        std::vector<PlayerQuest>::iterator it;
+        out.Insert(player->name, out.Length() + 1);
+        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+        out.Insert(player->home_name, out.Length() + 1);
+        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+        out.Insert(player->partner_name, out.Length() + 1);
+        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+        out.Insert(player->title, out.Length() + 1);
+        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+        out.Insert(player->guild_name, out.Length() + 1);
+        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+        out.Insert(player->guild_rank_name, out.Length() + 1);
+        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->player_id, 2), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->class_id, 1), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->gender, 1), out.Length() + 1);
+        out.Insert(EO_EncodeNumber(server, player->admin_level, 1), out.Length() + 1);
+        if (player->in_party)
+        {
+            if (player->admin_level > 1)
+            {
+                if (player->admin_level < 4)
+                    out.Insert(EO_EncodeNumber(server, 9, 1), out.Length() + 1);
+                else
+                    out.Insert(EO_EncodeNumber(server, 10, 1), out.Length() + 1);
+            }
+            else
+                out.Insert(EO_EncodeNumber(server, 6, 1), out.Length() + 1);
+        }
+        else
+        {
+            if (player->admin_level > 1)
+            {
+                if (player->admin_level < 4)
+                    out.Insert(EO_EncodeNumber(server, 4, 1), out.Length() + 1);
+                else
+                    out.Insert(EO_EncodeNumber(server, 5, 1), out.Length() + 1);
+            }
+            else
+                out.Insert(EO_EncodeNumber(server, 1, 1), out.Length() + 1);
+        }
+        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+        for (it = player->quest_history.begin(); it != player->quest_history.end(); it++)
+        {
+            out.Insert(Questengine::GetQuestName(server->quest_engine, it->quest_id),
+                       out.Length() + 1);
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+        }
+    }
+    catch (...)
+    {
+    }
+    return out;
+}
+
 String Player_SerializeAvatar(Server *server, Player *player, int arg)
 {
     String out = player->name;
@@ -2696,12 +2756,6 @@ void *Walk_BuildReply_Stub(void *a0, void *a1, void *a2)
 // STUB(0x0045de20, 5386 bytes) Refresh_BuildReply - ref: AnsiString *
 // Refresh_BuildReply(AnsiString * out, Server * server, Player * player)
 void *Refresh_BuildReply_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00460068, 1875 bytes) Player_SerializePaperdoll - ref: int *
-// Player_SerializePaperdoll(int * param_1, int param_2, int param_3)
-void *Player_SerializePaperdoll_Stub(void *a0, int a1, int a2)
 {
     return 0;
 }

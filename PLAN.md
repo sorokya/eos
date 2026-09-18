@@ -612,6 +612,28 @@ Tracked so they are not mistaken for done:
   `EO_Decode_Deinterleave` (blocked on the `std::deque<char>` ABI);
   `Walk_Execute`, `Attack_Execute`, `Spell_Execute`, the reply builders, and
   `Player_HandlePacket` (deferred: one 226 KB function).
+- `Mapcontrol` `FUN_00482834` (`0x482834`) and `Mapcontrol_LoadMap` (`0x484e28`)
+  — the loader. Now matches the reference instruction-for-instruction through
+  index 474 (`0x482ff9`), the whole fixed 46-byte EMF header; the remaining ~1000
+  instructions are five section loops (two with an inner loop) whose 56
+  decode/delete blocks are extracted as a spec (every decode is `0x486c38`,
+  every section delete `0x55949c`). Byte-exactness is gated on the local set
+  being complete — the EH arming word/counter sit at `[ebp-0x160]`/`[ebp-0x154]`
+  in the reference but at `[ebp-52]`/`[ebp-44]` until every section temporary
+  (out to `-0x1f0`) exists — so displacements reconcile only at the end.
+  Pinned forms: `local_c` before the `try`; header/section blocks are single
+  statements with anonymous temps (`dest = Pub_DecodeNumber_Map(map_control,
+  map_buf.SubString(s, n))`), not named `tN` locals; `file_handle`/`size`/`buf`/
+  `count` at function scope outside the `try`; the loop index stays in the `for`
+  head; `map->start_map` is `unsigned short`; `map_buf.Delete(1, 0x2e)` (bcc maps
+  `Delete` as `ecx=len, edx=start`, the reverse of `SubString`).
+- `NpcControl_Tick` (`0x4ae45c`) — the broadcaster block IS wrapped in
+  `try { ... } catch (...) { }`; adding it makes the whole EH scope-marker stream
+  match the reference exactly (39 markers, identical values), which was the
+  previously unexplained +12 cleanup offset. Residual: the catch's unwind form
+  (ours emits an extra `allocator<Player*>::deallocate` + `_ReThrowException`,
+  ~5 instructions the reference's catch lacks) and the aggro/chase/target-select
+  region's bcc register allocation (~40 hunks).
 
 ## Risks and mitigations
 
