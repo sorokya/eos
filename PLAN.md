@@ -695,14 +695,31 @@ Tracked so they are not mistaken for done:
   (`PacketReader_Init` + `EO_GetBreakByte`), runs `Mysql_SubmitQuery_FromCallback`
   / `Mysql_ExecDirect_FromCallback` plus `Db_GetString`/`Db_GetInt`/
   `Db_SanitizeString`, packs a reply with `EO_EncodeNumber`, sends it through
-  `Client_SendEncoded`, then jumps to the shared epilogue. **Biggest hazard: its
-  DB string locals are Rogue-Wave `std::string`, not `AnsiString`** — the
-  `0x559308` destructor funnels into `0x528ab8` (ref-counted) and `c_str()`
-  (`0x40243c`) reads `rep-4`; `Mysqlcontrols::Db_GetString` returns that type.
-  Transcribing them as `AnsiString` will not converge the frame or the cleanup
-  table. Also note the `0x58b60c` singleton with a virtual call at vtable `+0x14c`
-  (unknown class), and that the stored range end `0x459597` truncates case `0x53`
-  and the epilogue (true end `0x45961e`).
+  `Client_SendEncoded`, then jumps to the shared epilogue. **CORRECTION to an
+  earlier note here: the DB string locals are plain `AnsiString`, not Rogue-Wave
+  `std::string`.** The `0x559308`/`0x40240c`/`0x40243c` cluster resolves through
+  `build/GameServer.map` to `LStrClr(AnsiString&)` with the length read at
+  `Data-4`; the `std::string` reading was wrong. Also note the `0x58b60c`
+  singleton with a virtual call at vtable `+0x14c` (unknown class), and that the
+  stored range end `0x459597` truncates case `0x53` and the epilogue (true end
+  `0x45961e`).
+- Packets volume reconnaissance (frames, dispatch arms, callees and risks, so the
+  transcription passes do not rediscover them):
+  - `Attack_Execute` (`0x467980`) — frame `0x1c4`; 2 dispatch arms over
+    `action == 10` (else `return 0`) covering 8 regions with two nested loop pairs
+    (player sweep `0x467da9`/`0x468844`, NPC sweep `0x468897`/`0x46a87a`); 55
+    distinct callees over 428 sites; **no `std::string`** (AnsiString throughout);
+    no embedded stubs. Transcribe the BINARY, not the Rust: `attack.rs` uses a
+    cooldown of `< 48`, but the binary requires `elapsed >= 0x2c` (44) at
+    `0x467b0d`. **`disasm.txt` desynchronises at `0x46797f`** — regenerate that
+    range from the image before trusting it.
+  - `Spell_Execute` (`0x46a9b0`) — frame `0x2c0`; 6 dispatch arms for actions
+    `1, 30, 31, 33, 10` (fall-through `return 0`; Rust names Request/TargetSelf/
+    TargetOther/TargetGroup/Use) over ~10 regions and 2 loops; 54 callees over 597
+    sites; **no `std::string`**; no embedded stubs. Risks: the five near-identical
+    arm prologues (transcribe from a spec) and the action-numbering divergence
+    against the Rust names. The shared `0x58b60c` skill/item singleton still needs
+    its type identified.
 
 ## Risks and mitigations
 
