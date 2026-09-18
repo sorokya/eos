@@ -1,4 +1,5 @@
 #include <vcl.h>
+#include <stdio.h>
 #pragma hdrstop
 
 #include "Packets.h"
@@ -286,6 +287,58 @@ bool Login_CheckConnectionThreshold(Server *server)
 
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
+
+int __fastcall Sock_Send(void *sock, char *data);
+
+void Client_SendRaw(Server *server, Player *client, String data, int break_byte)
+{
+    FILE *fp;
+    if (data.Length() > 62000)
+    {
+        String msg = DateToStr(Now());
+        msg.Insert(" ", msg.Length() + 1);
+        msg.Insert(TimeToStr(Now()), msg.Length() + 1);
+        msg.Insert(" EndlServ ", msg.Length() + 1);
+        msg.Insert("Too large uncoded packet dropped: " + IntToStr(break_byte),
+                   msg.Length() + 1);
+        msg.Insert("\n", msg.Length() + 1);
+        fp = fopen("error.log", "a");
+        fprintf(fp, "%s", msg.c_str());
+        fclose(fp);
+    }
+    if (client->removing)
+        return;
+    if (!client->connected)
+        return;
+    String built = String(EO_GetBreakByte(server, 0xff));
+    built.Insert(String(EO_GetBreakByte(server, 0xff)), built.Length() + 1);
+    built.Insert(String(EO_GetBreakByte(server, break_byte)), built.Length() + 1);
+    built.Insert(data, built.Length() + 1);
+    built.Insert(EO_EncodeNumber(server, built.Length(), 2), 1);
+    Sock_Send(client->socket, *(char **)&built);
+}
+
+bool Face_Execute(Server *server, Player *player, int action, String *data)
+{
+    *(TTimeStamp *)&player->walk_tick = DateTimeToTimeStamp(Now());
+    if (action == 8)
+    {
+        if (!player->logged_in)
+            return false;
+        if (player->on_chair || player->sitting)
+            return true;
+        if (data->Length() < 1)
+            return false;
+        if ((unsigned)EO_DecodeNumber(server, String((*data)[1])) > 3)
+            return false;
+        player->direction = EO_DecodeNumber(server, String((*data)[1]));
+        String out = EO_EncodeNumber(server, player->player_id, 2);
+        out = out + String((*data)[1]);
+        Server_BroadcastNearby(server, player, 8, 7, out);
+        return true;
+    }
+    return false;
+}
 
 void Server_BroadcastToPartyExceptSelf(Server *server,
                                        Player *player,
@@ -652,7 +705,7 @@ int EO_DecodeByte(void *self, char value)
     return result;
 }
 
-char EO_GetBreakByte(void *self, char value)
+char EO_GetBreakByte(void *self, int value)
 {
     char c = value;
     char result = c;

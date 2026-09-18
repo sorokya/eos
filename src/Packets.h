@@ -91,11 +91,13 @@ MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 void Game_Tick(Server *server);
 void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data);
 void Server_Shutdown(Server *server);
+void Client_SendRaw(Server *server, Player *client, String data, int break_byte);
 void Client_SendEncoded(Server *server,
                         Player *player,
                         unsigned char action,
                         unsigned char family,
                         String data);
+bool Face_Execute(Server *server, Player *player, int action, String *data);
 void Server_BroadcastToPartyExceptSelf(Server *server,
                                        Player *player,
                                        unsigned char action,
@@ -160,7 +162,7 @@ int GroundItemPtrVector_Count(void *list);
 String EO_EncodeNumber(Server *server, unsigned int value, int width);
 int EO_DecodeNumber(void *self, String data);
 int EO_DecodeByte(void *self, char value);
-char EO_GetBreakByte(void *self, char value);
+char EO_GetBreakByte(void *self, int value);
 unsigned int Server_DecodePacketLength(void *self, String data);
 bool Login_CheckConnectionThreshold(Server *server);
 void Connection_Ping(Server *server);
