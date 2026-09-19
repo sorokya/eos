@@ -14,6 +14,7 @@
 #include "Settings.h"
 #include "Logins.h"
 #include "Mainform.h"
+#include "Gamecontrol.h"
 #include "Innvalues.h"
 #include "Shopvalues.h"
 #include "Npcvalues.h"
@@ -33,14 +34,8 @@
 #pragma package(smart_init)
 
 Player **Players_Iter_Begin(Players *players);
-bool Player_IsPartyMember(Player *player, int player_id);
 int RandRange(int range);
-int Combat_CalcHitRate(void *game_control, int accuracy, int evasion, double, double);
-int Combat_CalcArmorPen(void *game_control, int damage, int armor, double, double);
-int Eif_GetElement(void *item_values, int item_id, int *out);
-double
-Combat_CalcElementMult(void *game_control, short a, short b, int element, int element2);
-int Player_HpPercent(Player *player, int mode);
+MapCoord FUN_0047c428(int map_control, int map_id);
 void Server_BroadcastToParty(Server *server,
                              Player *player,
                              unsigned char action,
@@ -55,8 +50,6 @@ String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index);
 void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value);
 MapCoord FUN_0047c6c0(int map_control, int map_id, unsigned int npc_index);
 unsigned int FUN_0047c634(int map_control, int map_id, unsigned int npc_index);
-String FUN_0047badc(Mapcontrol *map_control, int map_id, unsigned int x, unsigned int y);
-int FUN_00486e64(int map_control, int map_id, unsigned int x, unsigned int y);
 bool Attack_Execute(Server *server, Player *caster, int action, String *reader);
 bool Spell_Execute(Server *server, Player *caster, int action, String *packet_data);
 String Player_SerializeAvatar(Server *server, Player *player, int arg);
@@ -825,7 +818,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
             ItemStack stack = Mapcontrol::Mapcontrol_TakeChestItem(
-                server->map_control, player->map_id, coords.x, coords.y, slot);
+                server->map_control, player->map_id, coords, slot);
             if (stack.id < 1)
                 return true;
             Players::Player_AddItem(server->players, player, stack.id, stack.amount);
@@ -840,15 +833,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 weight = 250;
             if (weight_max > 250)
                 weight_max = 250;
-            String item_str =
-                FUN_0047badc(server->map_control, player->map_id, coords.x, coords.y);
-            Server_BroadcastAdjacent(server,
-                                     player,
-                                     coords.x,
-                                     coords.y,
-                                     PacketAction_Agree,
-                                     PacketFamily_Chest,
-                                     item_str);
+            String item_str = FUN_0047badc(server->map_control, player->map_id, coords);
+            Server_BroadcastAdjacent(
+                server, player, coords, PacketAction_Agree, PacketFamily_Chest, item_str);
             String out = EO_EncodeNumber(server, stack.id, 2);
             out.Insert(EO_EncodeNumber(server, stack.amount, 3), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, weight, 1), out.Length() + 1);
@@ -873,7 +860,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (amount > 10000000)
                 return true;
             int slot_count = Mapcontrol::Mapcontrol_GetChestSlotCount(
-                server->map_control, player->map_id, coords.x, coords.y);
+                server->map_control, player->map_id, coords);
             if (slot_count < 0 || slot_count > 4)
             {
                 Client_SendEncoded(
@@ -904,19 +891,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 weight_max = 250;
             Mapcontrol::Mapcontrol_AddChestItem(server->map_control,
                                                 player->map_id,
-                                                coords.x,
-                                                coords.y,
+                                                coords,
                                                 item_id,
                                                 player->item_change_count);
-            String item_str =
-                FUN_0047badc(server->map_control, player->map_id, coords.x, coords.y);
-            Server_BroadcastAdjacent(server,
-                                     player,
-                                     coords.x,
-                                     coords.y,
-                                     PacketAction_Agree,
-                                     PacketFamily_Chest,
-                                     item_str);
+            String item_str = FUN_0047badc(server->map_control, player->map_id, coords);
+            Server_BroadcastAdjacent(
+                server, player, coords, PacketAction_Agree, PacketFamily_Chest, item_str);
             String out = EO_EncodeNumber(server, item_id, 2);
             out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
                        out.Length() + 1);
@@ -938,16 +918,15 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             coords.y = EO_DecodeNumber(server, data.SubString(2, 1));
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            String out =
-                FUN_0047badc(server->map_control, player->map_id, coords.x, coords.y);
+            String out = FUN_0047badc(server->map_control, player->map_id, coords);
             if (out == "N")
             {
                 Client_SendEncoded(
                     server, player, PacketAction_Close, PacketFamily_Chest, "N");
                 return true;
             }
-            int chest_slot = FUN_00486e64(
-                (int)server->map_control, player->map_id, coords.x, coords.y);
+            int chest_slot =
+                FUN_00486e64((int)server->map_control, player->map_id, coords);
             if (chest_slot < 1)
             {
                 out.Insert(data.SubString(1, 1), 1);
@@ -3925,8 +3904,7 @@ void Guild_BroadcastToAll(Server *server,
 
 void Server_BroadcastAdjacent(Server *server,
                               Player *player,
-                              int x,
-                              int y,
+                              MapCoord coords,
                               unsigned char action,
                               unsigned char family,
                               String data)
@@ -3937,7 +3915,8 @@ void Server_BroadcastAdjacent(Server *server,
          player_iter++)
     {
         if ((*player_iter)->map_id == player->map_id &&
-            Coords_IsAdjacent(server, x, y, (*player_iter)->x, (*player_iter)->y) &&
+            Coords_IsAdjacent(
+                server, coords.x, coords.y, (*player_iter)->x, (*player_iter)->y) &&
             (*player_iter)->logged_in && (*player_iter)->player_id != player->player_id)
         {
             Client_SendEncoded(server, *player_iter, action, family, data);
@@ -4453,14 +4432,88 @@ bool Server_InItemViewRing(void *self, int x1, int y1, int x2, int y2)
     return result;
 }
 
+void Server_RemovePlayer(Server *server, TCustomWinSocket *socket)
+{
+    if (server->players->by_id[socket->SocketHandle] != 0)
+    {
+        Player *player = server->players->by_id[socket->SocketHandle];
+        if (!player->logged_in)
+            return;
+        if (player->in_party)
+        {
+            Server_BroadcastToPartyExceptSelf(
+                server,
+                player,
+                PacketAction_Remove,
+                PacketFamily_Party,
+                EO_EncodeNumber(server, socket->SocketHandle, 2));
+            Players::Player_LeaveParty(server->players, player);
+        }
+        if (player->arena_queued)
+        {
+            if (Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                    ->arena_enabled)
+            {
+                if (Players::Players_CountArenaPlayers(server->players, player->map_id) ==
+                    2)
+                {
+                    String arena_msg =
+                        "The event was aborted, last opponent disconnected -server";
+                    Server_BroadcastToMap(server,
+                                          player->map_id,
+                                          PacketAction_Server,
+                                          PacketFamily_Talk,
+                                          arena_msg);
+                }
+            }
+        }
+        Server_BroadcastNearby(server,
+                               player,
+                               PacketAction_Remove,
+                               PacketFamily_Players,
+                               EO_EncodeNumber(server, socket->SocketHandle, 2));
+        if (player->map_id > 0)
+        {
+            MapCoord coords = FUN_0047c428((int)server->map_control, player->map_id);
+            if (coords.x > 0 && coords.y > 0)
+            {
+                player->x = coords.x;
+                player->y = coords.y;
+                player->on_chair = false;
+                player->sitting = false;
+            }
+            Mapcontrol::Mapcontrol_dec_player_count(server->map_control, player->map_id);
+        }
+        if (player->map_switch_pending)
+        {
+            player->map_id = player->target_map;
+            player->x = (short)player->target_x;
+            player->y = (short)player->target_y;
+        }
+        if (player->x > 250 || player->y > 250 || player->map_id < 1 ||
+            (unsigned)Mapcontrol_GetCount(server->map_control) < (unsigned)player->map_id)
+        {
+            player->map_id = InnValues::GetSpawnMap(
+                (*MAINFORM)->inn_values, player->home_id, player->level);
+            if (player->map_id < 0)
+            {
+                player->map_id = Settings::GetRescueMap(server->settings);
+                player->x = Settings::GetRescueX(server->settings);
+                player->y = Settings::GetRescueY(server->settings);
+            }
+            else
+            {
+                player->x = InnValues::GetSpawnX(
+                    (*MAINFORM)->inn_values, player->home_id, player->level);
+                player->y = InnValues::GetSpawnY(
+                    (*MAINFORM)->inn_values, player->home_id, player->level);
+            }
+        }
+    }
+}
+
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
-// STUB(0x0041728c, 905 bytes) FUN_0041728c - ref: undefined4 FUN_0041728c(Server *
-// server, undefined * param2)
-int FUN_0041728c_Stub(void *a0, void *a1)
-{
-    return 0;
-}
 // STUB(0x0044f58c, 33 bytes) Exception_InstallFrame - ref: undefined4
 // Exception_InstallFrame(void * passthrough_value)
 int Exception_InstallFrame_Stub(void *a0)
@@ -6109,18 +6162,18 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
                 continue;
             if ((*iter)->y != offset_y)
                 continue;
-            if (Player_IsPartyMember(caster, (*iter)->player_id))
+            if (Player::IsPartyMember(caster, (*iter)->player_id))
                 continue;
             int damage = 0;
-            int hit_rate = Combat_CalcHitRate(
-                (*MAINFORM)->game_control, caster->accuracy, (*iter)->evasion, 0.9, 1.6);
+            int hit_rate = Gamecontrol::Combat_CalcHitRate(
+                (*MAINFORM)->game_control, caster->accuracy, (*iter)->evasion, 0.9);
             if (RandRange(100) >= hit_rate)
                 continue;
-            int pen = Combat_CalcArmorPen((*MAINFORM)->game_control,
-                                          (caster->min_damage + caster->max_damage) / 2,
-                                          (*iter)->armor,
-                                          0.8,
-                                          0.9);
+            int pen = Gamecontrol::Combat_CalcArmorPen(
+                (*MAINFORM)->game_control,
+                (caster->min_damage + caster->max_damage) / 2,
+                (*iter)->armor,
+                0.8);
             double scaled = (double)caster->min_damage;
             if (scaled < 0.0)
                 scaled = 0.0;
@@ -6132,26 +6185,25 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
                 damage = 1;
             if (caster->weapon_item_id > 0)
             {
-                int element = 0;
-                int element2 = 0;
-                Eif_GetElement(
-                    (*MAINFORM)->item_values, caster->weapon_item_id, &element);
-                if (element == 1)
+                ItemElement element = ItemValues::Eif_GetElement((*MAINFORM)->item_values,
+                                                                 caster->weapon_item_id);
+                element.element_damage = 0;
+                if (element.element == 1)
                 {
-                    double mult = Combat_CalcElementMult((*MAINFORM)->game_control,
-                                                         caster->element_resistances[1],
-                                                         (*iter)->element_resistances[2],
-                                                         element,
-                                                         element2);
+                    double mult = Gamecontrol::Combat_CalcElementMult(
+                        (*MAINFORM)->game_control,
+                        *(MapCoord *)&element,
+                        caster->element_resistances[1],
+                        (*iter)->element_resistances[2]);
                     damage = (int)((double)damage * mult);
                 }
-                if (element == 2)
+                if (element.element == 2)
                 {
-                    double mult = Combat_CalcElementMult((*MAINFORM)->game_control,
-                                                         caster->element_resistances[2],
-                                                         (*iter)->element_resistances[1],
-                                                         element,
-                                                         element2);
+                    double mult = Gamecontrol::Combat_CalcElementMult(
+                        (*MAINFORM)->game_control,
+                        *(MapCoord *)&element,
+                        caster->element_resistances[2],
+                        (*iter)->element_resistances[1]);
                     damage = (int)((double)damage * mult);
                 }
             }
@@ -6167,7 +6219,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
                 if ((*iter)->in_party)
                 {
                     String party_pkt = EO_EncodeNumber(server, (*iter)->player_id, 2);
-                    String hp = Player_HpPercent((*iter), 1);
+                    String hp = EO_EncodeNumber(server, Player::HpPercent(*iter), 1);
                     party_pkt.Insert(hp, party_pkt.Length() + 1);
                     Server_BroadcastToParty(server, (*iter), 5, 0x18, party_pkt);
                 }
@@ -6178,7 +6230,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
                 atk_pkt.Insert(dmg, atk_pkt.Length() + 1);
                 String dir = EO_EncodeNumber(server, caster->direction, 1);
                 atk_pkt.Insert(dir, atk_pkt.Length() + 1);
-                String hp = Player_HpPercent((*iter), 1);
+                String hp = EO_EncodeNumber(server, Player::HpPercent(*iter), 1);
                 atk_pkt.Insert(hp, atk_pkt.Length() + 1);
             }
             (void)damage;

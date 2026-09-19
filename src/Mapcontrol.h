@@ -106,10 +106,8 @@ class Mapcontrol
                                                unsigned int y);
     static MapItem *Itemchest_GetSlot(std::vector<MapItem> *slot_list, int slot);
     static int Map_GetWarpDoorAt(Mapcontrol *map_control, int map_id, MapCoord coords);
-    static int Mapcontrol_GetChestSlotCount(Mapcontrol *map_control,
-                                            int map_id,
-                                            unsigned int x,
-                                            unsigned int y);
+    static int
+    Mapcontrol_GetChestSlotCount(Mapcontrol *map_control, int map_id, MapCoord coords);
     static void Mapcontrol_AddChestSpawn(Mapcontrol *map_control,
                                          MapContainer *map,
                                          unsigned int x,
@@ -119,14 +117,12 @@ class Mapcontrol
                                          int item_id,
                                          int spawn_time,
                                          int amount);
-    static void Mapcontrol_AddChestItem(Mapcontrol *map_control,
-                                        int map_id,
-                                        unsigned int x,
-                                        unsigned int y,
-                                        int item_id,
-                                        int amount);
-    static ItemStack Mapcontrol_TakeChestItem(
-        Mapcontrol *map_control, int map_id, unsigned int x, unsigned int y, int item_id);
+    static void Mapcontrol_AddChestItem(
+        Mapcontrol *map_control, int map_id, MapCoord coords, int item_id, int amount);
+    static ItemStack Mapcontrol_TakeChestItem(Mapcontrol *map_control,
+                                              int map_id,
+                                              MapCoord coords,
+                                              int item_id);
     static int Mapcontrol_AddGroundItem(Mapcontrol *map_control,
                                         int map_id,
                                         unsigned int item_id,
@@ -154,5 +150,8 @@ class Mapcontrol
     static int Map_IsWalkableNPC(
         Mapcontrol *map_control, int map_id, int x, int y, char ignore_spec_block);
 };
+
+int FUN_00486e64(int map_control, int map_id, MapCoord coords);
+String FUN_0047badc(Mapcontrol *map_control, int map_id, MapCoord coords);
 
 #endif

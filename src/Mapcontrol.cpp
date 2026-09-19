@@ -567,8 +567,7 @@ int Mapcontrol::Map_GetWarpDoorAt(Mapcontrol *map_control, int map_id, MapCoord 
 
 int Mapcontrol::Mapcontrol_GetChestSlotCount(Mapcontrol *map_control,
                                              int map_id,
-                                             unsigned int x,
-                                             unsigned int y)
+                                             MapCoord coords)
 {
     int result = -1;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
@@ -579,7 +578,8 @@ int Mapcontrol::Mapcontrol_GetChestSlotCount(Mapcontrol *map_control,
              Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.end();
              chest_iter++)
         {
-            if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
+            if ((unsigned short)chest_iter->x == coords.x &&
+                (unsigned short)chest_iter->y == coords.y)
             {
                 result = chest_iter->slots.size();
                 break;
@@ -670,12 +670,8 @@ void Mapcontrol::Mapcontrol_AddChestSpawn(Mapcontrol *map_control,
     }
 }
 
-void Mapcontrol::Mapcontrol_AddChestItem(Mapcontrol *map_control,
-                                         int map_id,
-                                         unsigned int x,
-                                         unsigned int y,
-                                         int item_id,
-                                         int amount)
+void Mapcontrol::Mapcontrol_AddChestItem(
+    Mapcontrol *map_control, int map_id, MapCoord coords, int item_id, int amount)
 {
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
     {
@@ -685,7 +681,8 @@ void Mapcontrol::Mapcontrol_AddChestItem(Mapcontrol *map_control,
              Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.end();
              chest_iter++)
         {
-            if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
+            if ((unsigned short)chest_iter->x == coords.x &&
+                (unsigned short)chest_iter->y == coords.y)
             {
                 bool found = false;
                 for (std::vector<MapItem>::iterator item_iter = chest_iter->slots.begin();
@@ -723,8 +720,10 @@ void Mapcontrol::Mapcontrol_AddChestItem(Mapcontrol *map_control,
     }
 }
 
-ItemStack Mapcontrol::Mapcontrol_TakeChestItem(
-    Mapcontrol *map_control, int map_id, unsigned int x, unsigned int y, int item_id)
+ItemStack Mapcontrol::Mapcontrol_TakeChestItem(Mapcontrol *map_control,
+                                               int map_id,
+                                               MapCoord coords,
+                                               int item_id)
 {
     ItemStack result;
     result.id = -1;
@@ -737,7 +736,8 @@ ItemStack Mapcontrol::Mapcontrol_TakeChestItem(
              Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.end();
              chest_iter++)
         {
-            if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
+            if ((unsigned short)chest_iter->x == coords.x &&
+                (unsigned short)chest_iter->y == coords.y)
             {
                 bool found = false;
                 for (std::vector<MapItem>::iterator item_iter = chest_iter->slots.begin();
@@ -1119,7 +1119,7 @@ unsigned int FUN_0047c27c(int map_control, int map_id, unsigned int x, unsigned 
     return result;
 }
 
-int FUN_00486e64(int map_control, int map_id, unsigned int x, unsigned int y)
+int FUN_00486e64(int map_control, int map_id, MapCoord coords)
 {
     int result = 0;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
@@ -1131,7 +1131,8 @@ int FUN_00486e64(int map_control, int map_id, unsigned int x, unsigned int y)
                                ->chest_list.end();
              chest_iter++)
         {
-            if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
+            if ((unsigned short)chest_iter->x == coords.x &&
+                (unsigned short)chest_iter->y == coords.y)
             {
                 result = (unsigned short)chest_iter->key_id;
                 break;
@@ -1256,7 +1257,7 @@ GroundItemInfo FUN_00487ac0(int map_control, int map_id, int index, int player_i
     return result;
 }
 
-String FUN_0047badc(Mapcontrol *map_control, int map_id, unsigned int x, unsigned int y)
+String FUN_0047badc(Mapcontrol *map_control, int map_id, MapCoord coords)
 {
     String result = "N";
     std::vector<MapChest>::iterator chest_iter;
@@ -1269,7 +1270,8 @@ String FUN_0047badc(Mapcontrol *map_control, int map_id, unsigned int x, unsigne
              Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.end();
              chest_iter++)
         {
-            if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
+            if ((unsigned short)chest_iter->x == coords.x &&
+                (unsigned short)chest_iter->y == coords.y)
             {
                 result = "";
                 for (item_iter = chest_iter->slots.begin();

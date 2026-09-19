@@ -128,8 +128,7 @@ void Guild_BroadcastToAll(Server *server,
                           String data);
 void Server_BroadcastAdjacent(Server *server,
                               Player *player,
-                              int x,
-                              int y,
+                              MapCoord coords,
                               unsigned char action,
                               unsigned char family,
                               String data);
