@@ -188,6 +188,8 @@ struct EOEncodedObj
 void EO_ByteRange_FromString(std::vector<char> *range,
                              const char *str,
                              EOEncodedObj *obj);
+int FUN_0044f73c(void *range);
+int FUN_0044f710(void *range);
 int EO_DecodeNumber(void *self, String data);
 int EO_DecodeByte(void *self, char value);
 char EO_GetBreakByte(void *self, int value);
