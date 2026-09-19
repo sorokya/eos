@@ -3220,6 +3220,15 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
                     party_pkt.Insert(hp, party_pkt.Length() + 1);
                     Server_BroadcastToParty(server, (*iter), 5, 0x18, party_pkt);
                 }
+                String atk_pkt = EO_EncodeNumber(server, caster->player_id, 2);
+                String target_id = EO_EncodeNumber(server, (*iter)->player_id, 2);
+                atk_pkt.Insert(target_id, atk_pkt.Length() + 1);
+                String dmg = EO_EncodeNumber(server, damage, 3);
+                atk_pkt.Insert(dmg, atk_pkt.Length() + 1);
+                String dir = EO_EncodeNumber(server, caster->direction, 1);
+                atk_pkt.Insert(dir, atk_pkt.Length() + 1);
+                String hp = Player_HpPercent((*iter), 1);
+                atk_pkt.Insert(hp, atk_pkt.Length() + 1);
             }
             (void)damage;
         }

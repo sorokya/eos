@@ -212,7 +212,8 @@ make clean     # remove build/
   `--selftest` runs it over three already-converged ranges
   (`EO_Encode_Interleave`, `Walk_BuildReply`, `Player_SerializePaperdoll`),
   prints the classification rate, the idiom breakdown, and the `arity_todo`,
-  `holes`, `slots` and `arity_mismatch` counters, plus every emitted condition;
+  `holes`, `slots`, `arity_mismatch` and `untyped_field` counters, plus every
+  emitted condition;
   it aborts (exit 3) if any conditional carries an unknown relation/operand, two
   storage locations collide, or a rendered argument list contradicts the
   reconciled arity. All three classify at 100%. Operand identity was audited against the
@@ -247,8 +248,26 @@ make clean     # remove build/
   `0x4081c8` (the listing began at `0x4081ca` with a spurious one-byte
   instruction); it never fires on the three selftest ranges.
 
+  **Container-iterator typing.** The out-of-line iterator/record accessors
+  (`Players_Iter_Begin`/`_End`, `Map_NpcIter_Begin`/`_End`, the `*Vector_Begin`/
+  `_End` and `*PtrVector_*` families) return an element pointer, and their
+  element class is derived programmatically — from an explicit `T **` return in
+  a `src/` prototype, from the `// STUB` reference signatures, or from the
+  `std::vector<E>` member the accessor iterates (matched by the longest element
+  class name contained in the accessor's own name). The element type is
+  propagated through the standard copy tracking: an accessor call types its
+  `eax` return, a store to a local records the local's pointer type, a load
+  restores it, `mov reg,[reg2]` on a `T **` base yields `T *`, and an iterator
+  advance (`add reg,4`/`inc reg`) preserves the type. A `T **` base has no
+  field at any offset, so it never produces a name; an absolute address
+  (`[0x5…]`) and an untyped base likewise never do. `untyped_field` counts the
+  emitted `reg->field_0xNN` operands an iterator type could not name — the
+  iterators cut it by more than half across the converged ranges
+  (`Walk_BuildReply` 32→14, `Refresh_BuildReply` 129→34, `NpcControl_Tick`
+  358→53, the `Attack_Execute` head 97→54) with no wrong name or object.
+
   **Safety properties, stated explicitly:** a condition is emitted only when it
-  is provable; a storage location is rendered distinctly from every other; a
+  is provable; a field NAME is emitted only when the base's class is proven; a storage location is rendered distinctly from every other; a
   field access is emitted only for a typed base; an argument list is emitted
   only when the declared arity and the observed pushes agree under the calling
   convention — otherwise a TODO, never a guess.

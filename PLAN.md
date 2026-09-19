@@ -778,10 +778,12 @@ Tracked so they are not mistaken for done:
     (+0x2f8)) { String party_pkt = EO_EncodeNumber(server, (*iter)->player_id, 2);
     String hp = Player_HpPercent((*iter), 1); party_pkt.Insert(hp, party_pkt.Length()
     + 1); Server_BroadcastToParty(server, (*iter), 5, 0x18, party_pkt); }`. The rest
-    of the reply (`0x468408`..`0x46882c` — the `caster->player_id`/`(*iter)->player_id`
-    encode pair, the damage encode, the break bytes, `Server_BroadcastNearby` /
-    `Client_SendEncoded`), the NPC sweep (`0x468897`/`0x46a87a`) and the reply
-    builders are placeholders. `scripts/asm2cpp.py` drafts blocks into address-commented C++
+    of the reply: the encode chain `EO_EncodeNumber(server, caster->player_id, 2)`
+    then `(*iter)->player_id` (2), `damage` (3), `caster->direction` (1) and
+    `Player_HpPercent((*iter), 1)`, each `Insert`ed at `Length()+1`. Still to write:
+    the break bytes and the `Server_BroadcastNearby` / `Client_SendEncoded` sends
+    (`0x468546`..`0x46882c`), the NPC sweep (`0x468897`/`0x46a87a`) and the reply
+    builders. `scripts/asm2cpp.py` drafts blocks into address-commented C++
     (99.8% recognised here) and is the fastest way to start each block.
     `Player_IsPartyMember`, `RandRange`, `Combat_CalcHitRate`, `Combat_CalcArmorPen`
     are declared locally in `Packets.cpp`. Current frame `-0x48` vs the reference's

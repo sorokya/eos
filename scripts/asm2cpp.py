@@ -416,12 +416,14 @@ def load_idents(path):
 
 class Draft:
     def __init__(self, fields, sigs, idents, start, params=None, class_fields=None,
-                 param_names=None, arity=None):
+                 param_names=None, arity=None, accessors=None):
         self.class_fields = class_fields or {}
         self.params = params or []
         self.param_names = param_names or []
         self.arity = arity or {}
+        self.accessors = accessors or {}
         self.slot_types = {}      # ebp offset -> type
+        self.slot_ptr = {}        # ebp offset -> pointer type stored there
         self.reg_types = {}       # register -> type
         self.reg_expr = {}        # register -> rendered expression
         self.push_stack = []      # expressions pushed since the last call
@@ -447,6 +449,10 @@ class Draft:
 
     def hit(self, kind):
         self.stats[kind] = self.stats.get(kind, 0) + 1
+
+    def untyped_field_count(self):
+        """Number of emitted `reg->field_0xNN` operands (unnamed object field)."""
+        return sum(l.count("->field_0x") for l in self.lines)
 
     def selfcheck(self):
         """Safety invariants over the emitted draft.
@@ -547,9 +553,11 @@ class Draft:
         if not d:
             return None
         base, index, scale, disp = d
-        if index or base == "ebp" or disp < 0:
-            return None  # array indexing / stack local - not a scalar field
+        if base is None or index or base == "ebp" or disp < 0:
+            return None  # absolute address / indexing / stack local - not a field
         if base in self.reg_types:
+            if self.reg_types[base].rstrip().endswith("* *"):
+                return None      # iterator/record slot: the offset is a pointer load
             cls = base_class(self.reg_types[base])
             nm = self.class_fields.get(cls, {}).get(disp) if cls else None
             if nm:
@@ -739,6 +747,15 @@ class Draft:
                     i += 1
                     continue
             # --- stack adjustment / pointer arithmetic --------------------
+            if mn in ("add", "sub") and re.match(r"\w+,\s*(0x4|4)$", ops) \
+                    and ops.split(",")[0].strip() in self.reg_types:
+                self.emit(addr, "// iterator advance %s  // 0x%x" % (ops, addr), "advance")
+                i += 1
+                continue
+            if mn in ("inc", "dec") and ops.strip() in self.reg_types:
+                self.emit(addr, "// iterator advance %s  // 0x%x" % (ops, addr), "advance")
+                i += 1
+                continue
             if mn in ("add", "sub") and re.match(r"esp,\s*-?0x", ops):
                 self.push_stack = []
                 self.emit(addr, "// stack adjust %s  // 0x%x" % (ops, addr), "stack_adjust")
@@ -850,6 +867,8 @@ class Draft:
         for r in ("eax", "ecx", "edx"):
             self.reg_types.pop(r, None)
             self.reg_expr.pop(r, None)
+        if tgt in self.accessors:
+            self.reg_types["eax"] = self.accessors[tgt]   # iterator/record slot
         nm = self.callee_name(tgt)
         if nm:
             if argtext is not None:
@@ -954,6 +973,16 @@ class Draft:
                 return True
             self.emit(addr, "// %s %s  // 0x%x" % (mn, ops, addr), "local")
             return True
+        # mov reg, [reg2] where reg2 is T** -> reg is T*
+        dsrc = self.deref(src)
+        if dsrc and dsrc[0] != "ebp" and not dsrc[1] and dsrc[3] == 0 \
+                and dsrc[0] in self.reg_types:
+            t = self.reg_types[dsrc[0]].rstrip()
+            if t.endswith("* *"):
+                self.reg_types[dst] = t[:-2].rstrip()
+                self.reg_expr.pop(dst, None)
+                self.emit(addr, "%s = *%s;  // 0x%x" % (dst, dsrc[0], addr), "pointee")
+                return True
         # mov reg, [typed field]
         fe = self.field_expr(src)
         if fe:
@@ -974,6 +1003,8 @@ class Draft:
             self.reg_expr.pop(dst, None)
             if off in self.slot_types and ("*" in self.slot_types[off]):
                 self.reg_types[dst] = self.slot_types[off]
+            if off in self.slot_ptr:
+                self.reg_types[dst] = self.slot_ptr[off]
             if off in self.slot_name:
                 self.reg_expr[dst] = self.slot_name[off]
             self.emit(addr, "// %s %s  // 0x%x" % (mn, ops, addr), "local")
@@ -1014,6 +1045,11 @@ class Draft:
         if dstore and dstore[0] == "ebp" and not dstore[1] and dstore[3] < 0 \
                 and re.match(r"^\w+$", src):
             self.reg_expr[src] = "local_0x%x" % (-dstore[3])
+            t = self.reg_types.get(src)
+            if t:
+                self.slot_ptr[dstore[3]] = t
+            else:
+                self.slot_ptr.pop(dstore[3], None)
             self.reg_types.pop(src, None)
         ds = self.field_expr(dst)
         ss = self.field_expr(src)
@@ -1071,7 +1107,7 @@ def listing_is_desynced(insns, start=None):
 
 
 def run_range(start, end, args, fields, sigs, idents, verbose, params=None,
-              class_fields=None, param_names=None, arity=None):
+              class_fields=None, param_names=None, arity=None, accessors=None):
     insns = None
     if not args.objdump:
         insns = load_listing(args.listing, start, end)
@@ -1084,7 +1120,8 @@ def run_range(start, end, args, fields, sigs, idents, verbose, params=None,
     if insns is None or not insns:
         insns = regen_with_objdump(start, end)
     d = Draft(fields, sigs, idents, start, params=params,
-              class_fields=class_fields, param_names=param_names, arity=arity)
+              class_fields=class_fields, param_names=param_names, arity=arity,
+              accessors=accessors)
     d.walk(insns)
     rec = sum(v for k, v in d.stats.items() if k != "todo")
     return d, rec, len(insns)
@@ -1172,6 +1209,81 @@ def load_callee_arity(src_dir, sigs_path=None):
     return arity
 
 
+VEC_RE = re.compile(r"std::vector\s*<\s*([A-Za-z_]\w*)\s*(\*?)\s*>")
+
+
+def load_class_vectors(src_dir):
+    """class name -> [(member, element type)] for `std::vector<E> member;`."""
+    out = {}
+    if not os.path.isdir(src_dir):
+        return out
+    for fn in sorted(os.listdir(src_dir)):
+        if not fn.endswith(".h"):
+            continue
+        cur = None
+        for line in open(os.path.join(src_dir, fn), errors="replace"):
+            m = CLASS_RE.match(line)
+            if m and not line.strip().endswith(";"):
+                cur = m.group(1)
+                out.setdefault(cur, [])
+                continue
+            if cur is None:
+                continue
+            v = VEC_RE.search(line)
+            if v:
+                elem = v.group(1) + (" *" if v.group(2) else "")
+                out[cur].append((elem, line.strip()))
+            if line.count("}") and line.strip().startswith("}"):
+                cur = None
+    return out
+
+
+ACCESSOR_PAT = re.compile(r"(.*?)(?:_Iter_|_Iter$|Vector_Begin|Vector_End|PtrVector_)")
+
+
+def load_accessor_types(src_dir, sigs_path=None):
+    """accessor name -> element pointer type (e.g. Players_Iter_Begin -> Player*).
+
+    Sources: (a) an explicit `T **` return type in a src/ prototype, (b) the
+    STUB reference signatures, (c) the class whose `std::vector<E>` member the
+    accessor iterates - matched by the longest class name contained in the
+    accessor's own name (so `Map_NpcIter_Begin` -> `std::vector<Npc *>`).
+    """
+    out = {}
+    vectors = load_class_vectors(src_dir)
+    if not os.path.isdir(src_dir):
+        return out
+    for fn in sorted(os.listdir(src_dir)):
+        if not (fn.endswith(".h") or fn.endswith(".cpp")):
+            continue
+        for line in open(os.path.join(src_dir, fn), errors="replace"):
+            m = DECL_RE.search(line)
+            if not m:
+                continue
+            name, params = m.group(1), m.group(2)
+            if not re.search(r"(Iter|Vector|RecordSlot)", name):
+                continue
+            head = line[: m.start(2)].rstrip()
+            rm = re.search(r"([A-Za-z_]\w*)\s*\*\s*\*\s*$", head)
+            if rm:
+                out.setdefault(name, rm.group(1) + " * *")
+                continue
+            # match the vector's ELEMENT class inside the accessor name
+            best = None
+            for cls, vecs in vectors.items():
+                for elem, _ in vecs:
+                    base = elem.rstrip(" *").split(" ")[0]
+                    if len(base) < 3:
+                        continue
+                    if base in name or (base + "s") in name:
+                        if best is None or len(base) > len(best[0]):
+                            best = (base + "s", elem)
+            if best:
+                elem = best[1]
+                out.setdefault(name, elem + " *")
+    return out
+
+
 def load_start_names(path):
     """start VA -> ref_name from functions.tsv (both keys are plain names)."""
     out = {}
@@ -1219,6 +1331,11 @@ def main(argv=None):
     idents = load_idents(args.idents)
     stub_by_addr, stub_by_name = load_stub_sigs(args.src)
     callee_arity = load_callee_arity(args.src, args.sigs)
+    accessors = {}
+    _at = load_accessor_types(args.src, args.sigs)
+    for _start, _nm in load_start_names(args.sigs).items():
+        if _nm in _at:
+            accessors[_start] = _at[_nm]
     global functions_start_name
     functions_start_name = load_start_names(args.sigs)
 
@@ -1249,18 +1366,20 @@ def main(argv=None):
                                   params=[t for t, _ in pn],
                                   class_fields=class_fields,
                                   param_names=[n_ for _, n_ in pn],
-                                  arity=callee_arity)
+                                  arity=callee_arity, accessors=accessors)
             total_r += rec
             total_n += n
             kinds = ", ".join("%s=%d" % kv for kv in sorted(d.stats.items()))
             conds = [l.strip() for l in d.lines if l.strip().startswith("if (")]
             bad = d.selfcheck()
             print("%-28s %d/%d = %5.1f%%   todos=%d  conditions=%d unresolved=%d"
-                  "  arity_todo=%d  holes=%d  slots=%d  arity_mismatch=%d\n    %s"
+                  "  arity_todo=%d  holes=%d  slots=%d  arity_mismatch=%d"
+                  "  untyped_field=%d\n    %s"
                   % (name, rec, n, 100.0 * rec / max(n, 1), d.todos, len(conds),
                      d.stats.get("jcc_todo", 0), d.arity_todos, d.arity_holes,
                      sum(1 for b in bad if b.startswith("slot-collision")),
-                     sum(1 for b in bad if b.startswith("arity-mismatch")), kinds),
+                     sum(1 for b in bad if b.startswith("arity-mismatch")),
+                     d.untyped_field_count(), kinds),
                   file=sys.stderr)
             for c in conds:
                 print("      %s" % c, file=sys.stderr)
@@ -1279,7 +1398,7 @@ def main(argv=None):
                           params=[t for t, _ in pn],
                           class_fields=class_fields,
                           param_names=[n_ for _, n_ in pn],
-                          arity=callee_arity)
+                          arity=callee_arity, accessors=accessors)
     if args.out:
         with open(args.out, "w") as fh:
             fh.write("\n".join(d.lines) + "\n")
