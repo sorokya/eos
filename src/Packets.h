@@ -173,6 +173,7 @@ int GroundItemPtrVector_Count(void *list);
 
 String EO_EncodeNumber(Server *server, unsigned int value, int width);
 String EO_Encode_Interleave(Server *server, int multiple, char *begin, char *end);
+String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *end);
 
 struct EOEncodedObj
 {

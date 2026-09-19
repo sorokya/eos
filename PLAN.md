@@ -626,7 +626,19 @@ Tracked so they are not mistaken for done:
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
   byte-exact (`std::stack<char>`/`std::deque<char>`, by-value `String` return);
   `Player_HandlePacket` (`0x41794c`, 52,589 instructions, 33.9% of app bytes) is
-  **started**: the header-parse prefix is written (`FUN_00472944(server,
+  **prologue written** (220 instructions): header parse, the `+/-0x80` loop,
+  `EO_ByteRange_FromString(&range, data.c_str(), (EOEncodedObj*)FUN_0044f6ec(&obj))`,
+  `data = EO_Decode_Deinterleave(server, player->server_encryption_multiple,
+  FUN_0044f73c(&range), FUN_0044f710(&range))`, `action`/`family` via
+  `EO_DecodeByte`, `size` via `EO_DecodeNumber(String(data[3]))`, `size -=
+  player->sequence`, `data.Delete(1,3)`, and the 3-slot scan
+  `server->ping_history[i] == size` (offset `+0xa8`; the prep's `character_slots`
+  name is `ping_history` in our header). The two `(*MAINFORM)->field_370/field_36c`
+  stores are **deferred**: a local `extern TGUI **MAINFORM;` conflicts with the
+  existing `TGUI` declaration in `src/Mainform.h` (`Type mismatch in redeclaration`),
+  so the extern needs adding in the right header rather than in `Packets.h`.
+  Frame `-0x7c` vs the reference's split `-4092`/`-3912` (true `-0x1f48`), aligned
+  prefix 3/220. Chunks `0x33`/`0x1c` not started. Earlier note: the header-parse prefix is written (`FUN_00472944(server,
   data.Length())`; `data.Length() < 4 -> false`; `packet_count++`/`sequence++`
   with the `> 9` wrap; the `+/-0x80` byte loop over `data[i]` for `i = 1..Length()`).
   Current frame `-0x34` vs the reference's split `-4092`/`-3912` (true `-0x1f48`),

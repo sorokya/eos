@@ -42,6 +42,8 @@ void Server_BroadcastToParty(
 Player **Players_Iter_End(Players *players);
 bool Player_HandlePacket(Server *server, Player *player, String data);
 void FUN_00472944(Server *server, int value);
+int EO_DecodeByte(Server *server, unsigned char value);
+void *FUN_0044f6ec(void *obj);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
@@ -60,6 +62,24 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         if (c > 0x80)
             data[i] += 0x80;
     }
+    std::vector<char> range;
+    void *obj = 0;
+    EO_ByteRange_FromString(&range, data.c_str(), (EOEncodedObj *)FUN_0044f6ec(&obj));
+    data = EO_Decode_Deinterleave(server,
+                                  player->server_encryption_multiple,
+                                  (char *)FUN_0044f73c(&range),
+                                  (char *)FUN_0044f710(&range));
+    int action = EO_DecodeByte(server, (unsigned char)data[1]);
+    int family = EO_DecodeByte(server, (unsigned char)data[2]);
+    int size = EO_DecodeNumber(server, String(data[3]));
+    size -= player->sequence;
+    data.Delete(1, 3);
+    bool found = false;
+    for (int i = 0; i < 3; i++)
+        if (server->ping_history[i] == size)
+            found = true;
+    if (!found)
+        return false;
     return false;
 }
 
