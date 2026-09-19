@@ -668,7 +668,11 @@ Tracked so they are not mistaken for done:
   `-0x44`/`-0x50` (ours) vs `-0x54`/`-0x60` (ref) — a 16 B band-placement
   difference still. `Server_BroadcastToParty` has the same defect class (`ucuc`
   declaration vs `ii` definition) with a second `ucuc` declaration in another
-  unit's `.cpp` (handled separately). The real log sequence
+  unit's `.cpp` was fixed in this unit's two declarations (`src/Packets.h` and
+  `src/Packets.cpp` now both `unsigned char action, unsigned char family`), giving
+  ONE `ucuc` symbol and no byte-exact loss. **The five container COMDATs are
+  already present** in the build (`FUN_0044f6c8`/`710`/`73c`/`778`/`814`), so
+  item 2's concern does not apply. The real log sequence
   (formatters/joins/append trio) is still approximated.
   Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is

@@ -37,8 +37,11 @@ int Eif_GetElement(void *item_values, int item_id, int *out);
 double
 Combat_CalcElementMult(void *game_control, short a, short b, int element, int element2);
 int Player_HpPercent(Player *player, int mode);
-void Server_BroadcastToParty(
-    Server *server, Player *player, int action, int family, String data);
+void Server_BroadcastToParty(Server *server,
+                             Player *player,
+                             unsigned char action,
+                             unsigned char family,
+                             String data);
 Player **Players_Iter_End(Players *players);
 bool Player_HandlePacket(Server *server, Player *player, String data);
 void FUN_00472944(Server *server, int value);

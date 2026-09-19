@@ -26,7 +26,7 @@ void *Map_NpcIter_End(void *npc_list);
 void Map_AddNpc(void *npc_list, void *position, Npc **npc);
 void FUN_004a9e74(JukeBoxController *jukebox_control, int map_id);
 MapContainer Map_InitBlank(int map_id, int width, int height);
-void *MapVector_End(void *maps);
+MapContainer *MapVector_End(Mapcontrol *map_control);
 void MapVector_Insert(void *maps, void *position, MapContainer *map);
 void FUN_0048835c(MapContainer *map, int flag);
 
