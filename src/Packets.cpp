@@ -707,9 +707,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             if (player->warp_map != warp_map)
                 return false;
-            if ((short)player->warp_x > 0xf0 || (short)player->warp_x < 0)
+            if (player->warp_x > 0xf0 || player->warp_x < 0)
                 return true;
-            if ((short)player->warp_y > 0xf0 || (short)player->warp_y < 0)
+            if (player->warp_y > 0xf0 || player->warp_y < 0)
                 return true;
             if (player->read_len > 0)
             {
@@ -737,8 +737,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             int saved_state = player->warp_state;
             player->map_id = player->warp_map;
-            player->x = (short)player->warp_x;
-            player->y = (short)player->warp_y;
+            player->x = player->warp_x;
+            player->y = player->warp_y;
             player->idle_ticks = 0;
             player->dead = false;
             if (!player->arena_playing)
@@ -1475,7 +1475,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 String out = EO_EncodeNumber(server, 1, 1);
                 out.Insert(EO_EncodeNumber(server, player->quest_trackers.size(), 2),
                            out.Length() + 1);
-                for (PlayerQuest *iter = player->quest_trackers.begin();
+                PlayerQuest *iter;
+                for (iter = player->quest_trackers.begin();
                      iter != player->quest_trackers.end();
                      iter++)
                 {
@@ -1486,11 +1487,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         out.Insert(Questengine::GetQuestName(server->quest_engine,
                                                              iter->quest_id),
                                    out.Length() + 1);
-                        out.Insert(String((char)EO_GetBreakByte(server, 0xff)),
-                                   out.Length() + 1);
+                        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
                         out.Insert(state->description, out.Length() + 1);
-                        out.Insert(String((char)EO_GetBreakByte(server, 0xff)),
-                                   out.Length() + 1);
+                        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
                         int cond = state->fast_dispatch_condition_type;
                         int v1 = 0;
                         int v2 = 0;
@@ -1499,19 +1498,17 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             state->fast_dispatch_condition_type < 10)
                         {
                             v2 = iter->counters[state->fast_dispatch_rule_index];
-                            QuestRule *rule =
-                                state->rules[state->fast_dispatch_rule_index];
-                            v1 = rule->args[1];
+                            v1 = state->rules[state->fast_dispatch_rule_index]->args[1];
                             if (state->fast_dispatch_condition_type == 9)
-                                v1 = rule->args[0];
+                                v1 = state->rules[state->fast_dispatch_rule_index]
+                                         ->args[0];
                             if (v1 < 1)
                                 v1 = 1;
                         }
                         out.Insert(EO_EncodeNumber(server, cond, 2), out.Length() + 1);
                         out.Insert(EO_EncodeNumber(server, v2, 2), out.Length() + 1);
                         out.Insert(EO_EncodeNumber(server, v1, 2), out.Length() + 1);
-                        out.Insert(String((char)EO_GetBreakByte(server, 0xff)),
-                                   out.Length() + 1);
+                        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
                     }
                 }
                 Client_SendEncoded(
@@ -1521,20 +1518,21 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (type == 2)
             {
                 String out = EO_EncodeNumber(server, 2, 1);
-                out.Insert(EO_EncodeNumber(server, player->quest_history.size(), 2),
+                out.Insert(EO_EncodeNumber(server, player->quest_trackers.size(), 2),
                            out.Length() + 1);
-                for (PlayerQuest *iter = player->quest_history.begin();
+                PlayerQuest *iter;
+                for (iter = player->quest_history.begin();
                      iter != player->quest_history.end();
                      iter++)
                 {
                     out.Insert(
                         Questengine::GetQuestName(server->quest_engine, iter->quest_id),
                         out.Length() + 1);
-                    out.Insert(String((char)EO_GetBreakByte(server, 0xff)),
-                               out.Length() + 1);
+                    out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
                 }
                 Client_SendEncoded(
                     server, player, PacketAction_List, PacketFamily_Quest, out);
+                return true;
             }
             return true;
         }
@@ -4584,8 +4582,8 @@ void Server_RemovePlayer(Server *server, TCustomWinSocket *socket)
         if (player->map_switch_pending)
         {
             player->map_id = player->target_map;
-            player->x = (short)player->target_x;
-            player->y = (short)player->target_y;
+            player->x = player->target_x;
+            player->y = player->target_y;
         }
         if (player->x > 250 || player->y > 250 || player->map_id < 1 ||
             (unsigned)Mapcontrol_GetCount(server->map_control) < (unsigned)player->map_id)
@@ -4660,15 +4658,15 @@ void *FUN_0044f914_Stub(int a0, void *a1)
 {
     return 0;
 }
-// STUB(0x0044f97c, 38 bytes) FUN_0044f97c - ref: int FUN_0044f97c(int param_1)
-int FUN_0044f97c_Stub(int a0)
+int FUN_0044f97c(Mapcontrol *map_control)
 {
-    return 0;
+    return ((char *)MapVector_End(map_control) -
+            (char *)Mapcontrol_Iter_Front(map_control)) /
+           4;
 }
-// STUB(0x0044f9bc, 38 bytes) FUN_0044f9bc - ref: int FUN_0044f9bc(int param_1)
-int FUN_0044f9bc_Stub(int a0)
+int FUN_0044f9bc(Mapcontrol *map_control)
 {
-    return 0;
+    return ((char *)map_control->maps.end() - (char *)Map_NpcIter_Begin(map_control)) / 4;
 }
 // STUB(0x0044f9fc, 169 bytes) FUN_0044f9fc - ref: undefined FUN_0044f9fc(int param_1)
 void FUN_0044f9fc_Stub(int a0)
@@ -6113,23 +6111,47 @@ int FUN_00462374_Stub(int a0, int a1)
 {
     return 0;
 }
-// STUB(0x004628b0, 838 bytes) FUN_004628b0 - ref: int * FUN_004628b0(int * param_1, int
-// param_2, int param_3)
-void *FUN_004628b0_Stub(void *a0, int a1, int a2)
+String FUN_004628b0(Server *server, Player *player)
 {
-    return 0;
+    int total = server->ping_history[0] + 0x0d;
+    int major = total / 7;
+    int minor = total % 7;
+    String out = EO_GetBreakByte(server, 0xff);
+    out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+    out.Insert(EO_GetBreakByte(server, 2), out.Length() + 1);
+    out.Insert(EO_GetBreakByte(server, major), out.Length() + 1);
+    out.Insert(EO_GetBreakByte(server, minor), out.Length() + 1);
+    out.Insert(EO_GetBreakByte(server, player->server_encryption_multiple),
+               out.Length() + 1);
+    out.Insert(EO_GetBreakByte(server, player->client_encryption_multiple),
+               out.Length() + 1);
+    out.Insert(EO_EncodeNumber(server, player->player_id, 2), out.Length() + 1);
+    out.Insert(EO_EncodeNumber(server, player->field_0x34, 3), out.Length() + 1);
+    out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
+    return out;
 }
-// STUB(0x00462bf8, 574 bytes) FUN_00462bf8 - ref: int * FUN_00462bf8(int * param_1, int
-// param_2)
-void *FUN_00462bf8_Stub(void *a0, int a1)
+String FUN_00462bf8(Server *server)
 {
-    return 0;
+    String out = EO_GetBreakByte(server, 0xff);
+    out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+    out.Insert(EO_GetBreakByte(server, 1), out.Length() + 1);
+    out.Insert(EO_EncodeNumber(server, server->version_patch, 1), out.Length() + 1);
+    out.Insert(EO_EncodeNumber(server, server->version_minor, 1), out.Length() + 1);
+    out.Insert(EO_EncodeNumber(server, server->version_major, 1), out.Length() + 1);
+    out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
+    return out;
 }
-// STUB(0x00462e38, 509 bytes) FUN_00462e38 - ref: int * FUN_00462e38(int * param_1, int
-// param_2)
-void *FUN_00462e38_Stub(void *a0, int a1)
+String FUN_00462e38(Server *server)
 {
-    return 0;
+    String out = EO_GetBreakByte(server, 0xff);
+    out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+    out.Insert(EO_GetBreakByte(server, 3), out.Length() + 1);
+    out.Insert(EO_GetBreakByte(server, Banned::GetBanType(server->banned)),
+               out.Length() + 1);
+    out.Insert(EO_GetBreakByte(server, Banned::GetBanTime(server->banned)),
+               out.Length() + 1);
+    out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
+    return out;
 }
 // STUB(0x00464030, 1286 bytes) Client_SendEncoded - ref: undefined
 // Client_SendEncoded(Server * server, Player * player, PacketAction action, PacketFamily
@@ -6585,8 +6607,8 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
             player->warp_pending = true;
             player->dead = false;
             player->warp_map = target_map;
-            player->warp_x = (unsigned short)warp_x;
-            player->warp_y = (unsigned short)warp_y;
+            player->warp_x = (short)warp_x;
+            player->warp_y = (short)warp_y;
             if (target_map == player->map_id)
             {
                 String out = EO_EncodeNumber(server, 1, 1);
@@ -7147,11 +7169,18 @@ void FUN_00472944(Server *server, int value)
         server->received_kilobytes -= 0x400;
     }
 }
-// STUB(0x00473124, 78 bytes) FUN_00473124 - ref: undefined4 FUN_00473124(undefined4
-// param_1, int param_2, int param_3, int param_4, int param_5)
-int FUN_00473124_Stub(int a0, int a1, int a2, int a3, int a4)
+bool FUN_00473124(void *self, int x1, int y1, int x2, int y2)
 {
-    return 0;
+    bool result = false;
+    int dx = x2 - x1;
+    int dy = y2 - y1;
+    if (dx < 0)
+        dx = 0 - dx;
+    if (dy < 0)
+        dy = 0 - dy;
+    if (dx + dy <= 2)
+        result = true;
+    return result;
 }
 // STUB(0x004731d0, 878 bytes) FUN_004731d0 - ref: int * FUN_004731d0(AnsiString * out,
 // Server * server)
