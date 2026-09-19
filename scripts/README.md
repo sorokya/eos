@@ -110,7 +110,11 @@ make clean     # remove build/
 - **`compare_asm.py ASM FUNCTION MANGLED_PREFIX REF_START REF_END`** — diff one
   bcc32 `-S` function against a reference address range, canonicalizing relocated
   addresses and branch targets while requiring registers, stack offsets and small
-  constants to match exactly. The per-function byte-fidelity loop.
+  constants to match exactly. The per-function byte-fidelity loop. `--lines`
+  annotates the diff with the source lines from our listing and summarises the
+  mismatches per line; a function absent from the listing is reported and the
+  tool exits 2 (the `--lines` parser tolerates both `name proc` and
+  `name$q... proc` label forms).
   `--frame-wild` is a **progress instrument** for a partially written function:
   bcc only sizes the frame correctly once every local exists, so until then the
   prologue's `add esp,-N` differs and every `[ebp-N]` local shifts, and the
@@ -144,9 +148,14 @@ make clean     # remove build/
   explicit delta, and `--stack-search` removes the retry loop entirely: it sweeps
   the candidate deltas (`-0x400`..`+0x400` in 4-byte steps, plus the
   frame-derived and implied ones), scores each, and prints the best delta with
-  its aligned prefix and mismatch count plus the runner-up deltas — so a writer
-  sees whether the best is a clear winner or a coincidental tie — then the normal
-  reading for the winner.
+  its aligned prefix and mismatch count plus the runner-up deltas — then the
+  normal reading for the winner. The search also states whether the win is
+  **decisive** or a **tie** (how many deltas reach the same prefix, i.e. whether
+  the commitment beyond it is in the bodies rather than the stack), prints the
+  winner's **local-area delta** alongside the frame-derived one (the difference
+  is the EH-frame overhead), and classifies the **first divergence** —
+  `stack-offset` / `operand/register` / `opcode/structure` / `instruction count`
+  — with both instructions.
 
   Condition-code aliases are folded before comparing, because bcc32 and objdump
   spell the same condition differently (`jge`/`jnl`, `jg`/`jnle`, `jl`/`jnge`,

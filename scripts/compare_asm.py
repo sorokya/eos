@@ -192,6 +192,28 @@ def slot_sequence(seq):
     return seen
 
 
+def first_divergence(ref, our):
+    """(index, ref_ins, our_ins, kind) for the first mismatch, or None."""
+    n = min(len(ref), len(our))
+    for i in range(n):
+        if ref[i] != our[i]:
+            a, b = ref[i], our[i]
+            if a.split(" ", 1)[0] == b.split(" ", 1)[0]:
+                if EBP_NEG_RE.sub("S", a) == EBP_NEG_RE.sub("S", b):
+                    kind = "stack-offset (a [ebp-N] shift this delta did not reach)"
+                else:
+                    kind = "operand/register"
+            else:
+                kind = "opcode/structure"
+            return i, a, b, kind
+    if len(ref) != len(our):
+        return min(len(ref), len(our)), (
+            ref[min(len(ref), len(our))] if len(ref) > len(our) else "<none>"), (
+            our[min(len(ref), len(our))] if len(our) > len(ref) else "<none>"), (
+            "instruction count")
+    return None
+
+
 def implied_delta(ref, our):
     """The stack delta the first divergent slot pair implies, else None.
 
@@ -286,10 +308,14 @@ def parse_our_lines(path: str, mangled_prefix: str):
     with many temporaries.
     """
     txt = open(path, encoding="latin1").read()
-    m = re.search(r"(?m)^" + re.escape(mangled_prefix) + r"\$q[^\n]*\n(.*?)endp",
-                  txt, re.S)
+    esc = re.escape(mangled_prefix)
+    m = re.search(r"(?m)^" + esc + r"\s+proc[^\n]*\n(.*?)endp", txt, re.S)
     if not m:
-        return None, [], []
+        m = re.search(r"(?m)^" + esc + r"\$q[^\n]*\n(.*?)endp", txt, re.S)
+    if not m:
+        # (out, calls, (markers, lines, marker_lines)) - a 3-tuple even when
+        # the function is absent, so main's unpacking never raises.
+        return None, [], ([], [], [])
     skip = {"dw", "dd", "db", "dt", "public", "extrn", "segment", "ends", "proc",
             "endp", "end", "align", "assume", "org", "equ", "_data", "_text",
             "_bss", "_tls", "_rdata"}
@@ -586,6 +612,19 @@ def main() -> int:
         for p, nm, d in results[:8]:
             mark = "  <-- best" if (p, nm, d) == best else ""
             print(f"   delta {d:+#06x}  aligned prefix {p:5d}  mismatched {-nm}{mark}")
+        bp = best[0]
+        tied = [r for r in results if r[0] == bp]
+        if len(tied) == 1:
+            print(f"winner: decisive (no other delta reaches prefix {bp})")
+        else:
+            print(f"winner: tie - {len(tied)} deltas reach prefix {bp} "
+                  f"({', '.join('%#x' % r[2] for r in tied[:6])}); the "
+                  f"commitment beyond it is in the bodies, not the stack")
+        if frame_ref is not None and frame_our is not None:
+            fd = abs(frame_ref) - abs(frame_our)
+            print(f"local-area delta: {best[2]:+#x} "
+                  f"(frame-derived was {fd:+#x}; the {best[2] - fd:+#x} "
+                  f"difference is the EH-frame overhead)")
         args.stack_delta = best[2]
         args.stack_wild = True
     if args.stack_wild or args.stack_delta is not None:
@@ -618,6 +657,12 @@ def main() -> int:
         print(f"aligned prefix: {aligned_prefix(ref, our)} / "
               f"{min(len(ref), len(our))}   (--frame-wild is a PROGRESS "
               f"instrument; run without it for acceptance)")
+        fd0 = first_divergence(ref, our)
+        if fd0:
+            i, a, b, kind = fd0
+            print(f"first divergence at index {i}: {kind}")
+            print(f"   ref: {a}")
+            print(f"   our: {b}")
         if not args.stack_wild:
             d = implied_delta(ref, our)
             if d is not None and d:

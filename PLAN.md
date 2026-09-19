@@ -836,6 +836,29 @@ Tracked so they are not mistaken for done:
     `SkillValues::GetCastTime` `0x4a5268`; `Now`/`DateTimeToTimeStamp` are the
     library `0x520500`/`0x51ff7c`.
 
+### Not reachable from source — do not spend sessions on these
+
+Two residues are proven to be bcc internals rather than source-form differences.
+They are recorded here so no future pass mistakes them for work:
+
+- **`Party_ShareExp`** (`0x46690c`, 14 mismatched). Every *mnemonic* matches in
+  order; the only differences are register/operand choices. Two structurally
+  identical loops receive *different* allocations in the reference
+  (`ecx/edx` then `edx/eax`), so no single loop-body spelling can flip both, and a
+  scratch probe matrix confirmed the mirror is driven by liveness rather than the
+  statement text. Fifteen probes plus the alias/operand sweeps leave it unchanged.
+  Frame delta is 0 — the locals are already right.
+- **The Mapcontrol loaders' re-arm marks** (`FUN_00482834` 1566/1572,
+  `Mapcontrol_LoadMap` 1551/1552) — see the section above; the missing mark is the
+  try-body scope terminator, emitted at any scale at a fixed offset, and its
+  position cannot be moved by any tested source form because the try's opening
+  position is pinned by the file-open failure path.
+- **`Players_Add`** (`0x4081c8`, 2 mismatched) — the LIFO destroy order of a
+  two-temporary expression. Fifteen scratch probes (operand order, `!=`/`==`,
+  negation, `bool` binding, statement splitting, block scoping, loop-condition
+  placement, nested calls) all emit the reference's own FIFO order; the order is
+  fixed by bcc. Frame delta 0.
+
 ## Progress measurement — read the BYTES, not the function count
 
 `make track` reports both, and the function count is the misleading one. As of the

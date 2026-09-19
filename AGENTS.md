@@ -303,7 +303,10 @@ documented build, not a manual fix-up.
   divergent slot pair implies) and `--stack-delta D` applies an explicit one.
   `--stack-search` sweeps candidate deltas (`-0x400`..`+0x400` step 4, plus the
   frame-derived and implied ones) and prints the best delta with its aligned
-  prefix and mismatch count plus the runner-ups, then the normal reading.
+  prefix and mismatch count plus the runner-ups, whether the win is decisive or
+  a tie, the winner's local-area delta versus the frame-derived one, and a
+  classification of the first divergence (`stack-offset` / `operand/register` /
+  `opcode/structure`), then the normal reading.
   Condition-code aliases (`jge`/`jnl`, `jl`/`jnge`, `jb`/`jnae`/`jc`, … and the
   `setcc`/`cmovcc` forms) are canonicalized to one representative per class
   before comparing (mnemonic only — operands are untouched and distinct
