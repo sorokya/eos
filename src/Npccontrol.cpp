@@ -13,8 +13,6 @@
 
 #pragma package(smart_init)
 
-extern TGUI **MAINFORM;
-
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
 

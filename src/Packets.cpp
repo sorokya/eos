@@ -80,12 +80,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             found = true;
     if (!found)
         return false;
+    (*MAINFORM)->field_370 = family;
+    (*MAINFORM)->field_36c = action;
     return false;
 }
 
 bool FUN_00462374(Server *server, Player *player, String data);
 String Character_BuildSaveQuery(Players *players, Player *player, int flag);
-extern TGUI **MAINFORM;
 MapObject Map_GetTileSpecObject(Mapcontrol *map_control, int map_id, int x, int y);
 void Server_BroadcastToMapExceptSelf(Server *server,
                                      Player *player,
@@ -3818,8 +3819,19 @@ void FUN_004728f8_Stub(int a0, int a1)
 }
 // STUB(0x00472944, 74 bytes) FUN_00472944 - ref: undefined FUN_00472944(int param_1, int
 // param_2)
-void FUN_00472944_Stub(int a0, int a1)
+void FUN_00472944(Server *server, int value)
 {
+    server->received_bytes += value;
+    while (server->received_bytes > 0x3ff)
+    {
+        server->received_kilobytes++;
+        server->received_bytes -= 0x400;
+    }
+    while (server->received_kilobytes > 0x3ff)
+    {
+        server->received_megabytes++;
+        server->received_kilobytes -= 0x400;
+    }
 }
 // STUB(0x00473124, 78 bytes) FUN_00473124 - ref: undefined4 FUN_00473124(undefined4
 // param_1, int param_2, int param_3, int param_4, int param_5)

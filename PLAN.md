@@ -634,9 +634,12 @@ Tracked so they are not mistaken for done:
   player->sequence`, `data.Delete(1,3)`, and the 3-slot scan
   `server->ping_history[i] == size` (offset `+0xa8`; the prep's `character_slots`
   name is `ping_history` in our header). The two `(*MAINFORM)->field_370/field_36c`
-  stores are **deferred**: a local `extern TGUI **MAINFORM;` conflicts with the
-  existing `TGUI` declaration in `src/Mainform.h` (`Type mismatch in redeclaration`),
-  so the extern needs adding in the right header rather than in `Packets.h`.
+  stores are written: `extern TGUI **MAINFORM;` was hoisted into
+  `src/Mainform.h` (beside `extern PACKAGE TGUI *GUI;`) and the four ad-hoc
+  per-unit declarations removed (`Players.cpp`, `Packets.cpp`, `Npccontrol.cpp`,
+  `Mapcontrol.cpp`); all four units still compile. `FUN_00472944` (the server
+  byte-accounting helper) is now **byte-exact** (23/23) and its stub row removed
+  (148 `_Stub` left).
   Frame `-0x7c` vs the reference's split `-4092`/`-3912` (true `-0x1f48`), aligned
   prefix 3/220. Chunks `0x33`/`0x1c` not started. Earlier note: the header-parse prefix is written (`FUN_00472944(server,
   data.Length())`; `data.Length() < 4 -> false`; `packet_count++`/`sequence++`

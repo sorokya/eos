@@ -17,7 +17,6 @@ int Mapcontrol_GetCount(Mapcontrol *map_control);
 MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 
 // Cross-unit helpers owned by other units (Jukeboxcontrol, Mapcontrol).
-extern TGUI **MAINFORM;
 void FUN_004aa4e4(JukeBoxController *jukebox_control, int map_id);
 int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id);
 int FUN_004813c8(void *list);

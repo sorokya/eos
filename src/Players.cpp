@@ -14,8 +14,6 @@
 
 #pragma package(smart_init)
 
-extern TGUI **MAINFORM;
-
 bool Walk_Execute(Server *server, Player *player, int action, String *data);
 bool Attack_Execute(Server *server, Player *player, int action, String *data);
 bool Spell_Execute(Server *server, Player *player, int action, String *data);
