@@ -4509,7 +4509,9 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         TDateTime now = Now();
         String sql =
             "INSERT INTO endl_characters (ident_account, ident_guild, ident_class, "
-            "name, signup, gender, hairmodal, haircolor, skincolor, nav_map, nav_x,";
+            "name, signup, gender, hairmodal, haircolor, skincolor, nav_map, nav_x,"
+            " nav_y, hp_max, hp_now, mp_max, mp_now, sp_max, clientusge, money_bank ) "
+            "VALUES (";
         sql = sql + IntToStr(player->field_0xc) + ",";
         sql = sql + "'0',1,'";
         sql = sql + name + "',";
@@ -4557,13 +4559,12 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                                EO_EncodeNumber(server, 1, 2) + "NO");
             return;
         }
-        Client_SendEncoded(server,
-                           player,
-                           PacketAction_Reply,
-                           PacketFamily_Account,
-                           EO_EncodeNumber(server, player->session_id, 2) +
-                               EO_EncodeNumber(server, server->ping_history[0], 1) +
-                               "OK");
+        String reply = EO_EncodeNumber(server, player->session_id, 2);
+        reply.Insert(EO_EncodeNumber(server, server->ping_history[0], 1),
+                     reply.Length() + 1);
+        reply.Insert("OK", reply.Length() + 1);
+        Client_SendEncoded(
+            server, player, PacketAction_Reply, PacketFamily_Account, reply);
         return;
     }
     if (query_result->query_id == 0x44)
@@ -4601,7 +4602,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         TDateTime now = Now();
         String sql = "INSERT INTO endl_accounts (account, password, realname, location, "
                      "email,  signup, lastvisit, serial_c, serial_h , ipaddress, banned) "
-                     "VALUES ";
+                     "VALUES (";
         sql = sql + "'" + account + "',";
         sql = sql + "ENCODE('" + FUN_004708d4(server, password) + "','eoeokeyendl'),";
         sql = sql + "'" + realname + "',";
@@ -4689,7 +4690,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                     "' LIMIT 1");
             return;
         }
-        if (player->guild_tag != target->guild_tag)
+        if (target->guild_tag != player->guild_tag)
         {
             Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x18, 2));
             return;
@@ -4713,8 +4714,9 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         int token = EO_DecodeNumber(server, query_result->data.SubString(5, 1));
         String char_name =
             query_result->data.SubString(6, query_result->data.Length() - 5);
-        if (Mysqlcontrols::Db_GetString(server->mysql_controls, "ident_guild")
-                .LowerCase() != player->guild_tag.LowerCase())
+        if (AnsiLowerCase(
+                Mysqlcontrols::Db_GetString(server->mysql_controls, "ident_guild")) !=
+            AnsiLowerCase(player->guild_tag))
         {
             Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x18, 2));
             return;
@@ -4738,8 +4740,9 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
     {
         if ((*MAINFORM)->myquery->RecordCount < 1)
             return;
-        if (Mysqlcontrols::Db_GetString(server->mysql_controls, "ident_guild")
-                .LowerCase() != player->guild_tag.LowerCase())
+        if (AnsiLowerCase(
+                Mysqlcontrols::Db_GetString(server->mysql_controls, "ident_guild")) !=
+            AnsiLowerCase(player->guild_tag))
         {
             Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x14, 2));
             return;
@@ -4819,7 +4822,33 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         return;
     }
     if (query_result->query_id == 0x4d)
+    {
+        if ((*MAINFORM)->myquery->RecordCount < 1)
+        {
+            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x11, 2));
+            return;
+        }
+        String list = EO_EncodeNumber(server, (*MAINFORM)->myquery->RecordCount, 2);
+        list.Insert(EO_GetBreakByte(server, 0xff), list.Length() + 1);
+        while (!(*MAINFORM)->myquery->Eof)
+        {
+            list.Insert(EO_EncodeNumber(server,
+                                        Mysqlcontrols::Db_GetInt(server->mysql_controls,
+                                                                 "ident_rank"),
+                                        1),
+                        list.Length() + 1);
+            list.Insert(EO_GetBreakByte(server, 0xff), list.Length() + 1);
+            list.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "name"),
+                        list.Length() + 1);
+            list.Insert(EO_GetBreakByte(server, 0xff), list.Length() + 1);
+            list.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank"),
+                        list.Length() + 1);
+            list.Insert(EO_GetBreakByte(server, 0xff), list.Length() + 1);
+            (*MAINFORM)->myquery->Next();
+        }
+        Client_SendEncoded(server, player, 0x14, 0x27, list);
         return;
+    }
     if (query_result->query_id == 0x4e)
     {
         if ((*MAINFORM)->myquery->RecordCount < 1)
@@ -4917,17 +4946,19 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
     }
     if (query_result->query_id == 0x4f)
     {
-        bool has_result = (*MAINFORM)->myquery->RecordCount >= 1;
+        bool has_result = true;
+        if ((*MAINFORM)->myquery->RecordCount < 1)
+            has_result = false;
         if (has_result)
         {
-            do
+            player->field_0x14.Insert(
+                EO_EncodeNumber(
+                    server, Mysqlcontrols::GetResultCount(server->mysql_controls), 2),
+                player->field_0x14.Length() + 1);
+            player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                      player->field_0x14.Length() + 1);
+            while (!Mysqlcontrols::ResultAtEnd(server->mysql_controls))
             {
-                player->field_0x14.Insert(
-                    EO_EncodeNumber(
-                        server, Mysqlcontrols::GetResultCount(server->mysql_controls), 2),
-                    player->field_0x14.Length() + 1);
-                player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
-                                          player->field_0x14.Length() + 1);
                 player->field_0x14.Insert(
                     EO_EncodeNumber(
                         server,
@@ -4942,7 +4973,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                 player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
                                           player->field_0x14.Length() + 1);
                 Mysqlcontrols::NextResultRecord(server->mysql_controls);
-            } while (!Mysqlcontrols::ResultAtEnd(server->mysql_controls));
+            }
         }
         Client_SendEncoded(server, player, 0x15, 0x27, player->field_0x14);
         return;
@@ -4968,9 +4999,110 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         return;
     }
     if (query_result->query_id == 0x51)
+    {
+        if ((*MAINFORM)->myquery->RecordCount > 0)
+            return;
+        if (Players::Players_CountGuildInvites(server->players, player) < 10)
+        {
+            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 4, 2));
+            return;
+        }
+        if (!Players::Player_RemoveItem(server->players, player, 1, 0xc350))
+            return;
+        PacketReader_Init(server, query_result->data, EO_GetBreakByte(server, 0xff));
+        PacketReader_GetBreakString(server);
+        String tag = AnsiUpperCase(Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server)));
+        String name = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        String description = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        player->guild_tag = tag;
+        player->guild_name = name;
+        player->guild_rank_name = "Leader";
+        player->guild_inviter_id = -1;
+        player->guild_rank_id = 1;
+        Players::Players_GuildSetMemberInfo(server->players, player, name, tag);
+        TDateTime now = Now();
+        tag = Mysqlcontrols::Db_SanitizeString(server->mysql_controls, tag);
+        name = Mysqlcontrols::Db_SanitizeString(server->mysql_controls, name);
+        description =
+            Mysqlcontrols::Db_SanitizeString(server->mysql_controls, description);
+        String sql = "INSERT INTO endl_guilds (tag, name, description, money, signup, "
+                     "rank1, rank2 ) VALUES (";
+        sql = sql + "'" + AnsiUpperCase(tag) + "'";
+        sql = sql + "'" + name + "',";
+        sql = sql + "'" + description + "',";
+        sql = sql + "10000,";
+        sql = sql + "'" + String(now) + "',";
+        sql = sql + "'Leader',";
+        sql = sql + "'Recruiter')";
+        Mysqlcontrols::Mysql_ExecDirect(server->mysql_controls, 0, sql);
+        if (tag.Length() == 2)
+            tag = tag + " ";
+        String msg = EO_EncodeNumber(server, player->player_id, 2);
+        msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+        msg.Insert(tag, msg.Length() + 1);
+        msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+        msg.Insert(name, msg.Length() + 1);
+        msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+        msg.Insert("Leader", msg.Length() + 1);
+        msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+        Guild_BroadcastToAll(server, player, 6, 0x27, msg);
+        msg.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                   msg.Length() + 1);
+        msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+        Client_SendEncoded(server, player, 6, 0x27, msg);
+        server->mysql_controls->file_cache->guilds_count++;
         return;
+    }
     if (query_result->query_id == 0x52)
+    {
+        if ((*MAINFORM)->myquery->RecordCount < 1)
+            return;
+        Player *other = Players::Players_GetById(
+            server->players, EO_DecodeNumber(server, query_result->data.SubString(1, 2)));
+        if (other == NULL)
+            return;
+        if (other->guild_tag.Length() > 1)
+            return;
+        if (other->map_id != player->map_id)
+            return;
+        if (AnsiLowerCase(Mysqlcontrols::Db_GetString(server->mysql_controls, "tag")) ==
+            AnsiLowerCase(other->guild_tag))
+            return;
+        if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls, "money") <
+            0x3e8)
+            return;
+        String tag = Mysqlcontrols::Db_GetString(server->mysql_controls, "tag");
+        String name = Mysqlcontrols::Db_GetString(server->mysql_controls, "name");
+        String rank9 = Mysqlcontrols::Db_GetString(server->mysql_controls, "rank9");
+        int money =
+            (unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls, "money") -
+            0x3e8;
+        Mysqlcontrols::Mysql_ExecDirect(
+            server->mysql_controls,
+            0,
+            "UPDATE endl_guilds SET money = " + IntToStr(money) + " WHERE tag = '" +
+                player->guild_tag + "'");
+        other->guild_tag = tag;
+        other->guild_name = name;
+        other->guild_rank_name = rank9;
+        other->guild_rank_id = 9;
+        other->guild_inviter_id = -1;
+        player->guild_inviter_id = -1;
+        String msg = EO_EncodeNumber(server, player->player_id, 2);
+        msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+        msg.Insert(tag, msg.Length() + 1);
+        msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+        msg.Insert(name, msg.Length() + 1);
+        msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+        msg.Insert(rank9, msg.Length() + 1);
+        msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+        Client_SendEncoded(server, other, 5, 0x27, msg);
+        Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x10, 2));
         return;
+    }
     if (query_result->query_id == 0x53)
     {
         std::vector<FilecacheEntryB *>::iterator it =
@@ -4979,11 +5111,9 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         {
             FilecacheEntryB *entry = *it;
             it = server->mysql_controls->file_cache->pending_guild_writes.erase(it);
-            if (entry != NULL)
-                delete entry;
+            delete entry;
         }
         Mysqlcontrols::LoadCachedGuilds(server->mysql_controls);
-        return;
     }
 }
 // STUB(0x00459638, 101 bytes) FUN_00459638 - ref: undefined4 * FUN_00459638(int param_1,
