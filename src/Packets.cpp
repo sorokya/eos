@@ -15,6 +15,8 @@
 #include "Logins.h"
 #include "Mainform.h"
 #include "Innvalues.h"
+#include "Shopvalues.h"
+#include "Npcvalues.h"
 #include "Mapcontrol.h"
 #include "Mapobject.h"
 #include "Npc.h"
@@ -49,6 +51,9 @@ void FUN_004728f8(Server *server, int value);
 String Player_SerializePaperdoll(Server *server, Player *player);
 String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index);
 void *FUN_0044f6ec(void *obj);
+void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value);
+MapCoord FUN_0047c6c0(int map_control, int map_id, unsigned int npc_index);
+unsigned int FUN_0047c634(int map_control, int map_id, unsigned int npc_index);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
@@ -120,14 +125,246 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         if (data.Length() < 2)
             return false;
         int target_id = EO_DecodeNumber(server, data.SubString(1, 2));
-        if (player->player_id != target_id)
-            return false;
+        if (player->player_id == target_id)
+            return true;
         Player *target = Players::Players_GetById(server->players, target_id);
         if (target == NULL)
             return false;
         String s = Player_SerializePaperdoll(server, target);
         Client_SendEncoded(server, player, PacketAction_Reply, PacketFamily_Book, s);
         return true;
+    }
+    if (family == PacketFamily_Shop)
+    {
+        if (action == PacketAction_Create)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 6)
+                return false;
+            int craft_id = EO_DecodeNumber(server, data.SubString(1, 2));
+            int shop_id = EO_DecodeNumber(server, data.SubString(3, 4));
+            if (player->session_token != shop_id)
+                return true;
+            ShopCraftIngredient ingredient1 = ShopValues::GetCraftIngredient1(
+                (*MAINFORM)->shop_values, shop_id, craft_id);
+            ShopCraftIngredient ingredient2 = ShopValues::GetCraftIngredient2(
+                (*MAINFORM)->shop_values, shop_id, craft_id);
+            ShopCraftIngredient ingredient3 = ShopValues::GetCraftIngredient3(
+                (*MAINFORM)->shop_values, shop_id, craft_id);
+            ShopCraftIngredient ingredient4 = ShopValues::GetCraftIngredient4(
+                (*MAINFORM)->shop_values, shop_id, craft_id);
+            if (ingredient1.item_id < 1 && ingredient2.item_id < 1 &&
+                ingredient3.item_id < 1 && ingredient4.item_id < 1)
+                return true;
+            bool can_craft = true;
+            bool any_ingredient = false;
+            if (ingredient1.item_id > 0 && ingredient1.amount > 0)
+            {
+                any_ingredient = true;
+                if (Players::Players_GetItemAmount(
+                        server->players, player, ingredient1.item_id) <
+                    ingredient1.amount)
+                    can_craft = false;
+            }
+            if (ingredient2.item_id > 0 && ingredient2.amount > 0)
+            {
+                any_ingredient = true;
+                if (Players::Players_GetItemAmount(
+                        server->players, player, ingredient2.item_id) <
+                    ingredient2.amount)
+                    can_craft = false;
+            }
+            if (ingredient3.item_id > 0 && ingredient3.amount > 0)
+            {
+                any_ingredient = true;
+                if (Players::Players_GetItemAmount(
+                        server->players, player, ingredient3.item_id) <
+                    ingredient3.amount)
+                    can_craft = false;
+            }
+            if (ingredient4.item_id > 0 && ingredient4.amount > 0)
+            {
+                any_ingredient = true;
+                if (Players::Players_GetItemAmount(
+                        server->players, player, ingredient4.item_id) <
+                    ingredient4.amount)
+                    can_craft = false;
+            }
+            if (!can_craft || !any_ingredient)
+                return true;
+            String reply = EO_EncodeNumber(server, craft_id, 2);
+            if (ingredient1.item_id > 0 && ingredient1.amount > 0 &&
+                Players::Player_RemoveItem(
+                    server->players, player, ingredient1.item_id, ingredient1.amount))
+            {
+                reply.Insert(EO_EncodeNumber(server, ingredient1.item_id, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                             reply.Length() + 1);
+            }
+            if (ingredient2.item_id > 0 && ingredient2.amount > 0 &&
+                Players::Player_RemoveItem(
+                    server->players, player, ingredient2.item_id, ingredient2.amount))
+            {
+                reply.Insert(EO_EncodeNumber(server, ingredient2.item_id, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                             reply.Length() + 1);
+            }
+            if (ingredient3.item_id > 0 && ingredient3.amount > 0 &&
+                Players::Player_RemoveItem(
+                    server->players, player, ingredient3.item_id, ingredient3.amount))
+            {
+                reply.Insert(EO_EncodeNumber(server, ingredient3.item_id, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                             reply.Length() + 1);
+            }
+            if (ingredient4.item_id > 0 && ingredient4.amount > 0 &&
+                Players::Player_RemoveItem(
+                    server->players, player, ingredient4.item_id, ingredient4.amount))
+            {
+                reply.Insert(EO_EncodeNumber(server, ingredient4.item_id, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                             reply.Length() + 1);
+            }
+            Players::Player_AddItem(server->players, player, craft_id, 1);
+            player->weight_current +=
+                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, craft_id);
+            if (player->weight_current < 0)
+                player->weight_current = 0;
+            int weight = player->weight_current;
+            int weight_max = player->weight_max;
+            if (weight > 250)
+                weight = 250;
+            if (weight_max > 250)
+                weight_max = 250;
+            reply.Insert(EO_EncodeNumber(server, weight_max, 1), 3);
+            reply.Insert(EO_EncodeNumber(server, weight, 1), 3);
+            Client_SendEncoded(
+                server, player, PacketAction_Create, PacketFamily_Shop, reply);
+            Player_FireQuestTriggers(server, player, 400, 0);
+            return true;
+        }
+        if (action == PacketAction_Buy)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 10)
+                return false;
+            int item_id = EO_DecodeNumber(server, data.SubString(1, 2));
+            unsigned int amount = EO_DecodeNumber(server, data.SubString(3, 4));
+            int shop_id = EO_DecodeNumber(server, data.SubString(7, 4));
+            if (amount > 100)
+            {
+                Banned::AddBan(
+                    server->banned, player->remote_ip, player->hdid, (char)0, 1200);
+                return false;
+            }
+            if (player->session_token != shop_id)
+                return true;
+            int price = ShopValues::GetBuyPrice(
+                (*MAINFORM)->shop_values, shop_id, item_id, amount);
+            if (price < 0)
+                return true;
+            if (amount < 1)
+                return true;
+            if (!Players::Player_RemoveItem(server->players, player, 1, price))
+                return true;
+            Players::Player_AddItem(server->players, player, item_id, amount);
+            player->weight_current +=
+                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) * amount;
+            if (player->weight_current < 0)
+                player->weight_current = 0;
+            int weight = player->weight_current;
+            int weight_max = player->weight_max;
+            if (weight > 250)
+                weight = 250;
+            if (weight_max > 250)
+                weight_max = 250;
+            String reply = EO_EncodeNumber(server, player->item_change_remaining, 4);
+            reply.Insert(EO_EncodeNumber(server, item_id, 2), reply.Length() + 1);
+            reply.Insert(EO_EncodeNumber(server, amount, 4), reply.Length() + 1);
+            reply.Insert(EO_EncodeNumber(server, weight, 1), reply.Length() + 1);
+            reply.Insert(EO_EncodeNumber(server, weight_max, 1), reply.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Buy, PacketFamily_Shop, reply);
+            Player_FireQuestTriggers(server, player, 400, 0);
+            return true;
+        }
+        if (action == PacketAction_Sell)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 10)
+                return false;
+            int item_id = EO_DecodeNumber(server, data.SubString(1, 2));
+            unsigned int amount = EO_DecodeNumber(server, data.SubString(3, 4));
+            int shop_id = EO_DecodeNumber(server, data.SubString(7, 4));
+            if (amount > 100)
+            {
+                Banned::AddBan(
+                    server->banned, player->remote_ip, player->hdid, (char)0, 1200);
+                return false;
+            }
+            if (player->session_token != shop_id)
+                return true;
+            if (!Players::Player_RemoveItem(server->players, player, item_id, amount))
+                return true;
+            int price = ShopValues::GetSellPrice(
+                (*MAINFORM)->shop_values, shop_id, item_id, player->item_change_count);
+            if (price < 0)
+                return true;
+            Players::Player_AddItem(server->players, player, 1, price);
+            player->weight_current -=
+                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) *
+                player->item_change_count;
+            if (player->weight_current < 0)
+                player->weight_current = 0;
+            int weight = player->weight_current;
+            int weight_max = player->weight_max;
+            if (weight > 250)
+                weight = 250;
+            if (weight_max > 250)
+                weight_max = 250;
+            int gold = Players::Players_GetItemAmount(server->players, player, 1);
+            String reply = EO_EncodeNumber(server, player->item_change_remaining, 4);
+            reply.Insert(EO_EncodeNumber(server, item_id, 2), reply.Length() + 1);
+            reply.Insert(EO_EncodeNumber(server, gold, 4), reply.Length() + 1);
+            reply.Insert(EO_EncodeNumber(server, weight, 1), reply.Length() + 1);
+            reply.Insert(EO_EncodeNumber(server, weight_max, 1), reply.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Sell, PacketFamily_Shop, reply);
+            Player_FireQuestTriggers(server, player, 400, 0);
+            return true;
+        }
+        if (action == PacketAction_Open)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
+            MapCoord coords =
+                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            if (coords.x < 0 || coords.y < 0)
+                return true;
+            if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            int npc_id =
+                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
+            if (type_info.type != NpcType_Shop)
+                return true;
+            player->session_token = type_info.behavior_id;
+            String open_data = ShopValues::BuildOpenData((*MAINFORM)->shop_values,
+                                                         type_info.behavior_id);
+            Client_SendEncoded(
+                server, player, PacketAction_Open, PacketFamily_Shop, open_data);
+            return true;
+        }
     }
     return false;
 }

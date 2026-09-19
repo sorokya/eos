@@ -729,7 +729,25 @@ Tracked so they are not mistaken for done:
   server, player, id)` with the `Length() > 0` insert, `cnt < 1 -> false`,
   `EO_EncodeNumber(server, cnt, 2)` inserted at 1, `Client_SendEncoded(
   PacketFamily(0x1c), PacketAction(5), names)`); `NpcRange_Lookup` declared
-  locally. 591 instructions written, frame `-0xac`, aligned prefix 3/591. Cases
+  locally. 591 instructions written, frame `-0xac`, aligned prefix 3/591.
+  **Case `0xd` (Shop) is written**: one `if (family == PacketFamily_Shop)` with
+  four chained action sub-blocks `Create`/`Buy`/`Sell`/`Open`; `Create` reads the
+  four `ShopValues::GetCraftIngredient1..4` records, validates held amounts with
+  `Players::Players_GetItemAmount`, removes each present ingredient and appends
+  `EO_EncodeNumber` pairs to the reply; `Buy`/`Sell` clamp `amount > 100` to a
+  `Banned::AddBan` (1200s) and price via `ShopValues::GetBuyPrice`/`GetSellPrice`;
+  `Open` resolves the npc tile with the Mapcontrol `FUN_0047c6c0`/`FUN_0047c634`
+  pair, checks `NpcValues::GetType == NpcType_Shop`, stores
+  `player->session_token` and sends `ShopValues::BuildOpenData`. Every guard and
+  builder argument uses the `src/Protocol.h` enums. Frame `-0x190`
+  (delta `+0xe6c`, best stack-search `+0x38`) vs the reference's split `-0x1f48`;
+  aligned prefix 3/2111 (the split frame plus the twelve unwritten earlier cases
+  gate alignment). Structural diff of the case body alone is 1492/1565 instructions
+  exact; the residual is EH scope-marker values and one register mirror. All four
+  `Client_SendEncoded` sites still gate final acceptance. Note the reference's
+  return polarity: not-logged-in, short length and the `>100` ban return `false`,
+  but a session-token/shop-id mismatch, an unknown ingredient or an unaffordable
+  price return `true` (the packet is consumed and the socket kept). Cases
   `0xb`, `0xc`, `0x4` not started.
   Frame `-0x7c` vs the reference's split `-4092`/`-3912` (true `-0x1f48`), aligned
   prefix 3/220. Chunks `0x33`/`0x1c` not started. Earlier note: the header-parse prefix is written (`FUN_00472944(server,
@@ -793,8 +811,16 @@ Tracked so they are not mistaken for done:
   statements with anonymous temps (`dest = Pub_DecodeNumber_Map(map_control,
   map_buf.SubString(s, n))`), not named `tN` locals; `file_handle`/`size`/`buf`/
   `count` at function scope outside the `try`; the loop index stays in the `for`
-  head; `map->start_map` is `unsigned short`; `map_buf.Delete(1, 0x2e)` (bcc maps
-  `Delete` as `ecx=len, edx=start`, the reverse of `SubString`); and **`Npc`'s
+  head;   `map->start_map` is `unsigned short`; `map_buf.Delete(1, 0x2e)`. **CORRECTION to an
+  earlier note here: `SubString` and `Delete` use the SAME register convention —
+  `ecx = len`, `edx = start` — they are not reverses.** Two independent
+  investigations established it from the bytes (`data.SubString(1, 2)` emits
+  `mov ecx,2; mov edx,1`, and `Delete(1, len)` emits `ecx=len, edx=1`), and the
+  earlier "the reverse of `SubString`" claim is wrong. The practical consequence:
+  write both in natural `(start, len)` source order, and when diffing, an
+  `ecx`/`edx` pair swapped relative to that is a genuine argument-order bug — 60
+  such `SubString` calls were found reversed in the two Mapcontrol loaders. And
+  **`Npc`'s
   ctor takes its index as `int`, not `short`** — the call site stores the
   argument with a 4-byte `mov dword ptr [slot],eax`, where a `short` truncates.
   (`src/Npc.h`/`src/Npc.cpp` were changed together; the ctor body stays
