@@ -692,7 +692,12 @@ Tracked so they are not mistaken for done:
   moved the frame to `-0x90` (8 B over) and mismatches 224 -> 369, so it was
   reverted to the frame-exact form (bare `std::basic_string<char> range`, `msg`
   declared inside the log `if`, 224 mismatched, prefix 19). The band order
-  therefore cannot be fixed by declaration placement alone in this form. The real log sequence
+  therefore cannot be fixed by declaration placement alone in this form. The
+  follow-up hypothesis ("move the whole log `if` block before the `out`
+  declaration") is **already satisfied** — that is the current source order — yet
+  the band is still reversed, so bcc assigns the block-scoped `msg` after the
+  function-scoped `out` regardless. Remaining named candidates: the per-`Insert`
+  temp count and the `Now()`/formatter stack handling. The real log sequence
   (formatters/joins/append trio) is still approximated.
   Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
