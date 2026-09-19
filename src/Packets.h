@@ -187,17 +187,9 @@ struct EOEncodedObj
     }
 };
 
-struct EOByteRange
-{
-    void *field_0;
-    void *field_4;
-    char *data;
-    void *field_c;
-    void *field_10;
-    void *field_14;
-};
-
-void EO_ByteRange_FromString(EOByteRange *range, const char *str, EOEncodedObj *obj);
+void EO_ByteRange_FromString(std::basic_string<char> *range,
+                             const char *str,
+                             EOEncodedObj *obj);
 int FUN_0044f73c(void *range);
 int FUN_0044f710(void *range);
 int EO_DecodeNumber(void *self, String data);

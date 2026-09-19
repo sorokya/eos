@@ -672,7 +672,14 @@ Tracked so they are not mistaken for done:
   `src/Packets.cpp` now both `unsigned char action, unsigned char family`), giving
   ONE `ucuc` symbol and no byte-exact loss. **The five container COMDATs are
   already present** in the build (`FUN_0044f6c8`/`710`/`73c`/`778`/`814`), so
-  item 2's concern does not apply. The real log sequence
+  item 2's concern does not apply. **`range` re-typed to `std::basic_string<char>`**
+  (the reference has no `vector<char>`; `0x44f6c8/710/73c` are its dtor/begin/end
+  over a 12-byte `__string_ref` header, and `0x5432d8` is the rep-initialiser):
+  `EO_ByteRange_FromString(std::basic_string<char>*, ...)`, with
+  `(char *)range.begin()` / `(char *)range.end()` replacing the `FUN_0044f7xx`
+  calls. Frame stayed exact `-0x88`, but instructions 355 -> 373, mismatches
+  **245 -> 224**, aligned prefix **5 -> 19**; first residual is the log String at
+  `-4` (ref) vs `-0x24` (ours), i.e. the log locals' declaration order. The real log sequence
   (formatters/joins/append trio) is still approximated.
   Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is

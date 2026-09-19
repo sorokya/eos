@@ -67,13 +67,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         if (c > 0x80)
             data[i] += (char)0x80;
     }
-    EOByteRange range;
+    std::basic_string<char> range;
     void *obj;
     EO_ByteRange_FromString(&range, data.c_str(), (EOEncodedObj *)FUN_0044f6ec(&obj));
     data = EO_Decode_Deinterleave(server,
                                   player->client_encryption_multiple,
-                                  (char *)FUN_0044f710(&range),
-                                  (char *)FUN_0044f73c(&range));
+                                  (char *)range.end(),
+                                  (char *)range.begin());
     int action = EO_DecodeByte((void *)server, data[1]);
     int family = EO_DecodeByte((void *)server, data[2]);
     int size = EO_DecodeNumber(server, String(data[3]));
@@ -3176,12 +3176,12 @@ void Client_SendEncoded(Server *server,
     out.Insert(String((char)family), out.Length() + 1);
     out.Insert(data, out.Length() + 1);
     EOEncodedObj obj;
-    EOByteRange range;
+    std::basic_string<char> range;
     EO_ByteRange_FromString(&range, out.c_str(), &obj);
     out = EO_Encode_Interleave(server,
                                player->server_encryption_multiple,
-                               (char *)FUN_0044f710(&range),
-                               (char *)FUN_0044f73c(&range));
+                               (char *)range.end(),
+                               (char *)range.begin());
     for (int i = 1; i <= out.Length(); i++)
     {
         int c = (unsigned char)out[i];
