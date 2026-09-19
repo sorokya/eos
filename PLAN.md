@@ -646,7 +646,14 @@ Tracked so they are not mistaken for done:
   PacketAction(3), s)`, `player->flush_queue = 1`); `Player_SerializePaperdoll`
   declared locally. 391 instructions written, frame `-0x8c` vs the reference's
   split `-0x1f48`, aligned prefix 3/391 (the split frame gates alignment). Cases
-  `0x1c`, `0xb`, `0xc` not started.
+  **Case `0x1c` is written** (`if (family == 0x1c)`: `action != 1`/`!logged_in`/
+  `data.Length() < 3` guards, `String names = " "`, the loop
+  `EO_DecodeNumber(server, data.SubString(i+3,1))` -> `*NpcRange_Lookup(NULL,
+  server, player, id)` with the `Length() > 0` insert, `cnt < 1 -> false`,
+  `EO_EncodeNumber(server, cnt, 2)` inserted at 1, `Client_SendEncoded(
+  PacketFamily(0x1c), PacketAction(5), names)`); `NpcRange_Lookup` declared
+  locally. 591 instructions written, frame `-0xac`, aligned prefix 3/591. Cases
+  `0xb`, `0xc`, `0x4` not started.
   Frame `-0x7c` vs the reference's split `-4092`/`-3912` (true `-0x1f48`), aligned
   prefix 3/220. Chunks `0x33`/`0x1c` not started. Earlier note: the header-parse prefix is written (`FUN_00472944(server,
   data.Length())`; `data.Length() < 4 -> false`; `packet_count++`/`sequence++`

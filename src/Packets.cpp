@@ -43,6 +43,8 @@ Player **Players_Iter_End(Players *players);
 bool Player_HandlePacket(Server *server, Player *player, String data);
 void FUN_00472944(Server *server, int value);
 String Player_SerializePaperdoll(Server *server, Player *player);
+String *
+NpcRange_Lookup(String *out, Server *server, Player *player, unsigned int npc_index);
 int EO_DecodeByte(Server *server, unsigned char value);
 void *FUN_0044f6ec(void *obj);
 
@@ -83,6 +85,34 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         return false;
     (*MAINFORM)->field_370 = family;
     (*MAINFORM)->field_36c = action;
+    if (family == 0x1c)
+    {
+        if (action != 1)
+            return false;
+        if (!player->logged_in)
+            return false;
+        if (data.Length() < 3)
+            return false;
+        int n = data.Length() - 2;
+        String names = " ";
+        int cnt = 0;
+        for (int i = 0; i < n; i++)
+        {
+            int id = EO_DecodeNumber(server, data.SubString(i + 3, 1));
+            String name = *NpcRange_Lookup(NULL, server, player, id);
+            if (name.Length() > 0)
+            {
+                names.Insert(name, names.Length() + 1);
+                cnt++;
+            }
+        }
+        if (cnt < 1)
+            return false;
+        String num = EO_EncodeNumber(server, cnt, 2);
+        names.Insert(num, 1);
+        Client_SendEncoded(server, player, PacketFamily(0x1c), PacketAction(5), names);
+        return true;
+    }
     if (family == 0x33)
     {
         if (action != 1)
