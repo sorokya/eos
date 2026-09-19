@@ -22,7 +22,7 @@ void Newscontrol::LoadNews(Newscontrol *self)
 
 String Newscontrol::Get(Newscontrol *self, int index)
 {
-    String result = "NULL";
+    String result = "";
     if (index < self->ini_file->Count)
         result = self->ini_file->Strings[index];
     return result;

@@ -3016,7 +3016,7 @@ String Refresh_BuildReply(Server *server, Player *player)
     }
     catch (...)
     {
-        data = "";
+        data = "NO";
     }
     return data;
 }
@@ -5305,17 +5305,17 @@ void Login_SendCharacterList(
         newplayer->quest_cache =
             Mysqlcontrols::Db_GetString(server->mysql_controls, "questcache");
         newplayer->quest_blob =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "questblob2") +
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "questblob");
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "questblob") +
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "questblob2");
         newplayer->invblob1 =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob2") +
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob");
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob") +
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob2");
         newplayer->invblob2 =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob4") +
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob3");
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob3") +
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob4");
         newplayer->skillblob =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "skillblob2") +
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "skillblob");
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "skillblob") +
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "skillblob2");
 
         if (i < 3)
         {

@@ -94,7 +94,7 @@ void EventController::Tick(EventController *self)
                                           PacketFamily_Talk,
                                           "Last warning! - leave this map in (" +
                                               IntToStr(map_iter->evac_countdown) +
-                                              ") seconds or be send to jail!");
+                                              ") seconds or be send to jail.");
                 }
                 else
                 {
@@ -104,7 +104,7 @@ void EventController::Tick(EventController *self)
                                           PacketFamily_Talk,
                                           "Warning! - please leave this map in (" +
                                               IntToStr(map_iter->evac_countdown) +
-                                              ") seconds or be send to jail!");
+                                              ") seconds or be send to jail.");
                 }
             }
             else if (map_iter->evac_countdown > 3)

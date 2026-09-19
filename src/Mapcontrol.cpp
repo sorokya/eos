@@ -1260,7 +1260,7 @@ GroundItemInfo FUN_00487ac0(int map_control, int map_id, int index, int player_i
 
 String FUN_0047badc(Mapcontrol *map_control, int map_id, unsigned int x, unsigned int y)
 {
-    String result = "x";
+    String result = "N";
     std::vector<MapChest>::iterator chest_iter;
     std::vector<MapItem>::iterator item_iter;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))

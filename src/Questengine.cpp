@@ -338,7 +338,7 @@ void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
 
         if (self->field_4c > 0)
         {
-            if (token == "}")
+            if (token == ")")
             {
                 self->field_4c = 0;
                 self->field_50 = 0;
