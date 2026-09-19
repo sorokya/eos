@@ -1467,12 +1467,10 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
         map_buf = IntToStr(map_id);
         for (int i = map_buf.Length(); i <= 4; i++)
             map_buf.Insert("0", 0);
-        int count;
         int tile_x;
-        int tile_y;
+        int count;
         int spec;
-        int code;
-        int lock_key;
+        int tile_y;
         map_buf.Insert("./maps/", 0);
         map_buf.Insert(".emf", map_buf.Length() + 1);
         file_handle = FileOpen(map_buf.c_str(), 0);
@@ -1634,8 +1632,8 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
             {
                 spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
                                                         map_buf.SubString(1, 1));
-                code = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                        map_buf.SubString(2, 1));
+                int code = Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                            map_buf.SubString(2, 1));
                 if (code == 0 || code == 0x12)
                     Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 1);
                 if (code > 0 && code <= 0x11)
@@ -1691,8 +1689,8 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
             {
                 spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
                                                         map_buf.SubString(1, 1));
-                lock_key = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                            map_buf.SubString(7, 2));
+                int lock_key = Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                                map_buf.SubString(7, 2));
                 Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 3);
                 Mapcontrol::Mapcontrol_AddWarp(map_control,
                                                map,
@@ -1813,12 +1811,10 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
         map_buf = IntToStr(map_id);
         for (int i = map_buf.Length(); i <= 4; i++)
             map_buf.Insert("0", 0);
-        int count;
         int tile_x;
-        int tile_y;
+        int count;
         int spec;
-        int code;
-        int lock_key;
+        int tile_y;
         map_buf.Insert("./maps/", 0);
         map_buf.Insert(".emf", map_buf.Length() + 1);
         file_handle = FileOpen(map_buf.c_str(), 0);
@@ -1976,8 +1972,8 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             {
                 spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
                                                         map_buf.SubString(1, 1));
-                code = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                        map_buf.SubString(2, 1));
+                int code = Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                            map_buf.SubString(2, 1));
                 if (code == 0 || code == 0x12)
                     Mapcontrol::Mapcontrol_SetTileBits(
                         map_control, &map, spec, tile_x, 1);
@@ -2038,8 +2034,8 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             {
                 spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
                                                         map_buf.SubString(1, 1));
-                lock_key = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                            map_buf.SubString(7, 2));
+                int lock_key = Mapcontrol::Pub_DecodeNumber_Map(map_control,
+                                                                map_buf.SubString(7, 2));
                 Mapcontrol::Mapcontrol_SetTileBits(map_control, &map, spec, tile_x, 3);
                 Mapcontrol::Mapcontrol_AddWarp(map_control,
                                                &map,
