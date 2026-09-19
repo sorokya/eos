@@ -4475,7 +4475,8 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             player->query_id,
             "",
             "SELECT * FROM endl_characters WHERE ident_account = " +
-                IntToStr(player->field_0xc) + " ORDER BY level DESC LIMIT 3");
+                IntToStr((unsigned int)player->field_0xc) +
+                " ORDER BY level DESC LIMIT 3");
         return;
     }
     if (query_result->query_id == 0x41)
@@ -4512,7 +4513,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             "name, signup, gender, hairmodal, haircolor, skincolor, nav_map, nav_x,"
             " nav_y, hp_max, hp_now, mp_max, mp_now, sp_max, clientusge, money_bank ) "
             "VALUES (";
-        sql = sql + IntToStr(player->field_0xc) + ",";
+        sql = sql + IntToStr((unsigned int)player->field_0xc) + ",";
         sql = sql + "'0',1,'";
         sql = sql + name + "',";
         sql = sql + "'" + String(now) + "',";
@@ -4533,7 +4534,8 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             player->query_id,
             "",
             "SELECT * FROM endl_characters WHERE ident_account = " +
-                IntToStr(player->field_0xc) + " ORDER BY level DESC LIMIT 3");
+                IntToStr((unsigned int)player->field_0xc) +
+                " ORDER BY level DESC LIMIT 3");
         server->mysql_controls->file_cache->characters_count++;
         return;
     }
@@ -4655,12 +4657,12 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                            PacketAction_Reply,
                            PacketFamily_Account,
                            EO_EncodeNumber(server, 6, 2) + "OK");
-        Mysqlcontrols::Mysql_ExecDirect(
-            server->mysql_controls,
-            player->field_0xc,
-            "UPDATE endl_accounts SET password = ENCODE('" +
-                FUN_004708d4(server, new_password) +
-                "','eoeokeyendl') WHERE ident = " + IntToStr(player->field_0xc));
+        Mysqlcontrols::Mysql_ExecDirect(server->mysql_controls,
+                                        player->field_0xc,
+                                        "UPDATE endl_accounts SET password = ENCODE('" +
+                                            FUN_004708d4(server, new_password) +
+                                            "','eoeokeyendl') WHERE ident = " +
+                                            IntToStr((unsigned int)player->field_0xc));
         return;
     }
     if (query_result->query_id == 0x47)
@@ -5030,14 +5032,14 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             Mysqlcontrols::Db_SanitizeString(server->mysql_controls, description);
         String sql = "INSERT INTO endl_guilds (tag, name, description, money, signup, "
                      "rank1, rank2 ) VALUES (";
-        sql = sql + "'" + AnsiUpperCase(tag) + "'";
+        sql = sql + "'" + AnsiUpperCase(tag) + "',";
         sql = sql + "'" + name + "',";
         sql = sql + "'" + description + "',";
         sql = sql + "10000,";
         sql = sql + "'" + String(now) + "',";
         sql = sql + "'Leader',";
         sql = sql + "'Recruiter')";
-        Mysqlcontrols::Mysql_ExecDirect(server->mysql_controls, 0, sql);
+        Mysqlcontrols::Mysql_ExecDirect_FromCallback(server->mysql_controls, 0, sql);
         if (tag.Length() == 2)
             tag = tag + " ";
         String msg = EO_EncodeNumber(server, player->player_id, 2);
@@ -5080,7 +5082,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         int money =
             (unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls, "money") -
             0x3e8;
-        Mysqlcontrols::Mysql_ExecDirect(
+        Mysqlcontrols::Mysql_ExecDirect_FromCallback(
             server->mysql_controls,
             0,
             "UPDATE endl_guilds SET money = " + IntToStr(money) + " WHERE tag = '" +

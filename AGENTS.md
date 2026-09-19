@@ -281,7 +281,27 @@ documented build, not a manual fix-up.
 - `scripts/compare_asm.py` — diff one function from a bcc32 `-S` listing against a
   reference address range; registers, stack offsets and small constants must match,
   addresses and branch targets are canonicalized. Use this to drive a function to
-  byte-match before moving on. `--frame-wild` is a **progress** mode for a
+  byte-match before moving on. **The default comparison is address-canonicalized
+  and therefore cannot see a wrong literal or a wrong direct callee**: a reference
+  to `"',"` and one to `"'"` both render as `mov edx,ADDR`, and a call to
+  `Mysql_ExecDirect` and one to `Mysql_ExecDirect_FromCallback` both render as
+  `call ADDR`. `--strict-operands` adds the value behind each canonicalized
+  address: string/data-literal bytes are compared (a data address read from the
+  reference vs our `offset <label>+N` blob), a direct `call` target is compared by
+  callee identity (the reference row's mangled symbol from
+  `analysis/target/functions.tsv`, with the project's renamed COMDAT accessors such
+  as `Players_Iter_Begin` accepted via `ref_name`, and unidentified `FUN_` rows
+  left unclassified rather than guessed; library targets are resolved by the
+  consistency of a symbol's own call sites and labelled with the Ghidra name), and
+  non-address immediates are compared numerically. A relocated operand
+  (`[0x…]` slot, an EH/vtable pointer, an address in `.text`) is treated as
+  layout-dependent and never flagged, and an operand it cannot classify is
+  counted, not guessed. Default output and exit status are unchanged when the
+  flag is absent; with it, any operand difference makes the exit non-zero. This
+  is how the `questblob`/`questblob2` literal swaps, the
+  `GetMaxClones`/`GetMaxConnections` call and the vector-element-type call
+  differences were found in functions the sheet calls `byte-exact` (meaning
+  *canonicalized*-exact). `--frame-wild` is a **progress** mode for a
   partially written function: bcc sizes the frame only once every local exists, so
   until then the prologue `add esp,-N` differs and the unflagged comparison shows
   thousands of mismatches even when the written body matches. The flag wildcards

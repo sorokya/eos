@@ -115,6 +115,42 @@ make clean     # remove build/
   mismatches per line; a function absent from the listing is reported and the
   tool exits 2 (the `--lines` parser tolerates both `name proc` and
   `name$q... proc` label forms).
+
+  **The default comparison is address-canonicalized and therefore cannot see a
+  wrong literal or a wrong direct callee.** A reference to `"',"` and one to
+  `"'"` both render as `mov edx,ADDR`; a call to `Mysql_ExecDirect` and one to
+  `Mysql_ExecDirect_FromCallback` both render as `call ADDR`. A function the
+  sheet calls `byte-exact` is only *canonicalized*-exact, which is exactly the
+  distinction the final MD5 will not forgive. `--strict-operands` re-reads the
+  raw operands of the instruction pairs the canonical pass already accepted and
+  compares the value behind each address:
+  - a direct `call <addr>` target is compared by **callee identity**, never by
+    address. An application function's identity is its Borland-mangled symbol
+    from `analysis/target/functions.tsv` (matched exactly, or via the recovered
+    `ref_name` for a renamed COMDAT accessor such as `Players_Iter_Begin`); a
+    reference row still named `FUN_…` is left unclassified rather than guessed.
+    A library/RTL target cannot be named from the stripped reference, so its
+    identity is established by **consistency of the symbol's own call sites**
+    (one `@@…` symbol can denote only one function): a symbol that aligns with
+    two distinct reference bodies is reported, the majority alignment taken as
+    its identity and the minority sites as the defects. Each is labelled with
+    the Ghidra name of the reference address.
+  - an immediate address that lands in a data section (`.data`/`.rdata`/`.bss`/
+    `.tls`) is a string/data literal: the bytes at that address are compared.
+  - an immediate address in `.text` that is not a call (an EH table, RTTI or
+    vtable pointer) and an absolute memory operand (`[0x…]`) are relocated slots
+    and are treated as layout-dependent (never flagged).
+  - any other immediate is compared numerically (the canonical pass wildcards
+    every value ≥ `0x10000`).
+  An operand the tool cannot classify is **counted, not guessed**: it produces
+  no mismatch, and the summary prints the calls/literals/immediates compared and
+  the unclassified-operand count. Default output and exit status are unchanged
+  when the flag is absent; with it, any operand difference makes the exit
+  non-zero. This is how the `questblob`/`questblob2` literal swaps, the
+  `GetMaxClones`/`GetMaxConnections` call, the `IntToStr`/`AnsiString_AppendInt`
+  sites and the vector-element-type call differences were found inside functions
+  the sheet calls `byte-exact`.
+
   `--frame-wild` is a **progress instrument** for a partially written function:
   bcc only sizes the frame correctly once every local exists, so until then the
   prologue's `add esp,-N` differs and every `[ebp-N]` local shifts, and the

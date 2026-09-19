@@ -459,25 +459,26 @@ def print_stack_map(ref, our) -> None:
         print(f"  deltas present: {sorted(deltas.items())} -> slot ordering differs")
 
 
-def parse_our(path: str, mangled_prefix: str):
+SKIP_DIRECTIVES = {"dw", "dd", "db", "dt", "public", "extrn", "segment", "ends",
+                   "proc", "endp", "end", "align", "assume", "org", "equ", "_data",
+                   "_text", "_bss", "_tls", "_rdata"}
+
+
+def _parse_our(path: str, mangled_prefix: str):
+    """Like parse_our but also returns the raw (pre-canon) instruction text."""
     txt = open(path, encoding="latin1").read()
     esc = re.escape(mangled_prefix)
     m = re.search(r"(?m)^" + esc + r"\s+proc[^\n]*\n(.*?)endp", txt, re.S)
     if not m:
         m = re.search(r"(?m)^" + esc + r"\$q[^\n]*\n(.*?)endp", txt, re.S)
     if not m:
-        return None, [], None
-    skip = {"dw", "dd", "db", "dt", "public", "extrn", "segment", "ends", "proc",
-            "endp", "end", "align", "assume", "org", "equ", "_data", "_text",
-            "_bss", "_tls", "_rdata"}
-    out = []
-    calls = []
-    mk = []
+        return None, [], None, None
+    out, calls, mk, raw = [], [], [], []
     for line in m.group(1).split("\n"):
         s = line.strip()
         if not s or s[0] in ";?@":
             continue
-        if s.split()[0].lower() in skip:
+        if s.split()[0].lower() in SKIP_DIRECTIVES:
             continue
         cm = re.match(r"(?i)^call\s+(\S+)", s)
         if cm:
@@ -486,6 +487,12 @@ def parse_our(path: str, mangled_prefix: str):
         if mm:
             mk.append(mm)
         out.append(canon(s))
+        raw.append(s)
+    return out, calls, mk, raw
+
+
+def parse_our(path: str, mangled_prefix: str):
+    out, calls, mk, _raw = _parse_our(path, mangled_prefix)
     return out, calls, mk
 
 
@@ -505,21 +512,439 @@ def call_warnings(calls):
     return warn
 
 
+# ---------------------------------------------------------------------------
+# Strict operand comparison (--strict-operands)
+#
+# The default comparison canonicalizes every absolute address to `ADDR`, so a
+# relocated operand matches by construction.  That is exactly what makes it
+# blind to a wrong string literal or a wrong direct call target: the operand
+# *bytes* differ while the canonical text is `ADDR`.  Strict mode re-reads the
+# raw operands of the instructions the canonical pass already accepted and
+# compares what the address means:
+#
+#   * a direct `call` target is compared by callee IDENTITY, never by address.
+#     An application function's identity is its Borland-mangled symbol from
+#     analysis/target/functions.tsv, compared to the symbol our listing emits.
+#     A library/RTL target cannot be named from the stripped reference, so its
+#     identity is established by *consistency*: a symbol our side emits for
+#     exactly one function must align with one reference body.  A symbol that
+#     aligns with two distinct reference addresses is reported, with the
+#     majority alignment taken as the symbol's identity and the minority sites
+#     (and the reference address each should have called) as defects.
+#   * an immediate address that lands in a data section (.data/.rdata/.bss/.tls)
+#     is a string/data literal: the bytes at that address are compared to our
+#     `offset <label>+N` blob value.
+#   * an immediate address in .text that is not a call (an EH table, RTTI or
+#     vtable pointer) and an absolute memory operand (`[0x...]`) are relocated
+#     slots and are treated as layout-dependent (not compared).
+#   * a non-address immediate is compared numerically.  This adds value over the
+#     canonical pass, which wildcards every value >= 0x10000.
+#
+# Anything that cannot be classified is counted as unclassified and produces no
+# mismatch, so the mode never invents a difference it cannot justify.
+
+DATA_SECTIONS = {".data", ".rdata", ".bss", ".tls"}
+BRANCH_RE = re.compile(r"^(j\w+|loop|loope|loopne)$")
+
+
+def _s32(v: int) -> int:
+    """The signed 32-bit value a constant denotes on this target."""
+    v &= 0xFFFFFFFF
+    return v - 0x100000000 if v >= 0x80000000 else v
+
+
+def _split_operands(text: str):
+    out, depth, cur = [], 0, ""
+    for ch in text:
+        if ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append(cur.strip())
+            cur = ""
+        else:
+            cur += ch
+    if cur.strip():
+        out.append(cur.strip())
+    return out
+
+
+def _strip_size(text: str) -> str:
+    return re.sub(r"^(?:dword|word|byte|qword)\s+ptr\s+", "", text.strip().lower())
+
+
+def ref_addr_operands(ins: str):
+    """Address-bearing operands of a reference instruction, in operand order."""
+    parts = ins.split(None, 1)
+    if len(parts) < 2 or parts[0].lower().startswith("rep"):
+        return []
+    mnem, rest = parts[0].lower(), re.sub(r"<[^>]*>", "", parts[1])
+    out = []
+    for op in _split_operands(rest):
+        low = _strip_size(op)
+        if mnem == "call" and re.fullmatch(r"0x[0-9a-f]+|\d+", low):
+            out.append(("call", int(low, 0)))
+            continue
+        if mnem in ("jmp",) or BRANCH_RE.match(mnem):
+            continue
+        m = re.fullmatch(r"\[(0x[0-9a-f]+|\d+)\]", low)
+        if m:
+            out.append(("mem", int(m.group(1), 0)))
+            continue
+        m = re.fullmatch(r"-?(?:0x[0-9a-f]+|\d+)", low)
+        if m:
+            out.append(("imm", int(low, 0)))
+    return out
+
+
+def our_addr_operands(ins: str):
+    """Address-bearing operands of our bcc32 instruction, in operand order."""
+    parts = ins.split(None, 1)
+    if len(parts) < 2 or parts[0].lower().startswith("rep"):
+        return []
+    mnem, rest = parts[0].lower(), parts[1]
+    if BRANCH_RE.match(mnem) or mnem in ("jmp",):
+        return []
+    out = []
+    for op in _split_operands(rest):
+        low = _strip_size(op)
+        if mnem == "call" and not low.startswith("["):
+            out.append(("call", op.strip()))
+            continue
+        m = re.search(r"offset\s+([A-Za-z_@][A-Za-z0-9_@]*)(?:\+(\d+))?", op, re.I)
+        if m:
+            out.append(("sym", (m.group(1), int(m.group(2) or 0))))
+            continue
+        m = re.fullmatch(r"\[([A-Za-z_@][A-Za-z0-9_@]*)\]", low)
+        if m:
+            out.append(("memsym", m.group(1)))
+            continue
+        if not low.startswith("[") and re.fullmatch(r"-?(?:0x[0-9a-f]+|\d+)", low):
+            out.append(("imm", int(low, 0)))
+    return out
+
+
+def parse_data_blobs(path: str):
+    """Map each `label byte` block in a bcc32 -S listing to its raw bytes.
+
+    The listing can emit the same label more than once (the browser-symbol
+    segment repeats it); the longest block for a name wins, and the `; name+N:`
+    comments pin each `db` run to its offset.
+    """
+    def block_bytes(lines, name):
+        buf = bytearray()
+        pos = 0
+        for s in lines:
+            cm = re.match(rf";\s*{re.escape(name)}\+(\d+):", s)
+            if cm:
+                pos = int(cm.group(1))
+                continue
+            if re.fullmatch(rf";\s*{re.escape(name)}:\s*", s):
+                pos = 0
+                continue
+            dm = re.match(r"db\s+(.*)$", s)
+            if not dm:
+                continue
+            body, i = dm.group(1), 0
+            while i < len(body):
+                c = body[i]
+                if c == '"':
+                    j = body.find('"', i + 1)
+                    if j < 0:
+                        break
+                    chunk = body[i + 1:j].encode("latin1")
+                    while len(buf) < pos:
+                        buf.append(0)
+                    buf[pos:pos + len(chunk)] = chunk
+                    pos += len(chunk)
+                    i = j + 1
+                elif c in ", \t":
+                    i += 1
+                else:
+                    m = re.match(r"\d+", body[i:])
+                    if m:
+                        while len(buf) < pos:
+                            buf.append(0)
+                        buf.append(int(m.group(0)) & 0xFF)
+                        pos += 1
+                        i += len(m.group(0))
+                    else:
+                        i += 1
+        return bytes(buf)
+
+    blobs = {}
+    cur, lines = None, []
+    for raw in open(path, encoding="latin1"):
+        s = raw.strip()
+        if cur is None:
+            m = re.match(r"^(\S+)\s+label\s+(byte|dword|word)$", s)
+            if m:
+                cur, lines = m.group(1), []
+            continue
+        if re.search(r"\bends$", s):
+            data = block_bytes(lines, cur)
+            if len(data) >= len(blobs.get(cur, b"")):
+                blobs[cur] = data
+            cur, lines = None, []
+            continue
+        lines.append(s)
+    return blobs
+
+
+class StrictContext:
+    """Reference PE + symbol tables + our data blobs for one strict run."""
+
+    def __init__(self, ref_bin, functions_tsv, ghidra_tsv, asm_path,
+                 data_blobs, verbose=False):
+        import bisect
+        import os
+        import sys as _sys
+        _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from pe import PE
+        self._bisect = bisect
+        self.verbose = verbose
+        self.pe = PE.from_file(ref_bin)
+        self.base = self.pe.header()["image_base"]
+        self.app = []
+        try:
+            with open(functions_tsv, encoding="utf-8") as fh:
+                next(fh, None)
+                for line in fh:
+                    p = line.rstrip("\n").split("\t")
+                    if len(p) >= 9 and p[0] != "unit":
+                        self.app.append((int(p[2], 16), int(p[3], 16), p[6],
+                                         p[5], p[7]))
+            self.app.sort()
+        except OSError:
+            pass
+        self.app_starts = [a[0] for a in self.app]
+        self.ghidra = []
+        try:
+            with open(ghidra_tsv, encoding="utf-8") as fh:
+                next(fh, None)
+                for line in fh:
+                    p = line.rstrip("\n").split("\t")
+                    if len(p) >= 3:
+                        try:
+                            self.ghidra.append((int(p[0], 16), p[2]))
+                        except ValueError:
+                            pass
+            self.ghidra.sort()
+        except OSError:
+            pass
+        self.ghidra_starts = [g[0] for g in self.ghidra]
+        self.blobs = data_blobs
+
+    def section_of(self, va):
+        rva = va - self.base
+        for s in self.pe.sections:
+            if s.virtual_address <= rva < s.virtual_address + s.extent:
+                return s.name.rstrip("\x00").strip().lower()
+        return None
+
+    def read_va(self, va, n=256):
+        rva = va - self.base
+        for s in self.pe.sections:
+            if s.virtual_address <= rva < s.virtual_address + s.raw_size:
+                off = s.raw_pointer + (rva - s.virtual_address)
+                return self.pe.data[off:off + n]
+        return None
+
+    def app_at(self, va):
+        i = self._bisect.bisect_right(self.app_starts, va) - 1
+        if i >= 0:
+            s, e, k, rn, sn = self.app[i]
+            if s <= va < e and k in ("app", "comdat", "stub"):
+                return k, rn, sn
+        return None
+
+    def ghidra_at(self, va):
+        i = self._bisect.bisect_right(self.ghidra_starts, va) - 1
+        if i >= 0:
+            return self.ghidra[i][1]
+        return None
+
+    def ref_identity(self, va):
+        a = self.app_at(va)
+        if a:
+            _k, rn, sn = a
+            # The project sometimes renames a compiler-emitted COMDAT (for
+            # example the std::vector accessors): the authoritative mangled
+            # symbol is source_name, but our source calls the function under the
+            # recovered ref_name.  Carry both so matching can accept either.
+            # A name that is still a placeholder (source_name absent or itself a
+            # FUN_ symbol) cannot be verified from the stripped reference, so it
+            # is reported as `unknown` and never invents a mismatch.
+            title = sn or rn
+            if not sn or sn.startswith("@@FUN_") or sn.startswith("@@sub_"):
+                return "unknown", title, va, rn
+            return "app", title, va, rn
+        return "lib", (self.ghidra_at(va) or "sub_%08x" % va), va, ""
+
+    @staticmethod
+    def symbol_matches(ident, sym):
+        kind, key, _va, ref_name = ident
+        if kind == "lib":
+            return None
+        if kind == "unknown":
+            # A placeholder cannot prove a mismatch; only accept an explicit
+            # @@<ref_name> alias, otherwise leave the site unclassified.
+            if ref_name and re.match(r"^@@" + re.escape(ref_name) + r"(?:\$|$)",
+                                     sym):
+                return True
+            return None
+        if key and sym == key:
+            return True
+        # Project rename of a COMDAT: our listing emits @@<ref_name>$<args>.
+        if ref_name and re.match(r"^@@" + re.escape(ref_name) + r"(?:\$|$)", sym):
+            return True
+        return False
+
+    def our_literal(self, label, off):
+        blob = self.blobs.get(label)
+        if blob is None or off >= len(blob):
+            return None
+        b = blob[off:off + 256]
+        z = b.find(b"\x00")
+        return b[:z] if z >= 0 else b
+
+    def ref_immediate(self, va):
+        """('str', bytes) / ('coderef',) / ('num', va) for an immediate value."""
+        sec = self.section_of(va)
+        if sec in DATA_SECTIONS:
+            b = self.read_va(va)
+            if b is None:
+                return None
+            z = b.find(b"\x00")
+            return "str", (b[:z] if z >= 0 else b)
+        if sec == ".text":
+            return "coderef", b""
+        return "num", va
+
+
+def strict_compare(ctx, ref_raw, our_raw, ref_canon, our_canon):
+    """Return (differences, counts) for canonically-aligned raw operands.
+
+    differences: list of (address, kind, ref_value, our_value, note)
+    counts: dict with calls_checked / literals_checked / unclassified.
+    """
+    diffs = []
+    counts = {"calls": 0, "literals": 0, "immediates": 0, "unclassified": 0}
+    lib_sites = {}
+    n = min(len(ref_raw), len(our_raw), len(ref_canon), len(our_canon))
+    for i in range(n):
+        if ref_canon[i] != our_canon[i]:
+            continue
+        rdesc = ref_addr_operands(ref_raw[i][1])
+        odesc = our_addr_operands(our_raw[i])
+        if len(rdesc) != len(odesc):
+            if rdesc or odesc:
+                counts["unclassified"] += 1
+            continue
+        addr = ref_raw[i][0]
+        for (rk, rv), (ok, ov) in zip(rdesc, odesc):
+            if rk == "call":
+                if ok != "call":
+                    counts["unclassified"] += 1
+                    continue
+                counts["calls"] += 1
+                ident = ctx.ref_identity(rv)
+                m = StrictContext.symbol_matches(ident, ov)
+                if m is True:
+                    continue
+                if m is False:
+                    diffs.append((addr, "call", f"{rv:#x} {ident[1]}", ov, ""))
+                else:
+                    lib_sites.setdefault(ov, []).append((addr, rv, ident[1]))
+                continue
+            if rk == "mem":
+                continue
+            if rk != "imm":
+                counts["unclassified"] += 1
+                continue
+            rlit = ctx.ref_immediate(rv)
+            if rlit is None:
+                counts["unclassified"] += 1
+                continue
+            if rlit[0] == "str":
+                if ok != "sym":
+                    counts["unclassified"] += 1
+                    continue
+                ob = ctx.our_literal(ov[0], ov[1])
+                if ob is None:
+                    counts["unclassified"] += 1
+                    continue
+                counts["literals"] += 1
+                if rlit[1] != ob:
+                    diffs.append((addr, "literal", rlit[1], ob,
+                                  f"ref data @{rv:#x}, our {ov[0]}+{ov[1]}"))
+            elif rlit[0] == "num":
+                if ok == "imm" and _s32(rv) != _s32(ov):
+                    counts["immediates"] += 1
+                    diffs.append((addr, "immediate", _s32(rv), _s32(ov), ""))
+                elif ok != "imm":
+                    counts["unclassified"] += 1
+            else:  # coderef: relocated slot
+                continue
+
+    # Library callee identity by consistency: one our-symbol can denote only one
+    # function, so if it aligns with two distinct reference addresses the
+    # minority address is a wrong call.
+    for sym, sites in lib_sites.items():
+        regions = {}
+        for a, va, gn in sites:
+            regions.setdefault(va, []).append((a, gn))
+        if len(regions) > 1:
+            dom = max(regions, key=lambda v: len(regions[v]))
+            dom_gn = regions[dom][0][1]
+            for va, lst in regions.items():
+                if va == dom:
+                    continue
+                for a, gn in lst:
+                    diffs.append((a, "call(lib)",
+                                  f"{va:#x} {gn}", sym,
+                                  f"this symbol also targets {dom:#x} {dom_gn} "
+                                  f"at {len(regions[dom])} site(s)"))
+    # The reverse: one reference function reached through two of our symbols.
+    by_va = {}
+    for sym, sites in lib_sites.items():
+        for a, va, gn in sites:
+            by_va.setdefault(va, {}).setdefault(sym, []).append((a, gn))
+    for va, syms in by_va.items():
+        if len(syms) > 1:
+            dom = max(syms, key=lambda s: len(syms[s]))
+            for sym, lst in syms.items():
+                if sym == dom:
+                    continue
+                for a, gn in lst:
+                    diffs.append((a, "call(lib)", f"{va:#x} {gn}", sym,
+                                  f"the same reference callee is reached as {dom} "
+                                  f"at {len(syms[dom])} site(s)"))
+    return diffs, counts
+
+
 def parse_ref(ref_bin: str, start: int, end: int):
+    out, mk, _raw = _parse_ref(ref_bin, start, end)
+    return out, mk
+
+
+def _parse_ref(ref_bin: str, start: int, end: int):
+    """Like parse_ref but also returns (address, raw instruction) pairs."""
     txt = subprocess.check_output(
         ["objdump", "-d", "-M", "intel", f"--start-address={start}", f"--stop-address={end}", ref_bin],
         stderr=subprocess.DEVNULL).decode("latin1")
-    out = []
-    mk = []
+    out, mk, raw = [], [], []
     for line in txt.split("\n"):
-        m = re.match(r"^\s*[0-9a-f]+:\s+(?:[0-9a-f]{2}\s+)+(\S+)\s*(.*)$", line)
+        m = re.match(r"^\s*([0-9a-f]+):\s+(?:[0-9a-f]{2}\s+)+(\S+)\s*(.*)$", line)
         if m:
-            raw = f"{m.group(1)} {m.group(2)}"
-            mm = marker_of(raw)
+            ins = f"{m.group(2)} {m.group(3)}".strip()
+            mm = marker_of(ins)
             if mm:
                 mk.append(mm)
-            out.append(canon(raw))
-    return out, mk
+            out.append(canon(ins))
+            raw.append((int(m.group(1), 16), ins))
+    return out, mk, raw
 
 
 def main() -> int:
@@ -560,18 +985,47 @@ def main() -> int:
     ap.add_argument("--lines", action="store_true",
                     help="annotate the diff with our source lines and summarise "
                          "mismatches per source line")
+    ap.add_argument("--strict-operands", action="store_true",
+                    help="STRICT comparison: additionally compare the VALUE behind "
+                         "each canonicalized address operand - string/data literal "
+                         "bytes, direct call targets (by callee identity, never by "
+                         "address) and non-address immediates. The default mode "
+                         "canonicalizes addresses and therefore cannot see a wrong "
+                         "literal or a wrong callee; this mode can. Default output "
+                         "and exit status are unchanged when the flag is absent.")
+    ap.add_argument("--functions-tsv", default="analysis/target/functions.tsv",
+                    help="reference function inventory (mangled names) for strict "
+                         "call-target identity")
+    ap.add_argument("--ghidra-tsv", default="analysis/ghidra/functions.tsv",
+                    help="read-only Ghidra inventory, used to label strict library "
+                         "call targets")
     args = ap.parse_args()
 
     our_lines = None
     our_mk_lines = None
+    our_raw = None
+    ref_raw = None
     if args.lines:
         our, calls, (our_mk, our_lines, our_mk_lines) = parse_our_lines(args.asm, args.mangled_prefix)
     else:
-        our, calls, our_mk = parse_our(args.asm, args.mangled_prefix)
+        our, calls, our_mk, our_raw = _parse_our(args.asm, args.mangled_prefix)
     if our is None:
         print(f"function {args.mangled_prefix} not found in {args.asm}")
         return 2
-    ref, ref_mk = parse_ref(args.ref_bin, args.ref_start, args.ref_end)
+    ref, ref_mk, ref_raw = _parse_ref(args.ref_bin, args.ref_start, args.ref_end)
+
+    strict_diffs = []
+    strict_counts = None
+    if args.strict_operands:
+        if our_raw is None:
+            # --lines rebuilds our list through the line-aware parser, which does
+            # not retain raw text; fall back to a second parse for the strict pass.
+            our_raw = _parse_our(args.asm, args.mangled_prefix)[3]
+        blobs = parse_data_blobs(args.asm)
+        ctx = StrictContext(args.ref_bin, args.functions_tsv, args.ghidra_tsv,
+                            args.asm, blobs)
+        strict_diffs, strict_counts = strict_compare(
+            ctx, ref_raw, our_raw, ref, our)
     while our and our[-1] == "nop":
         our.pop()
     while ref and ref[-1] == "nop":
@@ -688,7 +1142,25 @@ def main() -> int:
         print_line_summary(ref, our, our_lines)
     print_markers(ref_mk, our_mk, force=args.markers or mismatches > 0,
                   our_lines=our_mk_lines)
-    return 0 if mismatches == 0 and len(ref) == len(our) else 1
+    if args.strict_operands:
+        print("\nstrict operands (--strict-operands): value behind each "
+              "canonicalized address")
+        print(f"  calls compared: {strict_counts['calls']}   "
+              f"literals compared: {strict_counts['literals']}   "
+              f"immediates compared: {strict_counts['immediates']}   "
+              f"unclassified operands: {strict_counts['unclassified']}")
+        if strict_diffs:
+            print(f"  {len(strict_diffs)} operand difference(s):")
+            for a, kind, rv, ov, note in strict_diffs:
+                rs = rv.decode("latin1") if isinstance(rv, bytes) else rv
+                os_ = ov.decode("latin1") if isinstance(ov, bytes) else ov
+                extra = f"   ({note})" if note else ""
+                print(f"    {a:#08x}: {kind} ref={rs!r} our={os_!r}{extra}")
+        else:
+            print("  no operand differences")
+    strict_bad = bool(args.strict_operands and strict_diffs)
+    return 0 if (mismatches == 0 and len(ref) == len(our)
+                 and not strict_bad) else 1
 
 
 if __name__ == "__main__":
