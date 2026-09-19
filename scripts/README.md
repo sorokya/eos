@@ -184,6 +184,21 @@ make clean     # remove build/
   after `test` is left undetermined. Operands are rendered through the typing
   and field-resolution machinery.
 
+  **Operand identity.** Parameters and locals are rendered distinctly: a
+  positive `[ebp+N]` argument slot is named by the **declared parameter name**
+  when the signature is known (`--sig` or the `// STUB(…) - ref:` comments),
+  else `arg_0xN`; a negative `[ebp-N]` local is always `local_0xN`. Two
+  different storage locations can therefore never render to the same
+  identifier (`selfcheck()` asserts this). A field name is attached only to a
+  **typed** base register (`base->field_name`, from the per-class tables built
+  from the `// +0xNN` comments); an untyped base renders only the proven byte
+  offset (`base->field_0xNN`), never a class name. An argument list is emitted
+  only when its **arity is known and the pushes agree** (from the stub
+  signatures, header prototypes, and the `__fastcall`/`__thiscall` register
+  conventions); a convention or arity mismatch, or a duplicate register
+  consumed by a later argument, yields
+  `// TODO(addr): argument count not determined` with no argument list.
+
   **The tool emits a condition only when it can prove it.** If the flag-setting
   instruction is not the immediately preceding one, is an `fcom`/`fnstsw`/`sahf`
   x87 predicate, the `jcc` relation is undetermined, or either operand cannot be
@@ -196,9 +211,15 @@ make clean     # remove build/
   function with `make unit`/`make verify`) before it is committed.
   `--selftest` runs it over three already-converged ranges
   (`EO_Encode_Interleave`, `Walk_BuildReply`, `Player_SerializePaperdoll`),
-  prints the classification rate, the idiom breakdown, and every emitted
-  condition with its resolved/unresolved status, and aborts if any conditional
-  carries an unknown relation or operand. All three classify at 100% with ~32%
-  resolved to named idioms; every condition in `NpcControl_Tick` and
-  `Refresh_BuildReply` was checked against the reference (46 + 60) with zero
-  mismatches.
+  prints the classification rate, the idiom breakdown, the arity-TODO and
+  slot-collision counters, and every emitted condition; it aborts (exit 3) if
+  any conditional carries an unknown relation/operand or two storage locations
+  collide. All three classify at 100%. Operand identity was audited against the
+  converged `src/` on six ranges (`EO_Encode_Interleave`, `Walk_BuildReply`,
+  `Player_SerializePaperdoll`, `NpcControl_Tick`, `Refresh_BuildReply`,
+  `Players_Add`) with zero slot collisions and zero unsafe conditions.
+
+  **Safety properties, stated explicitly:** a condition is emitted only when it
+  is provable; a storage location is rendered distinctly from every other; a
+  field access is emitted only for a typed base; an argument list is emitted
+  only when its arity is known.

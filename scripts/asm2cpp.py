@@ -149,6 +149,47 @@ SIG_DECL_RE = re.compile(r"^\s*//\s*([A-Za-z_]\w*)\s*\(([^)]*)\)\s*$")
 SIG_STUB_RE = re.compile(r"^\s*//\s*STUB\(0x([0-9a-fA-F]+)[^)]*\)\s*(\w+)\s*-\s*ref:\s*(.*)$")
 
 
+def split_commas(text):
+    out = []
+    depth = 0
+    cur = ""
+    for ch in text:
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    out.append(cur)
+    return out
+
+
+def parse_params(text):
+    """'Server *server, int *query_result' -> [('Server *','server'), ('int *','query_result')]."""
+    text = (text or "").strip()
+    if not text or text == "void":
+        return []
+    out = []
+    for part in split_commas(text):
+        part = part.strip()
+        m = re.match(r"^(.*?)([A-Za-z_]\w*)\s*(\[[^\]]*\])?$", part)
+        if not m:
+            out.append((part, None))
+            continue
+        typ = m.group(1).strip()
+        nam = m.group(2)
+        if m.group(3):
+            typ += m.group(3)
+        if not typ:
+            out.append((nam, None))
+        else:
+            out.append((typ, nam))
+    return out
+
+
 def parse_param_types(text):
     """'Server *server, int *query_result' -> ['Server *', 'int *']."""
     text = text.strip()
@@ -197,11 +238,11 @@ def load_stub_sigs(src_dir):
                 body = m.group(3).strip()
                 pm = re.search(r"\(([^)]*)\)", body)
                 if pm:
-                    by_addr[int(m.group(1), 16)] = parse_param_types(pm.group(1))
+                    by_addr[int(m.group(1), 16)] = parse_params(pm.group(1))
                 continue
             m = SIG_DECL_RE.match(line)
             if m:
-                by_name.setdefault(m.group(1), parse_param_types(m.group(2)))
+                by_name.setdefault(m.group(1), parse_params(m.group(2)))
     return by_addr, by_name
 
 
@@ -374,9 +415,12 @@ def load_idents(path):
 # ---------------------------------------------------------------------------
 
 class Draft:
-    def __init__(self, fields, sigs, idents, start, params=None, class_fields=None):
+    def __init__(self, fields, sigs, idents, start, params=None, class_fields=None,
+                 param_names=None, arity=None):
         self.class_fields = class_fields or {}
         self.params = params or []
+        self.param_names = param_names or []
+        self.arity = arity or {}
         self.slot_types = {}      # ebp offset -> type
         self.reg_types = {}       # register -> type
         self.reg_expr = {}        # register -> rendered expression
@@ -384,6 +428,7 @@ class Draft:
         self.branch_targets = set()
         self.unique_offset = {}
         self.slot_name = {}
+        self.slot_render = {}      # ebp displacement -> rendered identifier
         self.fields = fields
         self.sigs = sigs
         self.idents = idents
@@ -392,6 +437,7 @@ class Draft:
         self.stats = {}
         self.todos = 0
         self.n = 0
+        self.arity_todos = 0
         self.pending_cmp = None
         self.tmp = 0
         self.depth = 0
@@ -400,14 +446,31 @@ class Draft:
         self.stats[kind] = self.stats.get(kind, 0) + 1
 
     def selfcheck(self):
-        """Invariant: no emitted conditional may carry an unknown relation/operand."""
+        """Safety invariants over the emitted draft.
+
+        1. no conditional may carry an unknown relation/operand;
+        2. two distinct storage locations must not render to the same identifier;
+        3. no emitted argument list may contradict a known arity.
+        """
         bad = []
         for ln in self.lines:
             t = ln.strip()
             if not t.startswith("if ("):
                 continue
-            if "..." in t or ", ..." in t or t.startswith("if (/*"):
-                bad.append(t)
+            if "..." in t or ", ..." in t:
+                bad.append("cond: " + t)
+                continue
+            m = re.match(r"if \((.*)\) goto", t)
+            if m and re.search(r"\[[^\]]*\]|\*/\s|/\*\s*$", m.group(1)):
+                bad.append("untyped-operand: " + t)
+        # 2. slot-name collision: same identifier from two displacements
+        owners = {}
+        for disp, nm in self.slot_render.items():
+            owners.setdefault(nm, set()).add(disp)
+        for nm, disps in owners.items():
+            if len(disps) > 1:
+                bad.append("slot-collision: %s <- %s"
+                           % (nm, sorted("ebp%+d" % d for d in disps)))
         return bad
 
     def emit(self, addr, text, kind=None):
@@ -473,14 +536,11 @@ class Draft:
         if base in self.reg_types:
             cls = base_class(self.reg_types[base])
             nm = self.class_fields.get(cls, {}).get(disp) if cls else None
-            if nm is None:
-                nm = self.unique_offset.get(disp)
             if nm:
                 return "%s->%s" % (base, nm)
-            return "/*%s*/field_0x%x" % (base, disp)
-        if disp in self.unique_offset:
-            return "/*%s*/%s" % (base, self.unique_offset[disp])
-        return None
+            return "%s->field_0x%x" % (base, disp)
+        # untyped base: the offset is proven, the class is not - never name it
+        return "%s->field_0x%x" % (base, disp)
 
     def typed_offset(self, op):
         """(reg, disp) for a typed indirect operand, else None."""
@@ -500,10 +560,15 @@ class Draft:
         if d:
             base, index, scale, disp = d
             if base == "ebp" and not index:
-                nm = self.slot_name.get(disp)
-                if nm:
-                    return nm
-                return "local_0x%x" % (-disp if disp < 0 else disp)
+                if disp >= 0:
+                    nm = self.slot_name.get(disp)
+                    nm = nm if nm else "arg_0x%x" % disp
+                else:
+                    nm = "local_0x%x" % (-disp)
+                self.slot_render[disp] = nm
+                return nm
+            if index:
+                return None          # scale-indexed: not a scalar field
             fe = self.field_expr(op)
             if fe:
                 return fe
@@ -527,7 +592,10 @@ class Draft:
             m = re.match(r"0x([0-9a-fA-F]+)", ops)
             if mn.startswith("j") and m:
                 self.branch_targets.add(int(m.group(1), 16))
-        slot_name = {8 + 4 * k: ("a%d" % k) for k in range(len(self.params))}
+        slot_name = {}
+        for k, t in enumerate(self.params):
+            nm = self.param_names[k] if k < len(self.param_names) and self.param_names[k] else ("arg_0x%x" % (8 + 4 * k))
+            slot_name[8 + 4 * k] = nm
         self.slot_name = slot_name
         # offsets that name exactly one field across every class -> safe hint
         seen = {}
@@ -679,6 +747,11 @@ class Draft:
                 self.emit(addr, "// %s  // 0x%x" % (text, addr), "regmove")
                 i += 1
                 continue
+            if mn in ("add", "sub", "and", "or", "xor", "cmp") and \
+                    re.match(r"\w+,\s*-?(0x[0-9a-fA-F]+|\d+)$", ops):
+                self.emit(addr, "// %s  // 0x%x" % (text, addr), "arith")
+                i += 1
+                continue
             if mn in ("inc", "dec", "neg", "not") and re.match(r"\w+$", ops):
                 self.emit(addr, "// %s  // 0x%x" % (text, addr), "regmove")
                 i += 1
@@ -696,11 +769,27 @@ class Draft:
             i += 1
 
     def emit_call(self, addr, tgt, ops):
-        args = list(reversed(self.push_stack))
+        raw = list(reversed(self.push_stack))
         self.push_stack = []
+        # a register consumed for an earlier argument must not be emitted again
+        args = []
+        for a in raw:
+            if a is None:
+                args.append(a)
+            elif args and args[-1] == a and re.match(r"^\w+$", a):
+                continue
+            else:
+                args.append(a)
+        arity = self.arity.get(tgt)
         argtext = None
         if args and all(a is not None for a in args):
-            argtext = ", ".join(args)
+            if arity is None:
+                argtext = ", ".join(args)          # best effort, flagged below
+            elif len(args) == arity:
+                argtext = ", ".join(args)
+            else:
+                argtext = None                     # convention/arity mismatch - do not guess
+                self.arity_todos += 1
         if tgt in ANSI_OPS:
             kind, sig = ANSI_OPS[tgt]
             self.emit(addr, "// AnsiString::%s  // 0x%x" % (sig, addr), "ansi_" + kind)
@@ -717,7 +806,16 @@ class Draft:
             if argtext is not None:
                 self.emit(addr, "%s(%s);  // 0x%x" % (nm, argtext, addr), "call_args")
             else:
-                self.emit(addr, "%s(...);  // 0x%x" % (nm, addr), "call_named")
+                if arity is not None and raw:
+                    if len(raw) == arity:
+                        self.todo(addr, "argument operand not determined (%d args)"
+                                  % arity)
+                    else:
+                        self.todo(addr, "argument count not determined (expects %d, saw %d)"
+                                  % (arity, len(raw)))
+                    self.hit("call_named")
+                else:
+                    self.emit(addr, "%s(...);  // 0x%x" % (nm, addr), "call_named")
         else:
             self.todo(addr, "call 0x%x (unidentified)" % tgt)
 
@@ -784,11 +882,17 @@ class Draft:
         self.emit(addr, "if (%s) goto L_0x%x;  // 0x%x"
                   % (expr, tgt, addr), "jcc_cond")
 
+    REGS = set("eax ebx ecx edx esi edi ebp esp al bl cl dl ah bh ch dh ax bx cx dx".split())
+
     def emit_reg_move(self, addr, mn, ops):
         m = re.match(r"(\w+),\s*(.+)", ops)
         if not m:
             return False
         dst, src = m.group(1), m.group(2).strip()
+        if dst not in self.REGS:
+            return False          # e.g. `mov dword ptr [...], reg` - a store
+        if not self.REGS & set(re.findall(r"\b\w+\b", src.split("[")[0])):
+            pass
         # lea reg,[typed field] -> address expression (not a field load)
         if mn == "lea":
             self.reg_types.pop(dst, None)
@@ -851,10 +955,16 @@ class Draft:
         return False
 
     def emit_mem(self, addr, mn, ops):
-        m = re.match(r"(\w+),\s*(.+)", ops)
+        # destination may be a register, a `size ptr [mem]`, or a plain [mem]
+        m = re.match(r"((?:\w+ ptr )?\[[^\]]+\]|\w+)\s*,\s*(.+)$", ops)
         if not m:
             return False
-        dst, src = m.group(1), m.group(2).strip()
+        dst, src = m.group(1).strip(), m.group(2).strip()
+        dstore = self.deref(dst)
+        if dstore and dstore[0] == "ebp" and not dstore[1] and dstore[3] < 0 \
+                and re.match(r"^\w+$", src):
+            self.reg_expr[src] = "local_0x%x" % (-dstore[3])
+            self.reg_types.pop(src, None)
         ds = self.field_expr(dst)
         ss = self.field_expr(src)
         if ds or ss:
@@ -882,7 +992,7 @@ SELFTEST = [
 
 
 def run_range(start, end, args, fields, sigs, idents, verbose, params=None,
-              class_fields=None):
+              class_fields=None, param_names=None, arity=None):
     if args.objdump:
         insns = regen_with_objdump(start, end)
     else:
@@ -890,10 +1000,61 @@ def run_range(start, end, args, fields, sigs, idents, verbose, params=None,
     if not insns:
         insns = regen_with_objdump(start, end)
     d = Draft(fields, sigs, idents, start, params=params,
-              class_fields=class_fields)
+              class_fields=class_fields, param_names=param_names, arity=arity)
     d.walk(insns)
     rec = sum(v for k, v in d.stats.items() if k != "todo")
     return d, rec, len(insns)
+
+
+DECL_RE = re.compile(r"\b([A-Za-z_]\w*)\s*\(([^;{]*)\)\s*;")
+
+
+def load_header_arity(src_dir):
+    """function name -> declared argument count, from src/*.h/.cpp prototypes."""
+    out = {}
+    if not os.path.isdir(src_dir):
+        return out
+    for fn in sorted(os.listdir(src_dir)):
+        if not (fn.endswith(".h") or fn.endswith(".cpp")):
+            continue
+        for line in open(os.path.join(src_dir, fn), errors="replace"):
+            m = DECL_RE.search(line)
+            if not m:
+                continue
+            reg = 2 if "__fastcall" in line else (1 if "__thiscall" in line else 0)
+            inner = m.group(2).strip()
+            if not inner or inner == "void":
+                out.setdefault(m.group(1), 0)
+                continue
+            n = 0
+            depth = 0
+            if inner:
+                n = 1
+            for ch in inner:
+                if ch in "([":
+                    depth += 1
+                elif ch in ")]":
+                    depth -= 1
+                elif ch == "," and depth == 0:
+                    n += 1
+            out.setdefault(m.group(1), (n, max(0, n - reg)))
+    return out
+
+
+def load_callee_arity(src_dir, sigs_path=None):
+    """callee VA -> declared argument count (from src comments/stubs/declarations)."""
+    by_addr, by_name = load_stub_sigs(src_dir)
+    hdr = load_header_arity(src_dir)
+    arity = {a: len(p) for a, p in by_addr.items()}
+    if sigs_path:
+        for start, name in load_start_names(sigs_path).items():
+            if start in arity:
+                continue
+            if name in by_name:
+                arity[start] = len(by_name[name])
+            elif name in hdr:
+                arity[start] = hdr[name][1]
+    return arity
 
 
 def load_start_names(path):
@@ -942,13 +1103,14 @@ def main(argv=None):
     sigs = load_sigs(args.sigs)
     idents = load_idents(args.idents)
     stub_by_addr, stub_by_name = load_stub_sigs(args.src)
+    callee_arity = load_callee_arity(args.src, args.sigs)
     global functions_start_name
     functions_start_name = load_start_names(args.sigs)
 
     def params_for(a, b):
         if args.sig:
             pm = re.search(r"\(([^)]*)\)", args.sig)
-            return parse_param_types(pm.group(1)) if pm else []
+            return parse_params(pm.group(1)) if pm else []
         if a in stub_by_addr:
             return stub_by_addr[a]
         # functions.tsv start -> ref_name, then the name-keyed stub comment
@@ -967,17 +1129,22 @@ def main(argv=None):
         total_r = total_n = 0
         for name, a, b, sig in SELFTEST:
             pm = re.search(r"\(([^)]*)\)", sig)
+            pn = parse_params(pm.group(1)) if pm else []
             d, rec, n = run_range(a, b, args, fields, sigs, idents, not args.quiet,
-                                  params=parse_param_types(pm.group(1)) if pm else [],
-                                  class_fields=class_fields)
+                                  params=[t for t, _ in pn],
+                                  class_fields=class_fields,
+                                  param_names=[n_ for _, n_ in pn],
+                                  arity=callee_arity)
             total_r += rec
             total_n += n
             kinds = ", ".join("%s=%d" % kv for kv in sorted(d.stats.items()))
             conds = [l.strip() for l in d.lines if l.strip().startswith("if (")]
             bad = d.selfcheck()
-            print("%-28s %d/%d = %5.1f%%   todos=%d  conditions=%d unresolved=%d\n    %s"
+            print("%-28s %d/%d = %5.1f%%   todos=%d  conditions=%d unresolved=%d"
+                  "  arity_todo=%d  slot_collisions=%d\n    %s"
                   % (name, rec, n, 100.0 * rec / max(n, 1), d.todos, len(conds),
-                     d.stats.get("jcc_todo", 0), kinds),
+                     d.stats.get("jcc_todo", 0), d.arity_todos,
+                     sum(1 for b in bad if b.startswith("slot-collision")), kinds),
                   file=sys.stderr)
             for c in conds:
                 print("      %s" % c, file=sys.stderr)
@@ -991,9 +1158,12 @@ def main(argv=None):
     if args.start is None or args.end is None:
         ap.error("--start and --end are required (or use --selftest)")
 
+    pn = params_for(args.start, args.end)
     d, rec, n = run_range(args.start, args.end, args, fields, sigs, idents, True,
-                          params=params_for(args.start, args.end),
-                          class_fields=class_fields)
+                          params=[t for t, _ in pn],
+                          class_fields=class_fields,
+                          param_names=[n_ for _, n_ in pn],
+                          arity=callee_arity)
     if args.out:
         with open(args.out, "w") as fh:
             fh.write("\n".join(d.lines) + "\n")

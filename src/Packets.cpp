@@ -3201,6 +3201,13 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
                     damage = (int)((double)damage * mult);
                 }
             }
+            if ((*iter)->direction == caster->direction)
+                damage -= damage / 2;
+            (*iter)->hp -= damage;
+            if ((*iter)->hp > (*iter)->max_hp)
+                (*iter)->hp = (*iter)->max_hp;
+            if ((*iter)->hp < 1)
+                (*iter)->hp = 0;
             (void)damage;
         }
         return 0;

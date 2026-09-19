@@ -771,8 +771,12 @@ Tracked so they are not mistaken for done:
     Combat_CalcElementMult(game_control, caster->element_resistances[1],
     target->element_resistances[2], element, element2)); if (element == 2) ... [2]/[1]
     ... }`; `element_resistances` is `short[7]` at `Player+0x160`, so `+0x162`/`+0x164`
-    are `[1]`/`[2]`). The effect/health updates, the reply packet, the NPC sweep
-    (`0x468897`/`0x46a87a`) and the reply builders are placeholders. `scripts/asm2cpp.py` drafts blocks into address-commented C++
+    are `[1]`/`[2]`). Then the health update (`if (target->direction ==
+    caster->direction) damage -= damage / 2; target->hp -= damage; if (target->hp >
+    target->max_hp) target->hp = target->max_hp; if (target->hp < 1) target->hp =
+    0;`). The reply packet (`0x468318`..`0x46882c` — `EO_EncodeNumber` +
+    `Player_HpPercent` + the break bytes), the NPC sweep (`0x468897`/`0x46a87a`)
+    and the reply builders are placeholders. `scripts/asm2cpp.py` drafts blocks into address-commented C++
     (99.8% recognised here) and is the fastest way to start each block.
     `Player_IsPartyMember`, `RandRange`, `Combat_CalcHitRate`, `Combat_CalcArmorPen`
     are declared locally in `Packets.cpp`. Current frame `-0x48` vs the reference's
