@@ -762,8 +762,13 @@ Tracked so they are not mistaken for done:
     plus the start of the per-target body (`Combat_CalcHitRate(game_control,
     caster->accuracy, target->evasion, 0.9, 1.6)` vs `RandRange(100)`, then
     `Combat_CalcArmorPen(game_control, (min_damage+max_damage)/2, target->armor,
-    0.8, 0.9)`); the rest of the damage/health/reply body, the NPC sweep
-    (`0x468897`/`0x46a87a`) and the reply builders are placeholders.
+    0.8, 0.9)`), then the damage roll (`scaled = (double)min_damage; if (scaled <
+    0.0) scaled = 0.0; scaled *= 1.2; scaled *= pen; damage =
+    (int)(scaled + (double)RandRange(max_damage - min_damage + 2)); if (damage < 1)
+    damage = 1;`). The weapon-element branch, the effect/health updates, the reply
+    packet, the NPC sweep (`0x468897`/`0x46a87a`) and the reply builders are
+    placeholders. `scripts/asm2cpp.py` drafts blocks into address-commented C++
+    (99.8% recognised here) and is the fastest way to start each block.
     `Player_IsPartyMember`, `RandRange`, `Combat_CalcHitRate`, `Combat_CalcArmorPen`
     are declared locally in `Packets.cpp`. Current frame `-0x48` vs the reference's
     `-0x1c4`, so no instruction aligns yet. `Player_IsPartyMember` is declared

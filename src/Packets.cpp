@@ -3164,8 +3164,16 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
                                           (*iter)->armor,
                                           0.8,
                                           0.9);
+            double scaled = (double)caster->min_damage;
+            if (scaled < 0.0)
+                scaled = 0.0;
+            scaled *= 1.2;
+            scaled *= (double)pen;
+            damage = (int)(scaled + (double)RandRange(caster->max_damage -
+                                                      caster->min_damage + 2));
+            if (damage < 1)
+                damage = 1;
             (void)damage;
-            (void)pen;
         }
         return 0;
     }

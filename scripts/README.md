@@ -159,10 +159,24 @@ make clean     # remove build/
   python3 scripts/asm2cpp.py --selftest
   ```
 
+  **Type inference.** `--sig 'int F(Server *server, Player *player, int action)'`
+  (or the `// Name(...)` / `// STUB(0xADDR, ...) ref:` comments already in
+  `src/*.cpp`) seeds the x86 cdecl argument slots `[ebp+8+4k]`. The tool then
+  tracks register copies within a basic block (invalidated at branch targets and
+  calls) and resolves indirect operands against per-class field tables parsed
+  from the `// +0xNN` comments in `src/*.h` — including the declared field types,
+  so `mov edx,[ebp+0xc]; mov eax,[edx]` … chains type through pointer fields.
+  A typed base yields `base->field_name`; an unknown offset on a typed base
+  yields `base->field_0xNN`; an untyped base is never guessed. Call arguments
+  are rendered from the pushes (`SomeFn(server, player->map_id)`) and `jcc` after
+  a `cmp`/`test` becomes a real condition (`if (elapsed < 0x2c)`).
+
   **Its output is a draft, never an authority.** It never fabricates a constant,
   offset or argument: anything it cannot trace is a TODO comment. Every line
   must be verified against the reference with `compare_asm.py` (and the whole
   function with `make unit`/`make verify`) before it is committed.
   `--selftest` runs it over three already-converged ranges
   (`EO_Encode_Interleave`, `Walk_BuildReply`, `Player_SerializePaperdoll`) and
-  prints the classification rate and the idiom breakdown.
+  prints the classification rate and the idiom breakdown; all three classify at
+  100% with ~32% resolved to named idioms (AnsiString ops, EO_* calls, typed
+  fields, EH scope markers/counters).

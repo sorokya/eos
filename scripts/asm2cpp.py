@@ -128,6 +128,70 @@ def regen_with_objdump(start, end):
 
 
 # ---------------------------------------------------------------------------
+# Signature parsing (param types for the type-inference pass)
+# ---------------------------------------------------------------------------
+
+SIG_DECL_RE = re.compile(r"^\s*//\s*([A-Za-z_]\w*)\s*\(([^)]*)\)\s*$")
+SIG_STUB_RE = re.compile(r"^\s*//\s*STUB\(0x([0-9a-fA-F]+)[^)]*\)\s*(\w+)\s*-\s*ref:\s*(.*)$")
+
+
+def parse_param_types(text):
+    """'Server *server, int *query_result' -> ['Server *', 'int *']."""
+    text = text.strip()
+    if not text or text == "void":
+        return []
+    out = []
+    depth = 0
+    cur = ""
+    for ch in text:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    out.append(cur)
+    types = []
+    for part in out:
+        part = part.strip()
+        m = re.match(r"^(.*?)([A-Za-z_]\w*)\s*(\[[^\]]*\])?$", part)
+        if not m:
+            types.append(part)
+            continue
+        typ = m.group(1).strip()
+        if m.group(3):
+            typ += m.group(3)
+        types.append(typ or "int")
+    return types
+
+
+def load_stub_sigs(src_dir):
+    """addr -> param types and name -> param types, from src/*.cpp comments."""
+    by_addr = {}
+    by_name = {}
+    if not os.path.isdir(src_dir):
+        return by_addr, by_name
+    for fn in sorted(os.listdir(src_dir)):
+        if not fn.endswith(".cpp"):
+            continue
+        for line in open(os.path.join(src_dir, fn), errors="replace"):
+            m = SIG_STUB_RE.match(line)
+            if m:
+                body = m.group(3).strip()
+                pm = re.search(r"\(([^)]*)\)", body)
+                if pm:
+                    by_addr[int(m.group(1), 16)] = parse_param_types(pm.group(1))
+                continue
+            m = SIG_DECL_RE.match(line)
+            if m:
+                by_name.setdefault(m.group(1), parse_param_types(m.group(2)))
+    return by_addr, by_name
+
+
+# ---------------------------------------------------------------------------
 # Header field-offset table
 # ---------------------------------------------------------------------------
 
@@ -156,6 +220,84 @@ def load_field_names(src_dir):
                 continue
             table.setdefault(int(m.group(1), 16), set()).add(name)
     return table
+
+
+CLASS_RE = re.compile(r"^\s*(?:class|struct)\s+(\w+)")
+FIELD_TYPES = {}
+
+
+CLASS_TYPE_RE = re.compile(r"([A-Za-z_]\w*)\s*(\*+)?\s*(?://|$)")
+
+
+def field_type_of(line, name):
+    """Extract the declared type of `name` from a header field line."""
+    head = line.split("//")[0]
+    m = re.match(r"\s*(.+?)[\s*&]+%s\b" % re.escape(name), head)
+    if not m:
+        return None
+    typ = m.group(1).strip()
+    stars = ""
+    rest = head[m.end(1):]
+    stars = re.findall(r"\*", rest.split(name)[0]) if name in rest else []
+    typ = re.sub(r"\s+", " ", typ)
+    if typ in ("", "return"):
+        return None
+    return typ + "*" * len(stars)
+
+
+def load_class_fields(src_dir):
+    """class name -> {offset: field name} from the `// +0xNN` comments in src/*.h."""
+    out = {}
+    if not os.path.isdir(src_dir):
+        return out
+    for fn in sorted(os.listdir(src_dir)):
+        if not fn.endswith(".h"):
+            continue
+        cur = None
+        depth = 0
+        pending = None          # class name awaiting its `{`
+        for line in open(os.path.join(src_dir, fn), errors="replace"):
+            stripped = line.strip()
+            if cur is None:
+                m = CLASS_RE.match(line)
+                if m and not stripped.endswith(";"):
+                    pending = m.group(1)
+                elif "{" in line and pending:
+                    cur = pending
+                    pending = None
+                    depth = 0
+                    out.setdefault(cur, {})
+                else:
+                    if ";" in line:
+                        pending = None
+                    continue
+            depth += line.count("{") - line.count("}")
+            fm = FIELD_RE.search(line)
+            if fm:
+                head = line[: fm.start()].rstrip()
+                im = IDENT_RE.search(head)
+                if im:
+                    name = im.group(1)
+                    if name not in ("int", "char", "bool", "short", "void",
+                                    "unsigned", "long", "return"):
+                        off = int(fm.group(1), 16)
+                        # first definition wins; skip if a different class
+                        # already claimed this offset with another name
+                        if out[cur].get(off, name) == name:
+                            out[cur].setdefault(off, name)
+                            ft = field_type_of(line, name)
+                            if ft:
+                                FIELD_TYPES.setdefault(cur, {}).setdefault(off, ft)
+            if depth <= 0 and "}" in line:
+                cur = None
+                pending = None
+    return out
+
+
+def base_class(type_str):
+    if not type_str:
+        return None
+    return re.sub(r"[\s*&]+$", "", type_str.strip())
 
 
 def field_name(table, off):
@@ -218,7 +360,16 @@ def load_idents(path):
 # ---------------------------------------------------------------------------
 
 class Draft:
-    def __init__(self, fields, sigs, idents, start):
+    def __init__(self, fields, sigs, idents, start, params=None, class_fields=None):
+        self.class_fields = class_fields or {}
+        self.params = params or []
+        self.slot_types = {}      # ebp offset -> type
+        self.reg_types = {}       # register -> type
+        self.reg_expr = {}        # register -> rendered expression
+        self.push_stack = []      # expressions pushed since the last call
+        self.branch_targets = set()
+        self.unique_offset = {}
+        self.slot_name = {}
         self.fields = fields
         self.sigs = sigs
         self.idents = idents
@@ -281,6 +432,12 @@ class Draft:
                 index = term
         return (base, index, scale, disp)
 
+    def field_type(self, type_str, disp):
+        cls = base_class(type_str)
+        if not cls:
+            return None
+        return FIELD_TYPES.get(cls, {}).get(disp)
+
     def field_expr(self, op):
         d = self.deref(op)
         if not d:
@@ -288,18 +445,84 @@ class Draft:
         base, index, scale, disp = d
         if index or base == "ebp" or disp < 0:
             return None  # array indexing / stack local - not a scalar field
-        nm = field_name(self.fields, disp)
-        if nm:
-            return "/*%s*/%s" % (base, nm)
+        if base in self.reg_types:
+            cls = base_class(self.reg_types[base])
+            nm = self.class_fields.get(cls, {}).get(disp) if cls else None
+            if nm is None:
+                nm = self.unique_offset.get(disp)
+            if nm:
+                return "%s->%s" % (base, nm)
+            return "/*%s*/field_0x%x" % (base, disp)
+        if disp in self.unique_offset:
+            return "/*%s*/%s" % (base, self.unique_offset[disp])
+        return None
+
+    def typed_offset(self, op):
+        """(reg, disp) for a typed indirect operand, else None."""
+        d = self.deref(op)
+        if not d:
+            return None
+        base, index, scale, disp = d
+        if index or base == "ebp" or disp < 0 or base not in self.reg_types:
+            return None
+        return (base, disp)
+
+
+    def render(self, op):
+        """Best-effort expression for an operand (typed where possible)."""
+        op = op.strip()
+        d = self.deref(op)
+        if d:
+            base, index, scale, disp = d
+            if base == "ebp" and not index:
+                nm = self.slot_name.get(disp)
+                if nm:
+                    return nm
+                return "local_0x%x" % disp
+            fe = self.field_expr(op)
+            if fe:
+                return fe
+            if base in self.reg_types:
+                return "%s->field_0x%x" % (base, disp)
+            return None
+        if re.match(r"^0x[0-9a-fA-F]+$|^\d+$", op):
+            return op
+        if re.match(r"^\w+$", op):
+            if op in self.reg_expr:
+                return self.reg_expr[op]
+            return op
         return None
 
     # -- main walk ---------------------------------------------------------
     def walk(self, insns):
         end = insns[-1][0] + 1 if insns else self.start
+        for k, t in enumerate(self.params):
+            self.slot_types[8 + 4 * k] = t
+        for a, mn, ops, raw in insns:
+            m = re.match(r"0x([0-9a-fA-F]+)", ops)
+            if mn.startswith("j") and m:
+                self.branch_targets.add(int(m.group(1), 16))
+        slot_name = {8 + 4 * k: ("a%d" % k) for k in range(len(self.params))}
+        self.slot_name = slot_name
+        # offsets that name exactly one field across every class -> safe hint
+        seen = {}
+        for cls, tbl in self.class_fields.items():
+            for off, nam in tbl.items():
+                if off not in seen:
+                    seen[off] = nam
+                elif seen[off] != nam:
+                    seen[off] = None
+        self.unique_offset = {o: n for o, n in seen.items() if n}
+        for off, nam in self.fields.items():
+            if off not in self.unique_offset:
+                continue
         i = 0
         while i < len(insns):
             addr, mn, ops, raw = insns[i]
             self.n += 1
+            if addr in self.branch_targets:
+                self.reg_types = {}
+                self.reg_expr = {}
             text = ("%s %s" % (mn, ops)).strip()
             nxt = insns[i + 1] if i + 1 < len(insns) else None
 
@@ -355,6 +578,10 @@ class Draft:
                 continue
 
             # --- field load/store -----------------------------------------
+            if mn in ("mov", "movzx", "movsx"):
+                if self.emit_reg_move(addr, mn, ops):
+                    i += 1
+                    continue
             if mn in ("mov", "movzx", "movsx", "add", "sub", "inc", "dec", "or", "and", "xor"):
                 if self.emit_mem(addr, mn, ops):
                     i += 1
@@ -365,8 +592,15 @@ class Draft:
                 self.emit(addr, "return /* eax */;  // 0x%x" % addr, "ret")
                 i += 1
                 continue
-            if mn in ("push", "pop"):
-                self.emit(addr, "// %s %s  // 0x%x" % (mn, ops, addr), "stack")
+            if mn == "push":
+                expr = self.render(ops)
+                if expr is not None:
+                    self.push_stack.append(expr)
+                self.emit(addr, "// push %s  // 0x%x" % (ops, addr), "stack")
+                i += 1
+                continue
+            if mn == "pop":
+                self.emit(addr, "// pop %s  // 0x%x" % (ops, addr), "stack")
                 i += 1
                 continue
             if mn in ("nop", "int3"):
@@ -381,6 +615,7 @@ class Draft:
                     continue
             # --- stack adjustment / pointer arithmetic --------------------
             if mn in ("add", "sub") and re.match(r"esp,\s*-?0x", ops):
+                self.push_stack = []
                 self.emit(addr, "// stack adjust %s  // 0x%x" % (ops, addr), "stack_adjust")
                 i += 1
                 continue
@@ -434,6 +669,11 @@ class Draft:
             i += 1
 
     def emit_call(self, addr, tgt, ops):
+        args = list(reversed(self.push_stack))
+        self.push_stack = []
+        argtext = None
+        if args and all(a is not None for a in args):
+            argtext = ", ".join(args)
         if tgt in ANSI_OPS:
             kind, sig = ANSI_OPS[tgt]
             self.emit(addr, "// AnsiString::%s  // 0x%x" % (sig, addr), "ansi_" + kind)
@@ -441,10 +681,16 @@ class Draft:
         if tgt in HELPERS:
             self.emit(addr, "// %s  // 0x%x" % (HELPERS[tgt], addr), "helper")
             return
-        # local (intra-range) call = a control structure, not an idiom
+        # a call clobbers caller-saved registers
+        for r in ("eax", "ecx", "edx"):
+            self.reg_types.pop(r, None)
+            self.reg_expr.pop(r, None)
         nm = self.callee_name(tgt)
         if nm:
-            self.emit(addr, "%s(...);  // 0x%x" % (nm, addr), "call_named")
+            if argtext is not None:
+                self.emit(addr, "%s(%s);  // 0x%x" % (nm, argtext, addr), "call_args")
+            else:
+                self.emit(addr, "%s(...);  // 0x%x" % (nm, addr), "call_named")
         else:
             self.todo(addr, "call 0x%x (unidentified)" % tgt)
 
@@ -453,6 +699,19 @@ class Draft:
         cond = JCC_SIGNED.get(mn, "?")
         if self.pending_cmp:
             caddr, cmn, cops = self.pending_cmp
+            m = re.match(r"(\S+?),\s*(.+)$", cops)
+            if m and cond != "?":
+                a = self.render(m.group(1))
+                b = self.render(m.group(2))
+                if a is not None and b is not None:
+                    if cmn == "test":
+                        expr = "%s != 0" % a
+                    else:
+                        expr = "%s %s %s" % (a, cond, b)
+                    self.emit(addr, "if (%s) goto L_0x%x;  // 0x%x"
+                              % (expr, tgt, addr), "jcc_cond")
+                    self.pending_cmp = None
+                    return
             self.emit(addr,
                       "if (/* %s */ ... %s ...) goto L_0x%x;  // 0x%x (cond from 0x%x)"
                       % (cops.replace("dword ptr ", "").replace("byte ptr ", ""),
@@ -468,17 +727,62 @@ class Draft:
         if not m:
             return False
         dst, src = m.group(1), m.group(2).strip()
-        if src.startswith("[") and "ebp" in src:
+        # lea reg,[typed field] -> address expression (not a field load)
+        if mn == "lea":
+            self.reg_types.pop(dst, None)
+            self.reg_expr.pop(dst, None)
+            expr = self.field_expr(src)
+            if expr:
+                self.reg_expr[dst] = "&%s" % expr
+                self.emit(addr, "// %s %s  // 0x%x" % (mn, ops, addr), "lea_field")
+                return True
             self.emit(addr, "// %s %s  // 0x%x" % (mn, ops, addr), "local")
             return True
-        if re.match(r"(0x[0-9a-fA-F]+|\d+)$", src):
-            self.emit(addr, "%s = %s;  // 0x%x" % (dst, src, addr), "imm")
+        # mov reg, [typed field]
+        fe = self.field_expr(src)
+        if fe:
+            self.reg_types.pop(dst, None)
+            self.reg_expr[dst] = fe
+            to = self.typed_offset(src)
+            if to:
+                ft = self.field_type(self.reg_types.get(to[0], ""), to[1])
+                if ft and "'" not in ft and "[" not in ft:
+                    self.reg_types[dst] = ft
+            self.emit(addr, "%s = %s;  // 0x%x" % (dst, fe, addr), "field")
             return True
-        if mn == "lea" and self.deref(dst):
-            pass
+        # mov reg, [ebp+N]  (argument / local slot)
+        d = self.deref(src)
+        if d and d[0] == "ebp" and not d[1]:
+            off = d[3]
+            self.reg_types.pop(dst, None)
+            self.reg_expr.pop(dst, None)
+            if off in self.slot_types and ("*" in self.slot_types[off]):
+                self.reg_types[dst] = self.slot_types[off]
+            if off in self.slot_name:
+                self.reg_expr[dst] = self.slot_name[off]
+            self.emit(addr, "// %s %s  // 0x%x" % (mn, ops, addr), "local")
+            return True
+        # mov reg, reg
         if re.match(r"\w+$", src):
+            if src in self.reg_types:
+                self.reg_types[dst] = self.reg_types[src]
+            else:
+                self.reg_types.pop(dst, None)
+            if src in self.reg_expr:
+                self.reg_expr[dst] = self.reg_expr[src]
+            else:
+                self.reg_expr.pop(dst, None)
             self.emit(addr, "%s = %s;  // 0x%x" % (dst, src, addr), "regmove")
             return True
+        # mov reg, imm
+        if re.match(r"(0x[0-9a-fA-F]+|\d+)$", src):
+            self.reg_types.pop(dst, None)
+            self.reg_expr.pop(dst, None)
+            self.emit(addr, "%s = %s;  // 0x%x" % (dst, src, addr), "imm")
+            return True
+        # other memory operand
+        self.reg_types.pop(dst, None)
+        self.reg_expr.pop(dst, None)
         if src.startswith("[") or dst.startswith("["):
             self.emit(addr, "// %s %s  // 0x%x" % (mn, ops, addr), "mem")
             return True
@@ -506,23 +810,50 @@ class Draft:
 # ---------------------------------------------------------------------------
 
 SELFTEST = [
-    ("EO_Encode_Interleave", 0x470EF0, 0x4711E7),
-    ("Walk_BuildReply", 0x45D874, 0x45DDF0),
-    ("Player_SerializePaperdoll", 0x460068, 0x4607C8),
+    ("EO_Encode_Interleave", 0x470EF0, 0x4711E7,
+     "void EO_Encode_Interleave(char *data, int len, char *out)"),
+    ("Walk_BuildReply", 0x45D874, 0x45DDF0,
+     "AnsiString *Walk_BuildReply(AnsiString *out, Server *server, Player *player)"),
+    ("Player_SerializePaperdoll", 0x460068, 0x4607C8,
+     "String Player_SerializePaperdoll(AnsiString *out, Server *server, Player *player)"),
 ]
 
 
-def run_range(start, end, args, fields, sigs, idents, verbose):
+def run_range(start, end, args, fields, sigs, idents, verbose, params=None,
+              class_fields=None):
     if args.objdump:
         insns = regen_with_objdump(start, end)
     else:
         insns = load_listing(args.listing, start, end)
     if not insns:
         insns = regen_with_objdump(start, end)
-    d = Draft(fields, sigs, idents, start)
+    d = Draft(fields, sigs, idents, start, params=params,
+              class_fields=class_fields)
     d.walk(insns)
     rec = sum(v for k, v in d.stats.items() if k != "todo")
     return d, rec, len(insns)
+
+
+def load_start_names(path):
+    """start VA -> ref_name from functions.tsv (both keys are plain names)."""
+    out = {}
+    try:
+        with open(path, errors="replace") as fh:
+            next(fh, "")
+            for line in fh:
+                c = line.rstrip("\n").split("\t")
+                if len(c) < 6:
+                    continue
+                try:
+                    out[int(c[2], 16)] = c[5]
+                except ValueError:
+                    continue
+    except OSError:
+        pass
+    return out
+
+
+functions_start_name = {}
 
 
 def main(argv=None):
@@ -537,21 +868,46 @@ def main(argv=None):
     ap.add_argument("--sigs", default=SIGS)
     ap.add_argument("--idents", default=None)
     ap.add_argument("--src", default=SRC)
+    ap.add_argument("--sig", default=None,
+                    help="explicit signature, e.g. 'int F(Server *server, int *qr)'")
     ap.add_argument("--out", default=None)
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args(argv)
 
     fields = load_field_names(args.src)
+    class_fields = load_class_fields(args.src)
     sigs = load_sigs(args.sigs)
     idents = load_idents(args.idents)
+    stub_by_addr, stub_by_name = load_stub_sigs(args.src)
+    global functions_start_name
+    functions_start_name = load_start_names(args.sigs)
+
+    def params_for(a, b):
+        if args.sig:
+            pm = re.search(r"\(([^)]*)\)", args.sig)
+            return parse_param_types(pm.group(1)) if pm else []
+        if a in stub_by_addr:
+            return stub_by_addr[a]
+        # functions.tsv start -> ref_name, then the name-keyed stub comment
+        for addr, nm in sigs.items():
+            if addr == a and nm in stub_by_name:
+                return stub_by_name[nm]
+        if a in functions_start_name:
+            nm = functions_start_name[a]
+            if str(nm) in stub_by_name:
+                return stub_by_name[str(nm)]
+        return []
 
     if args.selftest:
         print("selftest: fields=%d sigs=%d idents=%d" % (len(fields), len(sigs), len(idents)),
               file=sys.stderr)
         total_r = total_n = 0
-        for name, a, b in SELFTEST:
-            d, rec, n = run_range(a, b, args, fields, sigs, idents, not args.quiet)
+        for name, a, b, sig in SELFTEST:
+            pm = re.search(r"\(([^)]*)\)", sig)
+            d, rec, n = run_range(a, b, args, fields, sigs, idents, not args.quiet,
+                                  params=parse_param_types(pm.group(1)) if pm else [],
+                                  class_fields=class_fields)
             total_r += rec
             total_n += n
             kinds = ", ".join("%s=%d" % kv for kv in sorted(d.stats.items()))
@@ -565,7 +921,9 @@ def main(argv=None):
     if args.start is None or args.end is None:
         ap.error("--start and --end are required (or use --selftest)")
 
-    d, rec, n = run_range(args.start, args.end, args, fields, sigs, idents, True)
+    d, rec, n = run_range(args.start, args.end, args, fields, sigs, idents, True,
+                          params=params_for(args.start, args.end),
+                          class_fields=class_fields)
     if args.out:
         with open(args.out, "w") as fh:
             fh.write("\n".join(d.lines) + "\n")
