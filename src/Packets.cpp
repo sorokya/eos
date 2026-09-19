@@ -54,6 +54,11 @@ void *FUN_0044f6ec(void *obj);
 void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value);
 MapCoord FUN_0047c6c0(int map_control, int map_id, unsigned int npc_index);
 unsigned int FUN_0047c634(int map_control, int map_id, unsigned int npc_index);
+bool Attack_Execute(Server *server, Player *caster, int action, String *reader);
+int Spell_Execute(Server *server, Player *caster, int action, String *packet_data);
+String Player_SerializeAvatar(Server *server, Player *player, int arg);
+String Server_BuildOnlineNames(Server *server);
+String Server_BuildOnlineList(Server *server);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
@@ -92,6 +97,127 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         return false;
     (*MAINFORM)->field_370 = family;
     (*MAINFORM)->field_36c = action;
+    if (family == PacketFamily_Attack)
+    {
+        if (!player->logged_in)
+            return false;
+        if (player->attack_tokens < 1)
+            return true;
+        player->attack_tokens--;
+        if (player->cheater_flag && RandRange(100) > 40)
+            return true;
+        TTimeStamp stamp = DateTimeToTimeStamp(Now());
+        int delay = stamp.Time - player->walk_tick;
+        if (delay > 0x7270e0)
+            delay = 0x15e;
+        if (delay < 0x15e)
+        {
+            if (player->action_queue.size() > 10)
+                return true;
+            PlayerCommand command(family, action, data);
+            player->action_queue.insert(player->action_queue.end(), command);
+            return true;
+        }
+        if (player->action_queue.size() > 0)
+        {
+            PlayerCommand command(family, action, data);
+            player->action_queue.insert(player->action_queue.end(), command);
+            return true;
+        }
+        Attack_Execute(server, player, action, &data);
+        return true;
+    }
+    if (family == PacketFamily_Spell)
+    {
+        if (!player->logged_in)
+            return false;
+        if (player->attack_tokens < 1)
+            return true;
+        player->attack_tokens--;
+        if (player->cheater_flag && RandRange(100) > 40)
+            return true;
+        TTimeStamp stamp = DateTimeToTimeStamp(Now());
+        int delay = stamp.Time - player->walk_tick;
+        if (delay > 0x7270e0)
+            delay = 0x15e;
+        if (delay < 0x15e)
+        {
+            if (player->action_queue.size() > 10)
+                return true;
+            PlayerCommand command(family, action, data);
+            player->action_queue.insert(player->action_queue.end(), command);
+            return true;
+        }
+        if (player->action_queue.size() > 0)
+        {
+            PlayerCommand command(family, action, data);
+            player->action_queue.insert(player->action_queue.end(), command);
+            return true;
+        }
+        Spell_Execute(server, player, action, &data);
+        return true;
+    }
+    if (family == PacketFamily_Range && action == PacketAction_Request)
+    {
+        if (!player->logged_in)
+            return false;
+        if (data.Length() < 1)
+            return false;
+        PacketReader_Init(server, data, EO_GetBreakByte(server, 0xff));
+        String players = PacketReader_GetBreakString(server);
+        String npcs = PacketReader_GetBreakString(server);
+        String out = EO_GetBreakByte(server, 0xff);
+        int count = 0;
+        if (players.Length() > 0)
+        {
+            for (int i = 0; i * 2 + 2 <= players.Length(); i++)
+            {
+                int id = EO_DecodeNumber(server, players.SubString(i * 2 + 1, 2));
+                Player *target = Players::Players_GetById(server->players, id);
+                if (target != NULL && target->map_id == player->map_id)
+                {
+                    count++;
+                    out.Insert(Player_SerializeAvatar(server, target, -1),
+                               out.Length() + 1);
+                }
+            }
+        }
+        out.Insert(EO_EncodeNumber(server, count, 1), 1);
+        if (npcs.Length() > 0)
+        {
+            for (int j = 0; j + 1 <= npcs.Length(); j++)
+            {
+                int id = EO_DecodeNumber(server, npcs.SubString(j + 1, 1));
+                String name = NpcRange_Lookup(server, player, id);
+                if (name.Length() > 0)
+                    out.Insert(name, out.Length() + 1);
+            }
+        }
+        if (out.Length() < 3)
+            return true;
+        Client_SendEncoded(server, player, PacketAction_Reply, PacketFamily_Range, out);
+        return true;
+    }
+    if (family == PacketFamily_PlayerRange && action == PacketAction_Request)
+    {
+        if (!player->logged_in)
+            return false;
+        if (data.Length() < 2)
+            return false;
+        int target_id = EO_DecodeNumber(server, data.SubString(1, 2));
+        Player *target = Players::Players_GetById(server->players, target_id);
+        if (target == NULL)
+            return true;
+        if (target->map_id != player->map_id)
+            return true;
+        String reply = EO_GetBreakByte(server, 0xff);
+        reply.Insert(Player_SerializeAvatar(server, target, -1), reply.Length() + 1);
+        reply.Insert(EO_EncodeNumber(server, 1, 1), 1);
+        if (reply.Length() < 3)
+            return true;
+        Client_SendEncoded(server, player, PacketAction_Reply, PacketFamily_Range, reply);
+        return true;
+    }
     if (family == PacketFamily_NpcRange && action == PacketAction_Request)
     {
         if (!player->logged_in)
@@ -99,8 +225,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         if (data.Length() < 3)
             return false;
         int n = data.Length() - 2;
-        String names = "";
         int cnt = 0;
+        String names = "";
         for (int i = 0; i < n; i++)
         {
             int id = EO_DecodeNumber(server, data.SubString(i + 3, 1));
@@ -112,10 +238,108 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
         }
         if (cnt < 1)
-            return false;
-        String num = EO_EncodeNumber(server, cnt, 1);
-        names.Insert(num, 1);
+            return true;
+        names.Insert(EO_EncodeNumber(server, cnt, 1), 1);
         Client_SendEncoded(server, player, PacketAction_Agree, PacketFamily_Npc, names);
+        return true;
+    }
+    if (family == PacketFamily_Players)
+    {
+        if (action == PacketAction_List)
+        {
+            if (!player->logged_in)
+                return false;
+            Client_SendRaw(server, player, Server_BuildOnlineNames(server), 0xb);
+            return true;
+        }
+        if (action == PacketAction_Accept)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4 || data.Length() > 0x10)
+                return false;
+            Player *found = Players::Players_FindByName(server->players, data);
+            if (found == NULL)
+            {
+                Client_SendEncoded(
+                    server, player, PacketAction_Ping, PacketFamily_Players, data);
+                return true;
+            }
+            if (found->hide_online)
+            {
+                Client_SendEncoded(
+                    server, player, PacketAction_Ping, PacketFamily_Players, data);
+                return true;
+            }
+            if (found->map_id == player->map_id)
+            {
+                Client_SendEncoded(
+                    server, player, PacketAction_Pong, PacketFamily_Players, data);
+                return true;
+            }
+            Client_SendEncoded(
+                server, player, PacketAction_Net242, PacketFamily_Players, data);
+            return true;
+        }
+        if (action == PacketAction_Request)
+        {
+            if (!player->logged_in)
+                return false;
+            Client_SendRaw(server, player, Server_BuildOnlineList(server), 9);
+            return true;
+        }
+    }
+    if (family == PacketFamily_Door && action == PacketAction_Open)
+    {
+        if (!player->logged_in)
+            return false;
+        if (data.Length() < 2)
+            return false;
+        MapCoord coord;
+        coord.x = EO_DecodeNumber(server, data.SubString(1, 1));
+        coord.y = EO_DecodeNumber(server, data.SubString(2, 1));
+        if (Server_InViewRange(server, coord.x, coord.y, player->x, player->y))
+        {
+            String encoded = EO_EncodeNumber(server, coord.x, 1);
+            encoded.Insert(EO_EncodeNumber(server, coord.y, 2), encoded.Length() + 1);
+            int warp =
+                Mapcontrol::Map_GetWarpDoorAt(server->map_control, player->map_id, coord);
+            if (warp > 0)
+            {
+                if (Players::Player_HasKeyItem(server->players, player, warp))
+                {
+                    if (Mapcontrol::Mapcontrol_ToggleDoor(
+                            server->map_control, player->map_id, coord.x, coord.y))
+                        Server_BroadcastNearTile(server,
+                                                 -0xd,
+                                                 player->map_id,
+                                                 coord.x,
+                                                 coord.y,
+                                                 PacketAction_Open,
+                                                 PacketFamily_Door,
+                                                 encoded);
+                }
+                else
+                {
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Close,
+                                       PacketFamily_Door,
+                                       EO_EncodeNumber(server, warp, 2));
+                }
+                return true;
+            }
+            if (Mapcontrol::Mapcontrol_ToggleDoor(
+                    server->map_control, player->map_id, coord.x, coord.y))
+                Server_BroadcastNearTile(server,
+                                         -0xd,
+                                         player->map_id,
+                                         coord.x,
+                                         coord.y,
+                                         PacketAction_Open,
+                                         PacketFamily_Door,
+                                         encoded);
+        }
         return true;
     }
     if (family == PacketFamily_Book && action == PacketAction_Request)
@@ -129,9 +353,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             return true;
         Player *target = Players::Players_GetById(server->players, target_id);
         if (target == NULL)
-            return false;
-        String s = Player_SerializePaperdoll(server, target);
-        Client_SendEncoded(server, player, PacketAction_Reply, PacketFamily_Book, s);
+            return true;
+        Client_SendEncoded(server,
+                           player,
+                           PacketAction_Reply,
+                           PacketFamily_Book,
+                           Player_SerializePaperdoll(server, target));
         return true;
     }
     if (family == PacketFamily_Shop)
