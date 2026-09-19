@@ -669,10 +669,14 @@ Tracked so they are not mistaken for done:
   `0x42a507`, 62 instructions, 0 TODOs: `Refresh_BuildReply` +
   `Client_SendEncoded`). Scoring needs `--frame-wild`/`--stack-search` because of
   the split frame.
-  `NpcRange_Lookup` is at **22 mismatched (286/290)** — the arming-form fix
+  `NpcRange_Lookup` is **byte-exact (290/290)** — the pointer-return spelling was
+  a different calling convention; changing the declaration and definition to a
+  **by-value `String` return** (tail `return fragment;`, callers updated, case
+  `0x1c` now `String name = NpcRange_Lookup(server, player, id);`) closed the
+  missing `arm 0x80` and the hidden-return-pointer sequence. (Historical: it was
+  at 22 mismatched (286/290) — the arming-form fix
   (`Npc **iter;` declared bare, `for (iter = …)` inside the `try`) removed the
-  spurious loop-entry arm; residual is the final `return` path's missing `arm 0x80`
-  at index 268. `Server_BuildOnlineNames` stays at **13 mismatched** (the
+  spurious loop-entry arm.) `Server_BuildOnlineNames` stays at **13 mismatched** (the
   `try`/`catch` form made it worse, 45, and was reverted).
   `EO_Decode_Deinterleave` is drafted at **118 mismatched (221/281), frame now
   exact (`-0x164`, delta 0), aligned prefix 117/221** — the

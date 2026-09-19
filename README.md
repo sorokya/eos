@@ -147,15 +147,15 @@ outstanding cross-unit externs and the known-unconverged functions.
 
 <!-- BEGIN GENERATED STATUS -->
 
-**1677/1809 (92.7%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
+**1678/1809 (92.8%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
 
-**314,604/670,020 (47.0%)** application BYTES byte-exact. Function counts overstate progress badly: `Player_HandlePacket` (228,416 bytes) is **33.9% of all application code** and is now being written (its reconnaissance proved it tractable — one `ret`, no internal call targets, 43 chunks), so it sits in `mismatched` and the byte figure is the honest one until it converges.
+**315,552/670,020 (47.1%)** application BYTES byte-exact. Function counts overstate progress badly: `Player_HandlePacket` (228,416 bytes) is **33.9% of all application code** and is now being written (its reconnaissance proved it tractable — one `ret`, no internal call targets, 43 chunks), so it sits in `mismatched` and the byte figure is the honest one until it converges.
 
 ```mermaid
 pie showData
     title Application functions by status
-    "byte-exact" : 1677
-    "mismatched" : 12
+    "byte-exact" : 1678
+    "mismatched" : 11
     "stubbed" : 103
     "unimplemented" : 17
 ```
@@ -163,7 +163,7 @@ pie showData
 | Unit | functions | byte-exact | stubbed | mismatched | unimplemented |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Mapcontrol | 279 | 249 | 24 | 2 | 4 |
-| Packets | 249 | 157 | 78 | 10 | 4 |
+| Packets | 249 | 158 | 78 | 9 | 4 |
 | Players | 160 | 159 | 1 | 0 | 0 |
 | Questengine | 123 | 123 | 0 | 0 | 0 |
 | Shopvalues | 86 | 86 | 0 | 0 | 0 |

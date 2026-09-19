@@ -43,8 +43,7 @@ Player **Players_Iter_End(Players *players);
 bool Player_HandlePacket(Server *server, Player *player, String data);
 void FUN_00472944(Server *server, int value);
 String Player_SerializePaperdoll(Server *server, Player *player);
-String *
-NpcRange_Lookup(String *out, Server *server, Player *player, unsigned int npc_index);
+String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index);
 int EO_DecodeByte(Server *server, unsigned char value);
 void *FUN_0044f6ec(void *obj);
 
@@ -99,7 +98,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         for (int i = 0; i < n; i++)
         {
             int id = EO_DecodeNumber(server, data.SubString(i + 3, 1));
-            String name = *NpcRange_Lookup(NULL, server, player, id);
+            String name = NpcRange_Lookup(server, player, id);
             if (name.Length() > 0)
             {
                 names.Insert(name, names.Length() + 1);
@@ -2027,8 +2026,7 @@ String Server_BuildOnlineNames(Server *server)
     return server->online_names_cache;
 }
 
-String *
-NpcRange_Lookup(String *out, Server *server, Player *player, unsigned int npc_index)
+String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index)
 {
     String fragment = "";
     Npc **iter;
@@ -2086,8 +2084,7 @@ NpcRange_Lookup(String *out, Server *server, Player *player, unsigned int npc_in
     catch (...)
     {
     }
-    *out += fragment;
-    return out;
+    return fragment;
 }
 
 String Party_EncodeMemberList(Server *server, Player *player)
