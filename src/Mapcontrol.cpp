@@ -1425,17 +1425,6 @@ void FUN_0047af68_Stub(int a0, unsigned char a1)
 void FUN_0047e30c_Stub(int a0, void *a1)
 {
 }
-// STUB(0x0047f270, 775 bytes) FUN_0047f270 - ref: undefined FUN_0047f270(undefined4
-// param_1, undefined2 * param_2)
-void FUN_0047f270_Stub(int a0, void *a1)
-{
-}
-// STUB(0x0047f578, 729 bytes) FUN_0047f578 - ref: undefined2 * FUN_0047f578(undefined2 *
-// param_1, undefined2 * param_2, undefined2 * param_3)
-void *FUN_0047f578_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
 // STUB(0x00480240, 560 bytes) FUN_00480240 - ref: int FUN_00480240(int param_1, int
 // param_2)
 int FUN_00480240_Stub(int a0, int a1)

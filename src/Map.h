@@ -17,34 +17,32 @@
 // tile-spec lists. Every offset is pinned by the constructor/destructor stores.
 struct MapContainer
 {
-    unsigned short rid;         // +0x00
-    short rid1;                 // +0x02
-    short rid2;                 // +0x04
-    short filesize;             // +0x06
-    unsigned char width;        // +0x08
-    unsigned char height;       // +0x09
-    char map_type;              // +0x0a
-    unsigned char timed_effect; // +0x0b
-    bool has_quakes;            // +0x0c
-    bool has_hp_drain;          // +0x0d
-    bool has_tp_drain;          // +0x0e
-    bool has_spikes;            // +0x0f
-    bool arena_enabled;         // +0x10
-    char pad_11[3];
-    int arena_block;                       // +0x14
-    int arena_ticks;                       // +0x18
-    int quest_cooldown;                    // +0x1c
-    int evac_countdown;                    // +0x20
-    std::vector<MapWarp> arena_spawn_list; // +0x24
-    int relog_x;                           // +0x44
-    int relog_y;                           // +0x48
-    short field_0x4c;                      // +0x4c
-    bool buf_copied;                       // +0x4e
-    bool can_scroll;                       // +0x4f
-    String buf;                            // +0x50
-    String hp_drain_others;                // +0x54
-    char hp_drain_others_sent;             // +0x58
-    char pad_59[3];
+    unsigned short rid;                          // +0x00
+    short rid1;                                  // +0x02
+    short rid2;                                  // +0x04
+    short filesize;                              // +0x06
+    unsigned char width;                         // +0x08
+    unsigned char height;                        // +0x09
+    char map_type;                               // +0x0a
+    unsigned char timed_effect;                  // +0x0b
+    bool has_quakes;                             // +0x0c
+    bool has_hp_drain;                           // +0x0d
+    bool has_tp_drain;                           // +0x0e
+    bool has_spikes;                             // +0x0f
+    bool arena_enabled;                          // +0x10
+    int arena_block;                             // +0x14
+    int arena_ticks;                             // +0x18
+    int quest_cooldown;                          // +0x1c
+    int evac_countdown;                          // +0x20
+    std::vector<MapWarp> arena_spawn_list;       // +0x24
+    int relog_x;                                 // +0x44
+    int relog_y;                                 // +0x48
+    short field_0x4c;                            // +0x4c
+    bool buf_copied;                             // +0x4e
+    bool can_scroll;                             // +0x4f
+    String buf;                                  // +0x50
+    String hp_drain_others;                      // +0x54
+    char hp_drain_others_sent;                   // +0x58
     std::vector<MapObject> tile_specs;           // +0x5c
     std::vector<MapObject> legacy_door_key_list; // +0x7c
     std::vector<MapChest> chest_list;            // +0x9c
@@ -57,10 +55,9 @@ struct MapContainer
     char npc_dirty;                              // +0x123
     char chests_dirty;                           // +0x124
     char has_open_doors;                         // +0x125
-    char pad_126[2];
-    int npc_act_ticks;           // +0x128
-    int player_count;            // +0x12c
-    std::vector<bool> tile_bits; // +0x130
+    int npc_act_ticks;                           // +0x128
+    int player_count;                            // +0x12c
+    std::vector<bool> tile_bits;                 // +0x130
 
     MapContainer(int map_id, int width, int height);
     ~MapContainer();

@@ -6357,15 +6357,14 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
     {
         if (packet_data->Length() < 5)
             return 0;
-        String spell = packet_data->SubString(1, 2);
-        caster->queued_spell_id = EO_DecodeNumber(server, spell);
+        caster->queued_spell_id = EO_DecodeNumber(server, packet_data->SubString(1, 2));
         if (!Players::Player_HasSpellId(server->players, caster, caster->queued_spell_id))
             return 0;
         int cast_time =
             SkillValues::GetCastTime((*MAINFORM)->skill_values, caster->queued_spell_id) *
             30;
-        String target = packet_data->SubString(3, 3);
-        caster->expected_cast_timestamp = EO_DecodeNumber(server, target) + cast_time - 1;
+        caster->expected_cast_timestamp =
+            EO_DecodeNumber(server, packet_data->SubString(3, 3)) + cast_time - 1;
         String pkt = EO_EncodeNumber(server, caster->player_id, 2);
         pkt.Insert(EO_EncodeNumber(server, caster->queued_spell_id, 2), pkt.Length() + 1);
         Server_BroadcastNearby(server, caster, 1, 0xc, pkt);
@@ -6379,14 +6378,216 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
             return 1;
         if (packet_data->Length() < 11)
             return 0;
-        String spell = packet_data->SubString(2, 3);
-        int spell_id = EO_DecodeNumber(server, spell);
-        int elapsed = spell_id - caster->last_client_walk_tick;
+        int client_tick = EO_DecodeNumber(server, packet_data->SubString(2, 3));
+        int elapsed = client_tick - caster->last_client_walk_tick;
         if (elapsed < 0 && caster->last_client_walk_tick > 0x7270e0)
             elapsed = 0x2c;
-        caster->last_client_walk_tick = spell_id;
+        caster->last_client_walk_tick = client_tick;
         if (elapsed < 0x2c)
             return 0;
+        TTimeStamp stamp = DateTimeToTimeStamp(Now());
+        int sync_tick = stamp.Time / 10 + 0x64;
+        int clock_drift;
+        if (client_tick > sync_tick)
+        {
+            clock_drift = client_tick - sync_tick;
+            if (caster->sync_base_ahead < 0)
+                caster->sync_base_ahead = clock_drift;
+            if (Math_Abs(clock_drift - caster->sync_base_ahead) > 0x320)
+                return 1;
+        }
+        else
+        {
+            clock_drift = sync_tick - client_tick;
+            if (caster->sync_base_behind < 0)
+                caster->sync_base_behind = clock_drift;
+            if (Math_Abs(clock_drift - caster->sync_base_behind) > 0x320)
+                return 1;
+        }
+        int spell_target = EO_DecodeNumber(server, (*packet_data)[1]);
+        int spell_id = EO_DecodeNumber(server, packet_data->SubString(5, 2));
+        int target_id = EO_DecodeNumber(server, packet_data->SubString(7, 2));
+        int cast_tick = EO_DecodeNumber(server, packet_data->SubString(9, 3));
+        int target_type = SkillValues::GetTargetType((*MAINFORM)->skill_values, spell_id);
+        if (spell_id != caster->queued_spell_id)
+            return 0;
+        if (cast_tick < caster->expected_cast_timestamp &&
+            (cast_tick > 1000 || caster->expected_cast_timestamp < 0x83ce30))
+            return 0;
+        if (target_type != 0)
+            return 1;
+        if (!Players::Player_HasSpellId(server->players, caster, spell_id))
+            return 1;
+        int skill_type = SkillValues::GetSkillType((*MAINFORM)->skill_values, spell_id);
+        int tp_cost = SkillValues::GetTpCost((*MAINFORM)->skill_values, spell_id);
+        if (caster->tp < tp_cost)
+        {
+            String reply = EO_EncodeNumber(server, spell_id, 2);
+            reply.Insert(EO_EncodeNumber(server, caster->hp, 2), reply.Length() + 1);
+            reply.Insert(EO_EncodeNumber(server, caster->tp, 2), reply.Length() + 1);
+            Client_SendEncoded(
+                server, caster, PacketAction_Reply, PacketFamily_Spell, reply);
+            return 1;
+        }
+        caster->tp -= tp_cost;
+        if (spell_target == SpellTargetType_Player)
+        {
+            Player *target = server->players->by_id[target_id];
+            if (target == 0)
+                return 1;
+            if (target->map_id != caster->map_id)
+                return 1;
+            if (!Server_InViewRange(server, caster->x, caster->y, target->x, target->y))
+            {
+                Client_SendEncoded(server,
+                                   caster,
+                                   PacketAction_Reply,
+                                   PacketFamily_Refresh,
+                                   Refresh_BuildReply(server, caster));
+                return 1;
+            }
+            if (skill_type == 0)
+            {
+                int hp_heal = SkillValues::GetHpHeal((*MAINFORM)->skill_values, spell_id);
+                target->hp += hp_heal;
+                if (target->hp > target->max_hp)
+                    target->hp = target->max_hp;
+                int hp_percent = target->hp * 100 / target->max_hp;
+                String reply = EO_EncodeNumber(server, target->player_id, 2);
+                reply.Insert(EO_EncodeNumber(server, caster->player_id, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, spell_target, 1),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, spell_id, 2), reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, hp_heal, 4), reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, hp_percent, 1), reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, target->hp, 2), reply.Length() + 1);
+                Server_BroadcastToMap(server,
+                                      target->map_id,
+                                      PacketAction_TargetOther,
+                                      PacketFamily_Spell,
+                                      reply);
+                reply = EO_EncodeNumber(server, spell_id, 2);
+                reply.Insert(EO_EncodeNumber(server, caster->hp, 2), reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, caster->tp, 2), reply.Length() + 1);
+                Client_SendEncoded(
+                    server, caster, PacketAction_Reply, PacketFamily_Spell, reply);
+                if (target->in_party)
+                {
+                    String pkt = EO_EncodeNumber(server, target->player_id, 2);
+                    pkt.Insert(EO_EncodeNumber(server, Player::HpPercent(target), 1),
+                               pkt.Length() + 1);
+                    Server_BroadcastToParty(
+                        server, target, PacketAction_Agree, PacketFamily_Party, pkt);
+                }
+                return 1;
+            }
+            if (skill_type == 1)
+            {
+                if ((unsigned char)Mapcontrol_GetByIndex(server->map_control,
+                                                         caster->map_id - 1)
+                        ->map_type == 3)
+                {
+                    if (target->player_id == caster->player_id)
+                        return 1;
+                    if (target->map_id != caster->map_id)
+                        return 1;
+                    if (Player::IsPartyMember(caster, target->player_id))
+                        return 1;
+                    int damage = 0;
+                    int hit_rate =
+                        Gamecontrol::Combat_CalcArmorPen((*MAINFORM)->game_control,
+                                                         caster->accuracy,
+                                                         target->evasion,
+                                                         0.9);
+                    if (RandRange(100) < hit_rate)
+                    {
+                        SkillDamage dmg =
+                            SkillValues::GetDamage((*MAINFORM)->skill_values, spell_id);
+                        int min_total = caster->min_damage + dmg.min_damage;
+                        int max_total = caster->max_damage + dmg.max_damage;
+                        int pen =
+                            Gamecontrol::Combat_CalcArmorPen((*MAINFORM)->game_control,
+                                                             (min_total + max_total) / 2,
+                                                             target->armor,
+                                                             0.8);
+                        double scaled = (double)min_total;
+                        if (scaled < 0.0)
+                            scaled = 1.0;
+                        scaled *= 1.2L;
+                        scaled *= (double)pen;
+                        scaled += (double)RandRange(max_total - min_total + 2);
+                        damage = (int)scaled;
+                        if (damage < 1)
+                            damage = 1;
+                    }
+                    if (spell_id > 0)
+                    {
+                        SkillElement element =
+                            SkillValues::GetElement((*MAINFORM)->skill_values, spell_id);
+                        if (element.element == 1)
+                            damage = (int)((double)damage *
+                                           Gamecontrol::Combat_CalcElementMult(
+                                               (*MAINFORM)->game_control,
+                                               *(MapCoord *)&element,
+                                               caster->element_resistances[1],
+                                               target->element_resistances[2]));
+                        if (element.element == 2)
+                            damage = (int)((double)damage *
+                                           Gamecontrol::Combat_CalcElementMult(
+                                               (*MAINFORM)->game_control,
+                                               *(MapCoord *)&element,
+                                               caster->element_resistances[2],
+                                               target->element_resistances[1]));
+                        if (element.element == 3)
+                            damage = (int)((double)damage *
+                                           Gamecontrol::Combat_CalcElementMult(
+                                               (*MAINFORM)->game_control,
+                                               *(MapCoord *)&element,
+                                               caster->element_resistances[3],
+                                               target->element_resistances[6]));
+                        if (element.element == 4)
+                            damage = (int)((double)damage *
+                                           Gamecontrol::Combat_CalcElementMult(
+                                               (*MAINFORM)->game_control,
+                                               *(MapCoord *)&element,
+                                               caster->element_resistances[4],
+                                               target->element_resistances[3]));
+                        if (element.element == 5)
+                            damage = (int)((double)damage *
+                                           Gamecontrol::Combat_CalcElementMult(
+                                               (*MAINFORM)->game_control,
+                                               *(MapCoord *)&element,
+                                               caster->element_resistances[5],
+                                               target->element_resistances[4]));
+                        if (element.element == 6)
+                            damage = (int)((double)damage *
+                                           Gamecontrol::Combat_CalcElementMult(
+                                               (*MAINFORM)->game_control,
+                                               *(MapCoord *)&element,
+                                               caster->element_resistances[6],
+                                               target->element_resistances[5]));
+                    }
+                    target->hp -= damage;
+                    if (target->hp > target->max_hp)
+                        target->hp = target->max_hp;
+                    if (target->hp < 1)
+                        target->hp = 0;
+                    if (damage > 0 && target->in_party)
+                    {
+                        String hp_pkt = EO_EncodeNumber(server, target->player_id, 2);
+                        hp_pkt.Insert(
+                            EO_EncodeNumber(server, Player::HpPercent(target), 1),
+                            hp_pkt.Length() + 1);
+                        Server_BroadcastToParty(server,
+                                                target,
+                                                PacketAction_Agree,
+                                                PacketFamily_Party,
+                                                hp_pkt);
+                    }
+                }
+            }
+        }
         return 0;
     }
     return 0;
