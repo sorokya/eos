@@ -111,6 +111,35 @@ make clean     # remove build/
   bcc32 `-S` function against a reference address range, canonicalizing relocated
   addresses and branch targets while requiring registers, stack offsets and small
   constants to match exactly. The per-function byte-fidelity loop.
+  `--frame-wild` is a **progress instrument** for a partially written function:
+  bcc only sizes the frame correctly once every local exists, so until then the
+  prologue's `add esp,-N` differs and every `[ebp-N]` local shifts, and the
+  unflagged comparison reports "thousands mismatched" even when the written body
+  matches. With `--frame-wild` the prologue frame instruction (and an
+  identical-magnitude epilogue release, if the compiler uses one) is a wildcard
+  on both sides; the actual sizes are printed as
+  `frame: ref -0x1c4 ours -0xac (delta 0x118)` and the report adds
+  `aligned prefix: K / N`. **Only the frame size is relaxed** — registers,
+  non-frame stack offsets, small constants, operand order, instruction count and
+  the mismatch count are all still exact, and the flag is ignored for acceptance:
+  final acceptance remains the unflagged comparison plus the whole-file MD5.
+  With the flag off the output is byte-identical to before (verified on every
+  converged range); with it on, a converged range still scores 0 mismatched, so
+  the flag can never invent a match it cannot justify.
+  `--stack-wild` (which implies `--frame-wild`) is the companion progress mode
+  for the stack *offsets*. Once the frames differ by `D`, every `[ebp-N]` local
+  differs and a correct body scores as mismatched from the first frame-relative
+  instruction onward. `--stack-wild` derives `D = |ref frame| - |our frame|`,
+  rewrites our `[ebp-N]` to `[ebp-(N+D)]` before comparing, and prints
+  `stack delta applied: +0x118 (our frame 0xac vs ref 0x1c4)` plus the distinct
+  `[ebp-N]` slot sequence of both sides. **Ordering stays strict**: the shift is
+  a fixed numeric offset applied per instruction, so a body that uses the same
+  slots in a different order still mismatches (the shifted numbers differ), and
+  the printed slot sequences expose the correspondence. `[ebp+N]` arguments and
+  `[esp+N]` operands are **not** shifted, and registers, constants, operand
+  order and instruction count stay exact. Both tolerant modes are **progress
+  instruments, never acceptance criteria** — final acceptance remains the
+  unflagged comparison plus the whole-file MD5.
 - **`verify_units.py [UNIT ...] [--ref-bin PATH] [--asm-dir DIR]`** — the
   whole-tree equivalent: for every unit's listing, match each function in the
   unit's namespace against that unit's reference ranges from

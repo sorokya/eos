@@ -92,6 +92,98 @@ MARKER_RAW = re.compile(
     re.I)
 
 
+FRAME_RE = re.compile(r"^(add|sub)\s+esp,\s*(-?\d+)$")
+
+
+def frame_size(seq):
+    """(index, signed size) of the prologue frame instruction, or (None, None)."""
+    for i, ins in enumerate(seq[:8]):
+        m = FRAME_RE.match(ins)
+        if m:
+            v = int(m.group(2))
+            return i, (-v if m.group(1) == "sub" else v)
+    return None, None
+
+
+def frame_wild(seq):
+    """Canonicalize the prologue frame instruction to a wildcard.
+
+    Only the prologue frame is touched: a later `add esp, N` is a cdecl call
+    cleanup and stays comparable.  The epilogue's matching-magnitude release is
+    wildcarded too when it is an `add esp, +N` (bcc normally restores with
+    `mov esp, ebp`, which already compares equal).
+    """
+    idx, size = frame_size(seq)
+    if idx is None:
+        return seq, None
+    out = list(seq)
+    out[idx] = "add esp,FRAME"
+    for j in range(len(out) - 1, idx, -1):
+        m = FRAME_RE.match(out[j])
+        if m and int(m.group(2)) == -size:
+            out[j] = "add esp,FRAME"
+            break
+    return out, size
+
+
+EBP_NEG_RE = re.compile(r"\[ebp-(\d+)\]")
+
+
+def shift_slots(seq, delta):
+    """Rewrite every `[ebp-N]` to `[ebp-(N+delta)]` (a negative slot only).
+
+    `[ebp+N]` arguments and `[esp+N]` operands are left alone, and every other
+    token is untouched, so the shift is the *only* relaxation.
+    """
+    if not delta:
+        return list(seq)
+    out = []
+    for ins in seq:
+        out.append(EBP_NEG_RE.sub(
+            lambda m: "[ebp-%d]" % (int(m.group(1)) + delta), ins))
+    return out
+
+
+def slot_sequence(seq):
+    """The distinct `[ebp-N]` slots in order of first use (for the order check)."""
+    seen = []
+    for ins in seq:
+        for m in EBP_NEG_RE.finditer(ins):
+            v = int(m.group(1))
+            if v not in seen:
+                seen.append(v)
+    return seen
+
+
+def implied_delta(ref, our):
+    """The stack delta the first divergent slot pair implies, else None.
+
+    Scans for the first index where both sides carry exactly one `[ebp-N]` and
+    the instructions are otherwise identical; the difference of those two
+    offsets is the local-area delta (which the frame delta can miss when the
+    EH-frame overhead differs).  A hint for --stack-delta, never applied
+    automatically.
+    """
+    for a, b in zip(ref, our):
+        if a == b:
+            continue
+        ma, mb = EBP_NEG_RE.findall(a), EBP_NEG_RE.findall(b)
+        if len(ma) != 1 or len(mb) != 1:
+            continue
+        if EBP_NEG_RE.sub("S", a) == EBP_NEG_RE.sub("S", b):
+            return int(ma[0]) - int(mb[0])
+    return None
+
+
+def aligned_prefix(ref, our):
+    n = 0
+    for a, b in zip(ref, our):
+        if a != b:
+            break
+        n += 1
+    return n
+
+
 def marker_of(raw: str):
     m = MARKER_RAW.match(raw.strip())
     if not m:
@@ -381,6 +473,20 @@ def main() -> int:
                     help="always print the EH scope marker streams")
     ap.add_argument("--diff", action="store_true",
                     help="always print the aligned instruction diff")
+    ap.add_argument("--frame-wild", action="store_true",
+                    help="progress mode: treat the prologue frame size (and the "
+                         "matching epilogue release) as a wildcard so a partially "
+                         "written function can be scored. Every other check stays "
+                         "strict. NEVER an acceptance criterion.")
+    ap.add_argument("--stack-wild", action="store_true",
+                    help="progress mode: also shift our `[ebp-N]` slots by the "
+                         "frame delta (derived from --frame-wild) before comparing, "
+                         "so a partially written body can be scored. Ordering, "
+                         "registers, arguments, esp operands and constants stay "
+                         "exact. NEVER an acceptance criterion.")
+    ap.add_argument("--stack-delta", type=lambda v: int(v, 0), default=None,
+                    help="progress mode: shift our `[ebp-N]` by this explicit delta "
+                         "(instead of the frame-derived one) before comparing.")
     ap.add_argument("--stack", action="store_true",
                     help="print the reference-to-ours stack slot mapping")
     ap.add_argument("--lines", action="store_true",
@@ -408,6 +514,32 @@ def main() -> int:
         head = seq[:8]
         seq[:] = [x for x in head if x not in ("push ebx", "push esi", "push edi")] + seq[8:]
 
+    frame_ref = frame_our = None
+    if args.stack_wild or args.stack_delta is not None:
+        args.frame_wild = True
+    if args.frame_wild:
+        ref, frame_ref = frame_wild(ref)
+        our, frame_our = frame_wild(our)
+        if frame_ref is not None and frame_our is not None:
+            d = frame_our - frame_ref
+            print(f"frame: ref -{abs(frame_ref):#x} ours -{abs(frame_our):#x} "
+                  f"(delta {d:#x})")
+
+    if args.stack_wild or args.stack_delta is not None:
+        if args.stack_delta is not None:
+            delta = args.stack_delta
+        else:
+            if frame_ref is None or frame_our is None:
+                print("--stack-wild needs both frame sizes (is a prologue present?)")
+                return 2
+            delta = abs(frame_ref) - abs(frame_our)  # our slots -> reference numbering
+        our = shift_slots(our, delta)
+        print(f"stack delta applied: {delta:+#x} "
+              f"(our frame {abs(frame_our):#x} vs ref {abs(frame_ref):#x})")
+        print(f"slot order  ref: {slot_sequence(ref)}")
+        print(f"slot order ours: {slot_sequence(our)} "
+              f"(after the shift; ordering is strict)")
+
     n = max(len(ref), len(our))
     mismatches = 0
     for i in range(n):
@@ -419,6 +551,15 @@ def main() -> int:
         print(f"{mark} {i:3d} ref: {r:44s} our: {o}")
     print(f"\n{args.function}: {len(ref)} ref / {len(our)} our instructions, "
           f"{mismatches} mismatched")
+    if args.frame_wild:
+        print(f"aligned prefix: {aligned_prefix(ref, our)} / "
+              f"{min(len(ref), len(our))}   (--frame-wild is a PROGRESS "
+              f"instrument; run without it for acceptance)")
+        if not args.stack_wild:
+            d = implied_delta(ref, our)
+            if d is not None and d:
+                print(f"implied stack delta: {d:+#x} "
+                      f"(retry with --stack-delta {d:#x})")
     # Call symbols are visible only on our side (the reference is stripped), so
     # print them and flag the array new/delete family, whose wrong choice
     # canonicalizes away.

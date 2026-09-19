@@ -792,7 +792,18 @@ Tracked so they are not mistaken for done:
     caster, 8, 0xb, pkt); return 1;`. The main NPC loop (`0x4689e2`..`0x469fe2`,
     1451 instructions, 316 locals) begins with a `Mapcontrol_GetByIndex(server->
     map_control, caster->map_id - 1)` view-range test; `asm2cpp.py` renders it at
-    99.7% recognised (28 TODOs). `scripts/asm2cpp.py` drafts blocks into address-commented C++
+    **`DateTimeToTimeStamp` form fixed**: `*(TTimeStamp *)&caster->walk_tick =
+    DateTimeToTimeStamp(Now());` (was `.Time`, which forced a temporary and broke
+    the hidden-return destination); the same fix is in `Spell_Execute`. With
+    `--frame-wild` the aligned prefix moved 0 -> 15 (Attack) / 0 -> 14 (Spell);
+    the frame delta is `0x120` (Attack, `-0xa4` vs `-0x1c4`) and `0x27c` (Spell,
+    `-0x44` vs `-0x2c0`), i.e. the NPC loop's locals are still the gap. Note
+    `compare_asm.py` currently flags the `jnl`/`jnge` aliases as different at
+    `0x4679db`.
+    99.7% recognised (28 TODOs). **The `offset < 0` reply branch is now written**
+    (`String pkt = EO_EncodeNumber(server, caster->player_id, 2); String chr =
+    String(reader[1]); pkt = pkt + chr; Server_BroadcastNearby(server, caster, 8,
+    0xb, pkt); return 1;`); the main NPC loop remains a placeholder. `scripts/asm2cpp.py` drafts blocks into address-commented C++
     (99.8% recognised here) and is the fastest way to start each block.
     `Player_IsPartyMember`, `RandRange`, `Combat_CalcHitRate`, `Combat_CalcArmorPen`
     are declared locally in `Packets.cpp`. Current frame `-0x48` vs the reference's

@@ -281,7 +281,27 @@ documented build, not a manual fix-up.
 - `scripts/compare_asm.py` — diff one function from a bcc32 `-S` listing against a
   reference address range; registers, stack offsets and small constants must match,
   addresses and branch targets are canonicalized. Use this to drive a function to
-  byte-match before moving on.
+  byte-match before moving on. `--frame-wild` is a **progress** mode for a
+  partially written function: bcc sizes the frame only once every local exists, so
+  until then the prologue `add esp,-N` differs and the unflagged comparison shows
+  thousands of mismatches even when the written body matches. The flag wildcards
+  the prologue frame (and an identical-magnitude epilogue release) on both sides,
+  prints `frame: ref … ours … (delta …)`, and reports the `aligned prefix`. It
+  relaxes **nothing else** — registers, non-frame stack offsets, constants,
+  operand order and instruction count stay exact — and it is never an acceptance
+  criterion: final acceptance is the unflagged comparison plus the whole-file MD5.
+  `--stack-wild` (implies `--frame-wild`) is the companion progress mode for the
+  stack *offsets*: with frames differing by `D`, every `[ebp-N]` differs and a
+  correct body still mismatches. It derives `D = |ref frame| - |our frame|`,
+  rewrites our `[ebp-N]` to `[ebp-(N+D)]`, prints `stack delta applied: …` and
+  the distinct `[ebp-N]` slot sequence of both sides, then compares. Ordering is
+  still strict (a reordered local list shifts to different numbers and still
+  mismatches); `[ebp+N]` arguments and `[esp+N]` operands are not shifted, and
+  registers, constants, operand order and instruction count stay exact. The frame
+  delta includes the EH-frame overhead, so the local-area delta can differ from
+  it; `--frame-wild` also prints the `implied stack delta` (the delta the first
+  divergent slot pair implies) and `--stack-delta D` applies an explicit one.
+  Both tolerant modes are progress instruments, never acceptance criteria.
 - `scripts/asm2cpp.py` — draft C++ from a reference address range: one
   address-commented line per instruction, recognising the documented AnsiString
   operations, `EO_*` calls, field accesses (names resolved from the `// +0xNN`
@@ -559,6 +579,20 @@ python3 scripts/compare_asm.py build/Serial.asm SetIniPath \
 Take `REF_END` from the next function's start; the unit's last function ends at
 its `@@Unit@Initialize` stub. A `REF_END` that overlaps the following function
 reports thousands of bogus mismatches.
+
+`--frame-wild` scores a *partially* written function. The frame size is a
+function-wide fact, so a missing local changes `add esp,-N` at instruction 2 and
+shifts every `[ebp-N]`, making the unflagged score meaningless until the whole
+function exists (this is why a large function is unverifiable block by block).
+The flag wildcards the frame instruction on both sides, prints the size
+difference, and reports the aligned prefix — the count of leading instructions
+that genuinely match. It is a **progress** instrument, never an acceptance one:
+an aligned prefix that stops early means the *bodies* diverge, not the frame
+(check the first mismatching instruction). `--stack-wild` adds the stack-offset
+half of the same idea: it shifts our `[ebp-N]` by the frame delta so the shared
+lower part of the frame compares, while keeping the slot *order* strict. Neither
+flag is an acceptance criterion; acceptance is still the unflagged
+`compare_asm.py` result and, finally, the whole-file MD5.
 
 ## Pitfalls to avoid
 

@@ -3108,7 +3108,7 @@ void Client_SendEncoded(
 // Player * attacker, PacketAction action, AnsiString * packet_data)
 bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
 {
-    caster->walk_tick = DateTimeToTimeStamp(Now()).Time;
+    *(TTimeStamp *)&caster->walk_tick = DateTimeToTimeStamp(Now());
     if (caster->map_id < 1)
         return 1;
     if (caster->weight_max + 2 >= caster->weight_current)
@@ -3232,6 +3232,14 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
             }
             (void)damage;
         }
+        if (offset_y < 0 || offset_x < 0)
+        {
+            String pkt = EO_EncodeNumber(server, caster->player_id, 2);
+            String chr = String(reader[1]);
+            pkt = pkt + chr;
+            Server_BroadcastNearby(server, caster, 8, 0xb, pkt);
+            return 1;
+        }
         return 0;
     }
     return 0;
@@ -3240,7 +3248,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
 // Player * caster, int action, AnsiString * packet_data)
 int Spell_Execute(Server *server, Player *caster, int action, String *packet_data)
 {
-    caster->walk_tick = DateTimeToTimeStamp(Now()).Time;
+    *(TTimeStamp *)&caster->walk_tick = DateTimeToTimeStamp(Now());
     if (caster->map_id < 1)
         return 1;
     if (caster->weight_max + 2 >= caster->weight_current)
