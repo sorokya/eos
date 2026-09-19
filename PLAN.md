@@ -1136,6 +1136,57 @@ Also outstanding from this stretch, both proven with evidence and both small:
   reference (functions.tsv:299, 0x44f9b0) is `qp10Mapcontrol`, so Mapcontrol.cpp:29 is
   the divergent one.
 
+## `--strict-operands`: the canonical comparison cannot see a wrong literal or callee
+
+`compare_asm.py` canonicalizes addresses by design, so a **wrong string literal** and a
+**wrong direct call target** both pass as `0 mismatched`. The sheet's "byte-exact" is
+therefore *canonicalized* equality, not byte equality. `--strict-operands` closes that
+gap: after the canonical pass it compares the value behind each address — a direct
+`call` by **callee identity** (never by address), an immediate or `offset` landing in
+`.data`/`.rdata`/`.bss` by the **literal bytes**, and a non-address immediate
+numerically. Relocatable operands are deliberately not compared (a non-call `.text`
+target, an absolute `[0x…]` slot); an unclassifiable operand is counted, not guessed.
+The default path is unchanged.
+
+It found real bugs immediately, all now fixed:
+- **Eight swapped literals in `Login_SendCharacterList`** (`questblob`/`questblob2`,
+  `invblob`/`invblob2`, `invblob3`/`invblob4`, `skillblob`/`skillblob2`). bcc evaluates
+  a `+` chain **right-to-left**, so the first literal emitted is the RHS; our halves
+  were reversed and the serialized blob came out reversed. A `+` chain and an Insert
+  accumulator order their operands differently — that is the lever.
+- **`Players_Add` called the wrong function**: `Settings::GetMaxConnections` where the
+  reference calls `Settings::GetMaxClones` (`0x413f34`) at `0x4082a3`.
+- Four wrong literals, each decoded from the image: `FUN_0047badc` `"N"` not `"x"`;
+  `Newscontrol_Get` `""` not `"NULL"`; `Eventcontrol_Tick` `") seconds or be send to
+  jail."` not `"…jail!"`; `Questengine::ParseToken` `")"` not `"}"`.
+- `MysqlCallback_Dispatch` had three more, which is why it was not *truly* exact
+  despite `7912/7912`: a closing literal `"',"` written as `"'"` (emitting
+  `('TAG''name',…)`), and two `Mysql_ExecDirect` calls that must be
+  `Mysql_ExecDirect_FromCallback` (`0x47703c`, not `0x476f54` — the Acquire/Resume
+  variant, a self-deadlock), plus four `IntToStr` sites needing the `0x403010`
+  overload (the out-of-line copy of the header's `inline AnsiString
+  IntToStr(unsigned int)`), not `@Sysutils@IntToStr$qqri`.
+
+**How to read the flag's remaining output.** It reports ~1100 further call-target
+differences, and a triage established they are a TOOL ARTIFACT, not defects: the flag
+compares our callee against `functions.tsv`'s `source_name`, and `track.py` assigns
+that label by canonical shape — because canonicalization wildcards call targets, the
+label is **arbitrary among identically-shaped reference functions**. The authoritative
+check is the **callee's body**. Of 1140 sampled rows, 1110 had byte-identical callee
+bodies and **zero were real wrong-container calls**. A wrong element type *would*
+matter — ilink32 does **not** fold byte-identical COMDATs (a controlled link kept two
+`vector<…>::size` instantiations at distinct addresses) — so the rule is: compare the
+callee bodies with non-address immediates kept; equal → benign, different with a forced
+caller pairing → real.
+
+**Latent link failures found by that triage** (not container issues): `Chestcontrol.cpp`
+declares `MapItemVector_Begin`/`_End` without defining them, and
+`MapchestVector_Begin/End` and `MapwarpVector_Begin/End` are likewise undefined. The
+reference callees are `ItemchestVector_Begin/End` (`0x47bcf4`/`0x47bd00`) with the
+correct `MapItem` element type. They must be resolved before the final link; they are
+currently hidden because the tool accepts the `@@<ref_name>` alias. Owning units:
+`Chestcontrol`, `Eventcontrol`.
+
 ## Risks and mitigations
 
 | Risk | Mitigation |
