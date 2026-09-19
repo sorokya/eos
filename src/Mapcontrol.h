@@ -69,6 +69,7 @@ class Mapcontrol
     void *encode_scratch;           // +0x40
 
     Mapcontrol(Settings *settings);
+    ~Mapcontrol();
 
     static void Mapcontrol_LoadMaps(Mapcontrol *map_control);
     static bool Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id);

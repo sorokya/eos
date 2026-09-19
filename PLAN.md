@@ -1015,19 +1015,24 @@ Tracked so they are not mistaken for done:
     sites; **no `std::string`**; no embedded stubs. Risks: the five near-identical
     arm prologues (transcribe from a spec) and the action-numbering divergence
     against the Rust names. The shared `0x58b60c` skill/item singleton still needs
-    its type identified. **Progress: prologue guards + the `action == 1` arm are
-    transcribed** (`caster->walk_tick = DateTimeToTimeStamp(Now()).Time`, `map_id
-    < 1` and `weight_max + 2 >= weight_current` guard `return 1`; then
-    `SubString(1,2)` -> `EO_DecodeNumber` -> `queued_spell_id`,
-    `Player_HasSpellId`, `GetCastTime * 30`, `SubString(3,3)` ->
-    `expected_cast_timestamp`, `EO_EncodeNumber` pair, `Server_BroadcastNearby`);
-    the `action == 0x1f` arm's prefix (`!logged_in -> 0`; `sitting || on_chair ->
-    1`; `Length() < 11 -> 0`; `SubString(2,3)` -> `EO_DecodeNumber` ->
-    `last_client_walk_tick`; the `elapsed = id - last_client_walk_tick`, the
-    `> 0x7270e0` wrap to `0x2c`, and the `elapsed < 0x2c -> 0` guard) is written;
-    the rest of that ~12 KB arm and the other four arms are placeholders. Current
-    frame `-0x4c` vs the reference's `-0x2c0`, so no instruction aligns yet — the frame only fills once
-    the later arms' locals exist. Callees for arm 1 are all reconstructed:
+    its type identified. **Progress: the `action == 1` arm is transcribed** and the
+    `action == 0x1f` arm's chunks 01-09 are written (`0x46ac32..0x46c86d`:
+    guards/decode, time/base, parameter decode, the player-target heal and
+    `skill_type==1` damage/element path, chunk08's death-notify +
+    `Recover/Player` packet + `Player_Respawn` + the NPC-branch loop setup, and
+    chunk09's NPC loop head with its `Server_BroadcastNearTile` reply). Per-chunk
+    `compare_asm.py` structural match (addresses canonicalized, `[ebp-N]`
+    wildcarded, EH scope markers exact) passes for chunks 01-08 and for chunk09
+    except the shared-return block placement, which depends on the still-unwritten
+    loop tail (chunks 10-15: NPC damage/element/reply, quest/exp, loop tail).
+    Ours is 1889 instructions / frame `-0x104` vs the reference's 4084 / `-0x2c0`;
+    `--stack-search` best aligned prefix is only 39, so the offset-based score is
+    not yet meaningful. `--strict-operands` reports 16 call differences that are
+    all positional offsets from the incomplete body; every chunk08/09 callee
+    (`NpcValues::GetType`, `Server_InViewRange`, `Refresh_BuildReply`,
+    `Server_BroadcastNearTile`, `Client_SendEncoded`, `Player::IsPartyMember`,
+    `Player_HpPercent`, `Player_Respawn`, `EO_EncodeNumber`, the AnsiString RTL)
+    was verified by name. Arm-1 callees remain
     `Player_HasSpellId` `0x40cc80`, `Server_BroadcastNearby` `0x463f34`,
     `EO_EncodeNumber` `0x470b9c`, `EO_DecodeNumber` `0x470de8`,
     `SkillValues::GetCastTime` `0x4a5268`; `Now`/`DateTimeToTimeStamp` are the

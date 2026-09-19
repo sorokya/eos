@@ -40,6 +40,12 @@ String FUN_00473540(Server *server);
 String FUN_004731d0(Server *server);
 String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code);
 
+// Non-PACKAGE redeclaration keeps `&GUI` a link-time constant, so bcc emits a
+// static `.data` relocation (matching reference slot 0x58b60c) rather than the
+// package-aware runtime initializer the PACKAGE declaration would produce.
+extern TGUI *GUI;
+TGUI **MAINFORM = &GUI;
+
 Server *Mainform_GetServer(TGUI *form)
 {
     return form->server_ctrl;

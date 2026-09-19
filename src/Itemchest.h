@@ -9,15 +9,20 @@
 // 0x4077f4.
 struct MapItem
 {
-    int item_id;                   // +0x00
-    int amount;                    // +0x04
-    char item_present;             // +0x08
-    char respawn_enabled;          // +0x09
-    char pad_0a[2];                // +0x0a
-    int respawn_countdown;         // +0x0c
-    unsigned short respawn_delay;  // +0x10
-    unsigned short alt_item_id[4]; // +0x12
-    int alt_amount[4];             // +0x1c
+    int item_id;                  // +0x00
+    int amount;                   // +0x04
+    char item_present;            // +0x08
+    char respawn_enabled;         // +0x09
+    int respawn_countdown;        // +0x0c
+    unsigned short respawn_delay; // +0x10
+    unsigned short alt_item_id0;  // +0x12
+    unsigned short alt_item_id1;  // +0x14
+    unsigned short alt_item_id2;  // +0x16
+    unsigned short alt_item_id3;  // +0x18
+    int alt_amount0;              // +0x1c
+    int alt_amount1;              // +0x20
+    int alt_amount2;              // +0x24
+    int alt_amount3;              // +0x28
 
     MapItem(int item_id);
     ~MapItem();

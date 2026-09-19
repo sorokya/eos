@@ -48,7 +48,7 @@ struct MapContainer
     std::vector<MapChest> chest_list;            // +0x9c
     std::vector<MapWarp> warp_list;              // +0xbc
     std::vector<Npc *> npc_list;                 // +0xdc
-    std::vector<ChestItem> ground_items;         // +0xfc
+    std::vector<ChestItem *> ground_items;       // +0xfc
     int next_ground_item_id;                     // +0x11c
     short child_npc_id;                          // +0x120
     bool boss_alive;                             // +0x122

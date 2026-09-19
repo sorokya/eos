@@ -6486,107 +6486,191 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
             {
                 if ((unsigned char)Mapcontrol_GetByIndex(server->map_control,
                                                          caster->map_id - 1)
-                        ->map_type == 3)
+                        ->map_type != 3)
+                    return 1;
+                if (target->player_id == caster->player_id)
+                    return 1;
+                if (target->map_id != caster->map_id)
+                    return 1;
+                if (Player::IsPartyMember(caster, target->player_id))
+                    return 1;
+                int damage = 0;
+                int hit_rate = Gamecontrol::Combat_CalcArmorPen(
+                    (*MAINFORM)->game_control, caster->accuracy, target->evasion, 0.9);
+                if (RandRange(100) < hit_rate)
                 {
-                    if (target->player_id == caster->player_id)
-                        return 1;
-                    if (target->map_id != caster->map_id)
-                        return 1;
-                    if (Player::IsPartyMember(caster, target->player_id))
-                        return 1;
-                    int damage = 0;
-                    int hit_rate =
+                    SkillDamage dmg =
+                        SkillValues::GetDamage((*MAINFORM)->skill_values, spell_id);
+                    int min_total = caster->min_damage + dmg.min_damage;
+                    int max_total = caster->max_damage + dmg.max_damage;
+                    int pen =
                         Gamecontrol::Combat_CalcArmorPen((*MAINFORM)->game_control,
-                                                         caster->accuracy,
-                                                         target->evasion,
-                                                         0.9);
-                    if (RandRange(100) < hit_rate)
-                    {
-                        SkillDamage dmg =
-                            SkillValues::GetDamage((*MAINFORM)->skill_values, spell_id);
-                        int min_total = caster->min_damage + dmg.min_damage;
-                        int max_total = caster->max_damage + dmg.max_damage;
-                        int pen =
-                            Gamecontrol::Combat_CalcArmorPen((*MAINFORM)->game_control,
-                                                             (min_total + max_total) / 2,
-                                                             target->armor,
-                                                             0.8);
-                        double scaled = (double)min_total;
-                        if (scaled < 0.0)
-                            scaled = 1.0;
-                        scaled *= 1.2L;
-                        scaled *= (double)pen;
-                        scaled += (double)RandRange(max_total - min_total + 2);
-                        damage = (int)scaled;
-                        if (damage < 1)
-                            damage = 1;
-                    }
-                    if (spell_id > 0)
-                    {
-                        SkillElement element =
-                            SkillValues::GetElement((*MAINFORM)->skill_values, spell_id);
-                        if (element.element == 1)
-                            damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
-                                               (*MAINFORM)->game_control,
-                                               *(MapCoord *)&element,
-                                               caster->element_resistances[1],
-                                               target->element_resistances[2]));
-                        if (element.element == 2)
-                            damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
-                                               (*MAINFORM)->game_control,
-                                               *(MapCoord *)&element,
-                                               caster->element_resistances[2],
-                                               target->element_resistances[1]));
-                        if (element.element == 3)
-                            damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
-                                               (*MAINFORM)->game_control,
-                                               *(MapCoord *)&element,
-                                               caster->element_resistances[3],
-                                               target->element_resistances[6]));
-                        if (element.element == 4)
-                            damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
-                                               (*MAINFORM)->game_control,
-                                               *(MapCoord *)&element,
-                                               caster->element_resistances[4],
-                                               target->element_resistances[3]));
-                        if (element.element == 5)
-                            damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
-                                               (*MAINFORM)->game_control,
-                                               *(MapCoord *)&element,
-                                               caster->element_resistances[5],
-                                               target->element_resistances[4]));
-                        if (element.element == 6)
-                            damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
-                                               (*MAINFORM)->game_control,
-                                               *(MapCoord *)&element,
-                                               caster->element_resistances[6],
-                                               target->element_resistances[5]));
-                    }
-                    target->hp -= damage;
-                    if (target->hp > target->max_hp)
-                        target->hp = target->max_hp;
+                                                         (min_total + max_total) / 2,
+                                                         target->armor,
+                                                         0.8);
+                    double scaled = (double)min_total;
+                    if (scaled < 0.0)
+                        scaled = 1.0;
+                    scaled *= 1.2L;
+                    scaled *= (double)pen;
+                    scaled += (double)RandRange(max_total - min_total + 2);
+                    damage = (int)scaled;
+                    if (damage < 1)
+                        damage = 1;
+                }
+                if (spell_id > 0)
+                {
+                    SkillElement element =
+                        SkillValues::GetElement((*MAINFORM)->skill_values, spell_id);
+                    if (element.element == 1)
+                        damage =
+                            (int)((double)damage * Gamecontrol::Combat_CalcElementMult(
+                                                       (*MAINFORM)->game_control,
+                                                       *(MapCoord *)&element,
+                                                       caster->element_resistances[1],
+                                                       target->element_resistances[2]));
+                    if (element.element == 2)
+                        damage =
+                            (int)((double)damage * Gamecontrol::Combat_CalcElementMult(
+                                                       (*MAINFORM)->game_control,
+                                                       *(MapCoord *)&element,
+                                                       caster->element_resistances[2],
+                                                       target->element_resistances[1]));
+                    if (element.element == 3)
+                        damage =
+                            (int)((double)damage * Gamecontrol::Combat_CalcElementMult(
+                                                       (*MAINFORM)->game_control,
+                                                       *(MapCoord *)&element,
+                                                       caster->element_resistances[3],
+                                                       target->element_resistances[6]));
+                    if (element.element == 4)
+                        damage =
+                            (int)((double)damage * Gamecontrol::Combat_CalcElementMult(
+                                                       (*MAINFORM)->game_control,
+                                                       *(MapCoord *)&element,
+                                                       caster->element_resistances[4],
+                                                       target->element_resistances[3]));
+                    if (element.element == 5)
+                        damage =
+                            (int)((double)damage * Gamecontrol::Combat_CalcElementMult(
+                                                       (*MAINFORM)->game_control,
+                                                       *(MapCoord *)&element,
+                                                       caster->element_resistances[5],
+                                                       target->element_resistances[4]));
+                    if (element.element == 6)
+                        damage =
+                            (int)((double)damage * Gamecontrol::Combat_CalcElementMult(
+                                                       (*MAINFORM)->game_control,
+                                                       *(MapCoord *)&element,
+                                                       caster->element_resistances[6],
+                                                       target->element_resistances[5]));
+                }
+                target->hp -= damage;
+                if (target->hp > target->max_hp)
+                    target->hp = target->max_hp;
+                if (target->hp < 1)
+                    target->hp = 0;
+                if (damage > 0 && target->in_party)
+                {
+                    String hp_pkt = EO_EncodeNumber(server, target->player_id, 2);
+                    hp_pkt.Insert(EO_EncodeNumber(server, Player::HpPercent(target), 1),
+                                  hp_pkt.Length() + 1);
+                    Server_BroadcastToParty(
+                        server, target, PacketAction_Agree, PacketFamily_Party, hp_pkt);
+                }
+                {
+                    String pkt = EO_EncodeNumber(server, caster->player_id, 2);
+                    pkt.Insert(EO_EncodeNumber(server, target->player_id, 2),
+                               pkt.Length() + 1);
+                    pkt.Insert(EO_EncodeNumber(server, damage, 3), pkt.Length() + 1);
+                    pkt.Insert(EO_EncodeNumber(server, caster->direction, 1),
+                               pkt.Length() + 1);
+                    pkt.Insert(EO_EncodeNumber(server, Player::HpPercent(target), 1),
+                               pkt.Length() + 1);
                     if (target->hp < 1)
-                        target->hp = 0;
-                    if (damage > 0 && target->in_party)
-                    {
-                        String hp_pkt = EO_EncodeNumber(server, target->player_id, 2);
-                        hp_pkt.Insert(
-                            EO_EncodeNumber(server, Player::HpPercent(target), 1),
-                            hp_pkt.Length() + 1);
-                        Server_BroadcastToParty(server,
-                                                target,
-                                                PacketAction_Agree,
-                                                PacketFamily_Party,
-                                                hp_pkt);
-                    }
+                        pkt.Insert(EO_EncodeNumber(server, 1, 1), pkt.Length() + 1);
+                    else
+                        pkt.Insert(EO_EncodeNumber(server, 0, 1), pkt.Length() + 1);
+                    pkt.Insert(EO_EncodeNumber(server, spell_id, 2), pkt.Length() + 1);
+                    Server_BroadcastNearby(
+                        server, target, PacketAction_Admin, PacketFamily_Avatar, pkt);
+                    Client_SendEncoded(
+                        server, target, PacketAction_Admin, PacketFamily_Avatar, pkt);
+                    pkt = EO_EncodeNumber(server, target->hp, 2);
+                    pkt.Insert(EO_EncodeNumber(server, target->tp, 2), pkt.Length() + 1);
+                    pkt.Insert(EO_EncodeNumber(server, 0, 2), pkt.Length() + 1);
+                    Client_SendEncoded(
+                        server, target, PacketAction_Player, PacketFamily_Recover, pkt);
+                    if (target->hp < 1)
+                        Player_Respawn(server, target);
+                }
+                return 1;
+            }
+            return 1;
+        }
+        if (spell_target == SpellTargetType_Npc)
+        {
+            Npc **iter;
+            for (iter = (Npc **)Map_NpcIter_Begin(
+                     &Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
+                          ->npc_list);
+                 iter !=
+                 (Npc **)Map_NpcIter_End(
+                     &Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
+                          ->npc_list);
+                 iter++)
+            {
+                if ((*iter)->index != target_id)
+                    continue;
+                NpcTypeInfo type_info =
+                    NpcValues::GetType((*MAINFORM)->npc_values, (*iter)->id);
+                if (!(*iter)->alive)
+                    return 1;
+                if (!Server_InViewRange(
+                        server, caster->x, caster->y, (*iter)->x, (*iter)->y))
+                {
+                    Client_SendEncoded(server,
+                                       caster,
+                                       PacketAction_Reply,
+                                       PacketFamily_Refresh,
+                                       Refresh_BuildReply(server, caster));
+                    return 1;
+                }
+                MapCoord coords;
+                coords.x = (*iter)->x;
+                coords.y = (*iter)->y;
+                if (skill_type != 1 || type_info.type <= 0 || type_info.type >= 6)
+                    return 1;
+                if ((*iter)->chase_target_id != caster->player_id &&
+                    (*iter)->chase_target_id > 0 &&
+                    !Player::IsPartyMember(caster, (*iter)->chase_target_id))
+                {
+                    String reply = EO_EncodeNumber(server, spell_id, 2);
+                    reply.Insert(EO_EncodeNumber(server, caster->player_id, 2),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, caster->direction, 1),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, (*iter)->index, 2),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, 0, 3), reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, (*iter)->nHp_pct, 2),
+                                 reply.Length() + 1);
+                    Server_BroadcastNearTile(server,
+                                             caster->player_id,
+                                             caster->map_id,
+                                             coords,
+                                             PacketAction_Reply,
+                                             PacketFamily_Cast,
+                                             reply);
+                    reply.Insert(EO_EncodeNumber(server, caster->tp, 2),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, 2, 1), reply.Length() + 1);
+                    Client_SendEncoded(
+                        server, caster, PacketAction_Reply, PacketFamily_Cast, reply);
+                    return 1;
                 }
             }
+            return 1;
         }
         return 0;
     }

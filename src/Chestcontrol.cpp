@@ -56,32 +56,32 @@ void ChestController::Tick(ChestController *self)
                         item->item_present = 1;
                         item->respawn_countdown = item->respawn_delay;
                         max_items = 1;
-                        if (max_items == 1 && item->alt_item_id[1] > 0)
+                        if (max_items == 1 && item->alt_item_id1 > 0)
                             max_items++;
-                        if (max_items == 2 && item->alt_item_id[2] > 0)
+                        if (max_items == 2 && item->alt_item_id2 > 0)
                             max_items++;
-                        if (max_items == 3 && item->alt_item_id[3] > 0)
+                        if (max_items == 3 && item->alt_item_id3 > 0)
                             max_items++;
                         item_index = RandRange(max_items);
                         if (item_index == 0)
                         {
-                            item->item_id = item->alt_item_id[0];
-                            item->amount = item->alt_amount[0];
+                            item->item_id = item->alt_item_id0;
+                            item->amount = item->alt_amount0;
                         }
                         if (item_index == 1)
                         {
-                            item->item_id = item->alt_item_id[1];
-                            item->amount = item->alt_amount[1];
+                            item->item_id = item->alt_item_id1;
+                            item->amount = item->alt_amount1;
                         }
                         if (item_index == 2)
                         {
-                            item->item_id = item->alt_item_id[2];
-                            item->amount = item->alt_amount[2];
+                            item->item_id = item->alt_item_id2;
+                            item->amount = item->alt_amount2;
                         }
                         if (item_index == 3)
                         {
-                            item->item_id = item->alt_item_id[3];
-                            item->amount = item->alt_amount[3];
+                            item->item_id = item->alt_item_id3;
+                            item->amount = item->alt_amount3;
                         }
                     }
                 }

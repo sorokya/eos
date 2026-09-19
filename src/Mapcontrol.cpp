@@ -40,6 +40,10 @@ Mapcontrol::Mapcontrol(Settings *settings)
     Mapcontrol_LoadMaps(this);
 }
 
+Mapcontrol::~Mapcontrol()
+{
+}
+
 int Mapcontrol::Map_GetWarpMap(Mapcontrol *map_control, int map_id, int x, int y)
 {
     int result = 0;
@@ -615,36 +619,34 @@ void Mapcontrol::Mapcontrol_AddChestSpawn(Mapcontrol *map_control,
                 extra_slot.respawn_countdown = spawn_time;
                 extra_slot.respawn_delay = spawn_time;
                 extra_slot.amount = amount;
-                extra_slot.alt_item_id[0] = item_id;
-                extra_slot.alt_amount[0] = amount;
-                extra_slot.alt_item_id[1] = 0;
-                extra_slot.alt_item_id[2] = 0;
-                extra_slot.alt_item_id[3] = 0;
+                extra_slot.alt_item_id0 = item_id;
+                extra_slot.alt_amount0 = amount;
+                extra_slot.alt_item_id1 = 0;
+                extra_slot.alt_item_id2 = 0;
+                extra_slot.alt_item_id3 = 0;
                 chest_iter->slots.insert(chest_iter->slots.end(), extra_slot);
             }
             else
             {
-                if (Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id[1] > 0)
+                if (Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id1 > 0)
                 {
-                    if (Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id[2] > 0)
+                    if (Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id2 > 0)
                     {
-                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id[3] =
+                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id3 =
                             item_id;
-                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_amount[3] =
-                            amount;
+                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_amount3 = amount;
                     }
                     else
                     {
-                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id[2] =
+                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id2 =
                             item_id;
-                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_amount[2] =
-                            amount;
+                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_amount2 = amount;
                     }
                 }
                 else
                 {
-                    Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id[1] = item_id;
-                    Itemchest_GetSlot(&chest_iter->slots, slot)->alt_amount[1] = amount;
+                    Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id1 = item_id;
+                    Itemchest_GetSlot(&chest_iter->slots, slot)->alt_amount1 = amount;
                 }
             }
             break;
@@ -660,11 +662,11 @@ void Mapcontrol::Mapcontrol_AddChestSpawn(Mapcontrol *map_control,
         new_item.respawn_countdown = spawn_time;
         new_item.respawn_delay = spawn_time;
         new_item.amount = amount;
-        new_item.alt_item_id[0] = item_id;
-        new_item.alt_amount[0] = amount;
-        new_item.alt_item_id[1] = 0;
-        new_item.alt_item_id[2] = 0;
-        new_item.alt_item_id[3] = 0;
+        new_item.alt_item_id0 = item_id;
+        new_item.alt_amount0 = amount;
+        new_item.alt_item_id1 = 0;
+        new_item.alt_item_id2 = 0;
+        new_item.alt_item_id3 = 0;
         new_chest.slots.insert(new_chest.slots.end(), new_item);
         map->chest_list.insert(map->chest_list.end(), new_chest);
     }
@@ -1415,33 +1417,6 @@ String Map_ReadRawFile(Mapcontrol *map_control, int map_id)
 
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
-// STUB(0x0047af68, 80 bytes) FUN_0047af68 - ref: undefined FUN_0047af68(int param_1, byte
-// param_2)
-void FUN_0047af68_Stub(int a0, unsigned char a1)
-{
-}
-// STUB(0x0047e30c, 248 bytes) FUN_0047e30c - ref: undefined FUN_0047e30c(undefined4
-// param_1, undefined4 * param_2)
-void FUN_0047e30c_Stub(int a0, void *a1)
-{
-}
-// STUB(0x00480240, 560 bytes) FUN_00480240 - ref: int FUN_00480240(int param_1, int
-// param_2)
-int FUN_00480240_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00481254, 42 bytes) FUN_00481254 - ref: int FUN_00481254(int param_1)
-int FUN_00481254_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00482444, 42 bytes) FUN_00482444 - ref: undefined4 * FUN_00482444(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_00482444_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
 bool FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
 {
     String map_buf;
@@ -1710,82 +1685,6 @@ bool FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
         return 0;
     }
     return 1;
-}
-// STUB(0x0048441c, 161 bytes) FUN_0048441c - ref: undefined FUN_0048441c(undefined4 *
-// param_1, uint param_2)
-void FUN_0048441c_Stub(void *a0, unsigned int a1)
-{
-}
-// STUB(0x00484558, 59 bytes) FUN_00484558 - ref: undefined4 * FUN_00484558(undefined4 *
-// param_1, int param_2)
-void *FUN_00484558_Stub(void *a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00484594, 670 bytes) FUN_00484594 - ref: undefined FUN_00484594(undefined4 *
-// param_1, undefined4 param_2, undefined4 param_3, undefined4 param_4, undefined4
-// param_5, uint param_6, undefined4 param_7)
-void FUN_00484594_Stub(void *a0, int a1, int a2, int a3, int a4, unsigned int a5, int a6)
-{
-}
-// STUB(0x00484834, 159 bytes) FUN_00484834 - ref: undefined4 * FUN_00484834(undefined4 *
-// param_1, int param_2, undefined4 param_3, undefined4 param_4, undefined4 param_5,
-// undefined4 param_6)
-void *FUN_00484834_Stub(void *a0, int a1, int a2, int a3, int a4, int a5)
-{
-    return 0;
-}
-// STUB(0x00484b18, 129 bytes) FUN_00484b18 - ref: undefined4 * FUN_00484b18(undefined4 *
-// param_1)
-void *FUN_00484b18_Stub(void *a0)
-{
-    return 0;
-}
-// STUB(0x00484b9c, 84 bytes) FUN_00484b9c - ref: undefined FUN_00484b9c(void)
-void FUN_00484b9c_Stub()
-{
-}
-// STUB(0x00484bf0, 151 bytes) FUN_00484bf0 - ref: undefined4 * FUN_00484bf0(undefined4 *
-// param_1)
-void *FUN_00484bf0_Stub(void *a0)
-{
-    return 0;
-}
-// STUB(0x00484c88, 75 bytes) FUN_00484c88 - ref: undefined FUN_00484c88(void)
-void FUN_00484c88_Stub()
-{
-}
-// STUB(0x00484d00, 99 bytes) FUN_00484d00 - ref: int FUN_00484d00(undefined4 * param_1,
-// undefined4 * param_2, int param_3)
-int FUN_00484d00_Stub(void *a0, void *a1, int a2)
-{
-    return 0;
-}
-// STUB(0x00484d88, 31 bytes) FUN_00484d88 - ref: bool FUN_00484d88(int param_1, int
-// param_2)
-bool FUN_00484d88_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00484da8, 17 bytes) FUN_00484da8 - ref: int FUN_00484da8(int param_1)
-int FUN_00484da8_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00484dbc, 26 bytes) FUN_00484dbc - ref: undefined FUN_00484dbc(undefined4 *
-// param_1, undefined4 * param_2)
-void FUN_00484dbc_Stub(void *a0, void *a1)
-{
-}
-// STUB(0x00484dd8, 42 bytes) FUN_00484dd8 - ref: undefined4 FUN_00484dd8(int param_1, int
-// param_2)
-int FUN_00484dd8_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00484e04, 36 bytes) FUN_00484e04 - ref: undefined FUN_00484e04(int param_1)
-void FUN_00484e04_Stub(int a0)
-{
 }
 bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
 {
@@ -2058,23 +1957,6 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
         return false;
     }
     return true;
-}
-// STUB(0x004873c8, 19 bytes) FUN_004873c8 - ref: undefined FUN_004873c8(undefined4
-// param_1, undefined4 param_2, undefined4 * param_3)
-void FUN_004873c8_Stub(int a0, int a1, void *a2)
-{
-}
-// STUB(0x0048760c, 42 bytes) FUN_0048760c - ref: undefined4 * FUN_0048760c(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_0048760c_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00487638, 99 bytes) FUN_00487638 - ref: int FUN_00487638(undefined4 * param_1,
-// undefined4 * param_2, int param_3)
-int FUN_00487638_Stub(void *a0, void *a1, int a2)
-{
-    return 0;
 }
 #pragma warn.8057
 // END GENERATED STUBS
