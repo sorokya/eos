@@ -1716,12 +1716,11 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
                 map_buf.Delete(1, 8);
             }
         }
-        return 1;
     }
     catch (...)
     {
-        return 1;
     }
+    return 1;
 }
 // STUB(0x0048441c, 161 bytes) FUN_0048441c - ref: undefined FUN_0048441c(undefined4 *
 // param_1, uint param_2)
@@ -2064,12 +2063,11 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
         }
         map_control->maps.insert(MapVector_End(map_control), map);
         FUN_0048835c(&map, 2);
-        return true;
     }
     catch (...)
     {
-        return true;
     }
+    return true;
 }
 // STUB(0x004873c8, 19 bytes) FUN_004873c8 - ref: undefined FUN_004873c8(undefined4
 // param_1, undefined4 param_2, undefined4 * param_3)
