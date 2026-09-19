@@ -60,7 +60,7 @@ String Player_SerializeAvatar(Server *server, Player *player, int arg);
 String Server_BuildOnlineNames(Server *server);
 String Server_BuildOnlineList(Server *server);
 String Refresh_BuildReply(Server *server, Player *player);
-int Walk_Execute_Stub(void *a0, void *a1, int a2, void *a3);
+bool Walk_Execute(Server *server, Player *player, int action, String *data);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
@@ -121,7 +121,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->action_queue.insert(player->action_queue.end(), command);
             return true;
         }
-        Walk_Execute_Stub(server, player, action, &data);
+        Walk_Execute(server, player, action, &data);
         return true;
     }
     if (family == PacketFamily_Attack)
@@ -4051,11 +4051,279 @@ int Spell_Execute(Server *server, Player *caster, int action, String *packet_dat
     }
     return 0;
 }
-// STUB(0x0046ee4c, 5466 bytes) Walk_Execute - ref: undefined4 Walk_Execute(Server *
-// server, Player * player, PacketAction action, AnsiString * data)
-int Walk_Execute_Stub(void *a0, void *a1, int a2, void *a3)
+bool Walk_Execute(Server *server, Player *player, int action, String *data)
 {
-    return 0;
+    *(TTimeStamp *)&player->walk_tick = DateTimeToTimeStamp(Now());
+    if (player->map_id < 1)
+        return true;
+    if (action != PacketAction_Player && action != PacketAction_Spec &&
+        action != PacketAction_Admin)
+        return false;
+    if (action == PacketAction_Admin && player->admin_level < 3)
+        return false;
+    if (action == PacketAction_Spec)
+    {
+        if (player->ghost_walk_tokens <= 0)
+            return true;
+        player->ghost_walk_tokens--;
+    }
+    if (data->Length() < 6)
+        return false;
+    int client_tick = EO_DecodeNumber(server, data->SubString(2, 3));
+    int tick_delta = client_tick - player->last_client_walk_tick;
+    if (tick_delta < 0 && player->last_client_walk_tick > 7500000)
+        tick_delta = 44;
+    player->last_client_walk_tick = client_tick;
+    if (tick_delta < 44)
+        return false;
+    TTimeStamp stamp = DateTimeToTimeStamp(Now());
+    int sync_tick = stamp.Time / 10 + 100;
+    int clock_drift;
+    if (client_tick > sync_tick)
+    {
+        clock_drift = client_tick - sync_tick;
+        if (player->sync_base_ahead < 0)
+            player->sync_base_ahead = clock_drift;
+        if (Math_Abs(clock_drift - player->sync_base_ahead) > 800)
+            return true;
+    }
+    else
+    {
+        clock_drift = sync_tick - client_tick;
+        if (player->sync_base_behind < 0)
+            player->sync_base_behind = clock_drift;
+        if (Math_Abs(clock_drift - player->sync_base_behind) > 800)
+            return true;
+    }
+    int direction = EO_DecodeNumber(server, (*data)[1]);
+    int target_x = EO_DecodeNumber(server, (*data)[5]);
+    int target_y = EO_DecodeNumber(server, (*data)[6]);
+    if (direction > 3)
+        return true;
+    if (player->x == target_x && player->y == target_y)
+    {
+        if (player->direction != direction && !player->on_chair && !player->sitting)
+        {
+            player->direction = direction;
+            String out = EO_EncodeNumber(server, player->player_id, 2);
+            out.Insert(EO_EncodeNumber(server, direction, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->x, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->y, 1), out.Length() + 1);
+            Server_BroadcastNearby(
+                server, player, PacketAction_Player, PacketFamily_Walk, out);
+        }
+        return true;
+    }
+    if (direction > 3)
+        direction = 3;
+    int coord_delta = (player->x + player->y) - (target_x + target_y);
+    if (coord_delta > 3 || coord_delta < -3 || player->on_chair || player->sitting)
+    {
+        player->flush_queue = 1;
+        if (!player->cheater_flag)
+        {
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Refresh,
+                               Refresh_BuildReply(server, player));
+        }
+        return true;
+    }
+    if (direction == 0)
+    {
+        target_y = player->y + 1;
+        target_x = player->x;
+    }
+    if (direction == 1)
+    {
+        target_x = player->x - 1;
+        target_y = player->y;
+    }
+    if (direction == 2)
+    {
+        target_y = player->y - 1;
+        target_x = player->x;
+    }
+    if (direction == 3)
+    {
+        target_x = player->x + 1;
+        target_y = player->y;
+    }
+    if (Mapcontrol::Map_IsOccupied(
+            server->map_control, player->map_id, target_x, target_y) &&
+        action == PacketAction_Player)
+        return true;
+    if (Players::Players_IsPlayerAt(server->players, player->map_id, target_x, target_y))
+    {
+        if (action == PacketAction_Player)
+        {
+            if (!player->cheater_flag)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Refresh,
+                                   Refresh_BuildReply(server, player));
+            }
+            return true;
+        }
+        if (player->admin_level < 2)
+        {
+            TTimeStamp now = DateTimeToTimeStamp(Now());
+            int elapsed = now.Date - player->last_pass_ms.Date;
+            int ms = now.Time - player->last_pass_ms.Time;
+            elapsed = ms / 1000 + elapsed * 86400;
+            player->last_pass_ms = now;
+            if (elapsed < 7)
+                return true;
+            if (Mapcontrol::Map_GetTileSpec(
+                    server->map_control, player->map_id, target_x, target_y) ==
+                MapTileSpec_Reserved31)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Refresh,
+                                   Refresh_BuildReply(server, player));
+                return true;
+            }
+        }
+    }
+    int walkable = Mapcontrol::Map_IsWalkableNPC(
+        server->map_control, player->map_id, target_x, target_y, 1);
+    if (walkable == 0 || (walkable == 1 && action == PacketAction_Admin))
+    {
+        player->direction = direction;
+        player->x = target_x;
+        player->y = target_y;
+        player->idle_ticks = 0;
+        String reply = Walk_BuildReply(server, player);
+        if (reply.Length() > 1)
+            Client_SendEncoded(
+                server, player, PacketAction_Reply, PacketFamily_Walk, reply);
+        String walk = EO_EncodeNumber(server, player->player_id, 2);
+        walk.Insert(EO_EncodeNumber(server, direction, 1), walk.Length() + 1);
+        walk.Insert(EO_EncodeNumber(server, target_x, 1), walk.Length() + 1);
+        walk.Insert(EO_EncodeNumber(server, target_y, 1), walk.Length() + 1);
+        Server_BroadcastNearby(
+            server, player, PacketAction_Player, PacketFamily_Walk, walk);
+        if (player->map_has_spikes)
+        {
+            unsigned int spec = Mapcontrol::Map_GetTileSpec(
+                server->map_control, player->map_id, player->x, player->y);
+            if (spec == MapTileSpec_TimedSpikes || spec == MapTileSpec_Spikes)
+            {
+                int damage = player->max_hp / 5;
+                int died = 0;
+                if (damage < 1)
+                    damage = 1;
+                player->hp -= damage;
+                if (player->hp <= 0)
+                {
+                    player->hp = 0;
+                    died = 1;
+                }
+                String dmg = EO_EncodeNumber(server, 2, 1);
+                dmg.Insert(EO_EncodeNumber(server, damage, 2), dmg.Length() + 1);
+                dmg.Insert(EO_EncodeNumber(server, player->hp, 2), dmg.Length() + 1);
+                dmg.Insert(EO_EncodeNumber(server, player->max_hp, 2), dmg.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Spec, PacketFamily_Effect, dmg);
+                dmg += EO_EncodeNumber(server, player->player_id, 2);
+                dmg.Insert(EO_EncodeNumber(server, Player::HpPercent(player), 1),
+                           dmg.Length() + 1);
+                dmg.Insert(EO_EncodeNumber(server, died, 1), dmg.Length() + 1);
+                dmg.Insert(EO_EncodeNumber(server, damage, 2), dmg.Length() + 1);
+                Server_BroadcastNearby(
+                    server, player, PacketAction_Admin, PacketFamily_Effect, dmg);
+                if (died)
+                {
+                    Player_Respawn(server, player);
+                    return true;
+                }
+            }
+        }
+        Player_FireQuestTriggers(server, player, 10, 0);
+        return true;
+    }
+    if (walkable == 2)
+    {
+        int target_map = Mapcontrol::Map_GetWarpMap(
+            server->map_control, player->map_id, target_x, target_y);
+        int level_req = Mapcontrol::Map_GetWarpLevelReq(
+            server->map_control, player->map_id, target_x, target_y);
+        int warp_x = Mapcontrol::Map_GetWarpX(
+            server->map_control, player->map_id, target_x, target_y);
+        int warp_y = Mapcontrol::Map_GetWarpY(
+            server->map_control, player->map_id, target_x, target_y);
+        if (player->level < level_req)
+            return true;
+        if (target_map > 0 && target_map <= Mapcontrol_GetCount(server->map_control))
+        {
+            if (Mapcontrol_GetByIndex(server->map_control, target_map - 1)->width < 1 ||
+                Mapcontrol_GetByIndex(server->map_control, target_map - 1)->height < 1)
+                return true;
+            if (player->warp_state < 0)
+                player->session_id = RandRange(50000) + 10000;
+            player->warp_state = 0;
+            player->warp_pending = true;
+            player->dead = false;
+            player->warp_map = target_map;
+            player->warp_x = (unsigned short)warp_x;
+            player->warp_y = (unsigned short)warp_y;
+            if (target_map == player->map_id)
+            {
+                String out = EO_EncodeNumber(server, 1, 1);
+                out.Insert(
+                    EO_EncodeNumber(
+                        server,
+                        Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid,
+                        2),
+                    out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->session_id, 2),
+                           out.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Request, PacketFamily_Warp, out);
+                return true;
+            }
+            else
+            {
+                String out = EO_EncodeNumber(server, 2, 1);
+                out.Insert(
+                    EO_EncodeNumber(
+                        server,
+                        Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid,
+                        2),
+                    out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server,
+                                           (unsigned short)Mapcontrol_GetByIndex(
+                                               server->map_control, target_map - 1)
+                                               ->rid1,
+                                           2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server,
+                                           (unsigned short)Mapcontrol_GetByIndex(
+                                               server->map_control, target_map - 1)
+                                               ->rid2,
+                                           2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server,
+                                           (unsigned short)Mapcontrol_GetByIndex(
+                                               server->map_control, target_map - 1)
+                                               ->filesize,
+                                           3),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->session_id, 2),
+                           out.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Request, PacketFamily_Warp, out);
+                Player_FireQuestTriggers(server, player, 12, player->map_id);
+                return true;
+            }
+        }
+    }
+    return true;
 }
 // STUB(0x00470584, 20 bytes) FUN_00470584 - ref: undefined FUN_00470584(void)
 void FUN_00470584_Stub()
