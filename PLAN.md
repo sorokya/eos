@@ -625,6 +625,16 @@ Tracked so they are not mistaken for done:
   declared in `src/Packets.h`; blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
   byte-exact (`std::stack<char>`/`std::deque<char>`, by-value `String` return);
+  `Player_HandlePacket` (`0x41794c`, 52,589 instructions, 33.9% of app bytes) is
+  prepared but not started: `/tmp/handlepacket_prep.md` has the 187-instruction
+  prologue (frame `0x1f48`, split `add esp,-4092`/`push eax`/`add esp,-3912`; 13
+  locals; header parse `data.Length() < 4` guard, the `+/-0x80` byte loop,
+  `EO_ByteRange_FromString`/`EO_Decode_Deinterleave`, `EO_DecodeByte` x2,
+  `EO_DecodeNumber`, `data.Delete(1,3)`, the `character_slots` search,
+  `(*MAINFORM)->field_370/field_36c` stores) and chunk 1 (family `0x19`,
+  `0x42a507`, 62 instructions, 0 TODOs: `Refresh_BuildReply` +
+  `Client_SendEncoded`). Scoring needs `--frame-wild`/`--stack-search` because of
+  the split frame.
   `NpcRange_Lookup` is at **22 mismatched (286/290)** — the arming-form fix
   (`Npc **iter;` declared bare, `for (iter = …)` inside the `try`) removed the
   spurious loop-entry arm; residual is the final `return` path's missing `arm 0x80`
