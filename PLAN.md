@@ -631,7 +631,10 @@ Tracked so they are not mistaken for done:
   60/70/74/75/76/80/84/88`; ours `0x24..0x40` (8 slots) then
   `0x48/50/54/58/5c/64/68/6c/70/78/7c/7d/84/88` — the reference keeps 12 locals in
   the `0x4..0x30` band (the log-path Strings) where ours keeps 8 in `0x24..0x40`,
-  so the band placement (not the total) is the residual. The real log sequence
+  so the band placement (not the total) is the residual. Rebuilding the log path
+  with the spec's 11 Strings overshot the frame to `-0xa4` (28 B too big), so the
+  log path really has ~4 locals, not 11 — the spec's §1 count is wrong; only the
+  band placement (locals declared so they land at `-0x4`..) is still open. The real log sequence
   (formatters/joins/append trio) is still approximated.
   Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
