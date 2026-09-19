@@ -5153,11 +5153,246 @@ int FUN_0045b0d0_Stub(int a0)
 {
     return 0;
 }
-// STUB(0x0045b0dc, 9419 bytes) Login_SendCharacterList - ref: void
-// Login_SendCharacterList(Server * server, Player * player, PacketAction action,
-// PacketFamily family, AnsiString * data)
-void Login_SendCharacterList_Stub(void *a0, void *a1, int a2, int a3, void *a4)
+void Login_SendCharacterList(
+    Server *server, Player *player, PacketAction action, PacketFamily family, String data)
 {
+    (*MAINFORM)->myquery->Open();
+    data.Insert(
+        EO_EncodeNumber(server, Mysqlcontrols::GetResultCount(server->mysql_controls), 1),
+        data.Length() + 1);
+    data.Insert(EO_EncodeNumber(server, 0, 1), data.Length() + 1);
+    data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+
+    for (int i = 0; i < 3; i++)
+    {
+        if (player->character_slots[i] != 0)
+        {
+            Player *slot = player->character_slots[i];
+            player->character_slots[i] = 0;
+            delete slot;
+        }
+    }
+
+    int i = 0;
+    while ((*MAINFORM)->myquery->Eof == false && i < 3)
+    {
+        Player *newplayer = new Player(player->socket);
+        newplayer->player_id = *(int *)((char *)player->socket + 4);
+        newplayer->character_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident");
+        newplayer->account_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident_account");
+        newplayer->class_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident_class");
+        newplayer->guild_rank_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident_rank");
+        newplayer->guild_tag =
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "ident_guild");
+        newplayer->home_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "citizenship");
+        newplayer->name = Mysqlcontrols::Db_GetString(server->mysql_controls, "name");
+        newplayer->partner_name =
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "partner");
+        newplayer->title = Mysqlcontrols::Db_GetString(server->mysql_controls, "title");
+        newplayer->guild_name =
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "guild");
+        newplayer->guild_rank_name =
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank");
+        newplayer->experience =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "experience");
+        newplayer->level = Mysqlcontrols::Db_GetInt(server->mysql_controls, "level");
+        newplayer->signup = Mysqlcontrols::Db_GetString(server->mysql_controls, "signup");
+        newplayer->gender = Mysqlcontrols::Db_GetInt(server->mysql_controls, "gender");
+        newplayer->hair_style =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "hairmodal");
+        newplayer->hair_color =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "haircolor");
+        newplayer->skin = Mysqlcontrols::Db_GetInt(server->mysql_controls, "skincolor");
+        newplayer->map_id = Mysqlcontrols::Db_GetInt(server->mysql_controls, "nav_map");
+        newplayer->x = Mysqlcontrols::Db_GetInt(server->mysql_controls, "nav_x");
+        newplayer->y = Mysqlcontrols::Db_GetInt(server->mysql_controls, "nav_y");
+        newplayer->direction =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "nav_direction");
+        newplayer->base_hp = Mysqlcontrols::Db_GetInt(server->mysql_controls, "hp_max");
+        newplayer->hp = Mysqlcontrols::Db_GetInt(server->mysql_controls, "hp_now");
+        newplayer->base_tp = Mysqlcontrols::Db_GetInt(server->mysql_controls, "mp_max");
+        newplayer->tp = Mysqlcontrols::Db_GetInt(server->mysql_controls, "mp_now");
+        newplayer->base_sp = Mysqlcontrols::Db_GetInt(server->mysql_controls, "sp_max");
+        newplayer->usage = Mysqlcontrols::Db_GetInt(server->mysql_controls, "clientusge");
+        newplayer->money_bank =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "money_bank");
+        newplayer->locker_bank =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "locker_bank");
+        newplayer->stat_points =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_points");
+        newplayer->skill_points =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "skill_points");
+        newplayer->karma =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "alignment_good");
+        newplayer->base_strength =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_strenght");
+        newplayer->base_wisdom =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_wisdom");
+        newplayer->base_intelligence =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_intelligence");
+        newplayer->base_agility =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_agility");
+        newplayer->base_constitution =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_constitution");
+        newplayer->base_charisma =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_charisma");
+        newplayer->boots_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_boots");
+        newplayer->accessory_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_pants");
+        newplayer->gloves_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_gloves");
+        newplayer->armor_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_armor");
+        newplayer->belt_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_belt");
+        newplayer->necklace_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_necklage");
+        newplayer->hat_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_hat");
+        newplayer->shield_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_shield");
+        newplayer->weapon_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_weapon");
+        newplayer->ring1_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_ring_l");
+        newplayer->ring2_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_ring_r");
+        newplayer->armlet1_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_armlet_l");
+        newplayer->armlet2_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_armlet_r");
+        newplayer->bracer1_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_bracer_l");
+        newplayer->bracer2_item_id =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_bracer_r");
+
+        for (int k = 0; k < 7; k++)
+            newplayer->element_resistances[k] = 0;
+        newplayer->weight_current = 0;
+        newplayer->min_damage = 0;
+        newplayer->max_damage = 0;
+        newplayer->accuracy = 0;
+        newplayer->evasion = 0;
+        newplayer->armor = 0;
+        newplayer->class_min_damage = 0;
+        newplayer->class_max_damage = 0;
+        newplayer->class_accuracy = 0;
+        newplayer->class_evasion = 0;
+        newplayer->class_armor = 0;
+        Player_ApplyEquipmentBonuses(server, newplayer);
+        Player::UpdateBaseStats(newplayer);
+        Player_CalculateStats(server, newplayer);
+        Player::CalculateHP_TP_SP(newplayer);
+        newplayer->on_chair = 0;
+        newplayer->sitting = 0;
+
+        if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls, "sitting") ==
+            1)
+            newplayer->on_chair = 1;
+        if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls, "sitting") ==
+            2)
+            newplayer->sitting = 1;
+        newplayer->admin_level =
+            Mysqlcontrols::Db_GetInt(server->mysql_controls, "privilege");
+        newplayer->quest_cache =
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "questcache");
+        newplayer->quest_blob =
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "questblob2") +
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "questblob");
+        newplayer->invblob1 =
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob2") +
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob");
+        newplayer->invblob2 =
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob4") +
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob3");
+        newplayer->skillblob =
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "skillblob2") +
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "skillblob");
+
+        if (i < 3)
+        {
+            player->character_slots[i] = newplayer;
+            i++;
+        }
+
+        data.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "name"),
+                    data.Length() + 1);
+        data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(
+                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident"), 4),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(
+                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "level"), 1),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(
+                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "gender"), 1),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(
+                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "hairmodal"), 1),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(
+                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "haircolor"), 1),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(
+                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "skincolor"), 1),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(
+                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "privilege"), 1),
+            data.Length() + 1);
+        data.Insert(EO_EncodeNumber(
+                        server,
+                        ItemValues::Eif_GetSpec1ForTypes(
+                            (*MAINFORM)->item_values,
+                            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_boots")),
+                        2),
+                    data.Length() + 1);
+        data.Insert(EO_EncodeNumber(
+                        server,
+                        ItemValues::Eif_GetSpec1ForTypes(
+                            (*MAINFORM)->item_values,
+                            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_armor")),
+                        2),
+                    data.Length() + 1);
+        data.Insert(EO_EncodeNumber(
+                        server,
+                        ItemValues::Eif_GetSpec1ForTypes(
+                            (*MAINFORM)->item_values,
+                            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_hat")),
+                        2),
+                    data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server,
+                                    ItemValues::Eif_GetSpec1ForTypes(
+                                        (*MAINFORM)->item_values,
+                                        Mysqlcontrols::Db_GetInt(server->mysql_controls,
+                                                                 "eq_shield")),
+                                    2),
+                    data.Length() + 1);
+        data.Insert(EO_EncodeNumber(server,
+                                    ItemValues::Eif_GetSpec1ForTypes(
+                                        (*MAINFORM)->item_values,
+                                        Mysqlcontrols::Db_GetInt(server->mysql_controls,
+                                                                 "eq_weapon")),
+                                    2),
+                    data.Length() + 1);
+        data.Insert(EO_GetBreakByte(server, 0xff), data.Length() + 1);
+
+        (*MAINFORM)->myquery->Next();
+    }
+
+    Client_SendEncoded(server, player, action, family, data);
 }
 // STUB(0x0045d874, 1342 bytes) Walk_BuildReply - ref: AnsiString *
 // Walk_BuildReply(AnsiString * out, Server * server, Player * player)
