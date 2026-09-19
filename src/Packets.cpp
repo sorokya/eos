@@ -42,6 +42,7 @@ void Server_BroadcastToParty(
 Player **Players_Iter_End(Players *players);
 bool Player_HandlePacket(Server *server, Player *player, String data);
 void FUN_00472944(Server *server, int value);
+String Player_SerializePaperdoll(Server *server, Player *player);
 int EO_DecodeByte(Server *server, unsigned char value);
 void *FUN_0044f6ec(void *obj);
 
@@ -82,6 +83,25 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         return false;
     (*MAINFORM)->field_370 = family;
     (*MAINFORM)->field_36c = action;
+    if (family == 0x33)
+    {
+        if (action != 1)
+            return false;
+        if (!player->logged_in)
+            return false;
+        if (data.Length() < 2)
+            return false;
+        int target_id = EO_DecodeNumber(server, data.SubString(2, 1));
+        if (player->player_id != target_id)
+            return false;
+        Player *target = Players::Players_GetById(server->players, target_id);
+        if (target == NULL)
+            return false;
+        String s = Player_SerializePaperdoll(server, target);
+        Client_SendEncoded(server, player, PacketFamily(0x33), PacketAction(3), s);
+        player->flush_queue = 1;
+        return true;
+    }
     return false;
 }
 
