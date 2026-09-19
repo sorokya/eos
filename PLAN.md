@@ -600,11 +600,18 @@ reference COMDATs; the `resize` call also pulls in the whole `vector<bool>`
 helper block (+13 byte-exact). Still outstanding (all in the off-limits Packets
 unit unless noted): free declarations that are really `Gamecontrol::Combat_Calc*`,
 `ItemValues::Eif_GetElement`, `Player::HpPercent` and `Player::IsPartyMember`;
-`Player_FireQuestTriggers`, `Server_BroadcastToMapExceptSelf`, `Sock_Send`, and
-the stubbed `FUN_00462374`, `FUN_00463d40`, `FUN_0047060c`, `FUN_004708d4`,
-`FUN_004728f8`; Mainform's unimplemented `FUN_00403080`; Packets'
+`Server_BroadcastToMapExceptSelf`, `Sock_Send`, and the stubbed `FUN_00462374`,
+`FUN_0047060c`, `FUN_004708d4`; Mainform's unimplemented `FUN_00403080`; Packets'
 `FUN_004731d0`/`FUN_00473540` and `Server_RemovePlayer` (`0x41728c`); and the data
 global `TGUI **MAINFORM` (`0x58b60c`), still without a definition.
+
+Resolved since (all in Packets, byte-exact): `Player_FireQuestTriggers` (182 B,
+now a definition rather than a bare declaration), the unnamed broadcast helpers
+`FUN_00463750`/`FUN_004639b8`/`FUN_00463be8`/`FUN_00463d40`, `Talk_PlayerWhisper`
+(492 B), `FUN_004738b0` (110 B, server start-time rate limit) and
+`FUN_004728f8` (74 B, sent-byte counters). `Player_FireQuestTriggers` also
+instantiated `std::vector<PlayerQuest>::erase` (`0x44f914`), which became
+byte-exact with it.
 
 ## Known-unconverged functions
 

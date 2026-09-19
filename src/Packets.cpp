@@ -58,7 +58,7 @@ String Server_BuildOnlineList(Server *server);
 String Refresh_BuildReply(Server *server, Player *player);
 String Map_ReadRawFile(Mapcontrol *map_control, int map_id);
 bool Walk_Execute(Server *server, Player *player, int action, String *data);
-bool FUN_004738b0_Stub(void *a0);
+bool FUN_004738b0(Server *server);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
@@ -857,7 +857,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             int amount = EO_DecodeNumber(server, data.SubString(5, 3));
             if (ItemValues::Eif_GetSpecial((*MAINFORM)->item_values, item_id) == 4)
                 return true;
-            if (amount > 10000000)
+            if ((unsigned int)amount > 10000000)
                 return true;
             int slot_count = Mapcontrol::Mapcontrol_GetChestSlotCount(
                 server->map_control, player->map_id, coords);
@@ -929,14 +929,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 FUN_00486e64((int)server->map_control, player->map_id, coords);
             if (chest_slot < 1)
             {
-                out.Insert(data.SubString(1, 1), 1);
+                out.Insert(data.SubString(1, 2), 1);
                 Client_SendEncoded(
                     server, player, PacketAction_Open, PacketFamily_Chest, out);
                 return true;
             }
             if (Players::Player_HasKeyItem(server->players, player, chest_slot))
             {
-                out.Insert(data.SubString(1, 1), 1);
+                out.Insert(data.SubString(1, 2), 1);
                 Client_SendEncoded(
                     server, player, PacketAction_Open, PacketFamily_Chest, out);
                 return true;
@@ -1629,7 +1629,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 }
                 else
                 {
-                    if (!FUN_004738b0_Stub(server))
+                    if (!FUN_004738b0(server))
                     {
                         Client_SendEncoded(server,
                                            player,
@@ -2437,6 +2437,28 @@ void Player_Warp(Server *server,
         out.Insert(EO_EncodeNumber(server, player->session_id, 2), out.Length() + 1);
         Client_SendEncoded(server, player, PacketAction_Request, PacketFamily_Warp, out);
         Player_FireQuestTriggers(server, player, 0xc, old_map);
+    }
+}
+
+void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value)
+{
+    for (PlayerQuest *iter = player->quest_trackers.begin();
+         iter != player->quest_trackers.end();)
+    {
+        QuestState *state = Questengine::GetState(
+            server->quest_engine, iter->quest_id, iter->state_index);
+        if (state == NULL)
+        {
+            iter = player->quest_trackers.erase(iter);
+            continue;
+        }
+        Player_EvaluateQuestRules(server, player, iter, state, state_index, value);
+        if (iter->done)
+        {
+            iter = player->quest_trackers.erase(iter);
+            continue;
+        }
+        iter++;
     }
 }
 
@@ -3991,6 +4013,81 @@ void Admin_BroadcastToAdmins(Server *server,
     {
         if ((*player_iter)->logged_in && (*player_iter)->player_id != player->player_id)
             Client_SendEncoded(server, *player_iter, action, family, data);
+    }
+}
+
+void FUN_00463750(Server *server,
+                  Player *player,
+                  unsigned char action,
+                  unsigned char family,
+                  String data)
+{
+    for (int i = 0; i < 0xa; i++)
+    {
+        Player *member = Players::Players_GetById(server->players, player->party_ids[i]);
+        if (member != NULL && player->map_id == member->map_id && member->logged_in)
+            Client_SendEncoded(server, member, action, family, data);
+    }
+}
+
+void FUN_004639b8(
+    Server *server, int map_id, unsigned char action, unsigned char family, String data)
+{
+    for (Player **player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((*player_iter)->map_id == map_id || (*player_iter)->admin_level > 0)
+        {
+            if ((*player_iter)->logged_in)
+                Client_SendEncoded(server, *player_iter, action, family, data);
+        }
+    }
+}
+
+void FUN_00463be8(Server *server,
+                  Player *player,
+                  unsigned char action,
+                  unsigned char family,
+                  String data)
+{
+    for (Player **player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((*player_iter)->admin_level > 0 && (*player_iter)->logged_in &&
+            (*player_iter)->player_id != player->player_id)
+            Client_SendEncoded(server, *player_iter, action, family, data);
+    }
+}
+
+void FUN_00463d40(Server *server, unsigned char action, unsigned char family, String data)
+{
+    for (Player **player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((*player_iter)->logged_in)
+            Client_SendEncoded(server, *player_iter, action, family, data);
+    }
+}
+
+void Talk_PlayerWhisper(Server *server, int map_id, String message, int break_byte)
+{
+    for (Player **player_iter = Players_Iter_Begin(server->players);
+         player_iter != Players_Iter_End(server->players);
+         player_iter++)
+    {
+        if ((*player_iter)->map_id == map_id && (*player_iter)->logged_in &&
+            !(*player_iter)->removing)
+        {
+            String out = EO_GetBreakByte(server, 0xff);
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+            out.Insert(EO_GetBreakByte(server, break_byte), out.Length() + 1);
+            out.Insert(message, out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
+            Sock_Send((*player_iter)->socket, *(char **)&out);
+        }
     }
 }
 
@@ -6034,31 +6131,6 @@ void *FUN_00462e38_Stub(void *a0, int a1)
 {
     return 0;
 }
-// STUB(0x00463408, 492 bytes) Talk_PlayerWhisper - ref: undefined Talk_PlayerWhisper(int
-// param_1, int param_2, undefined4 param_3, undefined4 param_4)
-void Talk_PlayerWhisper_Stub(int a0, int a1, int a2, int a3)
-{
-}
-// STUB(0x00463750, 183 bytes) FUN_00463750 - ref: undefined FUN_00463750(int param_1, int
-// param_2, byte param_3, byte param_4, int param_5)
-void FUN_00463750_Stub(int a0, int a1, unsigned char a2, unsigned char a3, int a4)
-{
-}
-// STUB(0x004639b8, 179 bytes) FUN_004639b8 - ref: undefined FUN_004639b8(int param_1, int
-// param_2, byte param_3, byte param_4, int param_5)
-void FUN_004639b8_Stub(int a0, int a1, unsigned char a2, unsigned char a3, int a4)
-{
-}
-// STUB(0x00463be8, 179 bytes) FUN_00463be8 - ref: undefined FUN_00463be8(int param_1, int
-// param_2, byte param_3, byte param_4, int param_5)
-void FUN_00463be8_Stub(int a0, int a1, unsigned char a2, unsigned char a3, int a4)
-{
-}
-// STUB(0x00463d40, 149 bytes) FUN_00463d40 - ref: undefined FUN_00463d40(int param_1,
-// byte param_2, byte param_3, int param_4)
-void FUN_00463d40_Stub(int a0, unsigned char a1, unsigned char a2, int a3)
-{
-}
 // STUB(0x00464030, 1286 bytes) Client_SendEncoded - ref: undefined
 // Client_SendEncoded(Server * server, Player * player, PacketAction action, PacketFamily
 // family)
@@ -6572,11 +6644,17 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
 void FUN_00470584_Stub()
 {
 }
-// STUB(0x00470598, 114 bytes) FUN_00470598 - ref: int FUN_00470598(undefined4 param_1,
-// int param_2)
-int FUN_00470598_Stub(int a0, int a1)
+int FUN_00470598(int a0, int value)
 {
-    return 0;
+    value++;
+    int a1 = value % 11 + 1;
+    int a2 = value % 9 + 1;
+    int a3 = value % 0x7d4 + 1;
+    value = 0xa94024 - value;
+    value = value % (a1 * 0x77);
+    value = a2 * value * 0x77;
+    value = a3 + value + 0x1b138;
+    return value;
 }
 // STUB(0x0047060c, 698 bytes) FUN_0047060c - ref: int * FUN_0047060c(int * param_1)
 void *FUN_0047060c_Stub(void *a0)
@@ -7039,10 +7117,19 @@ void FUN_004728a4_Stub(int a0)
 void FUN_004728b4_Stub(void *a0)
 {
 }
-// STUB(0x004728f8, 74 bytes) FUN_004728f8 - ref: undefined FUN_004728f8(int param_1, int
-// param_2)
-void FUN_004728f8_Stub(int a0, int a1)
+void FUN_004728f8(Server *server, int value)
 {
+    server->sent_bytes += value;
+    while (server->sent_bytes > 0x3ff)
+    {
+        server->sent_kilobytes++;
+        server->sent_bytes -= 0x400;
+    }
+    while (server->sent_kilobytes > 0x3ff)
+    {
+        server->sent_megabytes++;
+        server->sent_kilobytes -= 0x400;
+    }
 }
 // STUB(0x00472944, 74 bytes) FUN_00472944 - ref: undefined FUN_00472944(int param_1, int
 // param_2)
@@ -7078,11 +7165,19 @@ void *FUN_00473540_Stub(void *a0, void *a1)
 {
     return 0;
 }
-// STUB(0x004738b0, 110 bytes) FUN_004738b0 - ref: bool FUN_004738b0(undefined4 param_1,
-// undefined4 param_2, undefined4 param_3, int param_4)
-bool FUN_004738b0_Stub(void *a0)
+bool FUN_004738b0(Server *server)
 {
-    return 0;
+    TTimeStamp stamp = DateTimeToTimeStamp(server->start_time);
+    TTimeStamp now = DateTimeToTimeStamp(Now());
+    int days = now.Date - stamp.Date;
+    int millis = now.Time - stamp.Time;
+    int elapsed = millis / 1000 + days * 0x15180;
+    if (elapsed > 5)
+    {
+        server->start_time = Now();
+        return true;
+    }
+    return false;
 }
 // STUB(0x00473920, 1051 bytes) FUN_00473920 - ref: undefined FUN_00473920(int * param_1)
 void FUN_00473920_Stub(void *a0)

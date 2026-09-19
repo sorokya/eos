@@ -97,11 +97,11 @@ class Player
     int direction;                            // +0x0e8
     int warp_map;                             // +0x0ec
     int warp_state;                           // +0x0f0
-    unsigned short warp_x;                    // +0x0f4
-    unsigned short warp_y;                    // +0x0f6
+    short warp_x;                             // +0x0f4
+    short warp_y;                             // +0x0f6
     int target_map;                           // +0x0f8
-    unsigned short target_x;                  // +0x0fc
-    unsigned short target_y;                  // +0x0fe
+    short target_x;                           // +0x0fc
+    short target_y;                           // +0x0fe
     bool warp_pending;                        // +0x100
     bool map_switch_pending;                  // +0x101
     char pad_102[2];                          // +0x102
