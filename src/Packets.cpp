@@ -4385,6 +4385,7 @@ int FUN_004505e0_Stub(int a0, int a1)
     return 0;
 }
 String FUN_0047060c(Server *server, String value);
+String FUN_004708d4(Server *server, String value);
 void Login_SendCharacterList(Server *server,
                              Player *player,
                              PacketAction action,
@@ -4419,7 +4420,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                 server, player, 3, 4, EO_EncodeNumber(server, 2, 2) + "NO");
             return;
         }
-        if (Mysqlcontrols::Db_GetInt(server->mysql_controls, "banned") > 0)
+        if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls, "banned") > 0)
         {
             Client_SendEncoded(
                 server, player, 3, 4, EO_EncodeNumber(server, 4, 2) + "NO");
@@ -4468,7 +4469,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         Mysqlcontrols::Mysql_ExecDirect_FromCallback(
             server->mysql_controls,
             player->field_0xc,
-            "UPDATE endl_accounts SET lastvisit = '" + DateTimeToStr(now) +
+            "UPDATE endl_accounts SET lastvisit = '" + String(now) +
                 "' WHERE ident = " + IntToStr(ident));
         Mysqlcontrols::Mysql_SubmitQuery_FromCallback(
             server->mysql_controls,
@@ -4477,7 +4478,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             player->query_id,
             "",
             "SELECT * FROM endl_characters WHERE ident_account = " +
-                String(player->field_0xc) + " ORDER BY level DESC LIMIT 3");
+                IntToStr(player->field_0xc) + " ORDER BY level DESC LIMIT 3");
         return;
     }
     if (query_result->query_id == 0x41)
@@ -4490,7 +4491,53 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         return;
     }
     if (query_result->query_id == 0x45)
+    {
+        if ((*MAINFORM)->myquery->RecordCount > 0)
+        {
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Character,
+                               EO_EncodeNumber(server, 1, 2) + "NO");
+            return;
+        }
+        int gender = EO_DecodeNumber(server, query_result->data.SubString(3, 2));
+        int hair_modal = EO_DecodeNumber(server, query_result->data.SubString(5, 2));
+        int hair_color = EO_DecodeNumber(server, query_result->data.SubString(7, 2));
+        int skin_color = EO_DecodeNumber(server, query_result->data.SubString(9, 2));
+        String name = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls,
+            PacketReader_GetBreakStringAt(
+                server, 2, query_result->data, EO_GetBreakByte(server, 0xff)));
+        TDateTime now = Now();
+        String sql =
+            "INSERT INTO endl_characters (ident_account, ident_guild, ident_class, "
+            "name, signup, gender, hairmodal, haircolor, skincolor, nav_map, nav_x,";
+        sql = sql + IntToStr(player->field_0xc) + ",";
+        sql = sql + "'0',1,'";
+        sql = sql + name + "',";
+        sql = sql + "'" + String(now) + "',";
+        sql = sql + IntToStr(gender) + ",";
+        sql = sql + IntToStr(hair_modal) + ",";
+        sql = sql + IntToStr(hair_color) + ",";
+        sql = sql + IntToStr(skin_color) + ",";
+        sql = sql + IntToStr(Settings::GetStartMap(server->settings)) + ",";
+        sql = sql + IntToStr(Settings::GetStartX(server->settings)) + ",";
+        sql = sql + IntToStr(Settings::GetStartY(server->settings)) + ",";
+        sql = sql + "10,10,10,10,20,0,0)";
+        Mysqlcontrols::Mysql_ExecDirect_FromCallback(
+            server->mysql_controls, player->field_0xc, sql);
+        Mysqlcontrols::Mysql_SubmitQuery_FromCallback(
+            server->mysql_controls,
+            0x46,
+            player->player_id,
+            player->query_id,
+            "",
+            "SELECT * FROM endl_characters WHERE ident_account = " +
+                IntToStr(player->field_0xc) + " ORDER BY level DESC LIMIT 3");
+        server->mysql_controls->file_cache->characters_count++;
         return;
+    }
     if (query_result->query_id == 0x46)
     {
         Login_SendCharacterList(server,
@@ -4523,15 +4570,200 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         return;
     }
     if (query_result->query_id == 0x44)
+    {
+        if ((*MAINFORM)->myquery->RecordCount > 0)
+        {
+            player->removing = true;
+            return;
+        }
+        PacketReader_Init(server, query_result->data, EO_GetBreakByte(server, 0xff));
+        PacketReader_GetBreakString(server);
+        int code = EO_DecodeNumber(server, query_result->data.SubString(1, 2));
+        String account = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        if (player->session_id != code)
+        {
+            player->removing = true;
+            return;
+        }
+        if (player->account_create_cooldown > 4)
+            return;
+        player->account_create_cooldown = 6;
+        String password = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        String realname = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        String location = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        String email = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        String serial_c = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        String serial_h = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        TDateTime now = Now();
+        String sql = "INSERT INTO endl_accounts (account, password, realname, location, "
+                     "email,  signup, lastvisit, serial_c, serial_h , ipaddress, banned) "
+                     "VALUES ";
+        sql = sql + "'" + account + "',";
+        sql = sql + "ENCODE('" + FUN_004708d4(server, password) + "','eoeokeyendl'),";
+        sql = sql + "'" + realname + "',";
+        sql = sql + "'" + location + "',";
+        sql = sql + "'" + email + "',";
+        sql = sql + "'" + String(now) + "',";
+        sql = sql + "'" + String(now) + "',";
+        sql = sql + "'" + serial_c + "',";
+        sql = sql + "'" + serial_h + "',";
+        sql = sql + "'" + player->socket->RemoteAddress + "',";
+        sql = sql + "0)";
+        Mysqlcontrols::Mysql_ExecDirect(server->mysql_controls, 0, sql);
+        Client_SendEncoded(server,
+                           player,
+                           PacketAction_Reply,
+                           PacketFamily_Account,
+                           EO_EncodeNumber(server, 3, 2) + "GO");
+        server->mysql_controls->file_cache->accounts_count++;
+        player->session_id = RandRange(50000) + 10000;
         return;
+    }
     if (query_result->query_id == 0x42)
+    {
+        PacketReader_Init(server, query_result->data, EO_GetBreakByte(server, 0xff));
+        String account = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        String old_password = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        String new_password = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        if ((*MAINFORM)->myquery->RecordCount < 1)
+        {
+            player->removing = true;
+            return;
+        }
+        if (FUN_0047060c(server,
+                         Mysqlcontrols::Db_GetString(server->mysql_controls,
+                                                     "password")) != old_password ||
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "account") != account)
+        {
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Account,
+                               EO_EncodeNumber(server, 5, 2) + "NO");
+            return;
+        }
+        Client_SendEncoded(server,
+                           player,
+                           PacketAction_Reply,
+                           PacketFamily_Account,
+                           EO_EncodeNumber(server, 6, 2) + "OK");
+        Mysqlcontrols::Mysql_ExecDirect(
+            server->mysql_controls,
+            player->field_0xc,
+            "UPDATE endl_accounts SET password = ENCODE('" +
+                FUN_004708d4(server, new_password) +
+                "','eoeokeyendl') WHERE ident = " + IntToStr(player->field_0xc));
         return;
+    }
     if (query_result->query_id == 0x47)
+    {
+        if ((*MAINFORM)->myquery->RecordCount < 1)
+            return;
+        int token = EO_DecodeNumber(server, query_result->data.SubString(5, 1));
+        String char_name =
+            query_result->data.SubString(6, query_result->data.Length() - 5);
+        String rank_label = "rank" + IntToStr(token);
+        String rank_value =
+            Mysqlcontrols::Db_GetString(server->mysql_controls, rank_label);
+        Player *target = Players::Players_FindByName(server->players, char_name);
+        rank_value = Mysqlcontrols::Mysql_SanitizeString(
+            server->mysql_controls, rank_value, false);
+        if (target == NULL)
+        {
+            player->field_0x14 = rank_value;
+            Mysqlcontrols::Mysql_SubmitQuery_FromCallback(
+                server->mysql_controls,
+                0x48,
+                player->player_id,
+                player->query_id,
+                query_result->data,
+                "SELECT ident_guild, ident_rank FROM endl_characters WHERE name = '" +
+                    char_name + "' AND ident_guild = '" + player->guild_tag +
+                    "' LIMIT 1");
+            return;
+        }
+        if (player->guild_tag != target->guild_tag)
+        {
+            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x18, 2));
+            return;
+        }
+        if (target->guild_rank_id == 1)
+        {
+            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x17, 2));
+            return;
+        }
+        target->guild_rank_name = rank_value;
+        target->guild_rank_id = token;
+        Client_SendEncoded(
+            server, target, 2, 0x27, EO_EncodeNumber(server, token, 1) + rank_value);
+        Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x12, 2));
         return;
+    }
     if (query_result->query_id == 0x48)
+    {
+        if ((*MAINFORM)->myquery->RecordCount < 1)
+            return;
+        int token = EO_DecodeNumber(server, query_result->data.SubString(5, 1));
+        String char_name =
+            query_result->data.SubString(6, query_result->data.Length() - 5);
+        if (Mysqlcontrols::Db_GetString(server->mysql_controls, "ident_guild")
+                .LowerCase() != player->guild_tag.LowerCase())
+        {
+            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x18, 2));
+            return;
+        }
+        if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls,
+                                                   "ident_rank") == 1)
+        {
+            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x17, 2));
+            return;
+        }
+        Mysqlcontrols::Mysql_ExecDirect_FromCallback(
+            server->mysql_controls,
+            player->field_0xc,
+            "UPDATE endl_characters SET ident_rank = " + IntToStr(token) + ", rank = '" +
+                player->field_0x14 + "' WHERE name = '" + char_name +
+                "' AND ident_guild = '" + player->guild_tag + "'");
+        Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x12, 2));
         return;
+    }
     if (query_result->query_id == 0x49)
+    {
+        if ((*MAINFORM)->myquery->RecordCount < 1)
+            return;
+        if (Mysqlcontrols::Db_GetString(server->mysql_controls, "ident_guild")
+                .LowerCase() != player->guild_tag.LowerCase())
+        {
+            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x14, 2));
+            return;
+        }
+        if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls,
+                                                   "ident_rank") == 1)
+        {
+            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x15, 2));
+            return;
+        }
+        String char_name =
+            query_result->data.SubString(5, query_result->data.Length() - 4);
+        Mysqlcontrols::Mysql_ExecDirect_FromCallback(
+            server->mysql_controls,
+            player->field_0xc,
+            "UPDATE endl_characters SET ident_guild = '0', ident_rank = 9, "
+            "guild = '', rank = '' WHERE name = '" +
+                char_name + "' AND ident_guild = '" + player->guild_tag + "'");
+        Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x16, 2));
         return;
+    }
     if (query_result->query_id == 0x4a)
     {
         if ((*MAINFORM)->myquery->RecordCount < 1)

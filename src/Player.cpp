@@ -10,7 +10,7 @@ Player::Player(TCustomWinSocket *socket)
 {
     this->socket = socket;
     player_id = *(int *)((char *)socket + 4);
-    remote_ip += Socket_GetRemoteIP(socket);
+    remote_ip += socket->RemoteAddress;
     character_slot_0 = 0;
     character_slot_1 = 0;
     character_slot_2 = 0;

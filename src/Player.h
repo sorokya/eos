@@ -13,11 +13,6 @@
 
 int RandRange(int max);
 
-// 0x4cf070: returns the peer address as an AnsiString. The socket arrives in
-// EAX and the hidden return buffer in EDX (pinned by the Player_Init call site
-// 0x411075).
-String __fastcall Socket_GetRemoteIP(void *socket);
-
 // Layout recovered from the reference (Player unit, 0x410e04..0x411f64).
 // sizeof is 0x3f8, pinned by the `operator new(0x3f8)` at 0x4082d5 and by the
 // destructor's member-destruction counter (0x1c = 28 destructible members).
