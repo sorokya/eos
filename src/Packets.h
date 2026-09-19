@@ -98,8 +98,8 @@ void Server_Shutdown(Server *server);
 void Client_SendRaw(Server *server, Player *client, String data, int break_byte);
 void Client_SendEncoded(Server *server,
                         Player *player,
-                        PacketAction action,
-                        PacketFamily family,
+                        unsigned char action,
+                        unsigned char family,
                         String data);
 bool Face_Execute(Server *server, Player *player, int action, String *data);
 bool Chair_Execute(Server *server, Player *player, int action, String *data);
