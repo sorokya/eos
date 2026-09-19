@@ -19,16 +19,44 @@ import subprocess
 import sys
 
 
-# Mnemonic aliases for the same opcode: objdump and bcc32 name some conditions
-# differently (both encode 0x9D), which would otherwise show as a mismatch.
-MNEMONIC_ALIASES = {
-    "setnl": "setge", "setnle": "setg", "setnb": "setae", "setnbe": "seta",
-    "setnge": "setl", "setng": "setle", "setnae": "setb", "setna": "setbe",
-    "setpe": "setp", "setpo": "setnp",
-    "jge": "jnl", "jg": "jnle", "jae": "jnb", "ja": "jnbe",
-    "jbe": "jna", "jb": "jnae", "jl": "jnge", "jle": "jng",
-    "cmovnl": "cmovge", "cmovnle": "cmovg", "cmovae": "cmovnb",
-}
+# Condition-code aliases.  bcc32 and objdump spell the *same* condition
+# differently depending on the comparison's source form, so before comparing we
+# fold every mnemonic to one representative per condition class.  Only the
+# mnemonic is folded - operands are untouched, and genuinely different
+# conditions are never merged.
+JCC_CLASSES = [
+    ("jnl",  ["jge", "jnl"]),
+    ("jnle", ["jg", "jnle"]),
+    ("jng",  ["jle", "jng"]),
+    ("jnge", ["jl", "jnge"]),
+    ("jnb",  ["jae", "jnb", "jnc"]),
+    ("jnbe", ["ja", "jnbe"]),
+    ("jna",  ["jbe", "jna"]),
+    ("jnae", ["jb", "jnae", "jc"]),
+    ("je",   ["je", "jz"]),
+    ("jne",  ["jne", "jnz"]),
+    ("jp",   ["jp", "jpe"]),
+    ("jnp",  ["jnp", "jpo"]),
+    ("js",   ["js"]),
+    ("jns",  ["jns"]),
+    ("jo",   ["jo"]),
+    ("jno",  ["jno"]),
+]
+
+
+def _build_aliases():
+    out = {}
+    for prefix in ("", "set", "cmov"):
+        for rep, alts in JCC_CLASSES:
+            for a in alts:
+                # setcc/cmovcc drop the leading `j`
+                key = a if not prefix else a[1:]
+                val = rep if not prefix else rep[1:]
+                out[prefix + key] = prefix + val
+    return out
+
+
+MNEMONIC_ALIASES = _build_aliases()
 
 
 def canon(ins: str) -> str:
@@ -142,6 +170,15 @@ def shift_slots(seq, delta):
         out.append(EBP_NEG_RE.sub(
             lambda m: "[ebp-%d]" % (int(m.group(1)) + delta), ins))
     return out
+
+
+def score(ref, our):
+    """(aligned prefix, mismatches) for two canonical instruction sequences."""
+    n = max(len(ref), len(our))
+    mm = sum(1 for i in range(n)
+             if (ref[i] if i < len(ref) else "<none>")
+             != (our[i] if i < len(our) else "<none>"))
+    return aligned_prefix(ref, our), mm
 
 
 def slot_sequence(seq):
@@ -487,6 +524,11 @@ def main() -> int:
     ap.add_argument("--stack-delta", type=lambda v: int(v, 0), default=None,
                     help="progress mode: shift our `[ebp-N]` by this explicit delta "
                          "(instead of the frame-derived one) before comparing.")
+    ap.add_argument("--stack-search", action="store_true",
+                    help="progress mode: sweep candidate stack deltas and report "
+                         "the one that maximises the aligned prefix (with the "
+                         "runner-ups), then print the best reading. Implies "
+                         "--frame-wild. NEVER an acceptance criterion.")
     ap.add_argument("--stack", action="store_true",
                     help="print the reference-to-ours stack slot mapping")
     ap.add_argument("--lines", action="store_true",
@@ -515,7 +557,7 @@ def main() -> int:
         seq[:] = [x for x in head if x not in ("push ebx", "push esi", "push edi")] + seq[8:]
 
     frame_ref = frame_our = None
-    if args.stack_wild or args.stack_delta is not None:
+    if args.stack_wild or args.stack_delta is not None or args.stack_search:
         args.frame_wild = True
     if args.frame_wild:
         ref, frame_ref = frame_wild(ref)
@@ -525,6 +567,27 @@ def main() -> int:
             print(f"frame: ref -{abs(frame_ref):#x} ours -{abs(frame_our):#x} "
                   f"(delta {d:#x})")
 
+    if args.stack_search:
+        cands = list(range(-0x400, 0x401, 4))
+        for extra in (0, abs(frame_ref) - abs(frame_our) if
+                      (frame_ref is not None and frame_our is not None) else 0):
+            if extra not in cands:
+                cands.append(extra)
+        d0 = implied_delta(ref, our) if not args.stack_wild else None
+        if d0 is not None and d0 not in cands:
+            cands.append(d0)
+        results = []
+        for d in cands:
+            p, m = score(ref, shift_slots(our, d))
+            results.append((p, -m, d))
+        results.sort(reverse=True)
+        best = results[0]
+        print("stack search (prefix / mismatches by delta):")
+        for p, nm, d in results[:8]:
+            mark = "  <-- best" if (p, nm, d) == best else ""
+            print(f"   delta {d:+#06x}  aligned prefix {p:5d}  mismatched {-nm}{mark}")
+        args.stack_delta = best[2]
+        args.stack_wild = True
     if args.stack_wild or args.stack_delta is not None:
         if args.stack_delta is not None:
             delta = args.stack_delta

@@ -137,9 +137,27 @@ make clean     # remove build/
   slots in a different order still mismatches (the shifted numbers differ), and
   the printed slot sequences expose the correspondence. `[ebp+N]` arguments and
   `[esp+N]` operands are **not** shifted, and registers, constants, operand
-  order and instruction count stay exact. Both tolerant modes are **progress
-  instruments, never acceptance criteria** — final acceptance remains the
-  unflagged comparison plus the whole-file MD5.
+  order and instruction count stay exact. Because the frame delta includes the
+  EH-frame overhead the *local-area* delta can differ from it, so `--frame-wild`
+  also prints `implied stack delta: +0xe8 (retry with --stack-delta 0xe8)` — the
+  delta the first divergent slot pair implies — `--stack-delta D` applies an
+  explicit delta, and `--stack-search` removes the retry loop entirely: it sweeps
+  the candidate deltas (`-0x400`..`+0x400` in 4-byte steps, plus the
+  frame-derived and implied ones), scores each, and prints the best delta with
+  its aligned prefix and mismatch count plus the runner-up deltas — so a writer
+  sees whether the best is a clear winner or a coincidental tie — then the normal
+  reading for the winner.
+
+  Condition-code aliases are folded before comparing, because bcc32 and objdump
+  spell the same condition differently (`jge`/`jnl`, `jg`/`jnle`, `jl`/`jnge`,
+  `ja`/`jnbe`, `jb`/`jnae`/`jc`, `jae`/`jnb`/`jnc`, `jbe`/`jna`, `je`/`jz`,
+  `jne`/`jnz`, `js`/`jns`, and the `setcc`/`cmovcc` equivalents): 90 spellings
+  collapse to one representative per condition class (48 classes). Only the
+  mnemonic is folded — operands are untouched, and genuinely different conditions
+  (`jge` vs `jnge`, `ja` vs `jb`, `je` vs `jne`) are never merged.
+
+  Every tolerant mode is a **progress instrument, never an acceptance criterion**
+  — final acceptance remains the unflagged comparison plus the whole-file MD5.
 - **`verify_units.py [UNIT ...] [--ref-bin PATH] [--asm-dir DIR]`** — the
   whole-tree equivalent: for every unit's listing, match each function in the
   unit's namespace against that unit's reference ranges from

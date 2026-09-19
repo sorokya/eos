@@ -625,7 +625,8 @@ Tracked so they are not mistaken for done:
   declared in `src/Packets.h`; blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
   byte-exact (`std::stack<char>`/`std::deque<char>`, by-value `String` return);
-  `EO_Decode_Deinterleave` is drafted at **163 mismatched (219/281)** — the
+  `EO_Decode_Deinterleave` is drafted at **118 mismatched (221/281), frame now
+  exact (`-0x164`, delta 0), aligned prefix 117/221** — the
   reference builds a `std::stack<char>` + a `std::queue<char>` (`0x472810`, RTTI
   `queue<char,deque<char,allocator<char> > >`), frame `-356` (now exact) and
   indices 0-100 exact. The residual is the drain/merge boundary: the reference
@@ -633,10 +634,11 @@ Tracked so they are not mistaken for done:
   an unconditional `jmp` over the merge; the winning form is a
   **bare discarded `pending.empty();`** statement before the merge (not an `if`),
   which reproduces the redundant call with no extra branch; the merge body then
-  needs **both** a `char c = woven.front();` and a separate
-  `unsigned char v = woven.front();` (the reference re-calls `queue.front()` for
-  the modulo). Residual: our frame is `-352` vs the reference's `-356` (one 4-byte
-  local still missing) and the value read differs at index 117;
+  needs `char c = woven.front();`, `unsigned char v = woven.front();` **and**
+  `int value = v;` (three separate locals — the reference re-calls `queue.front()`
+  for the modulo and keeps the zero-extended int). Residual: the value read differs
+  at index 117 (`ref mov dl,[ebp-350]` vs `our mov dl,[eax]`), then the drain/merge
+  tail at 164;
   `Walk_Execute`, `Attack_Execute`, `Spell_Execute`, the reply builders, and
   `Player_HandlePacket` (deferred: one 226 KB function).
 - `Mapcontrol` `FUN_00482834` (`0x482834`) and `Mapcontrol_LoadMap` (`0x484e28`)

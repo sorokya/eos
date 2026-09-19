@@ -301,7 +301,14 @@ documented build, not a manual fix-up.
   delta includes the EH-frame overhead, so the local-area delta can differ from
   it; `--frame-wild` also prints the `implied stack delta` (the delta the first
   divergent slot pair implies) and `--stack-delta D` applies an explicit one.
-  Both tolerant modes are progress instruments, never acceptance criteria.
+  `--stack-search` sweeps candidate deltas (`-0x400`..`+0x400` step 4, plus the
+  frame-derived and implied ones) and prints the best delta with its aligned
+  prefix and mismatch count plus the runner-ups, then the normal reading.
+  Condition-code aliases (`jge`/`jnl`, `jl`/`jnge`, `jb`/`jnae`/`jc`, … and the
+  `setcc`/`cmovcc` forms) are canonicalized to one representative per class
+  before comparing (mnemonic only — operands are untouched and distinct
+  conditions are never merged). Both tolerant modes are progress instruments,
+  never acceptance criteria.
 - `scripts/asm2cpp.py` — draft C++ from a reference address range: one
   address-commented line per instruction, recognising the documented AnsiString
   operations, `EO_*` calls, field accesses (names resolved from the `// +0xNN`
