@@ -87,7 +87,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         return false;
     (*MAINFORM)->field_370 = family;
     (*MAINFORM)->field_36c = action;
-    if (family == 0x1c && action == 1)
+    if (family == PacketFamily_NpcRange && action == PacketAction_Request)
     {
         if (!player->logged_in)
             return false;
@@ -110,10 +110,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             return false;
         String num = EO_EncodeNumber(server, cnt, 1);
         names.Insert(num, 1);
-        Client_SendEncoded(server, player, PacketAction(5), PacketFamily(0x1a), names);
+        Client_SendEncoded(server, player, PacketAction_Agree, PacketFamily_Npc, names);
         return true;
     }
-    if (family == 0x33 && action == 1)
+    if (family == PacketFamily_Book && action == PacketAction_Request)
     {
         if (!player->logged_in)
             return false;
@@ -126,7 +126,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         if (target == NULL)
             return false;
         String s = Player_SerializePaperdoll(server, target);
-        Client_SendEncoded(server, player, PacketAction(3), PacketFamily(0x33), s);
+        Client_SendEncoded(server, player, PacketAction_Reply, PacketFamily_Book, s);
         return true;
     }
     return false;
