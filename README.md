@@ -149,22 +149,21 @@ outstanding cross-unit externs and the known-unconverged functions.
 
 **1676/1809 (92.6%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
 
-**314,530/670,020 (46.9%)** application BYTES byte-exact. Function counts overstate progress while the deferred `Player_HandlePacket` (226,824 bytes) is outstanding: it alone is a third of the application's bytes.
+**314,530/670,020 (46.9%)** application BYTES byte-exact. Function counts overstate progress badly: `Player_HandlePacket` (228,416 bytes) is **33.9% of all application code** and is now being written (its reconnaissance proved it tractable — one `ret`, no internal call targets, 43 chunks), so it sits in `mismatched` and the byte figure is the honest one until it converges.
 
 ```mermaid
 pie showData
     title Application functions by status
     "byte-exact" : 1676
-    "mismatched" : 11
+    "mismatched" : 12
     "stubbed" : 104
     "unimplemented" : 17
-    "deferred" : 1
 ```
 
 | Unit | functions | byte-exact | stubbed | mismatched | unimplemented |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Mapcontrol | 279 | 249 | 24 | 2 | 4 |
-| Packets | 249 | 156 | 79 | 9 | 4 |
+| Packets | 249 | 156 | 79 | 10 | 4 |
 | Players | 160 | 159 | 1 | 0 | 0 |
 | Questengine | 123 | 123 | 0 | 0 | 0 |
 | Shopvalues | 86 | 86 | 0 | 0 | 0 |

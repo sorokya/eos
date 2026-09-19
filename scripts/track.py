@@ -58,7 +58,12 @@ COMDAT_PAT = re.compile(
     r"NoOpCtor|GetCapacityEnd|^thunk_)")
 
 # Functions deliberately left for later; 'deferred' rather than ordinary work.
-DEFERRED = {"Player_HandlePacket": "one 226 KB function, deferred"}
+# Player_HandlePacket was deferred until it was investigated; reconnaissance then
+# proved it tractable (one `ret`, no internal call targets, 43 chunks) and it is now
+# being written, so it must report `mismatched` like any other in-progress body
+# rather than hiding 33.9% of the application's bytes behind a label meaning "not
+# attempted".
+DEFERRED = {}
 
 READ_BEGIN = "<!-- BEGIN GENERATED STATUS -->"
 READ_END = "<!-- END GENERATED STATUS -->"
@@ -382,9 +387,11 @@ def readme_block(rows):
            f"({total} app + compiler COMDATs; {lib} library members excluded).",
            "",
            f"**{bdone:,}/{btot:,} ({bpct:.1f}%)** application BYTES byte-exact. "
-           f"Function counts overstate progress while the deferred "
-           f"`Player_HandlePacket` (226,824 bytes) is outstanding: it alone is a "
-           f"third of the application's bytes.",
+           f"Function counts overstate progress badly: `Player_HandlePacket` "
+           f"(228,416 bytes) is **33.9% of all application code** and is now being "
+           f"written (its reconnaissance proved it tractable — one `ret`, no "
+           f"internal call targets, 43 chunks), so it sits in `mismatched` and the "
+           f"byte figure is the honest one until it converges.",
            "", "```mermaid", "pie showData",
            "    title Application functions by status"]
     for k in ("byte-exact", "mismatched", "stubbed", "unimplemented",
