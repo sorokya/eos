@@ -6108,12 +6108,6 @@ void *Walk_BuildReply_Stub(void *a0, void *a1, void *a2)
 {
     return 0;
 }
-// STUB(0x00462374, 1339 bytes) FUN_00462374 - ref: undefined4 FUN_00462374(int param_1,
-// int param_2)
-int FUN_00462374_Stub(int a0, int a1)
-{
-    return 0;
-}
 String FUN_004628b0(Server *server, Player *player)
 {
     int total = server->ping_history[0] + 0x0d;
@@ -6155,6 +6149,12 @@ String FUN_00462e38(Server *server)
                out.Length() + 1);
     out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
     return out;
+}
+// STUB(0x00462374, 1339 bytes) FUN_00462374 - ref: undefined4 FUN_00462374(int param_1,
+// int param_2)
+int FUN_00462374_Stub(int a0, int a1)
+{
+    return 0;
 }
 // STUB(0x00464030, 1286 bytes) Client_SendEncoded - ref: undefined
 // Client_SendEncoded(Server * server, Player * player, PacketAction action, PacketFamily
@@ -6950,9 +6950,9 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
     }
     return true;
 }
-// STUB(0x00470584, 20 bytes) FUN_00470584 - ref: undefined FUN_00470584(void)
-void FUN_00470584_Stub()
+void FUN_00470584(int)
 {
+    srand(time(0));
 }
 int FUN_00470598(int a0, int value)
 {
@@ -6966,15 +6966,95 @@ int FUN_00470598(int a0, int value)
     value = a3 + value + 0x1b138;
     return value;
 }
-// STUB(0x0047060c, 698 bytes) FUN_0047060c - ref: int * FUN_0047060c(int * param_1)
-void *FUN_0047060c_Stub(void *a0)
+String FUN_0047060c(Server *server, String value)
 {
-    return 0;
+    String reversed = "";
+    String result = "";
+    try
+    {
+        for (int i = value.Length(); i >= 1; i--)
+            reversed = reversed + value[i];
+        for (int j = 1; j <= value.Length(); j++)
+        {
+            char c = reversed[j];
+            char out = c;
+            int v = (unsigned char)out;
+            bool handled = false;
+            if (!handled)
+            {
+                if (v >= '0' && v <= '9')
+                {
+                    v = '9' - v + '0';
+                    out = (char)v;
+                    c = out;
+                    result.Insert(String(c), result.Length() + 1);
+                    handled = true;
+                }
+            }
+            if (!handled)
+            {
+                if (v >= 'a' && v <= 'z')
+                {
+                    v = 'z' - v + 'a';
+                    out = (char)v;
+                    c = out;
+                    result.Insert(String(c), result.Length() + 1);
+                    handled = true;
+                }
+            }
+            if (!handled)
+                result.Insert(String(c), result.Length() + 1);
+        }
+    }
+    catch (...)
+    {
+    }
+    return result;
 }
-// STUB(0x004708d4, 698 bytes) FUN_004708d4 - ref: int * FUN_004708d4(int * param_1)
-void *FUN_004708d4_Stub(void *a0)
+String FUN_004708d4(Server *server, String value)
 {
-    return 0;
+    String reversed = "";
+    String result = "";
+    try
+    {
+        for (int i = value.Length(); i >= 1; i--)
+            reversed = reversed + value[i];
+        for (int j = 1; j <= value.Length(); j++)
+        {
+            char c = reversed[j];
+            char out = c;
+            int v = (unsigned char)out;
+            bool handled = false;
+            if (!handled)
+            {
+                if (v >= '0' && v <= '9')
+                {
+                    v = '9' - v + '0';
+                    out = (char)v;
+                    c = out;
+                    result.Insert(String(c), result.Length() + 1);
+                    handled = true;
+                }
+            }
+            if (!handled)
+            {
+                if (v >= 'a' && v <= 'z')
+                {
+                    v = 'z' - v + 'a';
+                    out = (char)v;
+                    c = out;
+                    result.Insert(String(c), result.Length() + 1);
+                    handled = true;
+                }
+            }
+            if (!handled)
+                result.Insert(String(c), result.Length() + 1);
+        }
+    }
+    catch (...)
+    {
+    }
+    return result;
 }
 // STUB(0x00470d06, 207 bytes) FUN_00470d06 - ref: undefined4 FUN_00470d06(void)
 int FUN_00470d06_Stub()
@@ -7470,17 +7550,25 @@ bool FUN_00473124(void *self, int x1, int y1, int x2, int y2)
         result = true;
     return result;
 }
-// STUB(0x004731d0, 878 bytes) FUN_004731d0 - ref: int * FUN_004731d0(AnsiString * out,
-// Server * server)
-void *FUN_004731d0_Stub(void *a0, void *a1)
+String FUN_004731d0(Server *server)
 {
-    return 0;
+    if (server->sent_megabytes > 0)
+        return IntToStr(server->sent_megabytes) + "." +
+               IntToStr(server->sent_kilobytes / 0x67).SubString(1, 2) + " Mb";
+    if (server->sent_kilobytes > 0)
+        return IntToStr(server->sent_kilobytes) + "." +
+               IntToStr(server->sent_bytes / 0x67).SubString(1, 2) + " Kb";
+    return "n/a";
 }
-// STUB(0x00473540, 878 bytes) FUN_00473540 - ref: int * FUN_00473540(AnsiString *
-// param_1, Server * server)
-void *FUN_00473540_Stub(void *a0, void *a1)
+String FUN_00473540(Server *server)
 {
-    return 0;
+    if (server->received_megabytes > 0)
+        return IntToStr(server->received_megabytes) + "." +
+               IntToStr(server->received_kilobytes / 0x67).SubString(1, 2) + " Mb";
+    if (server->received_kilobytes > 0)
+        return IntToStr(server->received_kilobytes) + "." +
+               IntToStr(server->received_bytes / 0x67).SubString(1, 2) + " Kb";
+    return "n/a";
 }
 bool FUN_004738b0(Server *server)
 {
@@ -7496,9 +7584,36 @@ bool FUN_004738b0(Server *server)
     }
     return false;
 }
-// STUB(0x00473920, 1051 bytes) FUN_00473920 - ref: undefined FUN_00473920(int * param_1)
-void FUN_00473920_Stub(void *a0)
+void FUN_00473920(Server *server, String message)
 {
+    String line = DateToStr(Now());
+    line.Insert(" ", line.Length() + 1);
+    line.Insert(TimeToStr(Now()), line.Length() + 1);
+    line.Insert(" ", line.Length() + 1);
+    line.Insert(message, line.Length() + 1);
+    line.Insert("\n", line.Length() + 1);
+
+    String idx = IntToStr(server->state_0x04);
+    if (idx.Length() < 2)
+        idx = "0" + idx;
+    String path = ".\\logs\\chat" + idx + ".log";
+    FILE *fp = fopen(path.c_str(), "a");
+    fprintf(fp, "%s", line.c_str());
+    fclose(fp);
+
+    server->state_0x00++;
+    if (server->state_0x00 > 0x7530)
+    {
+        server->state_0x04++;
+        server->state_0x00 = 1;
+        if (server->state_0x04 > 0x63)
+            server->state_0x04 = 1;
+        idx = IntToStr(server->state_0x04);
+        if (idx.Length() < 2)
+            idx = "0" + idx;
+        path = ".\\logs\\chat" + idx + ".log";
+        remove(path.c_str());
+    }
 }
 // STUB(0x00473f18, 67 bytes) FUN_00473f18 - ref: undefined FUN_00473f18(undefined4 *
 // param_1, byte param_2)

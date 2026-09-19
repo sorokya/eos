@@ -34,12 +34,13 @@ mkdir -p build/obj
   for u in "${UNITS[@]}"; do
     echo "wine \"\$B\\Bin\\bcc32.exe\" $CFLAGS -c -obuild/obj/$u.obj src/$u.cpp"
   done
+  echo "wine \"\$B\\Bin\\brcc32.exe\" -fo\"Z:\\work\\build\\GameServer.res\" res/GameServer.rc"
   echo 'L="-L$BZ\Lib -L$BZ\Lib\Obj -L$BZ\Lib\Debug -L$BZ\Lib\Release"'
   OBJS='"Z:\work\build\obj\GUI.obj"'
   for u in "${UNITS[@]}"; do
     OBJS+=" \"Z:\\work\\build\\obj\\$u.obj\""
   done
-  echo "wine \"\$B\\Bin\\ilink32.exe\" $LINKFLAGS \$L \"\$BZ\\Lib\\c0w32.obj\" $OBJS, \"Z:\\work\\build\\GameServer.exe\", $MAPARG, $VLIB"
+  echo "wine \"\$B\\Bin\\ilink32.exe\" $LINKFLAGS \$L \"\$BZ\\Lib\\c0w32.obj\" $OBJS, \"Z:\\work\\build\\GameServer.exe\", $MAPARG, $VLIB, , \"Z:\\work\\build\\GameServer.res\""
 } > build/build_inner.sh
 
 echo "building ${#UNITS[@]} units + GUI ..."
