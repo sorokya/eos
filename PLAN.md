@@ -652,7 +652,14 @@ Tracked so they are not mistaken for done:
   `int c = (unsigned char)out[i];`. Result: **379 our / 359 ref, 312 mismatched**
   (was 334), but the frame overshot to `-0xa0` vs the reference's `-0x88`
   (24 B too big) — the exact chain's temporaries exceed the reference's, so the
-  layout is still not exact. The real log sequence
+  layout is still not exact. **Link-defect fixed**: `src/Packets.h`'s
+  `Client_SendEncoded` declaration widened `unsigned char` -> `PacketAction`/
+  `PacketFamily` (and `#include "Protocol.h"` added to `Packets.h`, which did not
+  have it); the 35 call sites and the definition now share the single symbol
+  `@@Client_SendEncoded$qp6Serverp6Player12PacketAction12PacketFamily...`.
+  `Server_BroadcastToParty` has the same class of defect (`ucuc` declaration vs
+  `ii` definition) but a second `ucuc` declaration survives in another unit's
+  `.cpp`, so its two symbols remain (not fixable from this unit). The real log sequence
   (formatters/joins/append trio) is still approximated.
   Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is

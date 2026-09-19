@@ -8,6 +8,7 @@
 #include <stack>
 #include <queue>
 
+#include "Protocol.h"
 #include "Map.h"
 #include "Mapcontrol.h"
 
@@ -97,8 +98,8 @@ void Server_Shutdown(Server *server);
 void Client_SendRaw(Server *server, Player *client, String data, int break_byte);
 void Client_SendEncoded(Server *server,
                         Player *player,
-                        unsigned char action,
-                        unsigned char family,
+                        PacketAction action,
+                        PacketFamily family,
                         String data);
 bool Face_Execute(Server *server, Player *player, int action, String *data);
 bool Chair_Execute(Server *server, Player *player, int action, String *data);
@@ -115,11 +116,8 @@ void Server_BroadcastToPartyExceptSelf(Server *server,
                                        unsigned char action,
                                        unsigned char family,
                                        String data);
-void Server_BroadcastToParty(Server *server,
-                             Player *player,
-                             unsigned char action,
-                             unsigned char family,
-                             String data);
+void Server_BroadcastToParty(
+    Server *server, Player *player, int action, int family, String data);
 void Guild_BroadcastToAll(Server *server,
                           Player *player,
                           unsigned char action,
