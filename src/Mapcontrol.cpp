@@ -1461,18 +1461,18 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
     String local_c;
     int file_handle;
     int size;
-    int count;
-    int tile_x;
-    int tile_y;
-    int spec;
-    int code;
-    int lock_key;
     char *buf;
     try
     {
         map_buf = IntToStr(map_id);
         for (int i = map_buf.Length(); i <= 4; i++)
             map_buf.Insert("0", 0);
+        int count;
+        int tile_x;
+        int tile_y;
+        int spec;
+        int code;
+        int lock_key;
         map_buf.Insert("./maps/", 0);
         map_buf.Insert(".emf", map_buf.Length() + 1);
         file_handle = FileOpen(map_buf.c_str(), 0);
@@ -1807,18 +1807,18 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
     String local_c;
     int file_handle;
     int size;
-    int count;
-    int tile_x;
-    int tile_y;
-    int spec;
-    int code;
-    int lock_key;
     char *buf;
     try
     {
         map_buf = IntToStr(map_id);
         for (int i = map_buf.Length(); i <= 4; i++)
             map_buf.Insert("0", 0);
+        int count;
+        int tile_x;
+        int tile_y;
+        int spec;
+        int code;
+        int lock_key;
         map_buf.Insert("./maps/", 0);
         map_buf.Insert(".emf", map_buf.Length() + 1);
         file_handle = FileOpen(map_buf.c_str(), 0);

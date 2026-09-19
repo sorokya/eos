@@ -3174,10 +3174,15 @@ void Client_SendEncoded(Server *server,
     {
         if (player->removing)
             return;
-        char action_byte = (char)action;
-        char family_byte = (char)family;
-        String out = String(action_byte);
-        out.Insert(String(family_byte), out.Length() + 1);
+        struct
+        {
+            char action;
+            char family;
+        } bytes;
+        bytes.action = (char)action;
+        bytes.family = (char)family;
+        String out = String(bytes.action);
+        out.Insert(String(bytes.family), out.Length() + 1);
         out.Insert(data, out.Length() + 1);
         EOEncodedObj obj;
         std::basic_string<char> range;
