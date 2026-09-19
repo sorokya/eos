@@ -3158,21 +3158,12 @@ void Client_SendEncoded(
     if (data.Length() > 20000)
     {
         String stamp = Now();
-        String space = " ";
-        String line = stamp;
-        line.Insert(space, line.Length() + 1);
         String tag = " EndlServ ";
-        String field_a = IntToStr(action);
-        String field_b = IntToStr(family);
-        String fields = field_a + field_b;
         String msg = "Too large encoded packet dropped: ";
-        String comma = ",";
         String path = "error.log";
-        (void)line;
+        (void)stamp;
         (void)tag;
-        (void)fields;
         (void)msg;
-        (void)comma;
         (void)path;
     }
     String out = String((char)action);

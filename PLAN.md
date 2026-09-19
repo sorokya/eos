@@ -610,7 +610,8 @@ Tracked so they are not mistaken for done:
   functions. `GroundItemPtrVector_Count` (`0x44f8b0`) is the `(end - begin)`
   ptrdiff over 4-byte elements, i.e. a `T** - T**` subtraction.
 - `Packets`: `Player_Warp` (1 instruction: temp construction order in the
-  `do_leave` Avatar-Remove build); `Client_SendEncoded` (**partial, 293/359**:
+  `do_leave` Avatar-Remove build); `Client_SendEncoded` (**partial, 219/359,
+  frame now EXACT at `-0x88` (delta 0)**:
   the normal path is written — `String out` from `String((char)action)` + family +
   `data`, the range/encode block (`EOEncodedObj` + `std::vector<char> range`,
   `EO_ByteRange_FromString`, `EO_Encode_Interleave` with
@@ -622,7 +623,13 @@ Tracked so they are not mistaken for done:
   map (`/tmp/sendencoded_spec.md`); the trailing `0x4728f8`/`Sock_Send` pair is not
   yet written;
   `EO_ByteRange_FromString` + `EOEncodedObj` + `FUN_0044f73c`/`FUN_0044f710` are
-  declared in `src/Packets.h`; blocked on the
+  declared in `src/Packets.h`. The frame surplus was the log path: the reference
+  binds only **four** `String` locals there, not the spec's eleven — trimming to
+  `stamp`/`tag`/`msg`/`path` made the frame match exactly. Residual: the EH
+  counter/arming offsets are `-0x54`/`-0x60` in the reference vs `-0x48`/`-0x54`
+  in ours (the local layout differs by 12 B), so the aligned prefix is 5/219 and
+  the real log sequence (formatters/joins/append trio) is still approximated.
+  Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
   byte-exact (`std::stack<char>`/`std::deque<char>`, by-value `String` return);
   `Player_HandlePacket` (`0x41794c`, 52,589 instructions, 33.9% of app bytes) is
