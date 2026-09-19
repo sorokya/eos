@@ -147,33 +147,33 @@ outstanding cross-unit externs and the known-unconverged functions.
 
 <!-- BEGIN GENERATED STATUS -->
 
-**1790/1809 (98.9%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
+**1790/1801 (99.4%)** application functions byte-exact (1801 app + compiler COMDATs; 505 library members excluded).
 
-**407,957/670,020 (60.9%)** application BYTES byte-exact. Function counts overstate progress badly: `Player_HandlePacket` (228,416 bytes) is **33.9% of all application code** and is now being written (its reconnaissance proved it tractable — one `ret`, no internal call targets, 43 chunks), so it sits in `mismatched` and the byte figure is the honest one until it converges.
+**407,957/668,128 (61.1%)** application BYTES byte-exact. Function counts overstate progress badly: `Player_HandlePacket` (228,416 bytes) is **33.9% of all application code** and is now being written (its reconnaissance proved it tractable — one `ret`, no internal call targets, 43 chunks), so it sits in `mismatched` and the byte figure is the honest one until it converges.
 
 ```mermaid
 pie showData
     title Application functions by status
     "byte-exact" : 1790
     "mismatched" : 5
-    "stubbed" : 5
-    "unimplemented" : 9
+    "stubbed" : 3
+    "unimplemented" : 3
 ```
 
 | Unit | functions | byte-exact | stubbed | mismatched | unimplemented |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Mapcontrol | 279 | 279 | 0 | 0 | 0 |
-| Packets | 249 | 239 | 5 | 5 | 0 |
+| Packets | 247 | 239 | 3 | 5 | 0 |
 | Players | 160 | 160 | 0 | 0 | 0 |
 | Questengine | 123 | 123 | 0 | 0 | 0 |
 | Shopvalues | 86 | 86 | 0 | 0 | 0 |
 | Npcvalues | 80 | 77 | 0 | 0 | 3 |
 | Mysqlcontrols | 73 | 73 | 0 | 0 | 0 |
-| Msgboardcontrol | 57 | 56 | 0 | 0 | 1 |
+| Msgboardcontrol | 56 | 56 | 0 | 0 | 0 |
 | Itemvalues | 44 | 44 | 0 | 0 | 0 |
 | Learnvalues | 41 | 41 | 0 | 0 | 0 |
-| Settings | 40 | 39 | 0 | 0 | 1 |
 | Innvalues | 39 | 39 | 0 | 0 | 0 |
+| Settings | 39 | 39 | 0 | 0 | 0 |
 | Questcounters | 36 | 36 | 0 | 0 | 0 |
 | Skillvalues | 34 | 34 | 0 | 0 | 0 |
 | Jukeboxcontrol | 33 | 33 | 0 | 0 | 0 |
@@ -191,10 +191,10 @@ pie showData
 | Quest | 14 | 14 | 0 | 0 | 0 |
 | Npccontrol | 13 | 13 | 0 | 0 | 0 |
 | Queststate | 12 | 12 | 0 | 0 | 0 |
-| Banned | 11 | 7 | 0 | 0 | 4 |
 | Logins | 10 | 10 | 0 | 0 | 0 |
 | Map | 8 | 8 | 0 | 0 | 0 |
 | Mysqlthread | 8 | 8 | 0 | 0 | 0 |
+| Banned | 7 | 7 | 0 | 0 | 0 |
 | Gamecontrol | 7 | 7 | 0 | 0 | 0 |
 | Mapchest | 7 | 7 | 0 | 0 | 0 |
 | Chestcontrol | 5 | 5 | 0 | 0 | 0 |

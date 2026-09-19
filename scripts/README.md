@@ -225,14 +225,25 @@ make clean     # remove build/
   `kind` is `app` (must be written), `comdat` (compiler-emitted once the owning
   type is used), `library` (statically linked RTL/VCL/BDE, matched by a
   matching a library module of the linked build (`libmatch.py`; falls back to a
-  reloc-masked signature over `ref/Borland5/Lib`), or `stub` (a module
-  initializer boundary). Run `MAP=1 scripts/build.sh` first for the exact
-  classification; without it the fallback is used and the cache records which. `status` is `byte-exact` / `mismatched` /
+  reloc-masked signature over `ref/Borland5/Lib`), `stub` (a module
+  initializer boundary), or `merged` (the ret-less body half of a function
+  Ghidra split after its prologue; the head row's source function already
+  covers its bytes, so it is not a separate target). Run `MAP=1
+  scripts/build.sh` first for the exact classification; without it the fallback
+  is used and the cache records which. `status` is `byte-exact` / `mismatched` /
   `unimplemented` / `deferred` / `n/a`, decided from the `build/<Unit>.asm`
   listings with the same canonicalisation as `verify_units.py`; each source
   function can satisfy only one reference function. `--readme` rewrites the
   generated block in README.md. The classification is cached in
-  `analysis/target/function_kinds.tsv`; `--reclassify` recomputes it.
+  `analysis/target/function_kinds.tsv`; `--reclassify` recomputes it. A cached
+  `comdat` whose name no longer matches the current `COMDAT_PAT` is re-derived
+  on load, so a pattern change (dropping `^thunk_`, which trapped library
+  forwarders as `comdat` before the library test) takes effect without a full
+  reclassify. A row whose function is emitted by a *different* translation unit
+  (the reference placed the surviving COMDAT copy in this unit's span) falls
+  back to a global pool, but only when the canonical sequence has exactly one
+  candidate there; otherwise the row is left unmatched and the ambiguity is
+  reported (a wrong cross-unit match would hide real work).
 
 ## Transcription aids
 

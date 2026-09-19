@@ -14,6 +14,9 @@ and how far the reconstruction has got.
              the Borland .lib blob, relocation slots masked)
   stub     - a module initializer/finalizer stub (its address is a module
              boundary in modules.tsv); not application code
+  merged   - the ret-less body half of a function Ghidra split after its
+             prologue; the head row's source function already spans its bytes,
+             so it is not a separate target
 `app` (+ `comdat`) is the "to produce" denominator.
 
 `status` (for app/comdat rows) comes from the compiler's own `-S` listings in
@@ -52,10 +55,14 @@ import libmatch  # noqa: E402  (linked-build library matching)
 
 # A function is a compiler COMDAT if its hint name matches; the owning class's
 # declaration makes the compiler emit it, so it is not reconstructed by hand.
+# `^thunk_` is deliberately NOT here: Ghidra names library forwarder thunks
+# `thunk_FUN_*`, and testing COMDAT before the library classification trapped
+# them as `comdat` (in the denominator) before the library test could run.
+# Without it they reach the library test / run extension and become `library`.
 COMDAT_PAT = re.compile(
     r"(Vector_|DynArray_|PtrVector_|Iter_Begin|Iter_End|Iter_Front|"
     r"_ComputeInitialCapacity|_GrowCapacity|_InsertSlow|_InitBox|"
-    r"NoOpCtor|GetCapacityEnd|^thunk_)")
+    r"NoOpCtor|GetCapacityEnd)")
 
 # Functions deliberately left for later; 'deferred' rather than ordinary work.
 # Player_HandlePacket was deferred until it was investigated; reconnaissance then
@@ -180,9 +187,22 @@ def range_forms(ins, list_canon, truncate):
 
 
 def our_functions(ca, list_canon, asm_dir, units):
-    """unit -> {canonical tuple: name}, plus the raw name list per unit."""
+    """unit -> {canonical tuple: name}, the raw name list per unit, and a
+    global {canonical tuple: [(unit, name), ...]} pool.
+
+    bcc32 emits a header-defined function (a template instantiation) once per
+    translation unit that uses it, and the reference may place the surviving
+    COMDAT copy in a *different* unit's span than the one that emits it now
+    (Npcvalues' `vector<NpcDropItem>::clear`/`erase`/`copy` come from
+    Npcvalue.cpp). The global pool lets a row fall back to a function another
+    unit emits; `take` only uses it when the canonical sequence has exactly one
+    candidate there, because the same generic body is emitted for many element
+    types (30 copies of `vector<T>::clear`, 7 of `copy<T*>`), and a wrong
+    cross-unit match would hide real work.
+    """
     by_unit = defaultdict(dict)
     names = defaultdict(list)
+    glob = defaultdict(list)
     for unit in sorted(units):
         path = os.path.join(asm_dir, unit + ".asm")
         if not os.path.exists(path):
@@ -195,8 +215,10 @@ def our_functions(ca, list_canon, asm_dir, units):
             if ins is None:
                 continue
             names[unit].append(name)
-            by_unit[unit].setdefault(tuple(list_canon(ins)), []).append(name)
-    return by_unit, names
+            key = tuple(list_canon(ins))
+            by_unit[unit].setdefault(key, []).append(name)
+            glob[key].append((unit, name))
+    return by_unit, names, glob
 
 
 def classify(rows, stub_addrs, pe, libs_dir, linked=None, map_path=None):
@@ -263,7 +285,7 @@ def _extend_library_runs(rows, run=0x1000):
         import bisect
         barriers = sorted(r["start"] for r in group if r["status"] == "byte-exact")
         for r in group:
-            if r["kind"] in ("stub", "comdat"):
+            if r["kind"] in ("stub", "comdat", "merged"):
                 continue
             if r["status"] == "byte-exact":
                 continue
@@ -320,6 +342,27 @@ def save_kinds(rows, path, mode):
         for r in sorted(rows, key=lambda r: (r["unit"], r["start"])):
             exact = "exact" if r.get("_lib_exact") else "-"
             fh.write(f"{r['unit']}\t{r['start']:#010x}\t{r['kind']}\t{exact}\n")
+
+
+def refresh_cached_kinds(rows, kinds):
+    """Re-derive cached verdicts that depended on COMDAT_PAT.
+
+    The kinds cache stores `classify`'s output. When COMDAT_PAT changes -- here
+    dropping `^thunk_` so Ghidra-named library forwarders reach the library
+    test -- every cached `comdat` whose name no longer matches is stale. Marking
+    it `app` lets the normal pipeline re-derive it: the group loop tries to
+    match it, then `_extend_library_runs` absorbs it into the surrounding exact
+    library run (a contiguity proof), so the cache is corrected without
+    rebuilding it from a possibly different linked image.
+    """
+    stale = 0
+    for r in rows:
+        kind, exact = kinds[(r["unit"], r["start"])]
+        if kind == "comdat" and not COMDAT_PAT.search(r["name"]):
+            kind, exact = "app", False
+            stale += 1
+        r["kind"], r["_lib_exact"] = kind, exact
+    return stale
 
 
 HEAD = ("unit", "order", "start", "end", "size", "ref_name", "kind",
@@ -458,10 +501,9 @@ def main() -> int:
                  linked=linked, map_path=args.map)
         save_kinds(rows, args.kinds_cache, mode)
     else:
-        for r in rows:
-            r["kind"], r["_lib_exact"] = kinds[(r["unit"], r["start"])]
+        refresh_cached_kinds(rows, kinds)
 
-    by_unit, names = our_functions(ca, vu.canon, args.asm_dir, units)
+    by_unit, names, glob_pool = our_functions(ca, vu.canon, args.asm_dir, units)
     groups = defaultdict(list)
     for r in rows:
         groups[r["unit"]].append(r)
@@ -474,26 +516,54 @@ def main() -> int:
             r["_lo"] = r["start"]
             r["_hi"] = group[i + 1]["start"] if i + 1 < len(group) else r["end"]
     parse_rows(ca, args.ref, rows, args.jobs or (os.cpu_count() or 4))
+    # A source function corresponds to exactly one reference function, so a match
+    # consumes it. `used` is keyed by (unit, name) and shared across units: the
+    # cross-unit fallback below can consume another unit's function, and its own
+    # group must then not reuse it.
+    used = set()
+    ambiguous = {}        # (unit, start) -> (row, candidate count), refused
     for unit, group in groups.items():
         group.sort(key=lambda r: r["start"])
         pool = by_unit.get(unit, {})
-        used = set()
 
         def take(r, truncate, nxt=None):
             forms = range_forms(r["_ins"], vu.canon, truncate)
+            merged_form = None
             # Ghidra sometimes splits a function after its prologue; a short
             # ret-less fragment followed by its successor is one function.
             if (nxt is not None and "ret" not in r["_ins"]
                     and len(r["_ins"]) <= 6 and nxt["_lo"] == r["_hi"]):
-                forms.append(tuple(vu.canon(r["_ins"] + nxt["_ins"])))
+                merged_form = tuple(vu.canon(r["_ins"] + nxt["_ins"]))
+                forms.append(merged_form)
             for cand in forms:
                 if not cand:
                     continue
                 for name in pool.get(cand, ()):
-                    if name not in used:
-                        used.add(name)
+                    if (unit, name) not in used:
+                        used.add((unit, name))
                         r["source_name"] = name
+                        if cand == merged_form:
+                            r["_merged_nxt"] = nxt
                         return True
+            # Cross-unit fallback: the row's function may be emitted by another
+            # translation unit (a COMDAT the reference placed in this unit's
+            # span). The same generic body exists for many element types, so
+            # accept only a globally unique candidate; otherwise report the
+            # ambiguity and leave the row unmatched rather than mis-match it.
+            for cand in forms:
+                if not cand:
+                    continue
+                hits = [h for h in glob_pool.get(cand, ()) if h not in used]
+                if len(hits) == 1:
+                    cu, name = hits[0]
+                    used.add((cu, name))
+                    r["source_name"] = name
+                    r["_cross_unit"] = cu
+                    if cand == merged_form:
+                        r["_merged_nxt"] = nxt
+                    return True
+                if len(hits) > 1:
+                    ambiguous[(r["unit"], r["start"])] = (r, len(hits))
             return False
 
         # Each source function corresponds to exactly one reference function, so
@@ -521,6 +591,15 @@ def main() -> int:
                     r["status"], r["source_name"] = "mismatched", sorted(same)[0]
                 else:
                     r["status"], r["source_name"] = "unimplemented", ""
+        # When the merge branch consumed a short head, the head's source
+        # function covers the successor body's bytes too, so the successor is
+        # not a separate reconstruction target. Mark it `merged` (excluded from
+        # the denominator) unless it independently converged on its own.
+        for r in pending:
+            nxt = r.get("_merged_nxt")
+            if (nxt is not None and nxt.get("status") != "byte-exact"
+                    and nxt["kind"] not in ("library", "stub")):
+                nxt["kind"], nxt["status"], nxt["source_name"] = "merged", "n/a", ""
         # A row the heuristic called `library` may still be application code we
         # have reproduced (the smoother can pull a function at the edge of a
         # library run across the line). Give the leftovers to those rows; a match
@@ -564,6 +643,19 @@ def main() -> int:
     for r in rows:
         if r["status"] == "byte-exact":
             r["kind"] = "app" if r["kind"] != "comdat" else "comdat"
+
+    # Cross-unit fallback refusals: a row whose function another unit emits but
+    # whose canonical sequence is not globally unique is left unmatched and
+    # reported, rather than guessed -- a wrong cross-unit match hides real work.
+    unresolved = [(r, n) for r, n in ambiguous.values()
+                  if r.get("status") not in ("byte-exact", "n/a")]
+    if unresolved:
+        print(f"cross-unit fallback: {len(unresolved)} ambiguous row(s) left "
+              f"unmatched", file=sys.stderr)
+        for r, n in sorted(unresolved,
+                           key=lambda x: (x[0]["unit"], x[0]["start"])):
+            print(f"  {r['unit']} {r['start']:#010x} {r['name']}: {n} candidate "
+                  f"functions across units", file=sys.stderr)
 
     write_tsv(rows, args.out)
     print("\n".join(summary(rows)), file=sys.stderr)

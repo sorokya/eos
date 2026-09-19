@@ -59,6 +59,9 @@ String Refresh_BuildReply(Server *server, Player *player);
 String Map_ReadRawFile(Mapcontrol *map_control, int map_id);
 bool Walk_Execute(Server *server, Player *player, int action, String *data);
 bool FUN_004738b0(Server *server);
+String FUN_004731d0(Server *server);
+String FUN_00473540(Server *server);
+String Message_BuildServerStatus(Server *server);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
@@ -1722,6 +1725,139 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             msg.Insert(s1, msg.Length() + 1);
             Admin_BroadcastToAll(
                 server, PacketAction_Reply, PacketFamily_AdminInteract, msg);
+            return true;
+        }
+    }
+    if (family == PacketFamily_Message)
+    {
+        if (action == PacketAction_Request)
+        {
+            if (data.Length() != 1)
+                return false;
+            if (data == "S")
+            {
+                String out = "S";
+                out.Insert(EO_EncodeNumber(
+                               server, (*MAINFORM)->server->Socket->ActiveConnections, 2),
+                           out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(
+                        server, Players::Players_GetIdleTimeout(server->players), 2),
+                    out.Length() + 1);
+                out.Insert(EO_EncodeNumber(
+                               server, Players::Players_GetStatTotal(server->players), 2),
+                           out.Length() + 1);
+                TTimeStamp now = DateTimeToTimeStamp(Now());
+                int date_delta =
+                    now.Date -
+                    Mysqlcontrols::Server_GetUptime(server->mysql_controls).Date;
+                int time_delta =
+                    now.Time -
+                    Mysqlcontrols::Server_GetUptime(server->mysql_controls).Time;
+                int minutes = date_delta * 1440 + time_delta / 60000;
+                out.Insert(EO_EncodeNumber(server, minutes, 4), out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(
+                        server, server->mysql_controls->file_cache->accounts_count, 4),
+                    out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(
+                        server, server->mysql_controls->file_cache->characters_count, 4),
+                    out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(
+                        server, server->mysql_controls->file_cache->guilds_count, 4),
+                    out.Length() + 1);
+                out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                out.Insert(FUN_004731d0(server), out.Length() + 1);
+                out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                out.Insert(FUN_00473540(server), out.Length() + 1);
+                out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Message, out);
+                return true;
+            }
+            if (data == "P")
+            {
+                String out = "P";
+                out.Insert(
+                    EO_EncodeNumber(
+                        server,
+                        server->mysql_controls->file_cache->pending_player_writes.size(),
+                        2),
+                    out.Length() + 1);
+                std::vector<FilecacheEntry *>::iterator iter;
+                for (iter = server->mysql_controls->file_cache->pending_player_writes
+                                .begin();
+                     iter !=
+                     server->mysql_controls->file_cache->pending_player_writes.end();
+                     iter++)
+                {
+                    out.Insert((*iter)->name, out.Length() + 1);
+                    out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                    out.Insert((*iter)->title, out.Length() + 1);
+                    out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, (*iter)->level, 1),
+                               out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, (*iter)->experience, 4),
+                               out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, (*iter)->gender, 1),
+                               out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, (*iter)->privilege, 1),
+                               out.Length() + 1);
+                    out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                }
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Message, out);
+                return true;
+            }
+            if (data == "G")
+            {
+                String out = "G";
+                out.Insert(
+                    EO_EncodeNumber(
+                        server,
+                        server->mysql_controls->file_cache->pending_guild_writes.size(),
+                        2),
+                    out.Length() + 1);
+                std::vector<FilecacheEntryB *>::iterator iter;
+                for (iter =
+                         server->mysql_controls->file_cache->pending_guild_writes.begin();
+                     iter !=
+                     server->mysql_controls->file_cache->pending_guild_writes.end();
+                     iter++)
+                {
+                    out.Insert((*iter)->ident_guild, out.Length() + 1);
+                    out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                    out.Insert((*iter)->guild, out.Length() + 1);
+                    out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, (*iter)->exptotal, 4),
+                               out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, (*iter)->exphigh, 1),
+                               out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, (*iter)->members, 2),
+                               out.Length() + 1);
+                    out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                }
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Message, out);
+                return true;
+            }
+        }
+        if (action == PacketAction_List)
+        {
+            Client_SendRaw(server, player, Message_BuildServerStatus(server), 0xc);
+            return true;
+        }
+        if (action == PacketAction_Ping)
+        {
+            if (data.Length() != 2)
+                return false;
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Pong,
+                               PacketFamily_Message,
+                               EO_EncodeNumber(server, 2, 2));
             return true;
         }
     }
@@ -6516,11 +6652,11 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
                         SkillValues::GetDamage((*MAINFORM)->skill_values, spell_id);
                     int min_total = caster->min_damage + dmg.min_damage;
                     int max_total = caster->max_damage + dmg.max_damage;
-                    hit_rate = Gamecontrol::Combat_CalcArmorPen(
-                        (*MAINFORM)->game_control,
-                        (min_total + max_total) / 2,
-                        target->armor,
-                        0.8);
+                    hit_rate =
+                        Gamecontrol::Combat_CalcArmorPen((*MAINFORM)->game_control,
+                                                         (min_total + max_total) / 2,
+                                                         target->armor,
+                                                         0.8);
                     double scaled = (double)min_total;
                     if (scaled < 1.0)
                         scaled = 1.0;
@@ -6691,11 +6827,11 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
                         SkillValues::GetDamage((*MAINFORM)->skill_values, spell_id);
                     int min_total = caster->min_damage + dmg.min_damage;
                     int max_total = caster->max_damage + dmg.max_damage;
-                    hit_rate = Gamecontrol::Combat_CalcArmorPen(
-                        (*MAINFORM)->game_control,
-                        (min_total + max_total) / 2,
-                        (*iter)->armor,
-                        0.8);
+                    hit_rate =
+                        Gamecontrol::Combat_CalcArmorPen((*MAINFORM)->game_control,
+                                                         (min_total + max_total) / 2,
+                                                         (*iter)->armor,
+                                                         0.8);
                     double scaled = (double)min_total;
                     if (scaled < 1.0)
                         scaled = 1.0;
@@ -6754,7 +6890,8 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
                                            (*iter)->element_weakness_damage_table[4]));
                 }
                 if ((*iter)->boss != 0)
-                    Mapcontrol::Mapcontrol_AggroChildNpcs(server->map_control, caster->map_id);
+                    Mapcontrol::Mapcontrol_AggroChildNpcs(server->map_control,
+                                                          caster->map_id);
                 (*iter)->aggressive = true;
                 (*iter)->nLeash_timer = (short)(RandRange(0x32) + 100);
                 if (Mapcontrol::Mapcontrol_CountNpcsChasingPlayer(
@@ -6771,32 +6908,30 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
                     int drop_item = 0;
                     exp = Party_ShareExp(server, caster, exp);
                     if ((*iter)->wDrop_item_id > 0 && (*iter)->wDrop_amount > 0)
-                        drop_item = Mapcontrol::Mapcontrol_AddGroundItem(
-                            server->map_control,
-                            caster->map_id,
-                            (*iter)->wDrop_item_id,
-                            (*iter)->x,
-                            (*iter)->y,
-                            (*iter)->wDrop_amount,
-                            caster->field_0xc,
-                            0x3d);
+                        drop_item =
+                            Mapcontrol::Mapcontrol_AddGroundItem(server->map_control,
+                                                                 caster->map_id,
+                                                                 (*iter)->wDrop_item_id,
+                                                                 (*iter)->x,
+                                                                 (*iter)->y,
+                                                                 (*iter)->wDrop_amount,
+                                                                 caster->field_0xc,
+                                                                 0x3d);
                     *(TTimeStamp *)&(*iter)->nDeath_ms = DateTimeToTimeStamp(Now());
                     (*iter)->chase_target_id = -1;
                     (*iter)->alive = false;
-                    if ((*iter)->boss > 0 &&
-                        Mapcontrol::Mapcontrol_KillChildNpcs(server->map_control,
-                                                             caster->map_id))
+                    if ((*iter)->boss > 0 && Mapcontrol::Mapcontrol_KillChildNpcs(
+                                                 server->map_control, caster->map_id))
                         Server_BroadcastToMap(
                             server,
                             caster->map_id,
                             PacketAction_Junk,
                             PacketFamily_Npc,
-                            EO_EncodeNumber(
-                                server,
-                                Mapcontrol_GetByIndex(server->map_control,
-                                                      caster->map_id - 1)
-                                    ->child_npc_id,
-                                2));
+                            EO_EncodeNumber(server,
+                                            Mapcontrol_GetByIndex(server->map_control,
+                                                                  caster->map_id - 1)
+                                                ->child_npc_id,
+                                            2));
                     String reply = EO_EncodeNumber(server, spell_id, 2);
                     reply.Insert(EO_EncodeNumber(server, caster->player_id, 2),
                                  reply.Length() + 1);
@@ -6804,11 +6939,14 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
                                  reply.Length() + 1);
                     reply.Insert(EO_EncodeNumber(server, (*iter)->index, 2),
                                  reply.Length() + 1);
-                    reply.Insert(EO_EncodeNumber(server, drop_item, 2), reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, drop_item, 2),
+                                 reply.Length() + 1);
                     reply.Insert(EO_EncodeNumber(server, (*iter)->wDrop_item_id, 2),
                                  reply.Length() + 1);
-                    reply.Insert(EO_EncodeNumber(server, (*iter)->x, 1), reply.Length() + 1);
-                    reply.Insert(EO_EncodeNumber(server, (*iter)->y, 1), reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, (*iter)->x, 1),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, (*iter)->y, 1),
+                                 reply.Length() + 1);
                     reply.Insert(EO_EncodeNumber(server, (*iter)->wDrop_amount, 4),
                                  reply.Length() + 1);
                     reply.Insert(EO_EncodeNumber(server, damage, 3), reply.Length() + 1);
@@ -6859,7 +6997,8 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
                                              PacketAction_Spec,
                                              PacketFamily_Cast,
                                              reply);
-                    reply.Insert(EO_EncodeNumber(server, caster->tp, 2), reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, caster->tp, 2),
+                                 reply.Length() + 1);
                     reply.Insert(EO_EncodeNumber(server, caster->experience, 4),
                                  reply.Length() + 1);
                     if (!caster->cheater_flag)
