@@ -42,6 +42,7 @@ void Server_BroadcastToParty(
 Player **Players_Iter_End(Players *players);
 bool Player_HandlePacket(Server *server, Player *player, String data);
 void FUN_00472944(Server *server, int value);
+void FUN_004728f8(Server *server, int value);
 String Player_SerializePaperdoll(Server *server, Player *player);
 String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index);
 void *FUN_0044f6ec(void *obj);
@@ -3151,15 +3152,20 @@ void Client_SendEncoded(
 {
     if (data.Length() > 20000)
     {
-        String stamp = Now();
-        String tag = " EndlServ ";
-        String msg = "Too large encoded packet dropped: ";
-        String path = "error.log";
-        (void)stamp;
-        (void)tag;
-        (void)msg;
-        (void)path;
+        String msg = DateToStr(Now());
+        msg.Insert(" ", msg.Length() + 1);
+        msg.Insert(TimeToStr(Now()), msg.Length() + 1);
+        msg.Insert(" EndlServ ", msg.Length() + 1);
+        msg.Insert("Too large encoded packet dropped: " + IntToStr(action) + "," +
+                       IntToStr(family),
+                   msg.Length() + 1);
+        msg.Insert("\n", msg.Length() + 1);
+        FILE *fp = fopen("error.log", "a");
+        fprintf(fp, "%s", msg.c_str());
+        fclose(fp);
     }
+    if (player->removing)
+        return;
     String out = String((char)action);
     out.Insert(String((char)family), out.Length() + 1);
     out.Insert(data, out.Length() + 1);
@@ -3168,17 +3174,19 @@ void Client_SendEncoded(
     EO_ByteRange_FromString(&range, out.c_str(), &obj);
     out = EO_Encode_Interleave(server,
                                player->server_encryption_multiple,
-                               (char *)FUN_0044f73c(&range),
-                               (char *)FUN_0044f710(&range));
+                               (char *)FUN_0044f710(&range),
+                               (char *)FUN_0044f73c(&range));
     for (int i = 1; i <= out.Length(); i++)
     {
-        char c = out[i];
+        int c = (unsigned char)out[i];
         if (c < 0x80)
             out[i] += 0x80;
         if (c > 0x80)
             out[i] += 0x80;
     }
     out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
+    FUN_004728f8(server, out.Length());
+    Sock_Send(player->socket, out.c_str());
 }
 // STUB(0x00467980, 12223 bytes) Attack_Execute - ref: int Attack_Execute(Server * server,
 // Player * attacker, PacketAction action, AnsiString * packet_data)

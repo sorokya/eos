@@ -643,8 +643,16 @@ Tracked so they are not mistaken for done:
   sub-guards folded into `if (family == N && action == 1)`, case `0x33`
   `SubString(1,2)`, `Client_SendEncoded(PacketAction(3), PacketFamily(0x33))`,
   and the invented `player->flush_queue = 1` removed. Frame `-0xac` -> `-0xa4`.
-  Remaining: the `EO_DecodeByte` overload (`0x4728c4` is `$qpvc`, the local decl
-  is `$qp6Serveruc`) and the local band placement. The real log sequence
+  **Exact log path applied** (`DateToStr(Now())` + `" "` + `TimeToStr(Now())` +
+  `" EndlServ "` + `"Too large encoded packet dropped: " + IntToStr(action) +
+  "," + IntToStr(family)` + `"\n"`, then `fopen("error.log","a")`/`fprintf("%s")`/
+  `fclose`), plus `if (player->removing) return;`, the trailing
+  `FUN_004728f8(server, out.Length()); Sock_Send(player->socket, out.c_str());`,
+  the `EO_Encode_Interleave` arg order (`FUN_0044f710` then `FUN_0044f73c`) and
+  `int c = (unsigned char)out[i];`. Result: **379 our / 359 ref, 312 mismatched**
+  (was 334), but the frame overshot to `-0xa0` vs the reference's `-0x88`
+  (24 B too big) — the exact chain's temporaries exceed the reference's, so the
+  layout is still not exact. The real log sequence
   (formatters/joins/append trio) is still approximated.
   Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
