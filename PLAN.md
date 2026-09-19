@@ -626,7 +626,12 @@ Tracked so they are not mistaken for done:
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
   byte-exact (`std::stack<char>`/`std::deque<char>`, by-value `String` return);
   `Player_HandlePacket` (`0x41794c`, 52,589 instructions, 33.9% of app bytes) is
-  prepared but not started: `/tmp/handlepacket_prep.md` has the 187-instruction
+  **started**: the header-parse prefix is written (`FUN_00472944(server,
+  data.Length())`; `data.Length() < 4 -> false`; `packet_count++`/`sequence++`
+  with the `> 9` wrap; the `+/-0x80` byte loop over `data[i]` for `i = 1..Length()`).
+  Current frame `-0x34` vs the reference's split `-4092`/`-3912` (true `-0x1f48`),
+  aligned prefix 3/87 — the split frame needs the 8,008 bytes of locals, so
+  nothing aligns until the family chain exists. `/tmp/handlepacket_prep.md` has the 187-instruction
   prologue (frame `0x1f48`, split `add esp,-4092`/`push eax`/`add esp,-3912`; 13
   locals; header parse `data.Length() < 4` guard, the `+/-0x80` byte loop,
   `EO_ByteRange_FromString`/`EO_Decode_Deinterleave`, `EO_DecodeByte` x2,

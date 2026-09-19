@@ -41,6 +41,28 @@ void Server_BroadcastToParty(
     Server *server, Player *player, int action, int family, String data);
 Player **Players_Iter_End(Players *players);
 bool Player_HandlePacket(Server *server, Player *player, String data);
+void FUN_00472944(Server *server, int value);
+
+bool Player_HandlePacket(Server *server, Player *player, String data)
+{
+    FUN_00472944(server, data.Length());
+    if (data.Length() < 4)
+        return false;
+    player->packet_count++;
+    player->sequence++;
+    if (player->sequence > 9)
+        player->sequence = 0;
+    for (int i = 1; i < data.Length(); i++)
+    {
+        int c = (unsigned char)data[i];
+        if (c >= 0x80)
+            data[i] += 0x80;
+        if (c > 0x80)
+            data[i] += 0x80;
+    }
+    return false;
+}
+
 bool FUN_00462374(Server *server, Player *player, String data);
 String Character_BuildSaveQuery(Players *players, Player *player, int flag);
 extern TGUI **MAINFORM;
