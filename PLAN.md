@@ -550,6 +550,7 @@ Exit criteria: `md5 -q build/GameServer.exe` equals
 | All units C++-verified | 2 | todo | `make functions` at 100% |
 | `.rsrc`/`.reloc` match | 3 | todo | section diff |
 | Full MD5 match, reproducible | 4 | todo | `md5 -q` from clean tree |
+| `Players_Add` byte-exact (last `verify_units` failure) | 2 | done | 113/113, 0 mismatched (`0x4081c8`). Root cause was a mis-modelled type, not a bcc ordering quirk: `Socket_GetRemoteIP` is the VCL member `TCustomWinSocket::GetRemoteAddress` (`0x4cf070` — its body pushes `SizeOf(Addr)`, `&Addr` and `FSocket=[this+4]` before the `getpeername` thunk). Written as the real property `socket->RemoteAddress`, the two `AnsiString` temporaries are member-return results and the reference's LIFO destructor order appears; the free `String __fastcall Socket_GetRemoteIP(void*)` wrapper (still declared in `Player.h` for `Player.cpp`/`Packets.cpp`) binds a hidden return temporary instead and yields FIFO. `Players_FindByName` is the control: same two-temporary `==` shape, FIFO in both, byte-exact. |
 
 ## Open questions
 
@@ -597,8 +598,6 @@ COMDAT) before the final link; none may be guessed away.
 
 Tracked so they are not mistaken for done:
 
-- `Players_Add` (Players) — 2 instructions: the image's only LIFO two-temp
-  AnsiString cleanup order; 14 source forms tried.
 - `Questengine::LoadQuest` / `ParseToken` — bcc local-slot/temp allocation.
 - `Weddings::Tick` — three dead `sete` blocks; markers match 57/57.
 - Packets' `0x45ddf0`/`0x45ddfc`/`0x45de08`/`0x45de14` — eight byte-identical
@@ -1030,13 +1029,8 @@ They are recorded here so no future pass mistakes them for work:
 - **The Mapcontrol loaders' re-arm marks** (`FUN_00482834` 1566/1572,
   `Mapcontrol_LoadMap` 1551/1552) — see the section above; the missing mark is the
   try-body scope terminator, emitted at any scale at a fixed offset, and its
-  position cannot be moved by any tested source form because the try's opening
-  position is pinned by the file-open failure path.
-- **`Players_Add`** (`0x4081c8`, 2 mismatched) — the LIFO destroy order of a
-  two-temporary expression. Fifteen scratch probes (operand order, `!=`/`==`,
-  negation, `bool` binding, statement splitting, block scoping, loop-condition
-  placement, nested calls) all emit the reference's own FIFO order; the order is
-  fixed by bcc. Frame delta 0.
+   position cannot be moved by any tested source form because the try's opening
+   position is pinned by the file-open failure path.
 
 ## Progress measurement — read the BYTES, not the function count
 

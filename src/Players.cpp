@@ -55,7 +55,7 @@ bool Players::Players_Add(Players *self, TCustomWinSocket *socket)
     int same_ip = 0;
     for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
     {
-        if (Socket_GetRemoteIP((*iter)->socket) != Socket_GetRemoteIP(socket))
+        if ((*iter)->socket->RemoteAddress != socket->RemoteAddress)
             continue;
         same_ip++;
         if (Settings::GetMaxConnections(self->settings) <= same_ip)

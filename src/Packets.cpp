@@ -4384,10 +4384,194 @@ int FUN_004505e0_Stub(int a0, int a1)
 {
     return 0;
 }
-// STUB(0x00450618, 36735 bytes) MysqlCallback_Dispatch - ref: void
-// MysqlCallback_Dispatch(Server * server, int * query_result)
-void MysqlCallback_Dispatch_Stub(void *a0, void *a1)
+String FUN_0047060c(Server *server, String value);
+void Login_SendCharacterList(Server *server,
+                             Player *player,
+                             PacketAction action,
+                             PacketFamily family,
+                             String data);
+
+void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
 {
+    Player *player = Players::Players_GetById(server->players, query_result->player_id);
+    if (player == NULL)
+        return;
+    if (player->query_id != query_result->expected_query_id)
+        return;
+    if (query_result->query_id == 0x40)
+    {
+        PacketReader_Init(server, query_result->data, EO_GetBreakByte(server, 0xff));
+        String account = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        String password = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        if ((*MAINFORM)->myquery->RecordCount < 1)
+        {
+            Client_SendEncoded(
+                server, player, 3, 4, EO_EncodeNumber(server, 1, 2) + "NO");
+            return;
+        }
+        if (password !=
+            FUN_0047060c(server,
+                         Mysqlcontrols::Db_GetString(server->mysql_controls, "password")))
+        {
+            Client_SendEncoded(
+                server, player, 3, 4, EO_EncodeNumber(server, 2, 2) + "NO");
+            return;
+        }
+        if (Mysqlcontrols::Db_GetInt(server->mysql_controls, "banned") > 0)
+        {
+            Client_SendEncoded(
+                server, player, 3, 4, EO_EncodeNumber(server, 4, 2) + "NO");
+            player->removing = true;
+            return;
+        }
+        int ident = Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident");
+        String account_name =
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "account");
+        String account_type = Mysqlcontrols::Db_GetString(server->mysql_controls, "type");
+        if (Mysqlcontrols::IsTaskPending(server->mysql_controls, ident))
+        {
+            Client_SendEncoded(
+                server, player, 3, 4, EO_EncodeNumber(server, 5, 2) + "NO");
+            return;
+        }
+        if (Players::Players_HasField0C(server->players, ident))
+        {
+            Client_SendEncoded(
+                server, player, 3, 4, EO_EncodeNumber(server, 5, 2) + "NO");
+            return;
+        }
+        if (account_type == "VIP" || account_type == "DEV")
+        {
+            Logins::SetReservedName(
+                server->logins, account, player->socket->RemoteAddress);
+            player->remove_timer = -1;
+        }
+        if (player->remove_timer > 0)
+        {
+            player->removing = true;
+            return;
+        }
+        player->field_0xc = ident;
+        player->account_name = account_name;
+        player->field_0x48 = account_type;
+        if (Players::Players_IsAccountNameTaken(
+                server->players, player->account_name, player->player_id))
+        {
+            Banned::AddBan(server->banned, player->remote_ip, player->hdid, (char)0, 120);
+            player->removing = true;
+            return;
+        }
+        player->account_logged_in = true;
+        TDateTime now = Now();
+        Mysqlcontrols::Mysql_ExecDirect_FromCallback(
+            server->mysql_controls,
+            player->field_0xc,
+            "UPDATE endl_accounts SET lastvisit = '" + DateTimeToStr(now) +
+                "' WHERE ident = " + IntToStr(ident));
+        Mysqlcontrols::Mysql_SubmitQuery_FromCallback(
+            server->mysql_controls,
+            0x41,
+            player->player_id,
+            player->query_id,
+            "",
+            "SELECT * FROM endl_characters WHERE ident_account = " +
+                String(player->field_0xc) + " ORDER BY level DESC LIMIT 3");
+        return;
+    }
+    if (query_result->query_id == 0x41)
+    {
+        Login_SendCharacterList(server,
+                                player,
+                                PacketAction_Reply,
+                                PacketFamily_Login,
+                                EO_EncodeNumber(server, 3, 2));
+        return;
+    }
+    if (query_result->query_id == 0x45)
+        return;
+    if (query_result->query_id == 0x46)
+    {
+        Login_SendCharacterList(server,
+                                player,
+                                PacketAction_Reply,
+                                PacketFamily_Character,
+                                EO_EncodeNumber(server, 5, 2));
+        player->null_string = "";
+        player->session_id = RandRange(50000) + 10000;
+        return;
+    }
+    if (query_result->query_id == 0x43)
+    {
+        if ((*MAINFORM)->myquery->RecordCount > 0)
+        {
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Account,
+                               EO_EncodeNumber(server, 1, 2) + "NO");
+            return;
+        }
+        Client_SendEncoded(server,
+                           player,
+                           PacketAction_Reply,
+                           PacketFamily_Account,
+                           EO_EncodeNumber(server, player->session_id, 2) +
+                               EO_EncodeNumber(server, server->ping_history[0], 1) +
+                               "OK");
+        return;
+    }
+    if (query_result->query_id == 0x44)
+        return;
+    if (query_result->query_id == 0x42)
+        return;
+    if (query_result->query_id == 0x47)
+        return;
+    if (query_result->query_id == 0x48)
+        return;
+    if (query_result->query_id == 0x49)
+        return;
+    if (query_result->query_id == 0x4a)
+    {
+        if ((*MAINFORM)->myquery->RecordCount < 1)
+            return;
+        String description =
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "description");
+        if (description.Length() == 0)
+            description = " ";
+        Client_SendEncoded(server, player, 9, 0x27, description);
+        return;
+    }
+    if (query_result->query_id == 0x4b)
+        return;
+    if (query_result->query_id == 0x4c)
+    {
+        if ((*MAINFORM)->myquery->RecordCount < 1)
+            return;
+        Client_SendEncoded(
+            server,
+            player,
+            12,
+            0x27,
+            EO_EncodeNumber(
+                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "money"), 4));
+        return;
+    }
+    if (query_result->query_id == 0x4d)
+        return;
+    if (query_result->query_id == 0x4e)
+        return;
+    if (query_result->query_id == 0x4f)
+        return;
+    if (query_result->query_id == 0x50)
+        return;
+    if (query_result->query_id == 0x51)
+        return;
+    if (query_result->query_id == 0x52)
+        return;
+    if (query_result->query_id == 0x53)
+        return;
 }
 // STUB(0x00459638, 101 bytes) FUN_00459638 - ref: undefined4 * FUN_00459638(int param_1,
 // undefined4 * param_2)
