@@ -1320,6 +1320,169 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             return true;
         }
     }
+    if (family == PacketFamily_Citizen)
+    {
+        if (action == PacketAction_Request || action == PacketAction_Accept)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
+            int inn_index = EO_DecodeNumber(server, data.SubString(3, 2));
+            if (player->session_id != npc_index)
+                return true;
+            if (player->session_token != inn_index)
+                return false;
+            if (player->hp >= player->max_hp)
+                return true;
+            int cost =
+                (player->max_hp - player->hp) + (player->max_tp - player->tp);
+            if (action == PacketAction_Request)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Request,
+                                   PacketFamily_Citizen,
+                                   EO_EncodeNumber(server, cost, 4));
+                return true;
+            }
+            else
+            {
+                int sleep_map =
+                    InnValues::GetSleepMap((*MAINFORM)->inn_values, inn_index);
+                if (sleep_map < 1)
+                    return true;
+                if (!Players::Player_RemoveItem(server->players, player, 1, cost))
+                    return true;
+                MapCoord sleep_pos;
+                sleep_pos.x = InnValues::GetSleepX((*MAINFORM)->inn_values, inn_index);
+                sleep_pos.y = InnValues::GetSleepY((*MAINFORM)->inn_values, inn_index);
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Accept,
+                    PacketFamily_Citizen,
+                    EO_EncodeNumber(server, player->item_change_remaining, 4));
+                player->hp = player->max_hp;
+                player->tp = player->max_tp;
+                if (player->in_party)
+                {
+                    String msg = EO_EncodeNumber(server, player->player_id, 2);
+                    msg.Insert(EO_EncodeNumber(server, Player::HpPercent(player), 1),
+                               msg.Length() + 1);
+                    Server_BroadcastToParty(
+                        server, player, PacketAction_Agree, PacketFamily_Party, msg);
+                }
+                Player_Warp(server, player, sleep_map, sleep_pos, 0, false);
+                return true;
+            }
+        }
+        if (action == PacketAction_Remove)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int id = EO_DecodeNumber(server, data.SubString(1, 2));
+            if (player->session_token != id)
+                return false;
+            if (player->home_id != id)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Remove,
+                                   PacketFamily_Citizen,
+                                   EO_EncodeNumber(server, 0, 1));
+                return true;
+            }
+            if (player->home_id == 0)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Remove,
+                                   PacketFamily_Citizen,
+                                   EO_EncodeNumber(server, 0, 1));
+                return true;
+            }
+            player->home_id = 0;
+            player->home_name = InnValues::GetName((*MAINFORM)->inn_values, 0);
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Remove,
+                               PacketFamily_Citizen,
+                               EO_EncodeNumber(server, 1, 1));
+            return true;
+        }
+        if (action == PacketAction_Reply)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 6)
+                return false;
+            PacketReader_Init(server, data, EO_GetBreakByte(server, 0xff));
+            int npc_index = EO_DecodeNumber(server, PacketReader_GetBreakString(server));
+            int inn_index = EO_DecodeNumber(server, PacketReader_GetBreakString(server));
+            String ans1 = PacketReader_GetBreakString(server);
+            String ans2 = PacketReader_GetBreakString(server);
+            String ans3 = PacketReader_GetBreakString(server);
+            if (player->session_id != npc_index)
+                return true;
+            if (player->session_token != inn_index)
+                return false;
+            int count = 0;
+            if (LowerCase(ans1) !=
+                LowerCase(InnValues::GetAnswer((*MAINFORM)->inn_values, inn_index, 0)))
+                count++;
+            if (LowerCase(ans2) !=
+                LowerCase(InnValues::GetAnswer((*MAINFORM)->inn_values, inn_index, 1)))
+                count++;
+            if (LowerCase(ans3) !=
+                LowerCase(InnValues::GetAnswer((*MAINFORM)->inn_values, inn_index, 2)))
+                count++;
+            if (count == 0)
+            {
+                player->home_id = inn_index;
+                player->home_name =
+                    InnValues::GetName((*MAINFORM)->inn_values, inn_index);
+            }
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Citizen,
+                               EO_EncodeNumber(server, count, 1));
+            return true;
+        }
+        if (action == PacketAction_Open)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
+            MapCoord coords =
+                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            if (coords.x < 0 || coords.y < 0)
+                return false;
+            if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            int npc_id =
+                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
+            if (type_info.type != NpcType_Inn)
+                return true;
+            player->session_token = type_info.behavior_id - 1;
+            String out = EO_EncodeNumber(server, player->session_token, 3);
+            out.Insert(EO_EncodeNumber(server, player->home_id, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->session_id, 2), out.Length() + 1);
+            out.Insert(
+                InnValues::GetQuestion((*MAINFORM)->inn_values, type_info.behavior_id - 1),
+                out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Open, PacketFamily_Citizen, out);
+            return true;
+        }
+    }
     if (family == PacketFamily_Bank)
     {
         if (action == PacketAction_Add)
