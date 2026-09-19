@@ -1023,6 +1023,44 @@ shape):
   1,891-instruction slice, but that is not a clean bill — the artifact is only
   detectable per chunk with `compare_asm.py` once a body exists.
 
+## HandlePacket / Client_SendEncoded: an emitted-COMDAT side effect worth knowing
+
+Removing `std::vector<char> range;` from `Client_SendEncoded` was CORRECT -- the
+reference emits no constructor for `range` (it is only passed to
+0x5432d8/0x44f73c/0x44f710/0x44f6c8), which is why declaring it as a `std::vector`
+added an `allocator<char>` temp and a 16-byte band shift. But it had a side effect
+that cost one byte-exact row (1678 -> 1677): our source was materialising five
+`std::vector<char>` member COMDATs that the reference DOES have --
+
+  `0x44f6c8` (35 B, the scalar/deleting destructor), `0x44f710` (43 B),
+  `0x44f73c` (60 B), `0x44f778` (155 B), `0x44f814` (155 B)
+
+-- and with no `std::vector<char>` anywhere in `src/` (grep now finds none) they are
+no longer emitted, so those rows read `stubbed`. This is the inverse of the
+phenomenon that produced the project's biggest single jump (using
+`std::stack<char>`/`std::deque<char>` materialised ~60 COMDATs at once): a container
+declared for convenience keeps COMDATs alive that the reference may or may not have.
+
+The correct resolution is NOT to re-add the vector to `Client_SendEncoded` (that
+would re-introduce the allocator temp and the band shift), but to find where the
+reference legitimately instantiates `std::vector<char>` in the Packets unit and use
+it there. Candidates to check: the bodies of `EO_ByteRange_FromString` (0x5432d8) and
+its helpers 0x543480, and any other Packets function that builds a byte buffer. Until
+that is done, those five rows are the known cost of the layout fix, and they are
+counted in `stubbed`.
+
+Also outstanding from this stretch, both proven with evidence and both small:
+- `Server_BroadcastToParty`: the DEFINITION is already right (`unsigned char`); the
+  two DECLARATIONS are wrong (`src/Packets.h:119-120`, `src/Packets.cpp:39-40` say
+  `int action, int family`). The reference's callee reads its own params with BYTE
+  loads (463712 `mov al, byte ptr [ebp+0x14]`, 463716 `mov dl, byte ptr [ebp+0x10]`),
+  so the ABI is 1-byte and the declarations must change.
+- `MapVector_End`: the same class -- `src/Mapcontrol.cpp:29` declares
+  `void *MapVector_End(void*)` (`qpv`) while `src/Packets.h:92`/`src/Packets.cpp:349`
+  declare `MapContainer *MapVector_End(Mapcontrol *)` (`qp10Mapcontrol`); the
+  reference (functions.tsv:299, 0x44f9b0) is `qp10Mapcontrol`, so Mapcontrol.cpp:29 is
+  the divergent one.
+
 ## Risks and mitigations
 
 | Risk | Mitigation |
