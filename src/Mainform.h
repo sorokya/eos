@@ -107,4 +107,6 @@ class TGUI : public TForm
 extern PACKAGE TGUI *GUI;
 extern TGUI **MAINFORM;
 
+Server *Mainform_GetServer(TGUI *form);
+
 #endif

@@ -580,16 +580,31 @@ COMDAT) before the final link; none may be guessed away.
 
 | Symbol | Declared in | Owner / status |
 | --- | --- | --- |
-| `Players_Iter_Begin` / `Players_Iter_End` | Chestcontrol, Effectcontrol, Eventcontrol, Npccontrol, Packets | Players unit (`0x407f28`/`0x407f34`). The out-of-line `std::vector<Player*>::begin/end` COMDATs; the mangled names are unobservable, so no header declares them yet. |
+| `Players_Iter_Begin` / `Players_Iter_End` | Npccontrol, Packets (resolved: Chestcontrol, Effectcontrol, Eventcontrol) | Players unit (`0x407f28`/`0x407f34`). The out-of-line `std::vector<Player*>::begin/end` COMDATs. Resolved by calling `players->players.begin()/.end()` (mangled name matches the reference exactly); the two off-limits units still hold the free declaration and must be converted the same way. |
 | `Character_BuildSaveQuery` | Packets | Players unit, `0x40902c` (14592 B), not yet reconstructed. |
 | `Map_GetTileSpecObject` | Packets | Mapcontrol `0x47c114`; only caller is `Chair_Execute`. Returns `MapObject` by value. Name not yet settled in the owner. |
 | `Map_InitBlank` (`0x487e84`), `FUN_0048835c` (`0x48835c`) | Mapcontrol | Map unit. `Map_InitBlank` returns `MapContainer` by value and takes `(map_id, width, height)`; `FUN_0048835c` is its destructor (`(&map, 2)`). Needed by `Mapcontrol_LoadMap`; no owner header declares them yet. |
 | `MapVector_End` (`0x47ecd4`), `MapVector_Insert` (`0x47ece0`) | Mapcontrol | Mapcontrol itself: the `std::vector<MapContainer>::end` / `insert` COMDATs. Called as `MapVector_Insert(map_control, MapVector_End(map_control), &map)` (the vector is `map_control->maps` at offset 0). No header declares them. |
 | `Sock_Send` | Packets | Library/RTL helper `0x4cf568`; not in `analysis/target/unit_functions.tsv` (so not a unit function). |
 | `MysqlCallback_Dispatch` | Mysqlthread | Packets `0x450618` (36735 B), not yet reconstructed. |
-| `Mainform_GetServer` | Mysqlthread | Mainform; no definition in `src/` yet. |
+| `Mainform_GetServer` | (resolved) | Mainform `0x4027b4`: `mov eax,[ebp+8]; mov eax,[eax+0x310]; ret`, i.e. `form->server_ctrl`. Defined in `Mainform.cpp` and declared in `Mainform.h`; the MySQLthread/Players call sites keep the reference's out-of-line call (the accessor is **not** inlined by the original build). |
 | `extern TGUI **MAINFORM` | Packets, Players | Global `0x58b60c` (initialised to `&GUI` at `0x58bb70`); no owner declaration anywhere. |
 | `EO_ByteRange_FromString` (`0x5432d8`) | Packets (`src/Packets.h`) | No owner: the address is **not a function row** in `unit_functions.tsv` — it sits in a module the inventory classifies as library inside GUI's span. **Verified identity: `0x5432d8` is the RTL `std::basic_string<char,...>::basic_string(const char*, const Allocator&)` constructor** (the surrounding `cw32mt.lib` index strings are `basic_string`/`char_traits`/`allocator`; it returns `this` at `0x543403`). `Client_SendEncoded` now calls it by source (`std::basic_string<char> range(out.c_str())`); the `src/Packets.h` free-function declaration survives only because `Player_HandlePacket` still uses it and must be converted the same way. |
+
+The same-class scan of the compiler listings also resolved, in editable units,
+three more free declarations that are really container/class members: Mapcontrol
+`FUN_004813c8` = `std::vector<bool>::size` (`0x4813c8`), `FUN_0048441c` =
+`std::vector<bool>::resize` (`0x48441c`) and `FUN_004a9e74` =
+`JukeBoxController::Add` (`0x4a9e74`). Calling the real members emits the
+reference COMDATs; the `resize` call also pulls in the whole `vector<bool>`
+helper block (+13 byte-exact). Still outstanding (all in the off-limits Packets
+unit unless noted): free declarations that are really `Gamecontrol::Combat_Calc*`,
+`ItemValues::Eif_GetElement`, `Player::HpPercent` and `Player::IsPartyMember`;
+`Player_FireQuestTriggers`, `Server_BroadcastToMapExceptSelf`, `Sock_Send`, and
+the stubbed `FUN_00462374`, `FUN_00463d40`, `FUN_0047060c`, `FUN_004708d4`,
+`FUN_004728f8`; Mainform's unimplemented `FUN_00403080`; Packets'
+`FUN_004731d0`/`FUN_00473540` and `Server_RemovePlayer` (`0x41728c`); and the data
+global `TGUI **MAINFORM` (`0x58b60c`), still without a definition.
 
 ## Known-unconverged functions
 

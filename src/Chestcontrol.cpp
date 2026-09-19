@@ -5,12 +5,10 @@
 #include "Protocol.h"
 #include "Map.h"
 #include "Player.h"
+#include "Players.h"
 #include "Packets.h"
 
 #pragma package(smart_init)
-
-Player **Players_Iter_Begin(Players *players);
-Player **Players_Iter_End(Players *players);
 
 ChestController::ChestController(Mapcontrol *map_control,
                                  Players *players,
@@ -91,8 +89,8 @@ void ChestController::Tick(ChestController *self)
         }
     }
 
-    for (player_iter = Players_Iter_Begin(self->players);
-         Players_Iter_End(self->players) != player_iter;
+    for (player_iter = self->players->players.begin();
+         self->players->players.end() != player_iter;
          player_iter++)
     {
         if ((*player_iter)->logged_in != 0 && (*player_iter)->map_id > 0 &&

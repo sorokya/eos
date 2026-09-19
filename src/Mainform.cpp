@@ -40,6 +40,11 @@ String FUN_00473540(Server *server);
 String FUN_004731d0(Server *server);
 String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code);
 
+Server *Mainform_GetServer(TGUI *form)
+{
+    return form->server_ctrl;
+}
+
 __fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
 {
 }

@@ -4,13 +4,11 @@
 #include "Effectcontrol.h"
 #include "Map.h"
 #include "Player.h"
+#include "Players.h"
 #include "Protocol.h"
 #include "Packets.h"
 
 #pragma package(smart_init)
-
-Player **Players_Iter_Begin(Players *players);
-Player **Players_Iter_End(Players *players);
 
 EffectController::EffectController(Mapcontrol *map_control,
                                    Players *players,
@@ -81,8 +79,8 @@ void EffectController::Tick(EffectController *self)
     self->nBroadcast_gate--;
 
     Player **player_iter;
-    for (player_iter = Players_Iter_Begin(self->players);
-         player_iter != Players_Iter_End(self->players);
+    for (player_iter = self->players->players.begin();
+         player_iter != self->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->map_has_quakes != 0)
@@ -231,8 +229,8 @@ void EffectController::Tick(EffectController *self)
     if (self->nBroadcast_gate < 1)
     {
         Player **broadcast_iter;
-        for (broadcast_iter = Players_Iter_Begin(self->players);
-             broadcast_iter != Players_Iter_End(self->players);
+        for (broadcast_iter = self->players->players.begin();
+             broadcast_iter != self->players->players.end();
              broadcast_iter++)
         {
             if ((*broadcast_iter)->map_has_hp_drain != 0)

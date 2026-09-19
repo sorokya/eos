@@ -11,7 +11,6 @@
 #pragma package(smart_init)
 
 extern void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result);
-extern Server *Mainform_GetServer(TGUI *form);
 
 __fastcall MySQLthread::MySQLthread(TSession *session_,
                                     TDatabase *database_,

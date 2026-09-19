@@ -11,9 +11,6 @@
 
 #pragma package(smart_init)
 
-Player **Players_Iter_Begin(Players *players);
-Player **Players_Iter_End(Players *players);
-
 EventController::EventController(Mapcontrol *map_control,
                                  Players *players,
                                  Server *server,
@@ -114,8 +111,8 @@ void EventController::Tick(EventController *self)
             }
             if (map_iter->evac_countdown < 1)
             {
-                for (Player **player_iter = Players_Iter_Begin(self->players);
-                     player_iter != Players_Iter_End(self->players);
+                for (Player **player_iter = self->players->players.begin();
+                     player_iter != self->players->players.end();
                      player_iter++)
                 {
                     if ((*player_iter)->connected &&

@@ -3,6 +3,7 @@
 
 #include "Mapcontrol.h"
 #include "Mainform.h"
+#include "Jukeboxcontrol.h"
 #include "Npc.h"
 #include "Npcvalue.h"
 #include "Npcvalues.h"
@@ -19,10 +20,7 @@ MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 // Cross-unit helpers owned by other units (Jukeboxcontrol, Mapcontrol).
 void FUN_004aa4e4(JukeBoxController *jukebox_control, int map_id);
 bool FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id);
-int FUN_004813c8(void *list);
-void FUN_0048441c(void *list, int count, int value);
 void *Map_NpcIter_End(void *npc_list);
-void FUN_004a9e74(JukeBoxController *jukebox_control, int map_id);
 MapContainer *MapVector_End(Mapcontrol *map_control);
 
 typedef std::vector<ChestItem *> GroundItemPtrVector;
@@ -1511,8 +1509,8 @@ bool FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
             map->has_tp_drain = true;
         if (map->timed_effect > 2 && map->timed_effect < 7)
             map->has_quakes = true;
-        if (FUN_004813c8(&map->tile_bits) != map->width * map->height * 2)
-            FUN_0048441c(&map->tile_bits, map->width * map->height * 2, 0);
+        if (map->tile_bits.size() != map->width * map->height * 2)
+            map->tile_bits.resize(map->width * map->height * 2, 0);
         if (Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2b, 1)) ==
             0)
             map->can_scroll = 1;
@@ -1657,7 +1655,7 @@ bool FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
                     Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 2);
                     Mapcontrol::Mapcontrol_AddTileSpec(
                         map_control, map, spec, tile_x, code - 1);
-                    FUN_004a9e74((*MAINFORM)->jukebox_control, map_id);
+                    JukeBoxController::Add((*MAINFORM)->jukebox_control, map_id);
                 }
                 if (code == 9)
                     Mapcontrol::Mapcontrol_GetOrCreateChest(
@@ -2003,7 +2001,7 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
                         map_control, &map, spec, tile_x, 2);
                     Mapcontrol::Mapcontrol_AddTileSpec(
                         map_control, &map, spec, tile_x, code - 1);
-                    FUN_004a9e74((*MAINFORM)->jukebox_control, map_id);
+                    JukeBoxController::Add((*MAINFORM)->jukebox_control, map_id);
                 }
                 if (code == 9)
                     Mapcontrol::Mapcontrol_GetOrCreateChest(

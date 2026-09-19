@@ -55,6 +55,8 @@ String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index);
 void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value);
 MapCoord FUN_0047c6c0(int map_control, int map_id, unsigned int npc_index);
 unsigned int FUN_0047c634(int map_control, int map_id, unsigned int npc_index);
+String FUN_0047badc(Mapcontrol *map_control, int map_id, unsigned int x, unsigned int y);
+int FUN_00486e64(int map_control, int map_id, unsigned int x, unsigned int y);
 bool Attack_Execute(Server *server, Player *caster, int action, String *reader);
 bool Spell_Execute(Server *server, Player *caster, int action, String *packet_data);
 String Player_SerializeAvatar(Server *server, Player *player, int arg);
@@ -63,6 +65,7 @@ String Server_BuildOnlineList(Server *server);
 String Refresh_BuildReply(Server *server, Player *player);
 String Map_ReadRawFile(Mapcontrol *map_control, int map_id);
 bool Walk_Execute(Server *server, Player *player, int action, String *data);
+bool FUN_004738b0_Stub(void *a0);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
@@ -807,6 +810,166 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                            Player_SerializePaperdoll(server, target));
         return true;
     }
+    if (family == PacketFamily_Chest)
+    {
+        if (action == PacketAction_Take)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            MapCoord coords;
+            coords.x = EO_DecodeNumber(server, data.SubString(1, 1));
+            coords.y = EO_DecodeNumber(server, data.SubString(2, 1));
+            int slot = EO_DecodeNumber(server, data.SubString(3, 2));
+            if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            ItemStack stack = Mapcontrol::Mapcontrol_TakeChestItem(
+                server->map_control, player->map_id, coords.x, coords.y, slot);
+            if (stack.id < 1)
+                return true;
+            Players::Player_AddItem(server->players, player, stack.id, stack.amount);
+            player->weight_current +=
+                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, stack.id) *
+                stack.amount;
+            if (player->weight_current < 0)
+                player->weight_current = 0;
+            int weight = player->weight_current;
+            int weight_max = player->weight_max;
+            if (weight > 250)
+                weight = 250;
+            if (weight_max > 250)
+                weight_max = 250;
+            String item_str =
+                FUN_0047badc(server->map_control, player->map_id, coords.x, coords.y);
+            Server_BroadcastAdjacent(server,
+                                     player,
+                                     coords.x,
+                                     coords.y,
+                                     PacketAction_Agree,
+                                     PacketFamily_Chest,
+                                     item_str);
+            String out = EO_EncodeNumber(server, stack.id, 2);
+            out.Insert(EO_EncodeNumber(server, stack.amount, 3), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, weight, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
+            out.Insert(item_str, out.Length() + 1);
+            Client_SendEncoded(server, player, PacketAction_Get, PacketFamily_Chest, out);
+            return true;
+        }
+        if (action == PacketAction_Add)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 7)
+                return false;
+            MapCoord coords;
+            coords.x = EO_DecodeNumber(server, data.SubString(1, 1));
+            coords.y = EO_DecodeNumber(server, data.SubString(2, 1));
+            int item_id = EO_DecodeNumber(server, data.SubString(3, 2));
+            int amount = EO_DecodeNumber(server, data.SubString(5, 3));
+            if (ItemValues::Eif_GetSpecial((*MAINFORM)->item_values, item_id) == 4)
+                return true;
+            if (amount > 10000000)
+                return true;
+            int slot_count = Mapcontrol::Mapcontrol_GetChestSlotCount(
+                server->map_control, player->map_id, coords.x, coords.y);
+            if (slot_count < 0 || slot_count > 4)
+            {
+                Client_SendEncoded(
+                    server, player, PacketAction_Spec, PacketFamily_Chest, "0");
+                return true;
+            }
+            if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            if (!Players::Player_RemoveItem(server->players, player, item_id, amount))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Agree,
+                                   PacketFamily_Item,
+                                   EO_EncodeNumber(server, item_id, 2));
+                return true;
+            }
+            player->weight_current -=
+                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) *
+                player->item_change_count;
+            if (player->weight_current < 0)
+                player->weight_current = 0;
+            int weight = player->weight_current;
+            int weight_max = player->weight_max;
+            if (weight > 250)
+                weight = 250;
+            if (weight_max > 250)
+                weight_max = 250;
+            Mapcontrol::Mapcontrol_AddChestItem(server->map_control,
+                                                player->map_id,
+                                                coords.x,
+                                                coords.y,
+                                                item_id,
+                                                player->item_change_count);
+            String item_str =
+                FUN_0047badc(server->map_control, player->map_id, coords.x, coords.y);
+            Server_BroadcastAdjacent(server,
+                                     player,
+                                     coords.x,
+                                     coords.y,
+                                     PacketAction_Agree,
+                                     PacketFamily_Chest,
+                                     item_str);
+            String out = EO_EncodeNumber(server, item_id, 2);
+            out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, weight, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
+            out.Insert(item_str, out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Reply, PacketFamily_Chest, out);
+            return true;
+        }
+        if (action == PacketAction_Open)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            MapCoord coords;
+            coords.x = EO_DecodeNumber(server, data.SubString(1, 1));
+            coords.y = EO_DecodeNumber(server, data.SubString(2, 1));
+            if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            String out =
+                FUN_0047badc(server->map_control, player->map_id, coords.x, coords.y);
+            if (out == "N")
+            {
+                Client_SendEncoded(
+                    server, player, PacketAction_Close, PacketFamily_Chest, "N");
+                return true;
+            }
+            int chest_slot = FUN_00486e64(
+                (int)server->map_control, player->map_id, coords.x, coords.y);
+            if (chest_slot < 1)
+            {
+                out.Insert(data.SubString(1, 1), 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Open, PacketFamily_Chest, out);
+                return true;
+            }
+            if (Players::Player_HasKeyItem(server->players, player, chest_slot))
+            {
+                out.Insert(data.SubString(1, 1), 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Open, PacketFamily_Chest, out);
+                return true;
+            }
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Close,
+                               PacketFamily_Chest,
+                               EO_EncodeNumber(server, chest_slot, 2));
+            return true;
+        }
+    }
     if (family == PacketFamily_Shop)
     {
         if (action == PacketAction_Create)
@@ -1394,6 +1557,156 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 Client_SendEncoded(
                     server, player, PacketAction_List, PacketFamily_Quest, out);
             }
+            return true;
+        }
+    }
+    if (family == PacketFamily_Marriage)
+    {
+        if (action == PacketAction_Request)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 0xa)
+                return false;
+            int subtype = EO_DecodeNumber(server, data.SubString(1, 1));
+            int token = EO_DecodeNumber(server, data.SubString(2, 4));
+            if (player->session_token != token)
+                return true;
+            PacketReader_Init(server, data, EO_GetBreakByte(server, 0xff));
+            PacketReader_GetBreakString(server);
+            String name = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, PacketReader_GetBreakString(server));
+            name = LowerCase(name);
+            name =
+                Mysqlcontrols::Mysql_SanitizeString(server->mysql_controls, name, false);
+            if (name.Length() < 4)
+                return false;
+            if (subtype == 1)
+            {
+                if (player->partner_name.Length() > 3)
+                {
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Reply,
+                                       PacketFamily_Marriage,
+                                       EO_EncodeNumber(server, 1, 2));
+                    return true;
+                }
+                if (!Players::Player_RemoveItem(server->players, player, 1, 0x1f4))
+                {
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Reply,
+                                       PacketFamily_Marriage,
+                                       EO_EncodeNumber(server, 4, 2));
+                    return true;
+                }
+                player->partner_name = name.SubString(1, 3);
+                String msg = EO_EncodeNumber(server, 3, 2);
+                msg.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                           msg.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Marriage, msg);
+                return true;
+            }
+            if (subtype == 2)
+            {
+                if (player->partner_name.Length() < 4)
+                {
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Reply,
+                                       PacketFamily_Marriage,
+                                       EO_EncodeNumber(server, 2, 2));
+                    return true;
+                }
+                if (LowerCase(player->partner_name) != LowerCase(name))
+                {
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Reply,
+                                       PacketFamily_Marriage,
+                                       EO_EncodeNumber(server, 5, 2));
+                    return true;
+                }
+                Player *target = Players::Players_FindByName(server->players, name);
+                if (target != NULL)
+                {
+                    if (!Players::Player_RemoveItem(server->players, player, 1, 0x2710))
+                    {
+                        Client_SendEncoded(server,
+                                           player,
+                                           PacketAction_Reply,
+                                           PacketFamily_Marriage,
+                                           EO_EncodeNumber(server, 4, 2));
+                        return true;
+                    }
+                    Client_SendEncoded(server,
+                                       target,
+                                       PacketAction_Reply,
+                                       PacketFamily_Marriage,
+                                       EO_EncodeNumber(server, 7, 2));
+                    target->partner_name = "";
+                }
+                else
+                {
+                    if (!FUN_004738b0_Stub(server))
+                    {
+                        Client_SendEncoded(server,
+                                           player,
+                                           PacketAction_Reply,
+                                           PacketFamily_Marriage,
+                                           EO_EncodeNumber(server, 6, 2));
+                        return true;
+                    }
+                    if (!Players::Player_RemoveItem(server->players, player, 1, 0x2710))
+                    {
+                        Client_SendEncoded(server,
+                                           player,
+                                           PacketAction_Reply,
+                                           PacketFamily_Marriage,
+                                           EO_EncodeNumber(server, 4, 2));
+                        return true;
+                    }
+                    Mysqlcontrols::Mysql_ExecDirect(
+                        server->mysql_controls,
+                        player->field_0xc,
+                        "UPDATE endl_characters SET partner = 'DV-' WHERE name = '" +
+                            name + "'");
+                }
+                player->partner_name = "";
+                String msg = EO_EncodeNumber(server, 3, 2);
+                msg.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                           msg.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Marriage, msg);
+                return true;
+            }
+        }
+        if (action == PacketAction_Open)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
+            MapCoord coords =
+                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            if (coords.x < 0 || coords.y < 0)
+                return true;
+            if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            int npc_id =
+                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
+            if (type_info.type != NpcType_Lawyer)
+                return true;
+            player->session_token = RandRange(0x2710) + 0xdbba1;
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Open,
+                               PacketFamily_Marriage,
+                               EO_EncodeNumber(server, player->session_token, 3));
             return true;
         }
     }
@@ -6715,7 +7028,7 @@ void *FUN_00473540_Stub(void *a0, void *a1)
 }
 // STUB(0x004738b0, 110 bytes) FUN_004738b0 - ref: bool FUN_004738b0(undefined4 param_1,
 // undefined4 param_2, undefined4 param_3, int param_4)
-bool FUN_004738b0_Stub(int a0, int a1, int a2, int a3)
+bool FUN_004738b0_Stub(void *a0)
 {
     return 0;
 }

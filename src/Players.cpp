@@ -19,7 +19,6 @@ bool Attack_Execute(Server *server, Player *player, int action, String *data);
 bool Spell_Execute(Server *server, Player *player, int action, String *data);
 bool Face_Execute(Server *server, Player *player, int action, String *data);
 bool Chair_Execute(Server *server, Player *player, int action, String *data);
-Server *Mainform_GetServer(TGUI *form);
 
 int RandRange(int max)
 {
