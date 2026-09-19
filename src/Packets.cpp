@@ -64,7 +64,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         if (c > 0x80)
             data[i] += (char)0x80;
     }
-    std::vector<char> range;
+    EOByteRange range;
     void *obj;
     EO_ByteRange_FromString(&range, data.c_str(), (EOEncodedObj *)FUN_0044f6ec(&obj));
     data = EO_Decode_Deinterleave(server,
@@ -3147,8 +3147,11 @@ void FUN_00463d40_Stub(int a0, unsigned char a1, unsigned char a2, int a3)
 // STUB(0x00464030, 1286 bytes) Client_SendEncoded - ref: undefined
 // Client_SendEncoded(Server * server, Player * player, PacketAction action, PacketFamily
 // family)
-void Client_SendEncoded(
-    Server *server, Player *player, PacketAction action, PacketFamily family, String data)
+void Client_SendEncoded(Server *server,
+                        Player *player,
+                        unsigned char action,
+                        unsigned char family,
+                        String data)
 {
     if (data.Length() > 20000)
     {
@@ -3170,7 +3173,7 @@ void Client_SendEncoded(
     out.Insert(String((char)family), out.Length() + 1);
     out.Insert(data, out.Length() + 1);
     EOEncodedObj obj;
-    std::vector<char> range;
+    EOByteRange range;
     EO_ByteRange_FromString(&range, out.c_str(), &obj);
     out = EO_Encode_Interleave(server,
                                player->server_encryption_multiple,
@@ -3180,9 +3183,9 @@ void Client_SendEncoded(
     {
         int c = (unsigned char)out[i];
         if (c < 0x80)
-            out[i] += 0x80;
+            out[i] += (char)0x80;
         if (c > 0x80)
-            out[i] += 0x80;
+            out[i] += (char)0x80;
     }
     out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
     FUN_004728f8(server, out.Length());

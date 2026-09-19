@@ -657,9 +657,18 @@ Tracked so they are not mistaken for done:
   `PacketFamily` (and `#include "Protocol.h"` added to `Packets.h`, which did not
   have it); the 35 call sites and the definition now share the single symbol
   `@@Client_SendEncoded$qp6Serverp6Player12PacketAction12PacketFamily...`.
-  `Server_BroadcastToParty` has the same class of defect (`ucuc` declaration vs
-  `ii` definition) but a second `ucuc` declaration survives in another unit's
-  `.cpp`, so its two symbols remain (not fixable from this unit). The real log sequence
+  **Signature unified on `unsigned char`** (the `ucuc` form, per the sheet: the
+  enum-typed declaration cost 10 byte-exact callers): the definition now matches
+  the declaration and the build emits ONE symbol
+  `@@Client_SendEncoded$qp6Serverp6Playerucuc...`; sheet stays 1678/1809.
+  **`range` re-typed to a POD** (`struct EOByteRange { void *f0, *f4; char *data;
+  void *fc, *f10, *f14; }`, 24 B, no ctor) and `out[i] += (char)0x80` folded:
+  frame `-0xa0` -> **`-0x88` (delta 0)**, instructions 355/359, mismatches
+  **312 -> 245**, aligned prefix 5. Residual: the EH counter/arming sit at
+  `-0x44`/`-0x50` (ours) vs `-0x54`/`-0x60` (ref) — a 16 B band-placement
+  difference still. `Server_BroadcastToParty` has the same defect class (`ucuc`
+  declaration vs `ii` definition) with a second `ucuc` declaration in another
+  unit's `.cpp` (handled separately). The real log sequence
   (formatters/joins/append trio) is still approximated.
   Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
