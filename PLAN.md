@@ -634,7 +634,17 @@ Tracked so they are not mistaken for done:
   so the band placement (not the total) is the residual. Rebuilding the log path
   with the spec's 11 Strings overshot the frame to `-0xa4` (28 B too big), so the
   log path really has ~4 locals, not 11 — the spec's §1 count is wrong; only the
-  band placement (locals declared so they land at `-0x4`..) is still open. The real log sequence
+  band placement (locals declared so they land at `-0x4`..) is still open.
+  **13-defect audit applied**: `EO_Decode_Deinterleave` args swapped
+  (`FUN_0044f710` then `FUN_0044f73c`), `player->client_encryption_multiple`
+  (`+0x20`) not `server_encryption_multiple`, `void *obj` no longer zero-init,
+  `(char)0x80` in the strip loop, case `0x1c` accumulator `""`, count width 1,
+  `Client_SendEncoded(PacketAction(5), PacketFamily(0x1a))`, case `0x1c`/`0x33`
+  sub-guards folded into `if (family == N && action == 1)`, case `0x33`
+  `SubString(1,2)`, `Client_SendEncoded(PacketAction(3), PacketFamily(0x33))`,
+  and the invented `player->flush_queue = 1` removed. Frame `-0xac` -> `-0xa4`.
+  Remaining: the `EO_DecodeByte` overload (`0x4728c4` is `$qpvc`, the local decl
+  is `$qp6Serveruc`) and the local band placement. The real log sequence
   (formatters/joins/append trio) is still approximated.
   Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is

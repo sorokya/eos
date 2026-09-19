@@ -44,7 +44,6 @@ bool Player_HandlePacket(Server *server, Player *player, String data);
 void FUN_00472944(Server *server, int value);
 String Player_SerializePaperdoll(Server *server, Player *player);
 String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index);
-int EO_DecodeByte(Server *server, unsigned char value);
 void *FUN_0044f6ec(void *obj);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
@@ -60,19 +59,19 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
     {
         int c = (unsigned char)data[i];
         if (c >= 0x80)
-            data[i] += 0x80;
+            data[i] += (char)0x80;
         if (c > 0x80)
-            data[i] += 0x80;
+            data[i] += (char)0x80;
     }
     std::vector<char> range;
-    void *obj = 0;
+    void *obj;
     EO_ByteRange_FromString(&range, data.c_str(), (EOEncodedObj *)FUN_0044f6ec(&obj));
     data = EO_Decode_Deinterleave(server,
-                                  player->server_encryption_multiple,
-                                  (char *)FUN_0044f73c(&range),
-                                  (char *)FUN_0044f710(&range));
-    int action = EO_DecodeByte(server, (unsigned char)data[1]);
-    int family = EO_DecodeByte(server, (unsigned char)data[2]);
+                                  player->client_encryption_multiple,
+                                  (char *)FUN_0044f710(&range),
+                                  (char *)FUN_0044f73c(&range));
+    int action = EO_DecodeByte((void *)server, data[1]);
+    int family = EO_DecodeByte((void *)server, data[2]);
     int size = EO_DecodeNumber(server, String(data[3]));
     size -= player->sequence;
     data.Delete(1, 3);
@@ -84,16 +83,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         return false;
     (*MAINFORM)->field_370 = family;
     (*MAINFORM)->field_36c = action;
-    if (family == 0x1c)
+    if (family == 0x1c && action == 1)
     {
-        if (action != 1)
-            return false;
         if (!player->logged_in)
             return false;
         if (data.Length() < 3)
             return false;
         int n = data.Length() - 2;
-        String names = " ";
+        String names = "";
         int cnt = 0;
         for (int i = 0; i < n; i++)
         {
@@ -107,28 +104,25 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         }
         if (cnt < 1)
             return false;
-        String num = EO_EncodeNumber(server, cnt, 2);
+        String num = EO_EncodeNumber(server, cnt, 1);
         names.Insert(num, 1);
-        Client_SendEncoded(server, player, PacketFamily(0x1c), PacketAction(5), names);
+        Client_SendEncoded(server, player, PacketAction(5), PacketFamily(0x1a), names);
         return true;
     }
-    if (family == 0x33)
+    if (family == 0x33 && action == 1)
     {
-        if (action != 1)
-            return false;
         if (!player->logged_in)
             return false;
         if (data.Length() < 2)
             return false;
-        int target_id = EO_DecodeNumber(server, data.SubString(2, 1));
+        int target_id = EO_DecodeNumber(server, data.SubString(1, 2));
         if (player->player_id != target_id)
             return false;
         Player *target = Players::Players_GetById(server->players, target_id);
         if (target == NULL)
             return false;
         String s = Player_SerializePaperdoll(server, target);
-        Client_SendEncoded(server, player, PacketFamily(0x33), PacketAction(3), s);
-        player->flush_queue = 1;
+        Client_SendEncoded(server, player, PacketAction(3), PacketFamily(0x33), s);
         return true;
     }
     return false;
