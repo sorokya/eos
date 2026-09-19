@@ -211,15 +211,44 @@ make clean     # remove build/
   function with `make unit`/`make verify`) before it is committed.
   `--selftest` runs it over three already-converged ranges
   (`EO_Encode_Interleave`, `Walk_BuildReply`, `Player_SerializePaperdoll`),
-  prints the classification rate, the idiom breakdown, the arity-TODO and
-  slot-collision counters, and every emitted condition; it aborts (exit 3) if
-  any conditional carries an unknown relation/operand or two storage locations
-  collide. All three classify at 100%. Operand identity was audited against the
+  prints the classification rate, the idiom breakdown, and the `arity_todo`,
+  `holes`, `slots` and `arity_mismatch` counters, plus every emitted condition;
+  it aborts (exit 3) if any conditional carries an unknown relation/operand, two
+  storage locations collide, or a rendered argument list contradicts the
+  reconciled arity. All three classify at 100%. Operand identity was audited against the
   converged `src/` on six ranges (`EO_Encode_Interleave`, `Walk_BuildReply`,
   `Player_SerializePaperdoll`, `NpcControl_Tick`, `Refresh_BuildReply`,
   `Players_Add`) with zero slot collisions and zero unsafe conditions.
 
+  **Arity inference.** The callee-arity table is built from every available
+  source, most authoritative first: (a) the
+  `// STUB(0xADDR, N bytes) Name - ref: RET Name(TYPE a, TYPE b, ...)` comments
+  in `src/*.cpp` (a full C++ arity), (b) prototypes and definitions in `src/`,
+  (c) the `functions.tsv` name mapped onto (b). A prototype's arity is
+  reconciled with the Borland calling convention — `__cdecl` pushes all
+  arguments, `__fastcall` passes the first two in `ecx`/`edx`, `__thiscall`
+  passes the object in `ecx`, and neither register argument is pushed by the
+  caller — so a call is rendered only when the declared arity and the observed
+  pushes agree under the convention. Variadic (`...`) signatures have no
+  known pushed count and always fall back to a TODO. The push stack excludes
+  the prologue's callee-saved register saves (`push ebp/ebx/esi/edi`), the
+  hidden return-buffer pointer of a `String`-returning call (the `push eax`
+  after a default `AnsiString()` construction), and the pushes consumed by an
+  argument-taking RTL helper; the RTL helpers that take their operand in
+  `eax`/`edx` (default ctor, `Length`, `c_str`, copy ctor, `~AnsiString`,
+  `__InitExceptBlockLDTC`) are transparent to the stack.
+
+  **Desync fallback.** The stored listing is a linear sweep of the whole image,
+  so a range whose head follows embedded data can start mid-instruction. The
+  tool checks each range's own raw-byte column (an instruction at A with N bytes
+  must be followed by A+N, and the range must begin at its requested start) and,
+  when it disagrees, regenerates the range from `GameServer.exe` with `objdump`
+  and says so on stderr. This fixes the documented `Players_Add` head at
+  `0x4081c8` (the listing began at `0x4081ca` with a spurious one-byte
+  instruction); it never fires on the three selftest ranges.
+
   **Safety properties, stated explicitly:** a condition is emitted only when it
   is provable; a storage location is rendered distinctly from every other; a
   field access is emitted only for a typed base; an argument list is emitted
-  only when its arity is known.
+  only when the declared arity and the observed pushes agree under the calling
+  convention — otherwise a TODO, never a guess.

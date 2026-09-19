@@ -438,6 +438,9 @@ class Draft:
         self.todos = 0
         self.n = 0
         self.arity_todos = 0
+        self.arity_holes = 0
+        self.ret_push_pending = False
+        self.arity_mismatch = {}
         self.pending_cmp = None
         self.tmp = 0
         self.depth = 0
@@ -471,6 +474,19 @@ class Draft:
             if len(disps) > 1:
                 bad.append("slot-collision: %s <- %s"
                            % (nm, sorted("ebp%+d" % d for d in disps)))
+        # 3. a rendered argument list must match the reconciled arity
+        for ln in self.lines:
+            t = ln.strip()
+            m = re.match(r"([A-Za-z_]\w*)\((.*)\);\s*//\s*0x([0-9a-f]+)", t)
+            if not m:
+                continue
+            n = 0 if not m.group(2).strip() else len(self.split_ops(m.group(2)))
+            want = self.arity.get(int(m.group(3), 16))
+            if want is None:
+                continue
+            exp = want[1] if want[1] is not None else want[0]
+            if exp is not None and n != exp:
+                bad.append("arity-mismatch: %s expects %s got %d" % (m.group(1), exp, n))
         return bad
 
     def emit(self, addr, text, kind=None):
@@ -688,9 +704,23 @@ class Draft:
                 i += 1
                 continue
             if mn == "push":
+                op = ops.split()[0] if ops else ""
+                if self.ret_push_pending and op == "eax":
+                    # hidden return-buffer pointer for a String-returning call
+                    self.ret_push_pending = False
+                    self.emit(addr, "// push %s (hidden return buffer)  // 0x%x"
+                              % (ops, addr), "stack")
+                    i += 1
+                    continue
+                self.ret_push_pending = False
+                if op in ("ebp", "ebx", "esi", "edi", "esp"):
+                    # callee-saved register save, not an argument
+                    self.emit(addr, "// push %s (register save)  // 0x%x" % (ops, addr),
+                              "stack")
+                    i += 1
+                    continue
                 expr = self.render(ops)
-                if expr is not None:
-                    self.push_stack.append(expr)
+                self.push_stack.append(expr)   # None when unresolved: keep the count
                 self.emit(addr, "// push %s  // 0x%x" % (ops, addr), "stack")
                 i += 1
                 continue
@@ -768,7 +798,26 @@ class Draft:
             self.todo(addr, text)
             i += 1
 
+    # RTL helpers that take their operand in eax/edx (or a hidden return
+    # pointer) and therefore consume no pushed argument.
+    NO_PUSH_RTL = {0x40240C, 0x40243C, 0x402460, 0x5591E0, 0x559308, 0x54BA98}
+
     def emit_call(self, addr, tgt, ops):
+        if tgt in ANSI_OPS or tgt == 0x54BA98:
+            if tgt == 0x40240C:
+                self.ret_push_pending = True   # next `push eax` = hidden ret slot
+            kind, sig = ANSI_OPS.get(tgt, (None, "__InitExceptBlockLDTC"))
+            if kind:
+                self.emit(addr, "// AnsiString::%s  // 0x%x" % (sig, addr),
+                          "ansi_" + kind)
+            else:
+                self.emit(addr, "// __InitExceptBlockLDTC  // 0x%x" % addr, "helper")
+            if tgt not in self.NO_PUSH_RTL:
+                self.push_stack = []           # this helper consumed the pushes
+            return
+        if tgt in HELPERS:
+            self.emit(addr, "// %s  // 0x%x" % (HELPERS[tgt], addr), "helper")
+            return
         raw = list(reversed(self.push_stack))
         self.push_stack = []
         # a register consumed for an earlier argument must not be emitted again
@@ -780,23 +829,23 @@ class Draft:
                 continue
             else:
                 args.append(a)
-        arity = self.arity.get(tgt)
+        decl = self.arity.get(tgt)
+        arity = decl[0] if decl else None
+        pushed = decl[1] if decl else None
+        arity100 = decl is not None
         argtext = None
-        if args and all(a is not None for a in args):
-            if arity is None:
-                argtext = ", ".join(args)          # best effort, flagged below
-            elif len(args) == arity:
-                argtext = ", ".join(args)
+        exp = pushed if pushed is not None else arity
+        if args and arity100:
+            if exp is not None and len(args) == exp:
+                argtext = ", ".join(a if a is not None else "/*?*/" for a in args)
+                if any(a is None for a in args):
+                    self.arity_holes += 1
             else:
-                argtext = None                     # convention/arity mismatch - do not guess
+                # convention/arity mismatch - never guess an argument list
+                self.arity_mismatch[addr] = (arity, pushed, len(args))
                 self.arity_todos += 1
-        if tgt in ANSI_OPS:
-            kind, sig = ANSI_OPS[tgt]
-            self.emit(addr, "// AnsiString::%s  // 0x%x" % (sig, addr), "ansi_" + kind)
-            return
-        if tgt in HELPERS:
-            self.emit(addr, "// %s  // 0x%x" % (HELPERS[tgt], addr), "helper")
-            return
+        elif args and all(a is not None for a in args):
+            argtext = ", ".join(args)              # arity unknown: best effort
         # a call clobbers caller-saved registers
         for r in ("eax", "ecx", "edx"):
             self.reg_types.pop(r, None)
@@ -806,13 +855,14 @@ class Draft:
             if argtext is not None:
                 self.emit(addr, "%s(%s);  // 0x%x" % (nm, argtext, addr), "call_args")
             else:
-                if arity is not None and raw:
-                    if len(raw) == arity:
-                        self.todo(addr, "argument operand not determined (%d args)"
-                                  % arity)
+                if arity100 and raw:
+                    exp = pushed if pushed is not None else arity
+                    if len(raw) == exp:
+                        self.todo(addr, "argument operand not determined (%d args)" % exp)
                     else:
-                        self.todo(addr, "argument count not determined (expects %d, saw %d)"
-                                  % (arity, len(raw)))
+                        self.todo(addr,
+                                  "argument count not determined (expects %d, saw %d)"
+                                  % (exp, len(raw)))
                     self.hit("call_named")
                 else:
                     self.emit(addr, "%s(...);  // 0x%x" % (nm, addr), "call_named")
@@ -991,13 +1041,47 @@ SELFTEST = [
 ]
 
 
+PLAUSIBLE_PROLOGUE = re.compile(
+    r"^(push ebp|push ebx|push esi|push edi|sub esp|add esp|mov ebp, esp)$")
+
+
+def listing_is_desynced(insns, start=None):
+    """True when the listing's own bytes disagree with its addresses.
+
+    The stored listing is a linear sweep of the whole image, so a range whose
+    head was preceded by embedded data can start mid-instruction, or contain an
+    overlapping entry.  The listing carries the raw bytes: an instruction at
+    address A with N bytes must be followed by one at A+N.  A gap or overlap in
+    the first few instructions means the listing cannot be trusted, and we
+    regenerate that range with objdump.
+    """
+    if start is not None and insns and insns[0][0] != start:
+        return True
+    for i in range(len(insns) - 1):
+        addr, mn, ops, raw = insns[i]
+        n = len(raw.split())
+        if n == 0:
+            continue
+        nxt = insns[i + 1][0]
+        if nxt != addr + n:
+            return True
+        if i >= 4:
+            break
+    return False
+
+
 def run_range(start, end, args, fields, sigs, idents, verbose, params=None,
               class_fields=None, param_names=None, arity=None):
-    if args.objdump:
-        insns = regen_with_objdump(start, end)
-    else:
+    insns = None
+    if not args.objdump:
         insns = load_listing(args.listing, start, end)
-    if not insns:
+        if insns and listing_is_desynced(insns, start):
+            regen = regen_with_objdump(start, end)
+            if regen and not listing_is_desynced(regen, start):
+                print("asm2cpp: listing desynced at 0x%x - regenerated with objdump"
+                      % start, file=sys.stderr)
+                insns = regen
+    if insns is None or not insns:
         insns = regen_with_objdump(start, end)
     d = Draft(fields, sigs, idents, start, params=params,
               class_fields=class_fields, param_names=param_names, arity=arity)
@@ -1006,11 +1090,35 @@ def run_range(start, end, args, fields, sigs, idents, verbose, params=None,
     return d, rec, len(insns)
 
 
-DECL_RE = re.compile(r"\b([A-Za-z_]\w*)\s*\(([^;{]*)\)\s*;")
+DECL_RE = re.compile(r"\b([A-Za-z_]\w*)\s*\(([^;{)]*(?:\([^)]*\)[^;{)]*)*)\)\s*(?:;|\{)")
 
 
-def load_header_arity(src_dir):
-    """function name -> declared argument count, from src/*.h/.cpp prototypes."""
+def count_params(inner):
+    """Argument count of a parameter list; None when variadic (`...`)."""
+    inner = (inner or "").strip()
+    if not inner or inner == "void":
+        return 0
+    if "..." in inner:
+        return None
+    n = 1
+    depth = 0
+    for ch in inner:
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth -= 1
+        elif ch == "," and depth == 0:
+            n += 1
+    return n
+
+
+def load_callee_conventions(src_dir):
+    """name -> (arity, pushed_expected) from every prototype/definition in src/.
+
+    `pushed_expected` accounts for the Borland register conventions: __fastcall
+    passes the first two arguments in ecx/edx and __thiscall the first (the
+    object) in ecx, so neither is pushed by the caller.
+    """
     out = {}
     if not os.path.isdir(src_dir):
         return out
@@ -1021,39 +1129,46 @@ def load_header_arity(src_dir):
             m = DECL_RE.search(line)
             if not m:
                 continue
-            reg = 2 if "__fastcall" in line else (1 if "__thiscall" in line else 0)
-            inner = m.group(2).strip()
-            if not inner or inner == "void":
-                out.setdefault(m.group(1), 0)
+            name = m.group(1)
+            if name in ("if", "for", "while", "switch", "return", "sizeof",
+                        "catch", "defined"):
                 continue
-            n = 0
-            depth = 0
-            if inner:
-                n = 1
-            for ch in inner:
-                if ch in "([":
-                    depth += 1
-                elif ch in ")]":
-                    depth -= 1
-                elif ch == "," and depth == 0:
-                    n += 1
-            out.setdefault(m.group(1), (n, max(0, n - reg)))
+            n = count_params(m.group(2))
+            reg = 2 if "__fastcall" in line else (1 if "__thiscall" in line else 0)
+            pushed = None if n is None else max(0, n - reg)
+            if name not in out or (out[name][0] is None and n is not None):
+                out[name] = (n, pushed)
     return out
 
 
 def load_callee_arity(src_dir, sigs_path=None):
-    """callee VA -> declared argument count (from src comments/stubs/declarations)."""
+    """callee VA -> (arity, pushed_expected); most authoritative source first.
+
+    (a) `// STUB(0xADDR, N bytes) Name - ref: RET Name(params)` in src/*.cpp
+        (a full C++ arity of a cdecl-shaped reference),
+    (b) prototypes/definitions in src/ (convention-aware, via
+        load_callee_conventions),
+    (c) the functions.tsv name mapped onto (b).
+    `pushed_expected` is None when the arity is unknown or variadic; the caller
+    then emits a TODO rather than guessing.
+    """
     by_addr, by_name = load_stub_sigs(src_dir)
-    hdr = load_header_arity(src_dir)
-    arity = {a: len(p) for a, p in by_addr.items()}
-    if sigs_path:
-        for start, name in load_start_names(sigs_path).items():
-            if start in arity:
-                continue
-            if name in by_name:
-                arity[start] = len(by_name[name])
-            elif name in hdr:
-                arity[start] = hdr[name][1]
+    conv = load_callee_conventions(src_dir)
+    arity = {}
+    starts = load_start_names(sigs_path) if sigs_path else {}
+    # (b)+(c) name -> convention-aware pushed count
+    for start, name in starts.items():
+        if name in conv:
+            arity[start] = conv[name]
+    # (a) STUB signatures: full C++ arity, cdecl-shaped references
+    for a, params in by_addr.items():
+        if arity.get(a, (None, None))[1] is not None:
+            continue
+        arity[a] = (len(params), len(params))
+    for name, params in by_name.items():
+        for start, sname in starts.items():
+            if sname == name and arity.get(start, (None, None))[1] is None:
+                arity[start] = (len(params), len(params))
     return arity
 
 
@@ -1141,10 +1256,11 @@ def main(argv=None):
             conds = [l.strip() for l in d.lines if l.strip().startswith("if (")]
             bad = d.selfcheck()
             print("%-28s %d/%d = %5.1f%%   todos=%d  conditions=%d unresolved=%d"
-                  "  arity_todo=%d  slot_collisions=%d\n    %s"
+                  "  arity_todo=%d  holes=%d  slots=%d  arity_mismatch=%d\n    %s"
                   % (name, rec, n, 100.0 * rec / max(n, 1), d.todos, len(conds),
-                     d.stats.get("jcc_todo", 0), d.arity_todos,
-                     sum(1 for b in bad if b.startswith("slot-collision")), kinds),
+                     d.stats.get("jcc_todo", 0), d.arity_todos, d.arity_holes,
+                     sum(1 for b in bad if b.startswith("slot-collision")),
+                     sum(1 for b in bad if b.startswith("arity-mismatch")), kinds),
                   file=sys.stderr)
             for c in conds:
                 print("      %s" % c, file=sys.stderr)

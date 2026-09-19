@@ -36,6 +36,9 @@ int Combat_CalcArmorPen(void *game_control, int damage, int armor, double, doubl
 int Eif_GetElement(void *item_values, int item_id, int *out);
 double
 Combat_CalcElementMult(void *game_control, short a, short b, int element, int element2);
+int Player_HpPercent(Player *player, int mode);
+void Server_BroadcastToParty(
+    Server *server, Player *player, int action, int family, String data);
 Player **Players_Iter_End(Players *players);
 bool Player_HandlePacket(Server *server, Player *player, String data);
 bool FUN_00462374(Server *server, Player *player, String data);
@@ -3208,6 +3211,16 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
                 (*iter)->hp = (*iter)->max_hp;
             if ((*iter)->hp < 1)
                 (*iter)->hp = 0;
+            if (damage > 0)
+            {
+                if ((*iter)->in_party)
+                {
+                    String party_pkt = EO_EncodeNumber(server, (*iter)->player_id, 2);
+                    String hp = Player_HpPercent((*iter), 1);
+                    party_pkt.Insert(hp, party_pkt.Length() + 1);
+                    Server_BroadcastToParty(server, (*iter), 5, 0x18, party_pkt);
+                }
+            }
             (void)damage;
         }
         return 0;
