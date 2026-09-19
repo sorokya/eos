@@ -55,7 +55,7 @@ void Player_FireQuestTriggers(Server *server, Player *player, int state_index, i
 MapCoord FUN_0047c6c0(int map_control, int map_id, unsigned int npc_index);
 unsigned int FUN_0047c634(int map_control, int map_id, unsigned int npc_index);
 bool Attack_Execute(Server *server, Player *caster, int action, String *reader);
-int Spell_Execute(Server *server, Player *caster, int action, String *packet_data);
+bool Spell_Execute(Server *server, Player *caster, int action, String *packet_data);
 String Player_SerializeAvatar(Server *server, Player *player, int arg);
 String Server_BuildOnlineNames(Server *server);
 String Server_BuildOnlineList(Server *server);
@@ -121,8 +121,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->action_queue.insert(player->action_queue.end(), command);
             return true;
         }
-        Walk_Execute(server, player, action, &data);
-        return true;
+        return Walk_Execute(server, player, action, &data);
     }
     if (family == PacketFamily_Attack)
     {
@@ -151,8 +150,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->action_queue.insert(player->action_queue.end(), command);
             return true;
         }
-        Attack_Execute(server, player, action, &data);
-        return true;
+        return Attack_Execute(server, player, action, &data);
     }
     if (family == PacketFamily_Spell)
     {
@@ -181,8 +179,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->action_queue.insert(player->action_queue.end(), command);
             return true;
         }
-        Spell_Execute(server, player, action, &data);
-        return true;
+        return Spell_Execute(server, player, action, &data);
     }
     if (family == PacketFamily_Connection)
     {
@@ -311,8 +308,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->action_queue.insert(player->action_queue.end(), command);
             return true;
         }
-        Face_Execute(server, player, action, &data);
-        return true;
+        return Face_Execute(server, player, action, &data);
     }
     if (family == PacketFamily_Players)
     {
@@ -388,6 +384,65 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                            Refresh_BuildReply(server, player));
         return true;
     }
+    if (family == PacketFamily_Sit)
+    {
+        if (action == PacketAction_Request)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 1)
+                return false;
+            int type = EO_DecodeNumber(server, String(data[1]));
+            if (type == 1)
+            {
+                if (!player->sitting && !player->on_chair)
+                {
+                    player->sitting = 1;
+                    player->on_chair = 0;
+                    String msg = EO_EncodeNumber(server, player->player_id, 2);
+                    msg.Insert(EO_EncodeNumber(server, player->x, 1), msg.Length() + 1);
+                    msg.Insert(EO_EncodeNumber(server, player->y, 1), msg.Length() + 1);
+                    msg.Insert(EO_EncodeNumber(server, player->direction, 1),
+                               msg.Length() + 1);
+                    msg.Insert(EO_EncodeNumber(server, 0, 1), msg.Length() + 1);
+                    Client_SendEncoded(
+                        server, player, PacketAction_Reply, PacketFamily_Sit, msg);
+                    Server_BroadcastNearby(
+                        server, player, PacketAction_Player, PacketFamily_Sit, msg);
+                    return true;
+                }
+                if (!player->on_chair)
+                {
+                    player->on_chair = 0;
+                    player->sitting = 0;
+                    String msg = EO_EncodeNumber(server, player->player_id, 2);
+                    msg.Insert(EO_EncodeNumber(server, player->x, 1), msg.Length() + 1);
+                    msg.Insert(EO_EncodeNumber(server, player->y, 1), msg.Length() + 1);
+                    Client_SendEncoded(
+                        server, player, PacketAction_Close, PacketFamily_Sit, msg);
+                    Server_BroadcastNearby(
+                        server, player, PacketAction_Remove, PacketFamily_Sit, msg);
+                    return true;
+                }
+                family = PacketFamily_Chair;
+            }
+            else
+            {
+                if (!player->sitting)
+                    return true;
+                player->on_chair = 0;
+                player->sitting = 0;
+                String msg = EO_EncodeNumber(server, player->player_id, 2);
+                msg.Insert(EO_EncodeNumber(server, player->x, 1), msg.Length() + 1);
+                msg.Insert(EO_EncodeNumber(server, player->y, 1), msg.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Close, PacketFamily_Sit, msg);
+                Server_BroadcastNearby(
+                    server, player, PacketAction_Remove, PacketFamily_Sit, msg);
+                return true;
+            }
+        }
+    }
     if (family == PacketFamily_Chair)
     {
         TTimeStamp stamp = DateTimeToTimeStamp(Now());
@@ -408,8 +463,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->action_queue.insert(player->action_queue.end(), command);
             return true;
         }
-        Chair_Execute(server, player, action, &data);
-        return true;
+        return Chair_Execute(server, player, action, &data);
     }
     if (family == PacketFamily_Door && action == PacketAction_Open)
     {
@@ -435,8 +489,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         Server_BroadcastNearTile(server,
                                                  -0xd,
                                                  player->map_id,
-                                                 coord.x,
-                                                 coord.y,
+                                                 coord,
                                                  PacketAction_Open,
                                                  PacketFamily_Door,
                                                  encoded);
@@ -456,8 +509,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 Server_BroadcastNearTile(server,
                                          -0xd,
                                          player->map_id,
-                                         coord.x,
-                                         coord.y,
+                                         coord,
                                          PacketAction_Open,
                                          PacketFamily_Door,
                                          encoded);
@@ -790,6 +842,75 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 Client_SendEncoded(
                     server, player, PacketAction_List, PacketFamily_Quest, out);
             }
+            return true;
+        }
+    }
+    if (family == PacketFamily_AdminInteract)
+    {
+        if (action == PacketAction_Tell)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 1)
+                return false;
+            String msg = EO_EncodeNumber(server, 1, 2);
+            msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+            msg.Insert(player->name, msg.Length() + 1);
+            msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+            msg.Insert(data, msg.Length() + 1);
+            Admin_BroadcastToAll(
+                server, PacketAction_Reply, PacketFamily_AdminInteract, msg);
+            return true;
+        }
+        if (action == PacketAction_Report)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 1)
+                return false;
+            PacketReader_Init(server, data, EO_GetBreakByte(server, 0xff));
+            String s1 = PacketReader_GetBreakString(server);
+            String s2 = PacketReader_GetBreakString(server);
+            String msg = EO_EncodeNumber(server, 2, 2);
+            msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+            msg.Insert(player->name, msg.Length() + 1);
+            msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+            msg.Insert(s2, msg.Length() + 1);
+            msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
+            msg.Insert(s1, msg.Length() + 1);
+            Admin_BroadcastToAll(
+                server, PacketAction_Reply, PacketFamily_AdminInteract, msg);
+            return true;
+        }
+    }
+    if (family == PacketFamily_Global)
+    {
+        if (!player->logged_in)
+            return false;
+        if (action == PacketAction_Open)
+        {
+            player->global_chat = 1;
+            String names = server->field_0x8c[0];
+            for (int i = 1; i < 7; i++)
+                names.Insert(server->field_0x8c[i], names.Length() + 1);
+            if (names != "")
+                Client_SendEncoded(
+                    server, player, PacketAction_List, PacketFamily_Talk, names);
+            return true;
+        }
+        if (action == PacketAction_Close)
+        {
+            player->global_chat = 0;
+            return true;
+        }
+        if (action == PacketAction_Player)
+        {
+            player->show_players = 1;
+            return true;
+        }
+        if (action == PacketAction_Remove)
+        {
+            player->show_players = 0;
             return true;
         }
     }
@@ -2962,8 +3083,7 @@ void Server_BroadcastAdjacent(Server *server,
 void Server_BroadcastNearTile(Server *server,
                               int skip_id,
                               int map_id,
-                              int x,
-                              int y,
+                              MapCoord coord,
                               unsigned char action,
                               unsigned char family,
                               String data)
@@ -2974,7 +3094,8 @@ void Server_BroadcastNearTile(Server *server,
          player_iter++)
     {
         if ((*player_iter)->map_id == map_id && (*player_iter)->player_id != skip_id &&
-            Server_InViewRange(server, x, y, (*player_iter)->x, (*player_iter)->y))
+            Server_InViewRange(
+                server, coord.x, coord.y, (*player_iter)->x, (*player_iter)->y))
         {
             Client_SendEncoded(server, *player_iter, action, family, data);
         }
@@ -4006,7 +4127,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
 }
 // STUB(0x0046a9b0, 17449 bytes) Spell_Execute - ref: int Spell_Execute(Server * server,
 // Player * caster, int action, AnsiString * packet_data)
-int Spell_Execute(Server *server, Player *caster, int action, String *packet_data)
+bool Spell_Execute(Server *server, Player *caster, int action, String *packet_data)
 {
     *(TTimeStamp *)&caster->walk_tick = DateTimeToTimeStamp(Now());
     if (caster->map_id < 1)
