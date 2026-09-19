@@ -1490,21 +1490,21 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
             return 0;
         map->rid = map_id;
         map->width =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x26)) + 1;
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x26, 1)) + 1;
         map->height =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x27)) + 1;
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x27, 1)) + 1;
         map->rid1 =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 4));
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(4, 2));
         map->rid2 =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 6));
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(6, 2));
         map->map_type =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x20));
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x20, 1));
         map->timed_effect =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x21));
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x21, 1));
         map->relog_x =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x2c));
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2c, 1));
         map->relog_y =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x2d));
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2d, 1));
         map->has_hp_drain = false;
         map->has_tp_drain = false;
         map->has_quakes = false;
@@ -1517,7 +1517,7 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
             map->has_quakes = true;
         if (FUN_004813c8(&map->tile_bits) != map->width * map->height * 2)
             FUN_0048441c(&map->tile_bits, map->width * map->height * 2, 0);
-        if (Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x2b)) ==
+        if (Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2b, 1)) ==
             0)
             map->can_scroll = 1;
         map->filesize = size;
@@ -1534,27 +1534,27 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
         for (int i = 0; i < count; i++)
         {
             int npc_count =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 8));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(8, 1));
             for (int j = 0; j < npc_count; j++)
             {
                 int index = map->npc_list.size() + 1;
                 Npc *npc =
                     new Npc(index,
                             Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(2, 3)),
+                                                             map_buf.SubString(3, 2)),
                             Mapcontrol::Pub_DecodeNumber_Map(map_control,
                                                              map_buf.SubString(1, 1)),
                             Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(1, 2)),
+                                                             map_buf.SubString(2, 1)),
                             0,
                             Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(1, 5)),
+                                                             map_buf.SubString(5, 1)),
                             Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(2, 6)));
+                                                             map_buf.SubString(6, 2)));
                 NpcValue npc_value =
                     NpcValues::GetNpc((*MAINFORM)->npc_values,
                                       Mapcontrol::Pub_DecodeNumber_Map(
-                                          map_control, map_buf.SubString(2, 3)));
+                                          map_control, map_buf.SubString(3, 2)));
                 if (npc_value.npc_type == 2)
                 {
                     npc->aggressive = true;
@@ -1586,9 +1586,9 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
             unsigned int key_x =
                 Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
             unsigned int key_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 2));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
             int key_id =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 3));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(3, 2));
             Mapcontrol::Mapcontrol_AddLockKey(map_control, map, key_x, key_y, key_id);
             map_buf.Delete(1, 4);
         }
@@ -1599,17 +1599,17 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
             unsigned int chest_x =
                 Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
             unsigned int chest_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 2));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
             int chest_key =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 3));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(3, 2));
             int chest_slot =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 5));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(5, 1));
             int chest_item =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 6));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(6, 2));
             int chest_time =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 8));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(8, 2));
             int chest_amount =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(3, 0xa));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0xa, 3));
             Mapcontrol::Mapcontrol_AddChestSpawn(map_control,
                                                  map,
                                                  chest_x,
@@ -1628,14 +1628,14 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
             tile_x =
                 Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
             tile_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 2));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
                 spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
                                                         map_buf.SubString(1, 1));
                 code = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                        map_buf.SubString(1, 2));
+                                                        map_buf.SubString(2, 1));
                 if (code == 0 || code == 0x12)
                     Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 1);
                 if (code > 0 && code <= 0x11)
@@ -1685,14 +1685,14 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
             tile_x =
                 Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
             tile_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 2));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
                 spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
                                                         map_buf.SubString(1, 1));
                 lock_key = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                            map_buf.SubString(2, 7));
+                                                            map_buf.SubString(7, 2));
                 Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 3);
                 Mapcontrol::Mapcontrol_AddWarp(map_control,
                                                map,
@@ -1701,11 +1701,11 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
                                                Mapcontrol::Pub_DecodeNumber_Map(
                                                    map_control, map_buf.SubString(2, 2)),
                                                Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(1, 6)),
+                                                   map_control, map_buf.SubString(6, 1)),
                                                Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(1, 4)),
+                                                   map_control, map_buf.SubString(4, 1)),
                                                Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(1, 5)));
+                                                   map_control, map_buf.SubString(5, 1)));
                 if (lock_key > 0)
                 {
                     Mapcontrol::Mapcontrol_AddTileSpec(
@@ -1836,19 +1836,19 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             return false;
         MapContainer map = Map_InitBlank(
             map_id,
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x26)) + 1,
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x27)) +
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x26, 1)) + 1,
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x27, 1)) +
                 1);
-        map.rid1 = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 4));
-        map.rid2 = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 6));
+        map.rid1 = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(4, 2));
+        map.rid2 = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(6, 2));
         map.map_type =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x20));
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x20, 1));
         map.timed_effect =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x21));
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x21, 1));
         map.relog_x =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x2c));
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2c, 1));
         map.relog_y =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x2d));
+            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2d, 1));
         map.has_hp_drain = false;
         map.has_tp_drain = false;
         map.has_quakes = false;
@@ -1859,7 +1859,7 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             map.has_tp_drain = true;
         if (map.timed_effect > 2 && map.timed_effect < 7)
             map.has_quakes = true;
-        if (Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 0x2b)) ==
+        if (Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2b, 1)) ==
             0)
             map.can_scroll = 1;
         map.filesize = size;
@@ -1876,27 +1876,27 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
         for (int i = 0; i < count; i++)
         {
             int npc_count =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 8));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(8, 1));
             for (int j = 0; j < npc_count; j++)
             {
                 int index = map.npc_list.size() + 1;
                 Npc *npc =
                     new Npc(index,
                             Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(2, 3)),
+                                                             map_buf.SubString(3, 2)),
                             Mapcontrol::Pub_DecodeNumber_Map(map_control,
                                                              map_buf.SubString(1, 1)),
                             Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(1, 2)),
+                                                             map_buf.SubString(2, 1)),
                             0,
                             Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(1, 5)),
+                                                             map_buf.SubString(5, 1)),
                             Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(2, 6)));
+                                                             map_buf.SubString(6, 2)));
                 NpcValue npc_value =
                     NpcValues::GetNpc((*MAINFORM)->npc_values,
                                       Mapcontrol::Pub_DecodeNumber_Map(
-                                          map_control, map_buf.SubString(2, 3)));
+                                          map_control, map_buf.SubString(3, 2)));
                 if (npc_value.npc_type == 2)
                 {
                     npc->aggressive = true;
@@ -1928,9 +1928,9 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             unsigned int key_x =
                 Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
             unsigned int key_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 2));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
             int key_id =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 3));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(3, 2));
             Mapcontrol::Mapcontrol_AddLockKey(map_control, &map, key_x, key_y, key_id);
             map_buf.Delete(1, 4);
         }
@@ -1941,17 +1941,17 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             unsigned int chest_x =
                 Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
             unsigned int chest_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 2));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
             int chest_key =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 3));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(3, 2));
             int chest_slot =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 5));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(5, 1));
             int chest_item =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 6));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(6, 2));
             int chest_time =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 8));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(8, 2));
             int chest_amount =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(3, 0xa));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0xa, 3));
             Mapcontrol::Mapcontrol_AddChestSpawn(map_control,
                                                  &map,
                                                  chest_x,
@@ -1970,14 +1970,14 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             tile_x =
                 Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
             tile_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 2));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
                 spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
                                                         map_buf.SubString(1, 1));
                 code = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                        map_buf.SubString(1, 2));
+                                                        map_buf.SubString(2, 1));
                 if (code == 0 || code == 0x12)
                     Mapcontrol::Mapcontrol_SetTileBits(
                         map_control, &map, spec, tile_x, 1);
@@ -2032,14 +2032,14 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             tile_x =
                 Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
             tile_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 2));
+                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
                 spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
                                                         map_buf.SubString(1, 1));
                 lock_key = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                            map_buf.SubString(2, 7));
+                                                            map_buf.SubString(7, 2));
                 Mapcontrol::Mapcontrol_SetTileBits(map_control, &map, spec, tile_x, 3);
                 Mapcontrol::Mapcontrol_AddWarp(map_control,
                                                &map,
@@ -2048,11 +2048,11 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
                                                Mapcontrol::Pub_DecodeNumber_Map(
                                                    map_control, map_buf.SubString(2, 2)),
                                                Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(1, 6)),
+                                                   map_control, map_buf.SubString(6, 1)),
                                                Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(1, 4)),
+                                                   map_control, map_buf.SubString(4, 1)),
                                                Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(1, 5)));
+                                                   map_control, map_buf.SubString(5, 1)));
                 if (lock_key > 0)
                 {
                     Mapcontrol::Mapcontrol_AddTileSpec(

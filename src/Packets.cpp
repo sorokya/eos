@@ -3166,7 +3166,8 @@ void Client_SendEncoded(Server *server,
                        IntToStr(family),
                    msg.Length() + 1);
         msg.Insert("\n", msg.Length() + 1);
-        FILE *fp = fopen("error.log", "a");
+        FILE *fp;
+        fp = fopen("error.log", "a");
         fprintf(fp, "%s", msg.c_str());
         fclose(fp);
     }
@@ -3174,15 +3175,10 @@ void Client_SendEncoded(Server *server,
     {
         if (player->removing)
             return;
-        struct
-        {
-            char action;
-            char family;
-        } bytes;
-        bytes.action = (char)action;
-        bytes.family = (char)family;
-        String out = String(bytes.action);
-        out.Insert(String(bytes.family), out.Length() + 1);
+        char family_byte = (char)family;
+        char action_byte = (char)action;
+        String out = String(action_byte);
+        out.Insert(String(family_byte), out.Length() + 1);
         out.Insert(data, out.Length() + 1);
         EOEncodedObj obj;
         std::basic_string<char> range;
