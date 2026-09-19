@@ -679,7 +679,12 @@ Tracked so they are not mistaken for done:
   `(char *)range.begin()` / `(char *)range.end()` replacing the `FUN_0044f7xx`
   calls. Frame stayed exact `-0x88`, but instructions 355 -> 373, mismatches
   **245 -> 224**, aligned prefix **5 -> 19**; first residual is the log String at
-  `-4` (ref) vs `-0x24` (ours), i.e. the log locals' declaration order. The real log sequence
+  `-4` (ref) vs `-0x24` (ours), i.e. the log locals' declaration order. The
+  **12-byte `EOByteRange { void*, void*, std::basic_string<char> }` wrapper was
+  tried and overshot the frame to `-0x90`** (8 B too big, 253 mismatched), so the
+  bare 4-byte `std::basic_string<char> range;` (frame `-0x88`, 224 mismatched,
+  prefix 19) is retained; `#include <string>` added to `Packets.h` and
+  `FUN_0044f6ec(&obj)` replaced by plain `&obj` with `EOEncodedObj obj;`. The real log sequence
   (formatters/joins/append trio) is still approximated.
   Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
