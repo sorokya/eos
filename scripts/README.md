@@ -141,3 +141,28 @@ make clean     # remove build/
   function can satisfy only one reference function. `--readme` rewrites the
   generated block in README.md. The classification is cached in
   `analysis/target/function_kinds.tsv`; `--reclassify` recomputes it.
+
+## Transcription aids
+
+- **`asm2cpp.py --start ADDR --end ADDR [--selftest]`** — draft a C++ skeleton for
+  a reference address range. It walks `analysis/target/disasm.txt` (or
+  regenerates the range with `--objdump` when the listing has desynchronised),
+  loads the field-offset comments from `src/*.h` and the function inventory from
+  `analysis/target/functions.tsv`, and emits one address-commented line per
+  instruction: recognised idioms (the `AnsiString` RTL ops, `EO_DecodeNumber`/
+  `EO_EncodeNumber`/`EO_GetBreakByte`/`PacketReader_*`, EH scope markers and the
+  temp counter, header-named field loads/stores, branch conditions) get a named
+  draft line, everything else gets a `// TODO(0xADDR): <raw instruction>`.
+
+  ```sh
+  python3 scripts/asm2cpp.py --start 0x46ac32 --end 0x46dd4b --objdump -o /tmp/arm1f.cpp
+  python3 scripts/asm2cpp.py --selftest
+  ```
+
+  **Its output is a draft, never an authority.** It never fabricates a constant,
+  offset or argument: anything it cannot trace is a TODO comment. Every line
+  must be verified against the reference with `compare_asm.py` (and the whole
+  function with `make unit`/`make verify`) before it is committed.
+  `--selftest` runs it over three already-converged ranges
+  (`EO_Encode_Interleave`, `Walk_BuildReply`, `Player_SerializePaperdoll`) and
+  prints the classification rate and the idiom breakdown.

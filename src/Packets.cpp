@@ -29,6 +29,10 @@
 #pragma package(smart_init)
 
 Player **Players_Iter_Begin(Players *players);
+bool Player_IsPartyMember(Player *player, int player_id);
+int RandRange(int range);
+int Combat_CalcHitRate(void *game_control, int accuracy, int evasion, double, double);
+int Combat_CalcArmorPen(void *game_control, int damage, int armor, double, double);
 Player **Players_Iter_End(Players *players);
 bool Player_HandlePacket(Server *server, Player *player, String data);
 bool FUN_00462374(Server *server, Player *player, String data);
@@ -3127,6 +3131,41 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
                 caster->sync_base_ahead = ahead;
             if (Math_Abs(ahead - caster->sync_base_ahead) > 0x320)
                 return 1;
+        }
+        int offset_y = 0;
+        int offset_x = 0;
+        if (caster->direction == 0)
+            offset_y++;
+        if (caster->direction == 1)
+            offset_x--;
+        if (caster->direction == 2)
+            offset_y--;
+        if (caster->direction == 3)
+            offset_x++;
+        for (Player **iter = Players_Iter_Begin(server->players);
+             iter != Players_Iter_End(server->players);
+             iter++)
+        {
+            if ((*iter)->map_id != caster->map_id)
+                continue;
+            if ((*iter)->x != offset_x)
+                continue;
+            if ((*iter)->y != offset_y)
+                continue;
+            if (Player_IsPartyMember(caster, (*iter)->player_id))
+                continue;
+            int damage = 0;
+            int hit_rate = Combat_CalcHitRate(
+                (*MAINFORM)->game_control, caster->accuracy, (*iter)->evasion, 0.9, 1.6);
+            if (RandRange(100) >= hit_rate)
+                continue;
+            int pen = Combat_CalcArmorPen((*MAINFORM)->game_control,
+                                          (caster->min_damage + caster->max_damage) / 2,
+                                          (*iter)->armor,
+                                          0.8,
+                                          0.9);
+            (void)damage;
+            (void)pen;
         }
         return 0;
     }

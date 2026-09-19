@@ -757,9 +757,17 @@ Tracked so they are not mistaken for done:
     `elapsed = tick - last_client_walk_tick` / `> 0x7270e0` wrap to `0x2c` /
     `elapsed < 0x2c -> 0` cooldown; then the `window = Now()/10 + 0x64` /
     `sync_base_ahead` / `Math_Abs(...) > 0x320 -> 1` path). The player sweep
-    (`0x467da9`/`0x468844`), NPC sweep (`0x468897`/`0x46a87a`) and reply builders are
-    `return 0` placeholders. Current frame `-0x48` vs the reference's `-0x1c4`, so
-    no instruction aligns yet. Spec at `/tmp/attack_spec.md`,
+    head is written (the `direction`-derived `offset_x`/`offset_y` target tile, then
+    `Players_Iter_Begin/End` with `map_id`/`x`/`y`/`Player_IsPartyMember` guards),
+    plus the start of the per-target body (`Combat_CalcHitRate(game_control,
+    caster->accuracy, target->evasion, 0.9, 1.6)` vs `RandRange(100)`, then
+    `Combat_CalcArmorPen(game_control, (min_damage+max_damage)/2, target->armor,
+    0.8, 0.9)`); the rest of the damage/health/reply body, the NPC sweep
+    (`0x468897`/`0x46a87a`) and the reply builders are placeholders.
+    `Player_IsPartyMember`, `RandRange`, `Combat_CalcHitRate`, `Combat_CalcArmorPen`
+    are declared locally in `Packets.cpp`. Current frame `-0x48` vs the reference's
+    `-0x1c4`, so no instruction aligns yet. `Player_IsPartyMember` is declared
+    locally in `Packets.cpp`. Spec at `/tmp/attack_spec.md`,
     listing `/tmp/attack_disasm.txt`.
   - `Spell_Execute` (`0x46a9b0`) — frame `0x2c0`; 6 dispatch arms for actions
     `1, 30, 31, 33, 10` (fall-through `return 0`; Rust names Request/TargetSelf/
