@@ -27,6 +27,7 @@
 #include "Playerquest.h"
 #include "Skillvalues.h"
 #include "Classvalues.h"
+#include "Weddings.h"
 #include "Jukeboxcontrol.h"
 #include "Msgboardcontrol.h"
 #include "Protocol.h"
@@ -56,6 +57,7 @@ String Player_SerializeAvatar(Server *server, Player *player, int arg);
 String Server_BuildOnlineNames(Server *server);
 String Server_BuildOnlineList(Server *server);
 String Refresh_BuildReply(Server *server, Player *player);
+String Party_EncodeMemberList(Server *server, Player *player);
 String Map_ReadRawFile(Mapcontrol *map_control, int map_id);
 bool Walk_Execute(Server *server, Player *player, int action, String *data);
 bool FUN_004738b0(Server *server);
@@ -1464,6 +1466,253 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             return true;
         }
     }
+    if (family == PacketFamily_Party)
+    {
+        if (action == PacketAction_Take)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 1)
+                return false;
+            if (!player->in_party)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Close,
+                                   PacketFamily_Party,
+                                   String(EO_GetBreakByte(server, 0xff)));
+                return true;
+            }
+            int count = player->CountPartyMembers();
+            if (EO_DecodeNumber(server, String(data[1])) != count)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_List,
+                                   PacketFamily_Party,
+                                   Party_EncodeMemberList(server, player));
+            }
+            return true;
+        }
+        if (action == PacketAction_Request)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 3)
+                return false;
+            int type = EO_DecodeNumber(server, String(data[1]));
+            int id = EO_DecodeNumber(server, data.SubString(2, 2));
+            Player *target = Players::Players_GetById(server->players, id);
+            if (target == NULL)
+                return true;
+            if (type == 0)
+            {
+                if (player->in_party && target->in_party &&
+                    player->party_leader_id == target->party_leader_id)
+                {
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Reply,
+                                       PacketFamily_Party,
+                                       EO_EncodeNumber(server, 1, 1) + target->name);
+                    return true;
+                }
+                if (target->in_party && target->CountPartyMembers() + 1 >=
+                                            Settings::GetGroupMax(server->settings))
+                {
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Reply,
+                                       PacketFamily_Party,
+                                       EO_EncodeNumber(server, 2, 1));
+                    return true;
+                }
+                player->read_pos = target->player_id;
+                String msg = EO_EncodeNumber(server, type, 1);
+                msg.Insert(EO_EncodeNumber(server, player->player_id, 2),
+                           msg.Length() + 1);
+                msg.Insert(player->name, msg.Length() + 1);
+                Client_SendEncoded(
+                    server, target, PacketAction_Request, PacketFamily_Party, msg);
+                return true;
+            }
+            if (type == 1)
+            {
+                if (target->in_party)
+                {
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Reply,
+                                       PacketFamily_Party,
+                                       EO_EncodeNumber(server, 0, 1) + target->name);
+                    return true;
+                }
+                if (player->in_party && player->CountPartyMembers() + 1 >=
+                                            Settings::GetGroupMax(server->settings))
+                {
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Reply,
+                                       PacketFamily_Party,
+                                       EO_EncodeNumber(server, 2, 1));
+                    return true;
+                }
+                player->read_pos = target->player_id;
+                String msg = EO_EncodeNumber(server, type, 1);
+                msg.Insert(EO_EncodeNumber(server, player->player_id, 2),
+                           msg.Length() + 1);
+                msg.Insert(player->name, msg.Length() + 1);
+                Client_SendEncoded(
+                    server, target, PacketAction_Request, PacketFamily_Party, msg);
+                return true;
+            }
+            return false;
+        }
+        if (action == PacketAction_Remove)
+        {
+            if (!player->logged_in)
+                return false;
+            if (!player->in_party)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Close,
+                                   PacketFamily_Party,
+                                   String(EO_GetBreakByte(server, 0xff)));
+                return true;
+            }
+            if (data.Length() < 2)
+                return false;
+            Player *target = Players::Players_GetById(
+                server->players, EO_DecodeNumber(server, data.SubString(1, 2)));
+            if (target == NULL)
+                return false;
+            if (!target->in_party)
+                return false;
+            if (player->party_leader_id != target->party_leader_id)
+                return false;
+            Server_BroadcastToParty(server,
+                                    player,
+                                    PacketAction_Remove,
+                                    PacketFamily_Party,
+                                    EO_EncodeNumber(server, target->player_id, 2));
+            Players::Player_LeaveParty(server->players, target);
+            return true;
+        }
+        if (action == PacketAction_Accept)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 3)
+                return false;
+            int type = EO_DecodeNumber(server, String(data[1]));
+            int id = EO_DecodeNumber(server, data.SubString(2, 2));
+            Player *target = Players::Players_GetById(server->players, id);
+            if (target == NULL)
+                return true;
+            if (target->read_pos != player->player_id)
+                return true;
+            if (type == 0)
+            {
+                if (target->in_party)
+                {
+                    Server_BroadcastToPartyExceptSelf(
+                        server,
+                        target,
+                        PacketAction_Remove,
+                        PacketFamily_Party,
+                        EO_EncodeNumber(server, target->player_id, 2));
+                    Players::Player_LeaveParty(server->players, target);
+                }
+                if (player->in_party)
+                {
+                    String msg = EO_EncodeNumber(server, target->player_id, 2);
+                    msg.Insert(EO_EncodeNumber(server, 0, 1), msg.Length() + 1);
+                    msg.Insert(EO_EncodeNumber(server, target->level, 1),
+                               msg.Length() + 1);
+                    msg.Insert(EO_EncodeNumber(server, Player::HpPercent(target), 1),
+                               msg.Length() + 1);
+                    msg.Insert(target->name, msg.Length() + 1);
+                    Server_BroadcastToParty(
+                        server, player, PacketAction_Add, PacketFamily_Party, msg);
+                    Players::Party_AddNewMember(server->players, player, target);
+                    Client_SendEncoded(server,
+                                       target,
+                                       PacketAction_Create,
+                                       PacketFamily_Party,
+                                       Party_EncodeMemberList(server, target));
+                    return true;
+                }
+                else
+                {
+                    Player::AddPartyMember(player, player->player_id);
+                    Player::AddPartyMember(player, target->player_id);
+                    Player::AddPartyMember(target, player->player_id);
+                    Player::AddPartyMember(target, target->player_id);
+                    player->party_leader_id = player->player_id;
+                    target->party_leader_id = player->player_id;
+                    player->in_party = 1;
+                    target->in_party = 1;
+                    Server_BroadcastToParty(server,
+                                            player,
+                                            PacketAction_Create,
+                                            PacketFamily_Party,
+                                            Party_EncodeMemberList(server, player));
+                    return true;
+                }
+            }
+            if (type == 1)
+            {
+                if (player->in_party)
+                {
+                    Server_BroadcastToPartyExceptSelf(
+                        server,
+                        player,
+                        PacketAction_Remove,
+                        PacketFamily_Party,
+                        EO_EncodeNumber(server, player->player_id, 2));
+                    Players::Player_LeaveParty(server->players, player);
+                }
+                if (target->in_party)
+                {
+                    String msg = EO_EncodeNumber(server, player->player_id, 2);
+                    msg.Insert(EO_EncodeNumber(server, 0, 1), msg.Length() + 1);
+                    msg.Insert(EO_EncodeNumber(server, player->level, 1),
+                               msg.Length() + 1);
+                    msg.Insert(EO_EncodeNumber(server, Player::HpPercent(player), 1),
+                               msg.Length() + 1);
+                    msg.Insert(player->name, msg.Length() + 1);
+                    Server_BroadcastToParty(
+                        server, target, PacketAction_Add, PacketFamily_Party, msg);
+                    Players::Party_AddNewMember(server->players, target, player);
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Create,
+                                       PacketFamily_Party,
+                                       Party_EncodeMemberList(server, player));
+                    return true;
+                }
+                else
+                {
+                    Player::AddPartyMember(player, target->player_id);
+                    Player::AddPartyMember(player, player->player_id);
+                    Player::AddPartyMember(target, target->player_id);
+                    Player::AddPartyMember(target, player->player_id);
+                    player->party_leader_id = target->player_id;
+                    target->party_leader_id = target->player_id;
+                    player->in_party = 1;
+                    target->in_party = 1;
+                    Server_BroadcastToParty(server,
+                                            target,
+                                            PacketAction_Create,
+                                            PacketFamily_Party,
+                                            Party_EncodeMemberList(server, target));
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
     if (family == PacketFamily_Quest)
     {
         if (action == PacketAction_List)
@@ -1687,6 +1936,219 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                PacketAction_Open,
                                PacketFamily_Marriage,
                                EO_EncodeNumber(server, player->session_token, 3));
+            return true;
+        }
+    }
+    if (family == PacketFamily_Priest)
+    {
+        if (action == PacketAction_Open)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            if (player->partner_name.Length() > 3)
+                return true;
+            int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
+            MapCoord coords =
+                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            if (coords.x < 0 || coords.y < 0)
+                return false;
+            if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            if (WeddingController::Has((*MAINFORM)->weddings, player->map_id, npc_index))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Priest,
+                                   EO_EncodeNumber(server, 5, 2));
+                return true;
+            }
+            int npc_id =
+                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
+            if (type_info.type != NpcType_Priest)
+                return true;
+            if (player->level < 5)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Priest,
+                                   EO_EncodeNumber(server, 2, 2));
+                return true;
+            }
+            if (player->gender == 1 && player->armor_graphic_id != 0x15)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Priest,
+                                   EO_EncodeNumber(server, 1, 2));
+                return true;
+            }
+            if (player->gender == 0 && player->armor_graphic_id != 2)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Priest,
+                                   EO_EncodeNumber(server, 1, 2));
+                return true;
+            }
+            player->session_token = RandRange(0x2710) + 0xc3501;
+            player->npc_index = npc_index;
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Open,
+                               PacketFamily_Priest,
+                               EO_EncodeNumber(server, player->session_token, 4));
+            return true;
+        }
+        if (action == PacketAction_Request)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            int token = EO_DecodeNumber(server, data.SubString(1, 4));
+            if (player->session_token != token)
+                return true;
+            if (token < 0xc3500 || token > 0xdbba0)
+                return true;
+            PacketReader_Init(server, data, EO_GetBreakByte(server, 0xff));
+            PacketReader_GetBreakString(server);
+            String name = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, PacketReader_GetBreakString(server));
+            if (name.Length() < 4 || name.Length() > 0x18)
+                return true;
+            Player *target = Players::Players_FindByName(server->players, name);
+            if (target == NULL)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Priest,
+                                   EO_EncodeNumber(server, 3, 2));
+                return true;
+            }
+            if (target->player_id == player->player_id)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Priest,
+                                   EO_EncodeNumber(server, 3, 2));
+                return true;
+            }
+            if (target->map_id != player->map_id)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Priest,
+                                   EO_EncodeNumber(server, 3, 2));
+                return true;
+            }
+            if (target->partner_name.Length() > 3)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Priest,
+                                   EO_EncodeNumber(server, 7, 2));
+                return true;
+            }
+            if (LowerCase(name.SubString(1, 3)) != LowerCase(player->partner_name))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Priest,
+                                   EO_EncodeNumber(server, 8, 2));
+                return true;
+            }
+            if (LowerCase(target->partner_name) !=
+                LowerCase(player->name.SubString(1, 3)))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Priest,
+                                   EO_EncodeNumber(server, 8, 2));
+                return true;
+            }
+            if (target->gender == 1 && target->armor_graphic_id != 0x15)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Priest,
+                                   EO_EncodeNumber(server, 4, 2));
+                return true;
+            }
+            if (target->gender == 0 && target->armor_graphic_id != 2)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Priest,
+                                   EO_EncodeNumber(server, 4, 2));
+                return true;
+            }
+            player->read_break = target->player_id;
+            String msg = EO_EncodeNumber(server, player->player_id, 2);
+            msg.Insert(player->name, msg.Length() + 1);
+            Client_SendEncoded(
+                server, target, PacketAction_Request, PacketFamily_Priest, msg);
+            return true;
+        }
+        if (action == PacketAction_Accept)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int id = EO_DecodeNumber(server, data.SubString(1, 2));
+            Player *target = Players::Players_GetById(server->players, id);
+            if (target == NULL)
+                return true;
+            if (target->map_id != player->map_id)
+                return true;
+            if (target->read_break != player->player_id)
+                return true;
+            if (WeddingController::Has(
+                    (*MAINFORM)->weddings, target->map_id, target->npc_index))
+                return true;
+            int npc_id = (int)FUN_0047c634(
+                (int)server->map_control, target->map_id, target->npc_index);
+            NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
+            if (type_info.type != NpcType_Priest)
+                return true;
+            player->npc_index = target->npc_index;
+            player->session_token = target->session_token;
+            WeddingController::Add((*MAINFORM)->weddings,
+                                   target->map_id,
+                                   target->npc_index,
+                                   player->player_id,
+                                   player->name,
+                                   target->player_id,
+                                   target->name);
+            return true;
+        }
+        if (action == PacketAction_Use)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            if (player->partner_name.Length() > 3)
+                return true;
+            WeddingController::Confirm((*MAINFORM)->weddings,
+                                       player->map_id,
+                                       player->npc_index,
+                                       player->player_id);
             return true;
         }
     }

@@ -25,7 +25,7 @@ VLIB      ?= import32.lib cw32mt.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.l
 CLANG_FORMAT ?= clang-format
 SRC          := $(wildcard src/*.cpp src/*.h)
 
-.PHONY: image analyze units track unitmap functions struct disasm sanity compare normalize build stubs unit unit-asm verify format format-check clean
+.PHONY: image analyze units track unitmap functions struct disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
 
 image:
 	docker build -t $(IMAGE) docker
@@ -98,6 +98,12 @@ unit-asm:
 verify:
 	JOBS=$(JOBS) scripts/build_asm.sh
 	$(PYTHON) scripts/verify_units.py $(if $(JOBS),-j $(JOBS),)
+
+# Self-test the per-case comparison locator (no build required): proves the
+# anchor refuses an ambiguous match, reports a perturbed instruction, and gives
+# zero mismatches on a correct slice. See scripts/compare_case.py.
+case-selftest:
+	$(PYTHON) scripts/compare_case.py --selftest
 
 # Apply the project code style (.clang-format) in place.
 format:

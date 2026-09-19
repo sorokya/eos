@@ -98,6 +98,7 @@ make track     # regenerate analysis/target/functions.tsv + the README status bl
                #   (run `MAP=1 scripts/build.sh` first for exact library classification)
 make verify    # emit stale asm + score every source function vs the reference
                #   JOBS=N parallel compiles/objdump (default: CPU count); incremental
+make case-selftest # self-test the per-case comparison locator (no build required)
 make format    # apply the project clang-format style to src/*.cpp, src/*.h
 make format-check # check the style without modifying files
 make compare   # compare build/GameServer.exe against the reference
@@ -203,6 +204,64 @@ make clean     # remove build/
 
   Every tolerant mode is a **progress instrument, never an acceptance criterion**
   — final acceptance remains the unflagged comparison plus the whole-file MD5.
+- **`compare_case.py ASM UNIT FUNC REF_START REF_END [--strict-operands]
+  [--frame-wild] [--stack-delta D]`** — diff one *case* (an address-range slice)
+  of a large function against the reference. It exists because some functions are
+  built case by case: `Player_HandlePacket` is a single 226 KB function (one
+  enormous `if`/`else` chain) and the whole-function `compare_asm.py` cannot align
+  past its first missing case, so a per-case instrument is the only way to score
+  one case at a time. `UNIT`/`FUNC` name the reference function in
+  `analysis/target/functions.tsv`; the tool resolves its Borland-mangled
+  `source_name` for the listing (a `FUNC` already starting with `@` is used
+  verbatim).
+
+  **Locating the slice is a first-class, reported, loud step.** The tool finds
+  the slice by matching the first `--anchor-len` (default 6) canonicalized
+  reference instructions against our function's instruction stream, and prints
+  the anchor, the matched reference start address, our instruction index and
+  source line, and the **number of candidate matches**. The anchor folds the
+  function-global facts a partially reconstructed function cannot yet match:
+  `[ebp-N]`/`[ebp+N]` offsets become `[ebp-SLOT]`, and an EH scope marker
+  (`mov word ptr [ebp-N], imm`) has its value folded to `MARK` (the frame layout
+  and the cleanup-table byte offset are function-global). **It refuses (exit 2,
+  explicit message) unless the anchor matches exactly one place** — a wrong
+  alignment that reports a plausible-looking mismatch count is the worst possible
+  failure mode, so a zero-match or multi-match anchor is never silently resolved.
+  The self-test (`--selftest`; `make case-selftest`) proves the ambiguous-match
+  refusal, the perturbed-instruction report, and the zero-mismatch correct slice.
+
+  **The comparison reuses `compare_asm`'s canonicalization, alias folding and
+  strict-operand machinery** (imported, not forked, so the two cannot drift
+  apart). By default it keeps opcodes, registers, constants, operand order and
+  instruction count exact while wildcarding the function-global `[ebp-N]` slot
+  numbers and EH marker values; `--strict-operands` adds the same
+  value-behind-the-address check as `compare_asm.py` (reusing its
+  `StrictContext`/`strict_compare`), so a wrong literal or a wrong direct callee
+  is still flagged. That default is a **progress instrument, never an acceptance
+  criterion**, and is labelled as such in the output: a partial function's frame
+  and cleanup offsets cannot match until the function is complete, and the slot
+  wildcard means a reordered local within the case is not caught. Acceptance
+  remains the unflagged whole-function `compare_asm.py` comparison and, finally,
+  the whole-file MD5. EH markers are blanked for the strict pass because their
+  value is intentionally wildcarded, so they are not reported as immediates.
+
+  Passing `--frame-wild` or `--stack-delta D` turns the per-case slot wildcard
+  off and reproduces `compare_asm.py`'s slot handling instead (frame wildcard /
+  explicit `[ebp-N]` shift), so the two tools are interchangeable for those
+  flags; EH marker *values* remain wildcarded in every mode, since a partial
+  reconstruction cannot match a function-global cleanup-table offset. `--diff`
+  prints the aligned diff, `--markers` the EH scope marker streams, and `--calls`
+  the call symbols. The report ends with the instruction counts, the positional
+  mismatch count, and a **structural** verdict — `structural: clean` when every
+  alignment hunk is a same-length substitution, otherwise the number of
+  insertion/deletion hunks:
+
+  ```sh
+  python3 scripts/compare_case.py build/Packets.asm Packets Player_HandlePacket \
+      0x44e180 0x44f2c4
+  python3 scripts/compare_case.py build/Packets.asm Packets Player_HandlePacket \
+      0x44e180 0x44f2c4 --strict-operands
+  ```
 - **`verify_units.py [UNIT ...] [--ref-bin PATH] [--asm-dir DIR]`** — the
   whole-tree equivalent: for every unit's listing, match each function in the
   unit's namespace against that unit's reference ranges from
