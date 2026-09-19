@@ -5139,11 +5139,253 @@ int FUN_00459b64_Stub(int a0)
 {
     return 0;
 }
-// STUB(0x00459b70, 5458 bytes) Player_ApplyQuestActions - ref: void
-// Player_ApplyQuestActions(Server * server, Player * player, Questtracker * tracker, bool
-// repeat)
-void Player_ApplyQuestActions_Stub(void *a0, void *a1, void *a2, int a3)
+void Player_ApplyQuestActions(Server *server,
+                              Player *player,
+                              PlayerQuest *tracker,
+                              bool repeat)
 {
+    if (repeat)
+    {
+        for (int i = 0; i < 5; i++)
+            tracker->counters[i] = 0;
+        QuestState *state = Questengine::GetState(
+            server->quest_engine, tracker->quest_id, tracker->state_index);
+        if (state == 0)
+        {
+            tracker->done = 1;
+            return;
+        }
+        for (std::vector<QuestAction *>::iterator iter = state->actions.begin();
+             iter != state->actions.end();
+             iter++)
+        {
+            if ((*iter)->action == 4)
+            {
+                int target_map = (*iter)->args[0];
+                MapCoord coords;
+                coords.x = (*iter)->args[1];
+                coords.y = (*iter)->args[2];
+                Player_Warp(server, player, target_map, coords, 0, true);
+            }
+            if ((*iter)->action == 5)
+            {
+                int item = (*iter)->args[0];
+                int amount = (*iter)->args[1];
+                if ((*iter)->data[1] == "")
+                    amount = 1;
+                if (amount > 0)
+                {
+                    Players::Player_AddItem(server->players, player, item, amount);
+                    player->weight_current +=
+                        ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item) *
+                        amount;
+                    if (player->weight_current < 0)
+                        player->weight_current = 0;
+                    int weight = player->weight_current;
+                    if (weight > 250)
+                        weight = 250;
+                    String reply = EO_EncodeNumber(server, item, 2);
+                    reply.Insert(EO_EncodeNumber(server, amount, 3), reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, weight, 1), reply.Length() + 1);
+                    Client_SendEncoded(
+                        server, player, PacketAction_Obtain, PacketFamily_Item, reply);
+                }
+            }
+            if ((*iter)->action == 6)
+            {
+                int item = (*iter)->args[0];
+                int amount = (*iter)->args[1];
+                if ((*iter)->data[1] == "")
+                    amount = 1;
+                if (amount > 0)
+                {
+                    Players::Player_RemoveItemNoQuestRules(
+                        server->players, player, item, amount);
+                    player->weight_current -=
+                        ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item) *
+                        player->item_change_count;
+                    if (player->weight_current < 0)
+                        player->weight_current = 0;
+                    int weight = player->weight_current;
+                    if (weight > 250)
+                        weight = 250;
+                    String reply = EO_EncodeNumber(server, item, 2);
+                    reply.Insert(
+                        EO_EncodeNumber(server, player->item_change_remaining, 4),
+                        reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, weight, 1), reply.Length() + 1);
+                    Client_SendEncoded(
+                        server, player, PacketAction_Kick, PacketFamily_Item, reply);
+                }
+            }
+            if ((*iter)->action == 0x14)
+            {
+                QuestCounters::RecordCompletion(
+                    server->quest_counters, player->name, tracker->quest_id);
+                tracker->done = 1;
+                return;
+            }
+            if ((*iter)->action == 7 || (*iter)->action == 8)
+            {
+                if ((*iter)->action == 7)
+                {
+                    bool found = true;
+                    for (std::vector<PlayerQuest>::iterator iter2 =
+                             player->quest_history.begin();
+                         iter2 != player->quest_history.end();
+                         iter2++)
+                    {
+                        if (iter2->quest_id == tracker->quest_id)
+                            found = false;
+                    }
+                    if (found)
+                        player->quest_history.insert(player->quest_history.end(),
+                                                     *tracker);
+                }
+                tracker->done = 1;
+                return;
+            }
+            if ((*iter)->action == 9)
+            {
+                int class_id = (*iter)->args[0];
+                player->class_id = class_id;
+                Player::UpdateBaseStats(player);
+                Player_CalculateStats(server, player);
+                Player::CalculateHP_TP_SP(player);
+                String reply = EO_EncodeNumber(server, player->class_id, 2);
+                reply.Insert(EO_EncodeNumber(server, player->adj_strength, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->adj_intelligence, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->adj_wisdom, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->adj_agility, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->adj_constitution, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->adj_charisma, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->max_hp, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->max_tp, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->max_sp, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->weight_max, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->min_damage, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->max_damage, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->accuracy, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->evasion, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->armor, 2),
+                             reply.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_List, PacketFamily_Recover, reply);
+            }
+            if ((*iter)->action == 0xa)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Player,
+                                   PacketFamily_Jukebox,
+                                   EO_EncodeNumber(server, (*iter)->args[0], 1));
+            }
+            if ((*iter)->action == 0xb)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Player,
+                                   PacketFamily_Music,
+                                   EO_EncodeNumber(server, (*iter)->args[0], 1));
+            }
+            if ((*iter)->action == 0xc)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Open,
+                                   PacketFamily_Message,
+                                   (*iter)->data[0]);
+            }
+            if ((*iter)->action == 0xd)
+            {
+                player->experience += (*iter)->args[0];
+                int level = Players::Player_TryLevelUp(server->players, player);
+                if (level > 0)
+                {
+                    Server_BroadcastNearby(server,
+                                           player,
+                                           PacketAction_Accept,
+                                           PacketFamily_Item,
+                                           EO_EncodeNumber(server, player->player_id, 2));
+                }
+                String reply = EO_EncodeNumber(server, player->experience, 4);
+                reply.Insert(EO_EncodeNumber(server, player->karma + 1000, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, level, 1), reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->stat_points, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, player->skill_points, 2),
+                             reply.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Recover, reply);
+            }
+            if ((*iter)->action == 0xe)
+            {
+                player->experience -= (*iter)->args[0];
+                String reply = EO_EncodeNumber(server, player->experience, 4);
+                reply.Insert(EO_EncodeNumber(server, player->karma + 1000, 2),
+                             reply.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Recover, reply);
+            }
+            if ((*iter)->action == 0xf)
+            {
+                player->karma += (*iter)->args[0];
+                if (player->karma > 1000)
+                    player->karma = 1000;
+                String reply = EO_EncodeNumber(server, player->experience, 4);
+                reply.Insert(EO_EncodeNumber(server, player->karma + 1000, 2),
+                             reply.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Recover, reply);
+            }
+            if ((*iter)->action == 0x10)
+            {
+                player->karma -= (*iter)->args[0];
+                if (player->karma < -1000)
+                    player->karma = -1000;
+                String reply = EO_EncodeNumber(server, player->experience, 4);
+                reply.Insert(EO_EncodeNumber(server, player->karma + 1000, 2),
+                             reply.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Recover, reply);
+            }
+            if ((*iter)->action == 0x11)
+            {
+                String buf = EO_EncodeNumber(server, 1, 1);
+                buf.Insert(EO_EncodeNumber(server, (*iter)->args[0], 1),
+                           buf.Length() + 1);
+                Server_BroadcastToMap(
+                    server, player->map_id, PacketAction_Use, PacketFamily_Effect, buf);
+            }
+            if ((*iter)->action == 0x12)
+            {
+                String buf = EO_EncodeNumber(server, player->player_id, 2);
+                buf.Insert(EO_EncodeNumber(server, (*iter)->args[0], 3),
+                           buf.Length() + 1);
+                Server_BroadcastNearby(
+                    server, player, PacketAction_Player, PacketFamily_Effect, buf);
+                Client_SendEncoded(
+                    server, player, PacketAction_Player, PacketFamily_Effect, buf);
+            }
+        }
+    }
+    if (repeat)
+        Player_FireQuestTriggers(server, player, 0x190, 0);
 }
 // STUB(0x0045b0c4, 11 bytes) FUN_0045b0c4 - ref: undefined4 FUN_0045b0c4(int param_1)
 int FUN_0045b0c4_Stub(int a0)

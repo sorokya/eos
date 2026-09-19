@@ -581,9 +581,6 @@ COMDAT) before the final link; none may be guessed away.
 | Symbol | Declared in | Owner / status |
 | --- | --- | --- |
 | `Players_Iter_Begin` / `Players_Iter_End` | Chestcontrol, Effectcontrol, Eventcontrol, Npccontrol, Packets | Players unit (`0x407f28`/`0x407f34`). The out-of-line `std::vector<Player*>::begin/end` COMDATs; the mangled names are unobservable, so no header declares them yet. |
-| `MapchestVector_Begin` / `_End` | Chestcontrol | `std::vector<MapChest>::begin/end` COMDATs (Mapchest unit). Same situation. |
-| `MapItemVector_Begin` / `_End` | Chestcontrol | `std::vector<MapItem>::begin/end` COMDATs (Itemchest unit). Same situation. |
-| `MapwarpVector_Begin` / `_End` | Eventcontrol | `std::vector<MapWarp>::begin/end` COMDATs (Mapwarp unit). Same situation. |
 | `Character_BuildSaveQuery` | Packets | Players unit, `0x40902c` (14592 B), not yet reconstructed. |
 | `Map_GetTileSpecObject` | Packets | Mapcontrol `0x47c114`; only caller is `Chair_Execute`. Returns `MapObject` by value. Name not yet settled in the owner. |
 | `Map_InitBlank` (`0x487e84`), `FUN_0048835c` (`0x48835c`) | Mapcontrol | Map unit. `Map_InitBlank` returns `MapContainer` by value and takes `(map_id, width, height)`; `FUN_0048835c` is its destructor (`(&map, 2)`). Needed by `Mapcontrol_LoadMap`; no owner header declares them yet. |
@@ -1180,12 +1177,17 @@ callee bodies with non-address immediates kept; equal → benign, different with
 caller pairing → real.
 
 **Latent link failures found by that triage** (not container issues): `Chestcontrol.cpp`
-declares `MapItemVector_Begin`/`_End` without defining them, and
-`MapchestVector_Begin/End` and `MapwarpVector_Begin/End` are likewise undefined. The
-reference callees are `ItemchestVector_Begin/End` (`0x47bcf4`/`0x47bd00`) with the
-correct `MapItem` element type. They must be resolved before the final link; they are
-currently hidden because the tool accepts the `@@<ref_name>` alias. Owning units:
-`Chestcontrol`, `Eventcontrol`.
+declared `MapItemVector_Begin`/`_End` without defining them, and
+`MapchestVector_Begin/End` and `MapwarpVector_Begin/End` were likewise undefined. The
+reference callees are the owning containers' STL members — `std::vector<MapItem>` at
+`0x47bcf4`/`0x47bd00`, `std::vector<MapChest>` at `0x47bcdc`/`0x47bce8`, and
+`std::vector<MapWarp>` at `0x47b1d4`/`0x47b130` — and the callee bodies are byte-identical
+to the reference. Resolved by calling the real members at the call sites
+(`map->chest_list.begin()/.end()`, `chest->slots.begin()/.end()`,
+`map_iter->arena_spawn_list.begin()/.end()`) and deleting the six declarations.
+`Players_Iter_Begin`/`_End` (the same class of out-of-line `std::vector<Player*>::begin/end`
+COMDAT) remain declared without a definition in five units and still need the Players
+owner to resolve them.
 
 ## Risks and mitigations
 

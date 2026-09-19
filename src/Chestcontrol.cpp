@@ -9,10 +9,6 @@
 
 #pragma package(smart_init)
 
-MapChest *MapchestVector_Begin(void *chest_list);
-MapChest *MapchestVector_End(void *chest_list);
-MapItem *MapItemVector_Begin(void *slots);
-MapItem *MapItemVector_End(void *slots);
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
 
@@ -48,13 +44,9 @@ void ChestController::Tick(ChestController *self)
          map++)
     {
         map->chests_dirty = 0;
-        for (chest = MapchestVector_Begin(&map->chest_list);
-             MapchestVector_End(&map->chest_list) != chest;
-             chest++)
+        for (chest = map->chest_list.begin(); map->chest_list.end() != chest; chest++)
         {
-            for (item = MapItemVector_Begin(&chest->slots);
-                 MapItemVector_End(&chest->slots) != item;
-                 item++)
+            for (item = chest->slots.begin(); chest->slots.end() != item; item++)
             {
                 if (item->respawn_enabled != 0 && item->item_present == 0)
                 {
@@ -111,13 +103,11 @@ void ChestController::Tick(ChestController *self)
             try
             {
                 String pkt = "";
-                for (chest_iter = MapchestVector_Begin(
-                         &Mapcontrol_GetByIndex(self->map_control,
-                                                (*player_iter)->map_id - 1)
-                              ->chest_list);
-                     MapchestVector_End(&Mapcontrol_GetByIndex(self->map_control,
-                                                               (*player_iter)->map_id - 1)
-                                             ->chest_list) != chest_iter;
+                for (chest_iter = Mapcontrol_GetByIndex(self->map_control,
+                                                        (*player_iter)->map_id - 1)
+                                      ->chest_list.begin();
+                     Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
+                         ->chest_list.end() != chest_iter;
                      chest_iter++)
                 {
                     if (chest_iter->updated != 0)
@@ -130,8 +120,8 @@ void ChestController::Tick(ChestController *self)
                                     (*player_iter)->y))
                         {
                             pkt = "";
-                            for (item_iter = MapItemVector_Begin(&chest_iter->slots);
-                                 MapItemVector_End(&chest_iter->slots) != item_iter;
+                            for (item_iter = chest_iter->slots.begin();
+                                 chest_iter->slots.end() != item_iter;
                                  item_iter++)
                             {
                                 if (item_iter->item_present != 0)

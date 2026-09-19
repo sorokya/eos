@@ -11,9 +11,6 @@
 
 #pragma package(smart_init)
 
-MapWarp *MapwarpVector_Begin(void *arena_spawn_list);
-MapWarp *MapwarpVector_End(void *arena_spawn_list);
-
 Player **Players_Iter_Begin(Players *players);
 Player **Players_Iter_End(Players *players);
 
@@ -156,9 +153,8 @@ void EventController::Tick(EventController *self)
                 }
                 else
                 {
-                    for (MapWarp *spawn_iter =
-                             MapwarpVector_Begin(&map_iter->arena_spawn_list);
-                         spawn_iter != MapwarpVector_End(&map_iter->arena_spawn_list);
+                    for (MapWarp *spawn_iter = map_iter->arena_spawn_list.begin();
+                         spawn_iter != map_iter->arena_spawn_list.end();
                          spawn_iter++)
                     {
                         Player *target_player =
