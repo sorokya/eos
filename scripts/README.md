@@ -212,7 +212,8 @@ make clean     # remove build/
   `--selftest` runs it over three already-converged ranges
   (`EO_Encode_Interleave`, `Walk_BuildReply`, `Player_SerializePaperdoll`),
   prints the classification rate, the idiom breakdown, and the `arity_todo`,
-  `holes`, `slots`, `arity_mismatch` and `untyped_field` counters, plus every
+  `holes`, `slots`, `arity_mismatch`, `arity_contradicted` and `untyped_field`
+  counters, plus every
   emitted condition;
   it aborts (exit 3) if any conditional carries an unknown relation/operand, two
   storage locations collide, or a rendered argument list contradicts the
@@ -266,8 +267,25 @@ make clean     # remove build/
   (`Walk_BuildReply` 32→14, `Refresh_BuildReply` 129→34, `NpcControl_Tick`
   358→53, the `Attack_Execute` head 97→54) with no wrong name or object.
 
+  **Push-window and esp reconciliation.** The argument stack is closed across
+  `push imm; call …; pop` helper sequences: a helper that takes its operand on
+  the stack (`operator new`/`operator delete`) consumes the push window instead
+  of leaking its size into the next call, while the RTL helpers that take their
+  operand in `eax`/`edx` (`Now`, `DateTimeToTimeStamp`, the `AnsiString` ctors/
+  dtors/ops) stay transparent. After the push window closes, the rendered count
+  is reconciled against the caller's own cleanup — `add esp, N`, a run of
+  `pop reg`, or the shared epilogue — minus the hidden return dword when the
+  callee returns a `String` by value. The esp adjust is the callee's actual
+  consumed argument bytes, so when the rendered count and the stack disagree the
+  tool emits `// TODO(addr): arity not determined (rendered N, stack says M)` and
+  **no argument list**. Argument expressions are **frozen at push time**, so two
+  pushes of the same register at different points print distinct expressions
+  (`Server_InViewRing(server, (player)->x, (player)->y, (*ecx)->x, (*eax)->y)`).
+
   **Safety properties, stated explicitly:** a condition is emitted only when it
-  is provable; a field NAME is emitted only when the base's class is proven; a storage location is rendered distinctly from every other; a
+  is provable; a field NAME is emitted only when the base's class is proven; an
+  argument list is emitted only when the declared arity, the pushes and the
+  caller's esp adjust all agree; a storage location is rendered distinctly from every other; a
   field access is emitted only for a typed base; an argument list is emitted
   only when the declared arity and the observed pushes agree under the calling
   convention — otherwise a TODO, never a guess.

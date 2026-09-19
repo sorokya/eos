@@ -783,7 +783,11 @@ Tracked so they are not mistaken for done:
     `Player_HpPercent((*iter), 1)`, each `Insert`ed at `Length()+1`. Still to write:
     the break bytes and the `Server_BroadcastNearby` / `Client_SendEncoded` sends
     (`0x468546`..`0x46882c`), the NPC sweep (`0x468897`/`0x46a87a`) and the reply
-    builders. `scripts/asm2cpp.py` drafts blocks into address-commented C++
+    builders. The NPC sweep's local set was enumerated: 76 distinct `[ebp-N]`
+    slots, deepest `-0x1c4` (the frame), so the frame cannot complete until that
+    block's declarations exist. Its head re-derives the same `direction`-based
+    `offset_y (-0x158)` / `offset_x (-0x154)` pair and guards `if (offset_y < 0 ||
+    offset_x < 0)` into an `EO_EncodeNumber(server, caster->player_id, 2)` reply. `scripts/asm2cpp.py` drafts blocks into address-commented C++
     (99.8% recognised here) and is the fastest way to start each block.
     `Player_IsPartyMember`, `RandRange`, `Combat_CalcHitRate`, `Combat_CalcArmorPen`
     are declared locally in `Packets.cpp`. Current frame `-0x48` vs the reference's

@@ -442,6 +442,11 @@ class Draft:
         self.arity_todos = 0
         self.arity_holes = 0
         self.ret_push_pending = False
+        self.ret_pushed = False
+        self.arity_contradicted = []
+        self.esp_by_addr = {}
+        self.insns = []
+        self.insn_index = 0
         self.arity_mismatch = {}
         self.pending_cmp = None
         self.tmp = 0
@@ -480,7 +485,20 @@ class Draft:
             if len(disps) > 1:
                 bad.append("slot-collision: %s <- %s"
                            % (nm, sorted("ebp%+d" % d for d in disps)))
-        # 3. a rendered argument list must match the reconciled arity
+        # 3. an EMITTED argument list must match the caller's esp adjust
+        for ln in self.lines:
+            t = ln.strip()
+            m = re.match(r"([A-Za-z_]\w*)\((.*)\);\s*//\s*0x([0-9a-f]+)", t)
+            if not m:
+                continue
+            a = int(m.group(3), 16)
+            if a not in self.esp_by_addr:
+                continue
+            n = len(self.split_ops(m.group(2))) if m.group(2).strip() else 0
+            if n != self.esp_by_addr[a]:
+                bad.append("arity-contradicted: 0x%x rendered %d, stack says %d"
+                           % (a, n, self.esp_by_addr[a]))
+        # 4. a rendered argument list must match the reconciled arity
         for ln in self.lines:
             t = ln.strip()
             m = re.match(r"([A-Za-z_]\w*)\((.*)\);\s*//\s*0x([0-9a-f]+)", t)
@@ -560,9 +578,13 @@ class Draft:
                 return None      # iterator/record slot: the offset is a pointer load
             cls = base_class(self.reg_types[base])
             nm = self.class_fields.get(cls, {}).get(disp) if cls else None
+            obj = base
+            rx = self.reg_expr.get(base)     # frozen expression (frozen at push time)
+            if rx and rx != base:
+                obj = "(%s)" % rx
             if nm:
-                return "%s->%s" % (base, nm)
-            return "%s->field_0x%x" % (base, disp)
+                return "%s->%s" % (obj, nm)
+            return "%s->field_0x%x" % (obj, disp)
         # untyped base: the offset is proven, the class is not - never name it
         return "%s->field_0x%x" % (base, disp)
 
@@ -609,6 +631,7 @@ class Draft:
 
     # -- main walk ---------------------------------------------------------
     def walk(self, insns):
+        self.insns = insns
         end = insns[-1][0] + 1 if insns else self.start
         for k, t in enumerate(self.params):
             self.slot_types[8 + 4 * k] = t
@@ -639,6 +662,7 @@ class Draft:
             self.n += 1
             carry = self.pending_cmp
             self.pending_cmp = None
+            self.insn_index = i
             if addr in self.branch_targets:
                 self.reg_types = {}
                 self.reg_expr = {}
@@ -716,6 +740,7 @@ class Draft:
                 if self.ret_push_pending and op == "eax":
                     # hidden return-buffer pointer for a String-returning call
                     self.ret_push_pending = False
+                    self.ret_pushed = True
                     self.emit(addr, "// push %s (hidden return buffer)  // 0x%x"
                               % (ops, addr), "stack")
                     i += 1
@@ -818,6 +843,27 @@ class Draft:
     # RTL helpers that take their operand in eax/edx (or a hidden return
     # pointer) and therefore consume no pushed argument.
     NO_PUSH_RTL = {0x40240C, 0x40243C, 0x402460, 0x5591E0, 0x559308, 0x54BA98}
+    NO_PUSH_HELPERS = {0x520500, 0x51FF7C, 0x54BA98}   # Now, DateTimeToTimeStamp
+
+    def stack_consumed_bytes(self, idx):
+        """Bytes the caller releases after the call at insns[idx]:
+        `add esp, N` immediately, or a run of `pop reg`."""
+        n = 0
+        j = idx + 1
+        # the listing is address-ordered; peek the next few instructions
+        for k in range(j, min(j + 8, len(self.insns))):
+            a, mn, ops, raw = self.insns[k]
+            if mn == "add" and re.match(r"esp,\s*(0x[0-9a-fA-F]+|\d+)$", ops):
+                v = ops.split(",")[1].strip()
+                return n + (int(v, 16) if v.startswith("0x") else int(v))
+            if mn == "sub" and re.match(r"esp,\s*-0x", ops):
+                v = ops.split(",")[1].strip()
+                return n + int(v, 16)
+            if mn == "pop":
+                n += 4
+                continue
+            break
+        return n
 
     def emit_call(self, addr, tgt, ops):
         if tgt in ANSI_OPS or tgt == 0x54BA98:
@@ -834,9 +880,13 @@ class Draft:
             return
         if tgt in HELPERS:
             self.emit(addr, "// %s  // 0x%x" % (HELPERS[tgt], addr), "helper")
+            if tgt not in self.NO_PUSH_HELPERS:
+                self.push_stack = []       # e.g. operator new(size)
             return
+        had_ret = self.ret_pushed
         raw = list(reversed(self.push_stack))
         self.push_stack = []
+        self.ret_pushed = False
         # a register consumed for an earlier argument must not be emitted again
         args = []
         for a in raw:
@@ -869,12 +919,33 @@ class Draft:
             self.reg_expr.pop(r, None)
         if tgt in self.accessors:
             self.reg_types["eax"] = self.accessors[tgt]   # iterator/record slot
+        consumed = self.stack_consumed_bytes(self.insn_index)
+        if consumed:
+            self.esp_by_addr[addr] = consumed // 4 - (1 if had_ret else 0)
+        if argtext is not None and consumed:
+            stack_args = consumed // 4
+            if had_ret:
+                stack_args -= 1          # hidden return dword for a String return
+            if stack_args != len(args):
+                self.arity_contradicted.append((addr, len(args), stack_args))
+                argtext = None
         nm = self.callee_name(tgt)
         if nm:
             if argtext is not None:
                 self.emit(addr, "%s(%s);  // 0x%x" % (nm, argtext, addr), "call_args")
             else:
-                if arity100 and raw:
+                if argtext is None and consumed and args:
+                    st = consumed // 4 - (1 if had_ret else 0)
+                    if st != len(args):
+                        self.todo(addr,
+                                  "arity not determined (rendered %d, stack says %d)"
+                                  % (len(args), st))
+                    else:
+                        self.todo(addr,
+                                  "argument operand not determined (%d args)"
+                                  % len(args))
+                    self.hit("call_named")
+                elif arity100 and raw:
                     exp = pushed if pushed is not None else arity
                     if len(raw) == exp:
                         self.todo(addr, "argument operand not determined (%d args)" % exp)
@@ -980,7 +1051,8 @@ class Draft:
             t = self.reg_types[dsrc[0]].rstrip()
             if t.endswith("* *"):
                 self.reg_types[dst] = t[:-2].rstrip()
-                self.reg_expr.pop(dst, None)
+                base_expr = self.reg_expr.get(dsrc[0]) or dsrc[0]
+                self.reg_expr[dst] = "*%s" % base_expr
                 self.emit(addr, "%s = *%s;  // 0x%x" % (dst, dsrc[0], addr), "pointee")
                 return True
         # mov reg, [typed field]
@@ -1374,11 +1446,12 @@ def main(argv=None):
             bad = d.selfcheck()
             print("%-28s %d/%d = %5.1f%%   todos=%d  conditions=%d unresolved=%d"
                   "  arity_todo=%d  holes=%d  slots=%d  arity_mismatch=%d"
-                  "  untyped_field=%d\n    %s"
+                  "  arity_contradicted=%d  untyped_field=%d\n    %s"
                   % (name, rec, n, 100.0 * rec / max(n, 1), d.todos, len(conds),
                      d.stats.get("jcc_todo", 0), d.arity_todos, d.arity_holes,
                      sum(1 for b in bad if b.startswith("slot-collision")),
                      sum(1 for b in bad if b.startswith("arity-mismatch")),
+                     sum(1 for b in bad if b.startswith("arity-contradicted")),
                      d.untyped_field_count(), kinds),
                   file=sys.stderr)
             for c in conds:
