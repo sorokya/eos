@@ -627,8 +627,12 @@ Tracked so they are not mistaken for done:
   binds only **four** `String` locals there, not the spec's eleven — trimming to
   `stamp`/`tag`/`msg`/`path` made the frame match exactly. Residual: the EH
   counter/arming offsets are `-0x54`/`-0x60` in the reference vs `-0x48`/`-0x54`
-  in ours (the local layout differs by 12 B), so the aligned prefix is 5/219 and
-  the real log sequence (formatters/joins/append trio) is still approximated.
+  in ours. Offset sets: reference `0x4..0x30` (12 slots) then `0x40/44/48/4c/54/
+  60/70/74/75/76/80/84/88`; ours `0x24..0x40` (8 slots) then
+  `0x48/50/54/58/5c/64/68/6c/70/78/7c/7d/84/88` — the reference keeps 12 locals in
+  the `0x4..0x30` band (the log-path Strings) where ours keeps 8 in `0x24..0x40`,
+  so the band placement (not the total) is the residual. The real log sequence
+  (formatters/joins/append trio) is still approximated.
   Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
   byte-exact (`std::stack<char>`/`std::deque<char>`, by-value `String` return);
