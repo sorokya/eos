@@ -625,6 +625,11 @@ Tracked so they are not mistaken for done:
   declared in `src/Packets.h`; blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
   byte-exact (`std::stack<char>`/`std::deque<char>`, by-value `String` return);
+  `NpcRange_Lookup` is at **22 mismatched (286/290)** — the arming-form fix
+  (`Npc **iter;` declared bare, `for (iter = …)` inside the `try`) removed the
+  spurious loop-entry arm; residual is the final `return` path's missing `arm 0x80`
+  at index 268. `Server_BuildOnlineNames` stays at **13 mismatched** (the
+  `try`/`catch` form made it worse, 45, and was reverted).
   `EO_Decode_Deinterleave` is drafted at **118 mismatched (221/281), frame now
   exact (`-0x164`, delta 0), aligned prefix 117/221** — the
   reference builds a `std::stack<char>` + a `std::queue<char>` (`0x472810`, RTTI

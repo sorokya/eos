@@ -1938,13 +1938,14 @@ String *
 NpcRange_Lookup(String *out, Server *server, Player *player, unsigned int npc_index)
 {
     String fragment = "";
+    Npc **iter;
     try
     {
         if (player->map_id > 0)
         {
             if (player->map_id <= Mapcontrol_GetCount(server->map_control))
             {
-                for (Npc **iter = (Npc **)Map_NpcIter_Begin(
+                for (iter = (Npc **)Map_NpcIter_Begin(
                          &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                               ->npc_list);
                      iter !=
