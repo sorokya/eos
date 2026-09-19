@@ -610,14 +610,17 @@ Tracked so they are not mistaken for done:
   functions. `GroundItemPtrVector_Count` (`0x44f8b0`) is the `(end - begin)`
   ptrdiff over 4-byte elements, i.e. a `T** - T**` subtraction.
 - `Packets`: `Player_Warp` (1 instruction: temp construction order in the
-  `do_leave` Avatar-Remove build); `Client_SendEncoded` (**partial, 180/359**:
+  `do_leave` Avatar-Remove build); `Client_SendEncoded` (**partial, 338/359**:
   the normal path is written — `String out` from `String((char)action)` + family +
   `data`, the range/encode block (`EOEncodedObj` + `std::vector<char> range`,
   `EO_ByteRange_FromString`, `EO_Encode_Interleave` with
   `FUN_0044f73c`/`FUN_0044f710`), the `+/-0x80` loop and the final
-  `EO_EncodeNumber(...).Insert(...,1)`; frame `-112` vs the reference's `-136`, so
-  the remaining gap is the `>20000` **log path** `0x464071..0x4642f5` (24 bytes of
-  locals, ~180 instructions) plus the trailing `0x4728f8`/`Sock_Send` pair;
+  `EO_EncodeNumber(...).Insert(...,1)`; a first-cut `>20000` **log path** is in
+  place (stamp/`" "`/`" EndlServ "`/`IntToStr` pair/`"Too large encoded packet
+  dropped: "`/`","`/`"error.log"` temporaries) but over-declares locals — frame is
+  now `-180` vs the reference's `-136`, so it needs trimming to the spec's 25-slot
+  map (`/tmp/sendencoded_spec.md`); the trailing `0x4728f8`/`Sock_Send` pair is not
+  yet written;
   `EO_ByteRange_FromString` + `EOEncodedObj` + `FUN_0044f73c`/`FUN_0044f710` are
   declared in `src/Packets.h`; blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is

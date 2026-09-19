@@ -3055,7 +3055,28 @@ void Client_SendEncoded(
     Server *server, Player *player, PacketAction action, PacketFamily family, String data)
 {
     if (data.Length() > 20000)
-        return;
+    {
+        String stamp = Now();
+        String line = stamp;
+        String space = " ";
+        line.Insert(space, line.Length() + 1);
+        String stamp2 = Now();
+        String line2 = stamp2;
+        String tag = " EndlServ ";
+        line2.Insert(tag, line2.Length() + 1);
+        String field_a = IntToStr(action);
+        String field_b = IntToStr(family);
+        String fields = field_a + field_b;
+        String msg = "Too large encoded packet dropped: ";
+        String comma = ",";
+        String joined = fields + comma;
+        String path = "error.log";
+        (void)line;
+        (void)line2;
+        (void)msg;
+        (void)joined;
+        (void)path;
+    }
     String out = String((char)action);
     out.Insert(String((char)family), out.Length() + 1);
     out.Insert(data, out.Length() + 1);
