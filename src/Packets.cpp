@@ -62,6 +62,7 @@ String Player_SerializeAvatar(Server *server, Player *player, int arg);
 String Server_BuildOnlineNames(Server *server);
 String Server_BuildOnlineList(Server *server);
 String Refresh_BuildReply(Server *server, Player *player);
+String Map_ReadRawFile(Mapcontrol *map_control, int map_id);
 bool Walk_Execute(Server *server, Player *player, int action, String *data);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
@@ -640,6 +641,155 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                          encoded);
         }
         return true;
+    }
+    if (family == PacketFamily_Warp)
+    {
+        if (action == PacketAction_Take)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            int read_map = EO_DecodeNumber(server, data.SubString(1, 2));
+            int token = EO_DecodeNumber(server, data.SubString(3, 2));
+            if (player->session_id != token)
+                return false;
+            if (player->warp_map != read_map)
+                return false;
+            if (player->read_len > 0)
+            {
+                Player *target = server->players->by_id[player->read_len];
+                if (target != NULL)
+                {
+                    Client_SendEncoded(server,
+                                       target,
+                                       PacketAction_Close,
+                                       PacketFamily_Trade,
+                                       EO_EncodeNumber(server, player->player_id, 2));
+                }
+            }
+            Server_BroadcastNearby(server,
+                                   player,
+                                   PacketAction_Remove,
+                                   PacketFamily_Avatar,
+                                   EO_EncodeNumber(server, player->player_id, 2) +
+                                       EO_EncodeNumber(server, player->warp_state, 1));
+            if (player->map_id > 0)
+            {
+                player->map_has_quakes = false;
+                player->map_has_hp_drain = false;
+                player->map_has_tp_drain = false;
+                player->map_has_spikes = false;
+                Mapcontrol::Mapcontrol_dec_player_count(server->map_control,
+                                                        player->map_id);
+            }
+            player->map_switch_pending = true;
+            player->target_map = player->map_id;
+            player->target_x = player->x;
+            player->target_y = player->y;
+            player->map_id = 0;
+            player->x = 0;
+            player->y = 0;
+            player->idle_ticks = 0;
+            player->dead = false;
+            player->read_len = -1;
+            player->guild_inviter_id = -1;
+            player->session_token = -1;
+            player->field_0x8c = "";
+            Client_SendRaw(
+                server, player, Map_ReadRawFile(server->map_control, read_map), 4);
+            return true;
+        }
+        if (action == PacketAction_Accept)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            if (player->warp_state < 0)
+                return true;
+            int warp_map = EO_DecodeNumber(server, data.SubString(1, 2));
+            int token = EO_DecodeNumber(server, data.SubString(3, 2));
+            if (player->session_id != token)
+                return false;
+            if (player->warp_map != warp_map)
+                return false;
+            if ((short)player->warp_x > 0xf0 || (short)player->warp_x < 0)
+                return true;
+            if ((short)player->warp_y > 0xf0 || (short)player->warp_y < 0)
+                return true;
+            if (player->read_len > 0)
+            {
+                Player *target = server->players->by_id[player->read_len];
+                if (target != NULL)
+                {
+                    Client_SendEncoded(server,
+                                       target,
+                                       PacketAction_Close,
+                                       PacketFamily_Trade,
+                                       EO_EncodeNumber(server, player->player_id, 2));
+                }
+            }
+            if (player->map_id > 0)
+            {
+                Server_BroadcastNearby(
+                    server,
+                    player,
+                    PacketAction_Remove,
+                    PacketFamily_Avatar,
+                    EO_EncodeNumber(server, player->player_id, 2) +
+                        EO_EncodeNumber(server, player->warp_state, 1));
+                Mapcontrol::Mapcontrol_dec_player_count(server->map_control,
+                                                        player->map_id);
+            }
+            int saved_state = player->warp_state;
+            player->map_id = player->warp_map;
+            player->x = (short)player->warp_x;
+            player->y = (short)player->warp_y;
+            player->idle_ticks = 0;
+            player->dead = false;
+            if (!player->arena_playing)
+                player->arena_queued = false;
+            if (player->arena_playing)
+                player->arena_queued = true;
+            player->arena_playing = false;
+            player->read_len = -1;
+            player->guild_inviter_id = -1;
+            player->session_token = -1;
+            player->field_0x8c = "";
+            player->warp_state = 0;
+            player->warp_pending = false;
+            player->map_switch_pending = false;
+            player->on_chair = false;
+            player->sitting = false;
+            player->map_has_quakes =
+                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                    ->has_quakes;
+            player->map_has_hp_drain =
+                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                    ->has_hp_drain;
+            player->map_has_tp_drain =
+                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                    ->has_tp_drain;
+            player->map_has_spikes =
+                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                    ->has_spikes;
+            Mapcontrol::Mapcontrol_inc_player_count(server->map_control, player->map_id);
+            String out = EO_GetBreakByte(server, 0xff);
+            out.Insert(Player_SerializeAvatar(server, player, saved_state),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, 1, 1), out.Length() + 1);
+            Server_BroadcastNearby(
+                server, player, PacketAction_Agree, PacketFamily_Players, out);
+            out = EO_EncodeNumber(server, 2, 1);
+            out.Insert(EO_EncodeNumber(server, player->map_id, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, saved_state, 1), out.Length() + 1);
+            out.Insert(Refresh_BuildReply(server, player), out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Agree, PacketFamily_Warp, out);
+            Player_FireQuestTriggers(server, player, 0xb, 0);
+            return true;
+        }
     }
     if (family == PacketFamily_Book && action == PacketAction_Request)
     {
@@ -4361,18 +4511,14 @@ void Client_SendEncoded(Server *server,
         fprintf(fp, "%s", msg.c_str());
         fclose(fp);
     }
-    else
+    if (!player->removing)
     {
-        if (player->removing)
-            return;
         char family_byte = (char)family;
         char action_byte = (char)action;
         String out = String(action_byte);
-        out.Insert(String(family_byte), out.Length() + 1);
+        out.Insert(family_byte, out.Length() + 1);
         out.Insert(data, out.Length() + 1);
-        EOEncodedObj obj;
-        std::basic_string<char> range;
-        EO_ByteRange_FromString(&range, out.c_str(), &obj);
+        std::basic_string<char> range(out.c_str());
         out = EO_Encode_Interleave(server,
                                    player->server_encryption_multiple,
                                    (char *)range.begin(),
@@ -4387,7 +4533,7 @@ void Client_SendEncoded(Server *server,
         }
         out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
         FUN_004728f8(server, out.Length());
-        Sock_Send(player->socket, out.c_str());
+        Sock_Send(player->socket, *(char **)&out);
     }
 }
 // STUB(0x00467980, 12223 bytes) Attack_Execute - ref: int Attack_Execute(Server * server,

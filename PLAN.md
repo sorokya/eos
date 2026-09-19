@@ -591,7 +591,7 @@ COMDAT) before the final link; none may be guessed away.
 | `MysqlCallback_Dispatch` | Mysqlthread | Packets `0x450618` (36735 B), not yet reconstructed. |
 | `Mainform_GetServer` | Mysqlthread | Mainform; no definition in `src/` yet. |
 | `extern TGUI **MAINFORM` | Packets, Players | Global `0x58b60c` (initialised to `&GUI` at `0x58bb70`); no owner declaration anywhere. |
-| `EO_ByteRange_FromString` (`0x5432d8`) | Packets (`src/Packets.h`) | No owner: the address is **not a function row** in `unit_functions.tsv` — it sits in a module the inventory classifies as library inside GUI's span, so no header declares it. Body takes three arguments `(range, str, obj)` and calls `0x543480(range, 0, obj)`. Needed by `Client_SendEncoded`. |
+| `EO_ByteRange_FromString` (`0x5432d8`) | Packets (`src/Packets.h`) | No owner: the address is **not a function row** in `unit_functions.tsv` — it sits in a module the inventory classifies as library inside GUI's span. **Verified identity: `0x5432d8` is the RTL `std::basic_string<char,...>::basic_string(const char*, const Allocator&)` constructor** (the surrounding `cw32mt.lib` index strings are `basic_string`/`char_traits`/`allocator`; it returns `this` at `0x543403`). `Client_SendEncoded` now calls it by source (`std::basic_string<char> range(out.c_str())`); the `src/Packets.h` free-function declaration survives only because `Player_HandlePacket` still uses it and must be converted the same way. |
 
 ## Known-unconverged functions
 
@@ -610,7 +610,25 @@ Tracked so they are not mistaken for done:
   functions. `GroundItemPtrVector_Count` (`0x44f8b0`) is the `(end - begin)`
   ptrdiff over 4-byte elements, i.e. a `T** - T**` subtraction.
 - `Packets`: `Player_Warp` (1 instruction: temp construction order in the
-  `do_leave` Avatar-Remove build); `Client_SendEncoded` (**partial, 219/359,
+  `do_leave` Avatar-Remove build); `Client_SendEncoded` is **CONVERGED**:
+  `compare_asm.py` gives **359 ref / 359 our instructions, 0 mismatched** in the
+  UNFLAGGED reading (frame `-0x88` exactly, 20/20 EH markers identical). The
+  resolution was that `0x5432d8` is not a user function at all — it is the RTL
+  `std::basic_string<char,...>::basic_string(const char*, const Allocator&)`
+  constructor (the `cw32mt.lib` member whose surrounding index strings are
+  `basic_string`/`char_traits`/`allocator`), and the allocator temp at
+  `[ebp-0x80]` is the constructor's default `Allocator()` argument. The source is
+  therefore direct construction, `std::basic_string<char> range(out.c_str());`
+  (no `EOEncodedObj`, no default construction, no allocator temp slot of its own).
+  Three further forms were required in the same function: the `>20000` log block
+  is a bare `if` (no `else` — the then-block falls through to the send body), the
+  guard is `if (!player->removing) { ... }` (this yields `jne <epilogue>` rather
+  than `if (removing) return;`, which duplicated the parameter-cleanup epilogue),
+  `out.Insert(family_byte, ...)` uses the implicit `char -> String` conversion
+  (the explicit `String(family_byte)` pushes the ctor's `eax` instead of the
+  stack temp's address), and the final argument is `*(char **)&out` (not
+  `out.c_str()`, which emits an out-of-line call the reference inlines to the
+  data-pointer load). Historical search log follows: (**partial, 219/359,
   frame now EXACT at `-0x88` (delta 0)**:
   the normal path is written — `String out` from `String((char)action)` + family +
   `data`, the range/encode block (`EOEncodedObj` + `std::vector<char> range`,
@@ -1077,6 +1095,14 @@ shape):
 - One open risk: the Mapcontrol no-op-re-arm artifact was **not** observed on a
   1,891-instruction slice, but that is not a clean bill — the artifact is only
   detectable per chunk with `compare_asm.py` once a body exists.
+- **Family `0x13` (Warp, `0x42f868..0x430721`, 884 instr) is written** and scores
+  878/884 (99.3%) structural. The six unmatched instructions are three register-
+  order differences at each of the two `server->players->by_id[player->read_len]`
+  sites (the reference evaluates the index before the base). The case body uses
+  `Map_ReadRawFile`, `Client_SendRaw`, `Mapcontrol_GetByIndex`,
+  `Mapcontrol_inc/dec_player_count`, `Player_SerializeAvatar`,
+  `Refresh_BuildReply` and `Player_FireQuestTriggers`; it is inserted in the
+  reference emission order between `Door` (`0x22`) and `Book` (`0x33`).
 
 ## HandlePacket / Client_SendEncoded: an emitted-COMDAT side effect worth knowing
 
