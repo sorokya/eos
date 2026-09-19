@@ -3096,8 +3096,40 @@ void Client_SendEncoded(
 }
 // STUB(0x00467980, 12223 bytes) Attack_Execute - ref: int Attack_Execute(Server * server,
 // Player * attacker, PacketAction action, AnsiString * packet_data)
-int Attack_Execute_Stub(void *a0, void *a1, int a2, void *a3)
+bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
 {
+    caster->walk_tick = DateTimeToTimeStamp(Now()).Time;
+    if (caster->map_id < 1)
+        return 1;
+    if (caster->weight_max + 2 >= caster->weight_current)
+        return 1;
+    if (action == 10)
+    {
+        if (!caster->logged_in)
+            return 0;
+        if (caster->sitting || caster->on_chair)
+            return 1;
+        if (reader->Length() < 4)
+            return 0;
+        String tmp = reader->SubString(3, 2);
+        int attack_tick = EO_DecodeNumber(server, tmp);
+        int elapsed = attack_tick - caster->last_client_walk_tick;
+        if (elapsed < 0 && caster->last_client_walk_tick > 0x7270e0)
+            elapsed = 0x2c;
+        caster->last_client_walk_tick = attack_tick;
+        if (elapsed < 0x2c)
+            return 0;
+        int window = DateTimeToTimeStamp(Now()).Time / 10 + 0x64;
+        if (attack_tick > window)
+        {
+            int ahead = attack_tick - window;
+            if (caster->sync_base_ahead < 0)
+                caster->sync_base_ahead = ahead;
+            if (Math_Abs(ahead - caster->sync_base_ahead) > 0x320)
+                return 1;
+        }
+        return 0;
+    }
     return 0;
 }
 // STUB(0x0046a9b0, 17449 bytes) Spell_Execute - ref: int Spell_Execute(Server * server,

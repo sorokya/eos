@@ -749,7 +749,18 @@ Tracked so they are not mistaken for done:
     no embedded stubs. Transcribe the BINARY, not the Rust: `attack.rs` uses a
     cooldown of `< 48`, but the binary requires `elapsed >= 0x2c` (44) at
     `0x467b0d`. **`disasm.txt` desynchronises at `0x46797f`** — regenerate that
-    range from the image before trusting it.
+    range from the image before trusting it. **Progress: prologue guards + dispatch
+    + cooldown written** (`caster->walk_tick = DateTimeToTimeStamp(Now()).Time`;
+    `map_id < 1` / `weight_max + 2 >= weight_current` guard `return 1`;
+    `action == 10`; `!logged_in -> 0`, `sitting || on_chair -> 1`,
+    `reader->Length() < 4 -> 0`; `SubString(3,2)` -> `EO_DecodeNumber` -> the
+    `elapsed = tick - last_client_walk_tick` / `> 0x7270e0` wrap to `0x2c` /
+    `elapsed < 0x2c -> 0` cooldown; then the `window = Now()/10 + 0x64` /
+    `sync_base_ahead` / `Math_Abs(...) > 0x320 -> 1` path). The player sweep
+    (`0x467da9`/`0x468844`), NPC sweep (`0x468897`/`0x46a87a`) and reply builders are
+    `return 0` placeholders. Current frame `-0x48` vs the reference's `-0x1c4`, so
+    no instruction aligns yet. Spec at `/tmp/attack_spec.md`,
+    listing `/tmp/attack_disasm.txt`.
   - `Spell_Execute` (`0x46a9b0`) — frame `0x2c0`; 6 dispatch arms for actions
     `1, 30, 31, 33, 10` (fall-through `return 0`; Rust names Request/TargetSelf/
     TargetOther/TargetGroup/Use) over ~10 regions and 2 loops; 54 callees over 597
