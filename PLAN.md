@@ -787,7 +787,12 @@ Tracked so they are not mistaken for done:
     slots, deepest `-0x1c4` (the frame), so the frame cannot complete until that
     block's declarations exist. Its head re-derives the same `direction`-based
     `offset_y (-0x158)` / `offset_x (-0x154)` pair and guards `if (offset_y < 0 ||
-    offset_x < 0)` into an `EO_EncodeNumber(server, caster->player_id, 2)` reply. `scripts/asm2cpp.py` drafts blocks into address-commented C++
+    offset_x < 0)` into a `EO_EncodeNumber(server, caster->player_id, 2)` +
+    `String(reader[1])` 3-way concat reply, then `Server_BroadcastNearby(server,
+    caster, 8, 0xb, pkt); return 1;`. The main NPC loop (`0x4689e2`..`0x469fe2`,
+    1451 instructions, 316 locals) begins with a `Mapcontrol_GetByIndex(server->
+    map_control, caster->map_id - 1)` view-range test; `asm2cpp.py` renders it at
+    99.7% recognised (28 TODOs). `scripts/asm2cpp.py` drafts blocks into address-commented C++
     (99.8% recognised here) and is the fastest way to start each block.
     `Player_IsPartyMember`, `RandRange`, `Combat_CalcHitRate`, `Combat_CalcArmorPen`
     are declared locally in `Packets.cpp`. Current frame `-0x48` vs the reference's
@@ -837,6 +842,44 @@ volume in `Packets` (`MysqlCallback_Dispatch` 36,735 B, `Spell_Execute` 17,449 B
 `Attack_Execute` 12,223 B, `Login_SendCharacterList` 9,419 B, `Walk_Execute`
 5,466 B, `Player_ApplyQuestActions` 5,458 B) plus the two parked Mapcontrol
 loaders (14,296 B combined, each one no-op re-arm mark from exact).
+
+### `Player_HandlePacket` (`0x41794c`) — investigated, and tractable
+
+Reconnaissance result (recorded here because it decides the project's remaining
+shape):
+
+- **The stored size clips the function.** The true range is
+  `0x41794c..0x44f58c` — **228,416 bytes, 52,589 instructions**, 8,704 call sites,
+  2,213 branches, 45 back-edges. The stored end `0x44ef54` clips 1,592 B; the
+  shared epilogue is at `0x44f583` and `Exception_InstallFrame` starts at
+  `0x44f58c`.
+- **Shape: a flat 40-case linear `if`/`else` chain on the packet family**
+  (`cmp dword ptr [ebp-0x18b4], N; jne next`) — **no jump table**; a shared
+  prologue parses the header into family `[ebp-0x18b4]` / action `[ebp-0x18b0]`,
+  and a shared epilogue closes it.
+- **~85% of it is genuine inline logic**, not delegation: the call/instruction
+  ratio is 0.12–0.20 in every case, so only ~4.7 KB is call instructions and
+  ~224 KB is code that must actually be transcribed. The work is proportional to
+  the byte count.
+- **267 distinct callees, 245 resolved**; all 22 unresolved are RTL
+  `AnsiString`/EH helpers except `0x4cf070` (`Socket_GetRemoteIP`). **No project
+  helper is missing.**
+- **`AnsiString` throughout** (zero `basic_string` in the map's names), so no
+  `std::string` hazard. No unidentified type is needed for the dispatch.
+  `(*MAINFORM)` is used 103× with the now-named `TGUI` members
+  (`item_values` 41, `npc_values` 30, `skill_values` 17, `game_control` 7,
+  `myquery` 3).
+- **Verdict: reconstructible by the same method that converged `NpcControl_Tick`;
+  no structural blocker.** It decomposes into **43 independently verifiable
+  chunks** (prologue, the 40 family cases, the final `else`, the epilogue); the
+  smallest useful first chunk is family `0x19` (`0x42a507..0x42a607`, 62
+  instructions, 256 B, 8 calls). The two dominant cases are family `0x12`
+  (7,688 instructions, 34 KB) and `0x27` (6,825 instructions, 30 KB), each ~4–5×
+  `NpcControl_Tick`. **The risk is scale, not structure** — the whole function is
+  roughly 33× the largest unit completed so far.
+- One open risk: the Mapcontrol no-op-re-arm artifact was **not** observed on a
+  1,891-instruction slice, but that is not a clean bill — the artifact is only
+  detectable per chunk with `compare_asm.py` once a body exists.
 
 ## Risks and mitigations
 
