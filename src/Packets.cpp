@@ -3670,7 +3670,10 @@ String Server_BuildOnlineNames(Server *server)
         }
         return names;
     }
-    return server->online_names_cache;
+    else
+    {
+        return server->online_names_cache;
+    }
 }
 
 String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index)
