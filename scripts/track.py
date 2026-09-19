@@ -334,38 +334,57 @@ def write_tsv(rows, path):
 
 def summary(rows):
     st = defaultdict(int)
+    by = defaultdict(int)
     for r in rows:
         if r["kind"] in ("app", "comdat"):
             st[r["status"]] += 1
+            by[r["status"]] += int(r.get("size") or 0)
     app = sum(1 for r in rows if r["kind"] == "app")
     com = sum(1 for r in rows if r["kind"] == "comdat")
     done, total = st["byte-exact"], app + com
     pct = (100.0 * done / total) if total else 0.0
+    # Function counts are misleading: the deferred Player_HandlePacket alone is a
+    # third of the application's bytes. Report byte coverage too.
+    btot = sum(by.values())
+    bdone = by["byte-exact"]
+    bpct = (100.0 * bdone / btot) if btot else 0.0
     lines = [f"application functions : {app}",
              f"compiler COMDATs      : {com}",
              f"library members       : {sum(1 for r in rows if r['kind']=='library')}",
              f"module stubs          : {sum(1 for r in rows if r['kind']=='stub')}",
-             f"byte-exact            : {done}/{total} ({pct:.1f}% of app+comdat)"]
+             f"byte-exact            : {done}/{total} ({pct:.1f}% of app+comdat)",
+             f"byte-exact BYTES      : {bdone}/{btot} ({bpct:.1f}% of app+comdat bytes)"]
     for k in ("mismatched", "stubbed", "unimplemented", "deferred"):
         if st[k]:
-            lines.append(f"  {k:20}: {st[k]}")
+            lines.append(f"  {k:20}: {st[k]:5} functions  "
+                         f"{by[k]:>9,} bytes  ({100.0*by[k]/btot:.1f}%)")
     return lines
 
 
 def readme_block(rows):
     st = defaultdict(int)
+    by = defaultdict(int)
     per = defaultdict(lambda: defaultdict(int))
     for r in rows:
         if r["kind"] not in ("app", "comdat"):
             continue
         st[r["status"]] += 1
+        by[r["status"]] += int(r.get("size") or 0)
         per[r["unit"]][r["status"]] += 1
     done, total = st["byte-exact"], sum(st.values())
     pct = (100.0 * done / total) if total else 0.0
+    btot = sum(by.values())
+    bdone = by["byte-exact"]
+    bpct = (100.0 * bdone / btot) if btot else 0.0
     lib = sum(1 for r in rows if r["kind"] == "library")
     out = [READ_BEGIN, "",
            f"**{done}/{total} ({pct:.1f}%)** application functions byte-exact "
            f"({total} app + compiler COMDATs; {lib} library members excluded).",
+           "",
+           f"**{bdone:,}/{btot:,} ({bpct:.1f}%)** application BYTES byte-exact. "
+           f"Function counts overstate progress while the deferred "
+           f"`Player_HandlePacket` (226,824 bytes) is outstanding: it alone is a "
+           f"third of the application's bytes.",
            "", "```mermaid", "pie showData",
            "    title Application functions by status"]
     for k in ("byte-exact", "mismatched", "stubbed", "unimplemented",

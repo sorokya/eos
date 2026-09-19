@@ -149,6 +149,8 @@ outstanding cross-unit externs and the known-unconverged functions.
 
 **1676/1809 (92.6%)** application functions byte-exact (1809 app + compiler COMDATs; 502 library members excluded).
 
+**314,530/670,020 (46.9%)** application BYTES byte-exact. Function counts overstate progress while the deferred `Player_HandlePacket` (226,824 bytes) is outstanding: it alone is a third of the application's bytes.
+
 ```mermaid
 pie showData
     title Application functions by status

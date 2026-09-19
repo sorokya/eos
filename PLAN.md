@@ -818,6 +818,26 @@ Tracked so they are not mistaken for done:
     `SkillValues::GetCastTime` `0x4a5268`; `Now`/`DateTimeToTimeStamp` are the
     library `0x520500`/`0x51ff7c`.
 
+## Progress measurement — read the BYTES, not the function count
+
+`make track` reports both, and the function count is the misleading one. As of the
+last run: **1676/1809 (92.6%) of application functions are byte-exact, but only
+314,530/670,020 (46.9%) of application BYTES are.** The gap is `Player_HandlePacket`
+— one deferred function of **226,824 bytes**, which is **33.9% of all application
+code and 64% of what remains**. The rest of the outstanding bytes are
+`stubbed` 74,877 (11.2%), `mismatched` 48,751 (7.3%) and `unimplemented` 5,038
+(0.8%). Any statement of progress that quotes only the function percentage is
+wrong by a factor of two; quote the byte figure.
+
+Consequence for planning: `Player_HandlePacket` is the single largest item in the
+project by an order of magnitude, and it is deliberately deferred. Before the
+final link can be attempted, that one function must be reconstructed — nothing
+else can compensate for a third of the application's bytes. The next tier is the
+volume in `Packets` (`MysqlCallback_Dispatch` 36,735 B, `Spell_Execute` 17,449 B,
+`Attack_Execute` 12,223 B, `Login_SendCharacterList` 9,419 B, `Walk_Execute`
+5,466 B, `Player_ApplyQuestActions` 5,458 B) plus the two parked Mapcontrol
+loaders (14,296 B combined, each one no-op re-arm mark from exact).
+
 ## Risks and mitigations
 
 | Risk | Mitigation |

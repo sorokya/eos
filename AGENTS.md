@@ -279,9 +279,23 @@ documented build, not a manual fix-up.
 - `scripts/compare_functions.py` — per-function byte scoring against the Ghidra
   inventory (`--mask-reloc` for layout-independent scoring).
 - `scripts/compare_asm.py` — diff one function from a bcc32 `-S` listing against a
-  reference address range; registers/offsets/constants must match, addresses and
-  branch targets are canonicalized. Use this to drive a function to byte-match
-  before moving on.
+  reference address range; registers, stack offsets and small constants must match,
+  addresses and branch targets are canonicalized. Use this to drive a function to
+  byte-match before moving on.
+- `scripts/asm2cpp.py` — draft C++ from a reference address range: one
+  address-commented line per instruction, recognising the documented AnsiString
+  operations, `EO_*` calls, field accesses (names resolved from the `// +0xNN`
+  comments in `src/*.h`, with container-iterator typing so `(*iter)->field`
+  resolves), control flow with the actual `cmp`/`test` + `jcc` conditions, EH
+  scope arming and local parsing. **Its output is a DRAFT to verify with
+  `compare_asm.py`, never an authority.** Four safety properties are enforced and
+  printed by `--selftest`: a condition is emitted only when its relation and
+  operands are provable (otherwise a TODO and no `if`); two distinct `[ebp±N]`
+  storage locations never render to the same identifier; a field NAME is emitted
+  only when the base's class is proven; an argument list is emitted only when the
+  declared arity, the pushes and the caller's `add esp` adjust all agree. It
+  changes often — pin a hash before relying on a run, and never run it against a
+  copy another session is editing.
 - `scripts/normalize_pe.py` — deterministic timestamp/header normalization.
 - `scripts/disasm.sh` — linear `.text` disassembly.
 
