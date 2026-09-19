@@ -3170,29 +3170,34 @@ void Client_SendEncoded(Server *server,
         fprintf(fp, "%s", msg.c_str());
         fclose(fp);
     }
-    if (player->removing)
-        return;
-    String out = String((char)action);
-    out.Insert(String((char)family), out.Length() + 1);
-    out.Insert(data, out.Length() + 1);
-    EOEncodedObj obj;
-    std::basic_string<char> range;
-    EO_ByteRange_FromString(&range, out.c_str(), &obj);
-    out = EO_Encode_Interleave(server,
-                               player->server_encryption_multiple,
-                               (char *)range.end(),
-                               (char *)range.begin());
-    for (int i = 1; i <= out.Length(); i++)
+    else
     {
-        int c = (unsigned char)out[i];
-        if (c < 0x80)
-            out[i] += (char)0x80;
-        if (c > 0x80)
-            out[i] += (char)0x80;
+        if (player->removing)
+            return;
+        char action_byte = (char)action;
+        char family_byte = (char)family;
+        String out = String(action_byte);
+        out.Insert(String(family_byte), out.Length() + 1);
+        out.Insert(data, out.Length() + 1);
+        EOEncodedObj obj;
+        std::basic_string<char> range;
+        EO_ByteRange_FromString(&range, out.c_str(), &obj);
+        out = EO_Encode_Interleave(server,
+                                   player->server_encryption_multiple,
+                                   (char *)range.begin(),
+                                   (char *)range.end());
+        for (int i = 1; i <= out.Length(); i++)
+        {
+            int c = (unsigned char)out[i];
+            if (c < 0x80)
+                out[i] += (char)0x80;
+            if (c > 0x80)
+                out[i] += (char)0x80;
+        }
+        out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
+        FUN_004728f8(server, out.Length());
+        Sock_Send(player->socket, out.c_str());
     }
-    out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
-    FUN_004728f8(server, out.Length());
-    Sock_Send(player->socket, out.c_str());
 }
 // STUB(0x00467980, 12223 bytes) Attack_Execute - ref: int Attack_Execute(Server * server,
 // Player * attacker, PacketAction action, AnsiString * packet_data)
