@@ -52,7 +52,6 @@ void FUN_00472944(Server *server, int value);
 void FUN_004728f8(Server *server, int value);
 String Player_SerializePaperdoll(Server *server, Player *player);
 String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index);
-void *FUN_0044f6ec(void *obj);
 void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value);
 MapCoord FUN_0047c6c0(int map_control, int map_id, unsigned int npc_index);
 unsigned int FUN_0047c634(int map_control, int map_id, unsigned int npc_index);
@@ -82,9 +81,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         if (c > 0x80)
             data[i] += (char)0x80;
     }
-    std::basic_string<char> range;
-    void *obj;
-    EO_ByteRange_FromString(&range, data.c_str(), (EOEncodedObj *)FUN_0044f6ec(&obj));
+    std::basic_string<char> range(data.c_str());
     data = EO_Decode_Deinterleave(server,
                                   player->client_encryption_multiple,
                                   (char *)range.end(),
@@ -4776,7 +4773,38 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         return;
     }
     if (query_result->query_id == 0x4b)
+    {
+        if ((*MAINFORM)->myquery->RecordCount < 1)
+            return;
+        String ranks = Mysqlcontrols::Db_GetString(server->mysql_controls, "rank1");
+        ranks.Insert(EO_GetBreakByte(server, 0xff), ranks.Length() + 1);
+        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank2"),
+                     ranks.Length() + 1);
+        ranks.Insert(EO_GetBreakByte(server, 0xff), ranks.Length() + 1);
+        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank3"),
+                     ranks.Length() + 1);
+        ranks.Insert(EO_GetBreakByte(server, 0xff), ranks.Length() + 1);
+        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank4"),
+                     ranks.Length() + 1);
+        ranks.Insert(EO_GetBreakByte(server, 0xff), ranks.Length() + 1);
+        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank5"),
+                     ranks.Length() + 1);
+        ranks.Insert(EO_GetBreakByte(server, 0xff), ranks.Length() + 1);
+        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank6"),
+                     ranks.Length() + 1);
+        ranks.Insert(EO_GetBreakByte(server, 0xff), ranks.Length() + 1);
+        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank7"),
+                     ranks.Length() + 1);
+        ranks.Insert(EO_GetBreakByte(server, 0xff), ranks.Length() + 1);
+        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank8"),
+                     ranks.Length() + 1);
+        ranks.Insert(EO_GetBreakByte(server, 0xff), ranks.Length() + 1);
+        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank9"),
+                     ranks.Length() + 1);
+        ranks.Insert(EO_GetBreakByte(server, 0xff), ranks.Length() + 1);
+        Client_SendEncoded(server, player, 0x1d, 0x27, ranks);
         return;
+    }
     if (query_result->query_id == 0x4c)
     {
         if ((*MAINFORM)->myquery->RecordCount < 1)
@@ -4793,17 +4821,170 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
     if (query_result->query_id == 0x4d)
         return;
     if (query_result->query_id == 0x4e)
+    {
+        if ((*MAINFORM)->myquery->RecordCount < 1)
+        {
+            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x11, 2));
+            return;
+        }
+        String type = "bankrupt";
+        int money = Mysqlcontrols::Db_GetInt(server->mysql_controls, "money");
+        String tag = Mysqlcontrols::Db_GetString(server->mysql_controls, "tag");
+        if (money >= 0x7d0)
+            type = "poor";
+        if (money >= 0x2710)
+            type = "normal";
+        if (money >= 0xc350)
+            type = "wealthy";
+        if (money >= 0x186a0)
+            type = "very wealthy";
+        player->field_0x14 = Mysqlcontrols::Db_GetString(server->mysql_controls, "name");
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "tag"),
+            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "signup"),
+            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "description"),
+            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(type, player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank1"),
+            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank2"),
+            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank3"),
+            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank4"),
+            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank5"),
+            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank6"),
+            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank7"),
+            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank8"),
+            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(
+            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank9"),
+            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                  player->field_0x14.Length() + 1);
+        Mysqlcontrols::Mysql_SubmitQuery_FromCallback(
+            server->mysql_controls,
+            0x4f,
+            player->player_id,
+            player->query_id,
+            "",
+            "SELECT ident_rank, name FROM endl_characters WHERE ident_rank < 3 "
+            "AND ident_guild = '" +
+                tag + "' ORDER by ident_rank asc LIMIT 20");
         return;
+    }
     if (query_result->query_id == 0x4f)
+    {
+        bool has_result = (*MAINFORM)->myquery->RecordCount >= 1;
+        if (has_result)
+        {
+            do
+            {
+                player->field_0x14.Insert(
+                    EO_EncodeNumber(
+                        server, Mysqlcontrols::GetResultCount(server->mysql_controls), 2),
+                    player->field_0x14.Length() + 1);
+                player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                          player->field_0x14.Length() + 1);
+                player->field_0x14.Insert(
+                    EO_EncodeNumber(
+                        server,
+                        Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident_rank"),
+                        1),
+                    player->field_0x14.Length() + 1);
+                player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                          player->field_0x14.Length() + 1);
+                player->field_0x14.Insert(
+                    Mysqlcontrols::Db_GetString(server->mysql_controls, "name"),
+                    player->field_0x14.Length() + 1);
+                player->field_0x14.Insert(EO_GetBreakByte(server, 0xff),
+                                          player->field_0x14.Length() + 1);
+                Mysqlcontrols::NextResultRecord(server->mysql_controls);
+            } while (!Mysqlcontrols::ResultAtEnd(server->mysql_controls));
+        }
+        Client_SendEncoded(server, player, 0x15, 0x27, player->field_0x14);
         return;
+    }
     if (query_result->query_id == 0x50)
+    {
+        if (Mysqlcontrols::GetResultCount(server->mysql_controls) > 0)
+        {
+            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 5, 2));
+            return;
+        }
+        PacketReader_Init(server, query_result->data, EO_GetBreakByte(server, 0xff));
+        PacketReader_GetBreakString(server);
+        String guild = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        String name = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        player->guild_inviter_id = player->player_id;
+        Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 6, 2));
+        String msg = EO_EncodeNumber(server, player->player_id, 2);
+        msg.Insert(name + " (" + guild + ")", msg.Length() + 1);
+        Server_BroadcastToMap(server, player->map_id, 1, 0x27, msg);
         return;
+    }
     if (query_result->query_id == 0x51)
         return;
     if (query_result->query_id == 0x52)
         return;
     if (query_result->query_id == 0x53)
+    {
+        std::vector<FilecacheEntryB *>::iterator it =
+            server->mysql_controls->file_cache->pending_guild_writes.begin();
+        while (it != server->mysql_controls->file_cache->pending_guild_writes.end())
+        {
+            FilecacheEntryB *entry = *it;
+            it = server->mysql_controls->file_cache->pending_guild_writes.erase(it);
+            if (entry != NULL)
+                delete entry;
+        }
+        Mysqlcontrols::LoadCachedGuilds(server->mysql_controls);
         return;
+    }
 }
 // STUB(0x00459638, 101 bytes) FUN_00459638 - ref: undefined4 * FUN_00459638(int param_1,
 // undefined4 * param_2)
