@@ -684,7 +684,10 @@ Tracked so they are not mistaken for done:
   tried and overshot the frame to `-0x90`** (8 B too big, 253 mismatched), so the
   bare 4-byte `std::basic_string<char> range;` (frame `-0x88`, 224 mismatched,
   prefix 19) is retained; `#include <string>` added to `Packets.h` and
-  `FUN_0044f6ec(&obj)` replaced by plain `&obj` with `EOEncodedObj obj;`. The real log sequence
+  `FUN_0044f6ec(&obj)` replaced by plain `&obj` with `EOEncodedObj obj;`. The
+  remaining step is the log locals' **declaration order** (first log `String` at
+  `-0x04` in the reference vs `-0x24` in ours; no `/tmp` logorder note exists yet),
+  frame must stay `-0x88`. The real log sequence
   (formatters/joins/append trio) is still approximated.
   Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
