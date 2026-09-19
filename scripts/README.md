@@ -171,12 +171,34 @@ make clean     # remove build/
   are rendered from the pushes (`SomeFn(server, player->map_id)`) and `jcc` after
   a `cmp`/`test` becomes a real condition (`if (elapsed < 0x2c)`).
 
+  **Condition folding (safety property).** A `cmp a, b` / `test a, b`
+  immediately followed by a `jcc` is folded into a real C condition with the
+  **true** relation. For `cmp a, b` the flags are those of `a - b` (Intel
+  syntax: destination first), so `jl/jle/jg/jge` and the unsigned
+  `jb/jbe/ja/jae` families both mean the corresponding `a <op> b` (the CPU
+  signedness does not change the C operator); `je/jne` are `==`/`!=`; the
+  negated spellings (`jnge`, `jnae`, …) are *aliases for the same condition*,
+  not negations. `test a, b` sets flags from `a & b`, so only the zero/sign
+  forms are emitted — `a == 0`/`a != 0` for the `test a, a` self-test,
+  `(a & b) == 0` / `!= 0` / `< 0` / `>= 0` otherwise — and every other `jcc`
+  after `test` is left undetermined. Operands are rendered through the typing
+  and field-resolution machinery.
+
+  **The tool emits a condition only when it can prove it.** If the flag-setting
+  instruction is not the immediately preceding one, is an `fcom`/`fnstsw`/`sahf`
+  x87 predicate, the `jcc` relation is undetermined, or either operand cannot be
+  rendered, it writes `// TODO(addr): condition not determined` and **no `if`**.
+  An absent `if` is safe; an inverted one is not.
+
   **Its output is a draft, never an authority.** It never fabricates a constant,
   offset or argument: anything it cannot trace is a TODO comment. Every line
   must be verified against the reference with `compare_asm.py` (and the whole
   function with `make unit`/`make verify`) before it is committed.
   `--selftest` runs it over three already-converged ranges
-  (`EO_Encode_Interleave`, `Walk_BuildReply`, `Player_SerializePaperdoll`) and
-  prints the classification rate and the idiom breakdown; all three classify at
-  100% with ~32% resolved to named idioms (AnsiString ops, EO_* calls, typed
-  fields, EH scope markers/counters).
+  (`EO_Encode_Interleave`, `Walk_BuildReply`, `Player_SerializePaperdoll`),
+  prints the classification rate, the idiom breakdown, and every emitted
+  condition with its resolved/unresolved status, and aborts if any conditional
+  carries an unknown relation or operand. All three classify at 100% with ~32%
+  resolved to named idioms; every condition in `NpcControl_Tick` and
+  `Refresh_BuildReply` was checked against the reference (46 + 60) with zero
+  mismatches.

@@ -33,6 +33,9 @@ bool Player_IsPartyMember(Player *player, int player_id);
 int RandRange(int range);
 int Combat_CalcHitRate(void *game_control, int accuracy, int evasion, double, double);
 int Combat_CalcArmorPen(void *game_control, int damage, int armor, double, double);
+int Eif_GetElement(void *item_values, int item_id, int *out);
+double
+Combat_CalcElementMult(void *game_control, short a, short b, int element, int element2);
 Player **Players_Iter_End(Players *players);
 bool Player_HandlePacket(Server *server, Player *player, String data);
 bool FUN_00462374(Server *server, Player *player, String data);
@@ -3173,6 +3176,31 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
                                                       caster->min_damage + 2));
             if (damage < 1)
                 damage = 1;
+            if (caster->weapon_item_id > 0)
+            {
+                int element = 0;
+                int element2 = 0;
+                Eif_GetElement(
+                    (*MAINFORM)->item_values, caster->weapon_item_id, &element);
+                if (element == 1)
+                {
+                    double mult = Combat_CalcElementMult((*MAINFORM)->game_control,
+                                                         caster->element_resistances[1],
+                                                         (*iter)->element_resistances[2],
+                                                         element,
+                                                         element2);
+                    damage = (int)((double)damage * mult);
+                }
+                if (element == 2)
+                {
+                    double mult = Combat_CalcElementMult((*MAINFORM)->game_control,
+                                                         caster->element_resistances[2],
+                                                         (*iter)->element_resistances[1],
+                                                         element,
+                                                         element2);
+                    damage = (int)((double)damage * mult);
+                }
+            }
             (void)damage;
         }
         return 0;

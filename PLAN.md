@@ -765,9 +765,14 @@ Tracked so they are not mistaken for done:
     0.8, 0.9)`), then the damage roll (`scaled = (double)min_damage; if (scaled <
     0.0) scaled = 0.0; scaled *= 1.2; scaled *= pen; damage =
     (int)(scaled + (double)RandRange(max_damage - min_damage + 2)); if (damage < 1)
-    damage = 1;`). The weapon-element branch, the effect/health updates, the reply
-    packet, the NPC sweep (`0x468897`/`0x46a87a`) and the reply builders are
-    placeholders. `scripts/asm2cpp.py` drafts blocks into address-commented C++
+    damage = 1;`), then the weapon-element branch (`if (caster->weapon_item_id
+    (+0x21c) > 0) { Eif_GetElement((*MAINFORM)->item_values, weapon_item_id,
+    &element); if (element == 1) damage = (int)((double)damage *
+    Combat_CalcElementMult(game_control, caster->element_resistances[1],
+    target->element_resistances[2], element, element2)); if (element == 2) ... [2]/[1]
+    ... }`; `element_resistances` is `short[7]` at `Player+0x160`, so `+0x162`/`+0x164`
+    are `[1]`/`[2]`). The effect/health updates, the reply packet, the NPC sweep
+    (`0x468897`/`0x46a87a`) and the reply builders are placeholders. `scripts/asm2cpp.py` drafts blocks into address-commented C++
     (99.8% recognised here) and is the fastest way to start each block.
     `Player_IsPartyMember`, `RandRange`, `Combat_CalcHitRate`, `Combat_CalcArmorPen`
     are declared locally in `Packets.cpp`. Current frame `-0x48` vs the reference's

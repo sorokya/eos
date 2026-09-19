@@ -69,14 +69,28 @@ HELPERS = {
 
 # Conditional-jump mnemonic -> C comparison when the preceding cmp/test is
 # `cmp a, b` (signed unless noted).
-JCC_SIGNED = {
-    "je": "==", "jne": "!=", "jz": "==", "jnz": "!=",
-    "jl": "<", "jnge": "<", "jle": "<=", "jng": "<=",
-    "jg": ">", "jnle": ">", "jge": ">=", "jnl": ">=",
-    "jb": "<", "jnae": "<", "jbe": "<=", "jna": "<=",
-    "ja": ">", "jnbe": ">", "jae": ">=", "jnb": ">=",
+# For `cmp a, b` the flags are those of `a - b` (Intel syntax: destination
+# first).  The C relation is the same whether the CPU used the signed or the
+# unsigned view, so `jl` and `jb` both mean `a < b`; the negated spellings
+# (`jnge`, `jnae`, ...) are *aliases for the same condition*, not negations.
+CMP_REL = {
+    "je": "==", "jz": "==", "jne": "!=", "jnz": "!=",
+    "jl": "<", "jnge": "<",
+    "jle": "<=", "jng": "<=",
+    "jg": ">", "jnle": ">",
+    "jge": ">=", "jnl": ">=",
+    "jb": "<", "jnae": "<", "jc": "<",
+    "jbe": "<=", "jna": "<=",
+    "ja": ">", "jnbe": ">",
+    "jae": ">=", "jnb": ">=", "jnc": ">=",
+    "js": "<", "jns": ">=",
 }
-JCC_UNSIGNED = set("jb jnae jbe jna ja jnbe jae jnb".split())
+# `test a, b` sets flags from `a & b`: only the zero/sign comparisons are
+# meaningful; everything else is left undetermined (no guess).
+TEST_REL = {
+    "je": "== 0", "jz": "== 0", "jne": "!= 0", "jnz": "!= 0",
+    "js": "< 0", "jns": ">= 0",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -385,6 +399,17 @@ class Draft:
     def hit(self, kind):
         self.stats[kind] = self.stats.get(kind, 0) + 1
 
+    def selfcheck(self):
+        """Invariant: no emitted conditional may carry an unknown relation/operand."""
+        bad = []
+        for ln in self.lines:
+            t = ln.strip()
+            if not t.startswith("if ("):
+                continue
+            if "..." in t or ", ..." in t or t.startswith("if (/*"):
+                bad.append(t)
+        return bad
+
     def emit(self, addr, text, kind=None):
         self.lines.append("    " * self.depth + text)
         if kind:
@@ -478,7 +503,7 @@ class Draft:
                 nm = self.slot_name.get(disp)
                 if nm:
                     return nm
-                return "local_0x%x" % disp
+                return "local_0x%x" % (-disp if disp < 0 else disp)
             fe = self.field_expr(op)
             if fe:
                 return fe
@@ -520,6 +545,8 @@ class Draft:
         while i < len(insns):
             addr, mn, ops, raw = insns[i]
             self.n += 1
+            carry = self.pending_cmp
+            self.pending_cmp = None
             if addr in self.branch_targets:
                 self.reg_types = {}
                 self.reg_expr = {}
@@ -546,7 +573,7 @@ class Draft:
 
             # --- control flow ---------------------------------------------
             if mn.startswith("j") and re.match(r"0x[0-9a-fA-F]+", ops) and mn != "jmp":
-                self.emit_jcc(addr, mn, ops, raw)
+                self.emit_jcc(addr, mn, ops, raw, carry)
                 i += 1
                 continue
             if mn == "jmp" and re.match(r"0x[0-9a-fA-F]+", ops):
@@ -573,7 +600,7 @@ class Draft:
             # --- comparisons feeding a later branch ------------------------
             if mn in ("cmp", "test"):
                 self.pending_cmp = (addr, mn, ops)
-                self.emit(addr, "// cmp: %s  // 0x%x" % (ops, addr), "cmp")
+                self.emit(addr, "// %s %s  // 0x%x" % (mn, ops, addr), "cmp")
                 i += 1
                 continue
 
@@ -694,33 +721,68 @@ class Draft:
         else:
             self.todo(addr, "call 0x%x (unidentified)" % tgt)
 
-    def emit_jcc(self, addr, mn, ops, raw):
+    def split_ops(self, ops):
+        """Split an Intel operand list on the top-level comma (bracket-aware)."""
+        depth = 0
+        parts = []
+        cur = ""
+        for ch in ops:
+            if ch == "[":
+                depth += 1
+            elif ch == "]":
+                depth -= 1
+            if ch == "," and depth == 0:
+                parts.append(cur)
+                cur = ""
+            else:
+                cur += ch
+        parts.append(cur)
+        return [p.strip() for p in parts]
+
+    def fold_condition(self, cmn, cops, jmn):
+        """Return a proven C condition string, or None (never guess)."""
+        parts = self.split_ops(cops)
+        if len(parts) != 2:
+            return None
+        oa, ob = parts[0], parts[1]
+        a = self.render(oa)
+        if a is None:
+            return None
+        if cmn == "test":
+            rel = TEST_REL.get(jmn)
+            if rel is None:
+                return None
+            # `test a, a` is the canonical "a against zero" self-test
+            if oa == ob:
+                b = "0"
+                rel = "== 0" if rel in ("== 0",) else ("!= 0" if rel == "!= 0" else rel)
+                return "%s %s" % (a, rel)
+            b = self.render(ob)
+            if b is None:
+                return None
+            return "(%s & %s) %s" % (a, b, rel)
+        rel = CMP_REL.get(jmn)
+        if rel is None:
+            return None
+        b = self.render(ob)
+        if b is None:
+            return None
+        return "%s %s %s" % (a, rel, b)
+
+    def emit_jcc(self, addr, mn, ops, raw, carry):
         tgt = int(ops.split()[0], 16)
-        cond = JCC_SIGNED.get(mn, "?")
-        if self.pending_cmp:
-            caddr, cmn, cops = self.pending_cmp
-            m = re.match(r"(\S+?),\s*(.+)$", cops)
-            if m and cond != "?":
-                a = self.render(m.group(1))
-                b = self.render(m.group(2))
-                if a is not None and b is not None:
-                    if cmn == "test":
-                        expr = "%s != 0" % a
-                    else:
-                        expr = "%s %s %s" % (a, cond, b)
-                    self.emit(addr, "if (%s) goto L_0x%x;  // 0x%x"
-                              % (expr, tgt, addr), "jcc_cond")
-                    self.pending_cmp = None
-                    return
-            self.emit(addr,
-                      "if (/* %s */ ... %s ...) goto L_0x%x;  // 0x%x (cond from 0x%x)"
-                      % (cops.replace("dword ptr ", "").replace("byte ptr ", ""),
-                         cond, tgt, addr, caddr),
-                      "jcc_with_cmp")
-        else:
-            self.emit(addr, "if (/* flags */) goto L_0x%x;  // 0x%x (%s)"
-                      % (tgt, addr, mn), "jcc")
-        self.pending_cmp = None
+        expr = None
+        if carry:
+            caddr, cmn, cops = carry
+            expr = self.fold_condition(cmn, cops, mn)
+        if expr is None:
+            # never emit a conditional we cannot prove
+            self.todo(addr, "condition not determined (%s after %s)"
+                      % (mn, carry[1] if carry else "no cmp"))
+            self.hit("jcc_todo")
+            return
+        self.emit(addr, "if (%s) goto L_0x%x;  // 0x%x"
+                  % (expr, tgt, addr), "jcc_cond")
 
     def emit_reg_move(self, addr, mn, ops):
         m = re.match(r"(\w+),\s*(.+)", ops)
@@ -911,9 +973,17 @@ def main(argv=None):
             total_r += rec
             total_n += n
             kinds = ", ".join("%s=%d" % kv for kv in sorted(d.stats.items()))
-            print("%-28s %d/%d = %5.1f%%   todos=%d\n    %s"
-                  % (name, rec, n, 100.0 * rec / max(n, 1), d.todos, kinds),
+            conds = [l.strip() for l in d.lines if l.strip().startswith("if (")]
+            bad = d.selfcheck()
+            print("%-28s %d/%d = %5.1f%%   todos=%d  conditions=%d unresolved=%d\n    %s"
+                  % (name, rec, n, 100.0 * rec / max(n, 1), d.todos, len(conds),
+                     d.stats.get("jcc_todo", 0), kinds),
                   file=sys.stderr)
+            for c in conds:
+                print("      %s" % c, file=sys.stderr)
+            if bad:
+                print("      !! UNSAFE CONDITION: %s" % bad[0], file=sys.stderr)
+                raise SystemExit(3)
         print("TOTAL %d/%d = %.1f%%" % (total_r, total_n, 100.0 * total_r / max(total_n, 1)),
               file=sys.stderr)
         return 0
