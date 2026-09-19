@@ -3,6 +3,7 @@
 
 #include <Classes.hpp>
 #include <SysUtils.hpp>
+#include <ScktComp.hpp>
 #include <vector>
 
 #include "Playerinventory.h"
@@ -236,7 +237,7 @@ class Player
     char fast_action;                        // +0x3ac
     char flush_queue;                        // +0x3ad
     char pad_3ae[2];                         // +0x3ae
-    void *socket;                            // +0x3b0 (socket object pointer)
+    TCustomWinSocket *socket;                // +0x3b0 (socket object pointer)
     char pad_3b4[12];                        // +0x3b4
     String null_string;                      // +0x3c0
     int item_change_id;                      // +0x3c4
@@ -259,7 +260,7 @@ class Player
     char pad_3ea[6];                         // +0x3ea
     TDateTime enter_game_timestamp;          // +0x3f0
 
-    Player(void *socket);
+    Player(TCustomWinSocket *socket);
     ~Player();
 
     static int HpPercent(Player *self);

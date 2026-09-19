@@ -26,6 +26,8 @@
 #include "Playerquest.h"
 #include "Skillvalues.h"
 #include "Classvalues.h"
+#include "Jukeboxcontrol.h"
+#include "Msgboardcontrol.h"
 #include "Protocol.h"
 
 #pragma package(smart_init)
@@ -200,6 +202,129 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             }
             return false;
+        }
+    }
+    if (family == PacketFamily_Login && action == PacketAction_Request)
+    {
+        if (player->account_logged_in)
+            return false;
+        if (player->logged_in)
+            return false;
+        if (Settings::GetAccessLock(server->settings))
+        {
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Login,
+                               EO_EncodeNumber(server, 6, 2) + "NO");
+            return false;
+        }
+        if (Login_CheckConnectionThreshold(server) &&
+            !server->logins->ConnectionLog_CheckIP(player->socket->RemoteAddress))
+        {
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Login,
+                               EO_EncodeNumber(server, 6, 2) + "NO");
+            return false;
+        }
+        PacketReader_Init(server, data, EO_GetBreakByte(server, 0xff));
+        String account = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        String password = Mysqlcontrols::Db_SanitizeString(
+            server->mysql_controls, PacketReader_GetBreakString(server));
+        Mysqlcontrols::Mysql_SubmitQuery(
+            server->mysql_controls,
+            0x40,
+            player->player_id,
+            player->query_id,
+            data,
+            "SELECT ident, account, DECODE(password,'eoeokeyendl') as password, type, "
+            "signup, serial_c, serial_h, ipaddress, banned FROM endl_accounts WHERE "
+            "account = '" +
+                account + "' LIMIT 1");
+        return true;
+    }
+    if (family == PacketFamily_Account)
+    {
+        if (action == PacketAction_Agree)
+        {
+            if (!player->account_logged_in)
+                return false;
+            Mysqlcontrols::Mysql_SubmitQuery(
+                server->mysql_controls,
+                0x42,
+                player->player_id,
+                player->query_id,
+                data,
+                "SELECT ident, account, DECODE(password,'eoeokeyendl') as password, "
+                "type, signup, serial_c, serial_h, ipaddress, banned FROM "
+                "endl_accounts WHERE ident = '" +
+                    IntToStr(player->field_0xc) + "' LIMIT 1");
+            return true;
+        }
+        if (action == PacketAction_Request)
+        {
+            if (!player->connected)
+                return false;
+            if (Settings::GetAccountLock(server->settings))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Account,
+                                   EO_EncodeNumber(server, 7, 2) + "NO");
+                return false;
+            }
+            if (player->remove_timer > 0)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Account,
+                                   EO_EncodeNumber(server, 7, 2) + "NO");
+                return false;
+            }
+            if (data.Length() < 4)
+                return false;
+            if (player->account_create_cooldown > 4)
+                return true;
+            player->account_create_cooldown = 6;
+            Mysqlcontrols::Mysql_SubmitQuery(
+                server->mysql_controls,
+                0x43,
+                player->player_id,
+                player->query_id,
+                data,
+                "SELECT ident, account, DECODE(password,'eoeokeyendl') as password, "
+                "type, signup, serial_c, serial_h, ipaddress, banned FROM "
+                "endl_accounts WHERE account = '" +
+                    Mysqlcontrols::Db_SanitizeString(server->mysql_controls, data) +
+                    "' LIMIT 1");
+            return true;
+        }
+        if (action == PacketAction_Create)
+        {
+            if (Settings::GetAccountLock(server->settings))
+                return false;
+            if (data.Length() < 2)
+                return false;
+            PacketReader_Init(server, data, EO_GetBreakByte(server, 0xff));
+            PacketReader_GetBreakString(server);
+            String account = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, PacketReader_GetBreakString(server));
+            Mysqlcontrols::Mysql_SubmitQuery(
+                server->mysql_controls,
+                0x44,
+                player->player_id,
+                player->query_id,
+                data,
+                "SELECT ident, account, DECODE(password,'eoeokeyendl') as password, "
+                "type, signup, serial_c, serial_h, ipaddress, banned FROM "
+                "endl_accounts WHERE account = '" +
+                    account + "' LIMIT 1");
+            return true;
         }
     }
     if (family == PacketFamily_Range && action == PacketAction_Request)
@@ -764,6 +889,286 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                          type_info.behavior_id);
             Client_SendEncoded(
                 server, player, PacketAction_Open, PacketFamily_Shop, open_data);
+            return true;
+        }
+    }
+    if (family == PacketFamily_Board)
+    {
+        if (action == PacketAction_Remove)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            int board = EO_DecodeNumber(server, data.SubString(1, 2));
+            int post_id = EO_DecodeNumber(server, data.SubString(3, 2));
+            MsgBoardController::DeletePost((*MAINFORM)->msgboard_control, board, post_id);
+            return true;
+        }
+        if (action == PacketAction_Create)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int board = EO_DecodeNumber(server, data.SubString(1, 2));
+            PacketReader_Init(server, data, EO_GetBreakByte(server, 0xff));
+            PacketReader_GetBreakString(server);
+            String subject = PacketReader_GetBreakString(server);
+            String message = PacketReader_GetBreakString(server);
+            if (subject.Length() < 1 || message.Length() < 1)
+                return true;
+            if (subject.Length() > 0x20)
+                subject = subject.SubString(1, 0x20);
+            if (message.Length() > 0x4b0)
+                message = message.SubString(1, 0x4b0);
+            if (MsgBoardController::CountPosts(
+                    (*MAINFORM)->msgboard_control, board, player->name) > 1)
+                return true;
+            MsgBoardController::AddPost(
+                (*MAINFORM)->msgboard_control, board, player->name, subject, message, 0);
+            return true;
+        }
+        if (action == PacketAction_Take)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            int board = EO_DecodeNumber(server, data.SubString(1, 2));
+            int post_id = EO_DecodeNumber(server, data.SubString(3, 2));
+            String post = MsgBoardController::GetPost(
+                (*MAINFORM)->msgboard_control, board, post_id);
+            if (post.Length() < 1)
+                return true;
+            Client_SendEncoded(
+                server, player, PacketAction_Player, PacketFamily_Board, post);
+            return true;
+        }
+        if (action == PacketAction_Open)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int board = EO_DecodeNumber(server, data.SubString(1, 2));
+            String board_data =
+                MsgBoardController::GetBoard((*MAINFORM)->msgboard_control, board + 1);
+            if (board_data.Length() < 1)
+                return true;
+            Client_SendEncoded(
+                server, player, PacketAction_Open, PacketFamily_Board, board_data);
+            return true;
+        }
+    }
+    if (family == PacketFamily_Barber)
+    {
+        if (action == PacketAction_Buy)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 6)
+                return false;
+            int style = EO_DecodeNumber(server, data.SubString(1, 1));
+            int color = EO_DecodeNumber(server, data.SubString(2, 1));
+            int cost = EO_DecodeNumber(server, data.SubString(3, 4));
+            if (style < 0 || style > 0x14)
+                return false;
+            if (color < 0 || color > 9)
+                return false;
+            if (cost < 0x30d40 || cost > 0x493e0)
+                return false;
+            if (player->session_token != cost)
+                return false;
+            int price = 0xc8;
+            if (player->level > 0)
+                price = player->level * 0xc8;
+            if (!Players::Player_RemoveItem(server->players, player, 1, price))
+                return true;
+            player->hair_style = style;
+            player->hair_color = color;
+            String out = EO_EncodeNumber(server, player->player_id, 2);
+            out.Insert(EO_EncodeNumber(server, 2, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, 0, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, style, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, color, 1), out.Length() + 1);
+            Server_BroadcastNearby(
+                server, player, PacketAction_Agree, PacketFamily_Avatar, out);
+            out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4), 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Agree, PacketFamily_Barber, out);
+            return true;
+        }
+        if (action == PacketAction_Open)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
+            MapCoord coords =
+                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            if (coords.x < 0 || coords.y < 0)
+                return false;
+            if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            int npc_id =
+                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
+            if (type_info.type != NpcType_Barber)
+                return true;
+            player->session_token = RandRange(0x2710) + 0x30d41;
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Open,
+                               PacketFamily_Barber,
+                               EO_EncodeNumber(server, player->session_token, 4));
+            return true;
+        }
+    }
+    if (family == PacketFamily_Bank)
+    {
+        if (action == PacketAction_Add)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() != 7)
+                return false;
+            unsigned int amount = EO_DecodeNumber(server, data.SubString(1, 4));
+            int session = EO_DecodeNumber(server, data.SubString(5, 3));
+            if (session < 0x186a0 || session > 0x30d40)
+                return false;
+            if (player->session_token != session)
+                return false;
+            if (player->money_bank > 100000000000)
+                return true;
+            if (!Players::Player_RemoveItem(server->players, player, 1, amount))
+                return true;
+            player->money_bank = player->money_bank + amount;
+            String out = EO_EncodeNumber(server, player->item_change_remaining, 4);
+            out.Insert(EO_EncodeNumber(server, player->money_bank, 4), out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Reply, PacketFamily_Bank, out);
+            return true;
+        }
+        if (action == PacketAction_Take)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() != 7)
+                return false;
+            unsigned int amount = EO_DecodeNumber(server, data.SubString(1, 4));
+            int session = EO_DecodeNumber(server, data.SubString(5, 3));
+            if (player->session_token != session)
+                return true;
+            if (player->money_bank < amount)
+                return true;
+            player->money_bank = player->money_bank - amount;
+            Players::Player_AddItem(server->players, player, 1, amount);
+            String out = EO_EncodeNumber(server, player->item_change_amount, 4);
+            out.Insert(EO_EncodeNumber(server, player->money_bank, 4), out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Reply, PacketFamily_Bank, out);
+            return true;
+        }
+        if (action == PacketAction_Open)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
+            MapCoord coords =
+                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            if (coords.x < 0 || coords.y < 0)
+                return false;
+            if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            int npc_id =
+                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
+            if (type_info.type != NpcType_Bank)
+                return true;
+            player->session_token = RandRange(0x2710) + 0x186a1;
+            String out = EO_EncodeNumber(server, player->money_bank, 4);
+            out.Insert(EO_EncodeNumber(server, player->session_token, 3),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->locker_bank, 1), out.Length() + 1);
+            Client_SendEncoded(server, player, PacketAction_Open, PacketFamily_Bank, out);
+            return true;
+        }
+    }
+    if (family == PacketFamily_Jukebox)
+    {
+        if (action == PacketAction_Open)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            String tracks = JukeBoxController::BuildRecentTracksString(
+                (*MAINFORM)->jukebox_control, player->map_id);
+            if (tracks.Length() > 0)
+                Client_SendEncoded(
+                    server, player, PacketAction_Open, PacketFamily_Jukebox, tracks);
+            return true;
+        }
+        if (action == PacketAction_Msg)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() != 4)
+                return false;
+            int track = EO_DecodeNumber(server, data.SubString(3, 2)) + 1;
+            if (track < 1)
+                return false;
+            if (JukeBoxController::TryPlayTrack(
+                    (*MAINFORM)->jukebox_control, player->map_id, player->name))
+            {
+                if (!Players::Player_RemoveItem(server->players, player, 1, 0x19))
+                {
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Reply,
+                                       PacketFamily_Jukebox,
+                                       EO_EncodeNumber(server, 1, 2));
+                    return true;
+                }
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Agree,
+                    PacketFamily_Jukebox,
+                    EO_EncodeNumber(server, player->item_change_remaining, 4));
+                Server_BroadcastToMap(server,
+                                      player->map_id,
+                                      PacketAction_Use,
+                                      PacketFamily_Jukebox,
+                                      EO_EncodeNumber(server, track, 2));
+                return true;
+            }
+            return true;
+        }
+        if (action == PacketAction_Use)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int track = EO_DecodeNumber(server, String(data[1]));
+            int index = EO_DecodeNumber(server, String(data[2]));
+            if (track != 0x31 && track != 0x32)
+                return false;
+            if (index < 1 || index > 0x24)
+                return false;
+            if (player->weapon_graphic_id != track)
+                return false;
+            String out = EO_EncodeNumber(server, player->player_id, 2);
+            out.Insert(EO_EncodeNumber(server, player->direction, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, track, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, index, 1), out.Length() + 1);
+            Server_BroadcastNearby(
+                server, player, PacketAction_Msg, PacketFamily_Jukebox, out);
             return true;
         }
     }

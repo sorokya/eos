@@ -23,9 +23,7 @@ int FUN_004813c8(void *list);
 void FUN_0048441c(void *list, int count, int value);
 void *Map_NpcIter_End(void *npc_list);
 void FUN_004a9e74(JukeBoxController *jukebox_control, int map_id);
-MapContainer Map_InitBlank(int map_id, int width, int height);
 MapContainer *MapVector_End(Mapcontrol *map_control);
-void FUN_0048835c(MapContainer *map, int flag);
 
 typedef std::vector<ChestItem *> GroundItemPtrVector;
 
@@ -1831,7 +1829,7 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
         delete[] buf;
         if (map_buf[1] != 'E' || map_buf[2] != 'M' || map_buf[3] != 'F')
             return false;
-        MapContainer map = Map_InitBlank(
+        MapContainer map(
             map_id,
             Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x26, 1)) + 1,
             Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x27, 1)) +
@@ -2064,7 +2062,6 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             }
         }
         map_control->maps.insert(MapVector_End(map_control), map);
-        FUN_0048835c(&map, 2);
     }
     catch (...)
     {

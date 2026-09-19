@@ -6,7 +6,7 @@
 
 #pragma package(smart_init)
 
-Player::Player(void *socket)
+Player::Player(TCustomWinSocket *socket)
 {
     this->socket = socket;
     player_id = *(int *)((char *)socket + 4);
