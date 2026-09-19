@@ -3111,7 +3111,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
     *(TTimeStamp *)&caster->walk_tick = DateTimeToTimeStamp(Now());
     if (caster->map_id < 1)
         return 1;
-    if (caster->weight_max + 2 >= caster->weight_current)
+    if (caster->weight_max + 2 < caster->weight_current)
         return 1;
     if (action == 10)
     {
@@ -3251,7 +3251,7 @@ int Spell_Execute(Server *server, Player *caster, int action, String *packet_dat
     *(TTimeStamp *)&caster->walk_tick = DateTimeToTimeStamp(Now());
     if (caster->map_id < 1)
         return 1;
-    if (caster->weight_max + 2 >= caster->weight_current)
+    if (caster->weight_max + 2 < caster->weight_current)
         return 1;
     if (action == 1)
     {

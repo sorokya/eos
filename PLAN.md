@@ -794,7 +794,12 @@ Tracked so they are not mistaken for done:
     caster, 8, 0xb, pkt); return 1;`. The main NPC loop (`0x4689e2`..`0x469fe2`,
     1451 instructions, 316 locals) begins with a `Mapcontrol_GetByIndex(server->
     map_control, caster->map_id - 1)` view-range test; `asm2cpp.py` renders it at
-    **`DateTimeToTimeStamp` form fixed**: `*(TTimeStamp *)&caster->walk_tick =
+    **Inverted guard fixed**: `if (caster->weight_max + 2 >= caster->weight_current)
+    return 1;` was backwards — the reference continues on `>=` and returns 1 on the
+    fall-through (`jge` to the continue), so it is now `<`; the same line in
+    `Spell_Execute` was fixed too. `Attack_Execute`'s `--stack-search` aligned prefix
+    moved **23 -> 56** (best delta `+0xe8`); `Spell_Execute` stayed at 14 (its `0x1f`
+    arm is the gap). **`DateTimeToTimeStamp` form fixed**: `*(TTimeStamp *)&caster->walk_tick =
     DateTimeToTimeStamp(Now());` (was `.Time`, which forced a temporary and broke
     the hidden-return destination); the same fix is in `Spell_Execute`. With
     `--frame-wild` the aligned prefix moved 0 -> 15 (Attack) / 0 -> 14 (Spell);
