@@ -59,6 +59,8 @@ int Spell_Execute(Server *server, Player *caster, int action, String *packet_dat
 String Player_SerializeAvatar(Server *server, Player *player, int arg);
 String Server_BuildOnlineNames(Server *server);
 String Server_BuildOnlineList(Server *server);
+String Refresh_BuildReply(Server *server, Player *player);
+int Walk_Execute_Stub(void *a0, void *a1, int a2, void *a3);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
@@ -97,6 +99,31 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         return false;
     (*MAINFORM)->field_370 = family;
     (*MAINFORM)->field_36c = action;
+    if (family == PacketFamily_Walk)
+    {
+        if (!player->logged_in)
+            return false;
+        TTimeStamp stamp = DateTimeToTimeStamp(Now());
+        int delay = stamp.Time - player->walk_tick;
+        if (delay > 0x7270e0)
+            delay = 0x15e;
+        if (delay < 0x15e)
+        {
+            if (player->action_queue.size() > 10)
+                return true;
+            PlayerCommand command(family, action, data);
+            player->action_queue.insert(player->action_queue.end(), command);
+            return true;
+        }
+        if (player->action_queue.size() > 0)
+        {
+            PlayerCommand command(family, action, data);
+            player->action_queue.insert(player->action_queue.end(), command);
+            return true;
+        }
+        Walk_Execute_Stub(server, player, action, &data);
+        return true;
+    }
     if (family == PacketFamily_Attack)
     {
         if (!player->logged_in)
@@ -156,6 +183,27 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         }
         Spell_Execute(server, player, action, &data);
         return true;
+    }
+    if (family == PacketFamily_Connection)
+    {
+        if (action == PacketAction_Ping)
+        {
+            player->ping_timeout = 0;
+            return true;
+        }
+        if (action == PacketAction_Accept && data.Length() > 5)
+        {
+            if (EO_DecodeNumber(server, data.SubString(5, 2)) == player->player_id &&
+                EO_DecodeNumber(server, data.SubString(3, 2)) ==
+                    player->server_encryption_multiple &&
+                EO_DecodeNumber(server, data.SubString(1, 2)) ==
+                    player->client_encryption_multiple)
+            {
+                player->connected = 1;
+                return true;
+            }
+            return false;
+        }
     }
     if (family == PacketFamily_Range && action == PacketAction_Request)
     {
@@ -243,6 +291,29 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         Client_SendEncoded(server, player, PacketAction_Agree, PacketFamily_Npc, names);
         return true;
     }
+    if (family == PacketFamily_Face)
+    {
+        TTimeStamp stamp = DateTimeToTimeStamp(Now());
+        int delay = stamp.Time - player->walk_tick;
+        if (delay > 0x7270e0)
+            delay = 0x15e;
+        if (delay < 0x15e)
+        {
+            if (player->action_queue.size() > 10)
+                return true;
+            PlayerCommand command(family, action, data);
+            player->action_queue.insert(player->action_queue.end(), command);
+            return true;
+        }
+        if (player->action_queue.size() > 0)
+        {
+            PlayerCommand command(family, action, data);
+            player->action_queue.insert(player->action_queue.end(), command);
+            return true;
+        }
+        Face_Execute(server, player, action, &data);
+        return true;
+    }
     if (family == PacketFamily_Players)
     {
         if (action == PacketAction_List)
@@ -288,6 +359,57 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             Client_SendRaw(server, player, Server_BuildOnlineList(server), 9);
             return true;
         }
+    }
+    if (family == PacketFamily_Emote && action == PacketAction_Report)
+    {
+        if (!player->logged_in)
+            return false;
+        if (data.Length() < 1)
+            return false;
+        int emote = EO_DecodeNumber(server, String(data[1]));
+        if ((unsigned int)EO_DecodeNumber(server, String(data[1])) > 10 &&
+            EO_DecodeNumber(server, String(data[1])) != 14)
+            return true;
+        String buf = EO_EncodeNumber(server, player->player_id, 2);
+        buf.Insert(data[1], buf.Length() + 1);
+        Server_BroadcastNearby(
+            server, player, PacketAction_Player, PacketFamily_Emote, buf);
+        return true;
+    }
+    if (family == PacketFamily_Refresh && action == PacketAction_Request)
+    {
+        if (!player->logged_in)
+            return false;
+        player->flush_queue = 1;
+        Client_SendEncoded(server,
+                           player,
+                           PacketAction_Reply,
+                           PacketFamily_Refresh,
+                           Refresh_BuildReply(server, player));
+        return true;
+    }
+    if (family == PacketFamily_Chair)
+    {
+        TTimeStamp stamp = DateTimeToTimeStamp(Now());
+        int delay = stamp.Time - player->walk_tick;
+        if (delay > 0x7270e0)
+            delay = 0x15e;
+        if (delay < 0x15e)
+        {
+            if (player->action_queue.size() > 10)
+                return true;
+            PlayerCommand command(family, action, data);
+            player->action_queue.insert(player->action_queue.end(), command);
+            return true;
+        }
+        if (player->action_queue.size() > 0)
+        {
+            PlayerCommand command(family, action, data);
+            player->action_queue.insert(player->action_queue.end(), command);
+            return true;
+        }
+        Chair_Execute(server, player, action, &data);
+        return true;
     }
     if (family == PacketFamily_Door && action == PacketAction_Open)
     {
@@ -590,6 +712,84 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                          type_info.behavior_id);
             Client_SendEncoded(
                 server, player, PacketAction_Open, PacketFamily_Shop, open_data);
+            return true;
+        }
+    }
+    if (family == PacketFamily_Quest)
+    {
+        if (action == PacketAction_List)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() != 1)
+                return false;
+            int type = EO_DecodeNumber(server, data);
+            if (type == 1)
+            {
+                String out = EO_EncodeNumber(server, 1, 1);
+                out.Insert(EO_EncodeNumber(server, player->quest_trackers.size(), 2),
+                           out.Length() + 1);
+                for (PlayerQuest *iter = player->quest_trackers.begin();
+                     iter != player->quest_trackers.end();
+                     iter++)
+                {
+                    QuestState *state = Questengine::GetState(
+                        server->quest_engine, iter->quest_id, iter->state_index);
+                    if (state != NULL)
+                    {
+                        out.Insert(Questengine::GetQuestName(server->quest_engine,
+                                                             iter->quest_id),
+                                   out.Length() + 1);
+                        out.Insert(String((char)EO_GetBreakByte(server, 0xff)),
+                                   out.Length() + 1);
+                        out.Insert(state->description, out.Length() + 1);
+                        out.Insert(String((char)EO_GetBreakByte(server, 0xff)),
+                                   out.Length() + 1);
+                        int cond = state->fast_dispatch_condition_type;
+                        int v1 = 0;
+                        int v2 = 0;
+                        if (state->fast_dispatch_rule_index < 5 &&
+                            state->fast_dispatch_condition_type > 0 &&
+                            state->fast_dispatch_condition_type < 10)
+                        {
+                            v2 = iter->counters[state->fast_dispatch_rule_index];
+                            QuestRule *rule =
+                                state->rules[state->fast_dispatch_rule_index];
+                            v1 = rule->args[1];
+                            if (state->fast_dispatch_condition_type == 9)
+                                v1 = rule->args[0];
+                            if (v1 < 1)
+                                v1 = 1;
+                        }
+                        out.Insert(EO_EncodeNumber(server, cond, 2), out.Length() + 1);
+                        out.Insert(EO_EncodeNumber(server, v2, 2), out.Length() + 1);
+                        out.Insert(EO_EncodeNumber(server, v1, 2), out.Length() + 1);
+                        out.Insert(String((char)EO_GetBreakByte(server, 0xff)),
+                                   out.Length() + 1);
+                    }
+                }
+                Client_SendEncoded(
+                    server, player, PacketAction_List, PacketFamily_Quest, out);
+                return true;
+            }
+            if (type == 2)
+            {
+                String out = EO_EncodeNumber(server, 2, 1);
+                out.Insert(EO_EncodeNumber(server, player->quest_history.size(), 2),
+                           out.Length() + 1);
+                for (PlayerQuest *iter = player->quest_history.begin();
+                     iter != player->quest_history.end();
+                     iter++)
+                {
+                    out.Insert(
+                        Questengine::GetQuestName(server->quest_engine, iter->quest_id),
+                        out.Length() + 1);
+                    out.Insert(String((char)EO_GetBreakByte(server, 0xff)),
+                               out.Length() + 1);
+                }
+                Client_SendEncoded(
+                    server, player, PacketAction_List, PacketFamily_Quest, out);
+            }
             return true;
         }
     }

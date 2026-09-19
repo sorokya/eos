@@ -18,7 +18,7 @@ MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 
 // Cross-unit helpers owned by other units (Jukeboxcontrol, Mapcontrol).
 void FUN_004aa4e4(JukeBoxController *jukebox_control, int map_id);
-int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id);
+bool FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id);
 int FUN_004813c8(void *list);
 void FUN_0048441c(void *list, int count, int value);
 void *Map_NpcIter_End(void *npc_list);
@@ -1455,7 +1455,7 @@ void *FUN_00482444_Stub(void *a0, void *a1, void *a2)
 {
     return 0;
 }
-int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
+bool FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
 {
     String map_buf;
     String local_c;
@@ -1719,6 +1719,8 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
     }
     catch (...)
     {
+        FileClose(file_handle);
+        return 0;
     }
     return 1;
 }
@@ -2066,6 +2068,8 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
     }
     catch (...)
     {
+        FileClose(file_handle);
+        return false;
     }
     return true;
 }
