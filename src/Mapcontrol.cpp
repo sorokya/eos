@@ -1521,7 +1521,7 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
             0)
             map->can_scroll = 1;
         map->filesize = size;
-        if (map_control->start_map == map_id || map_control->memory_map == 0)
+        if (map_control->start_map == map_id || map_control->memory_map != 0)
         {
             map->buf_copied = true;
             map->buf = map_buf;
@@ -1863,7 +1863,7 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             0)
             map.can_scroll = 1;
         map.filesize = size;
-        if (map_control->start_map == map_id || map_control->memory_map == 0)
+        if (map_control->start_map == map_id || map_control->memory_map != 0)
         {
             map.buf_copied = true;
             map.buf = map_buf;
