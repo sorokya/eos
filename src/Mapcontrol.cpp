@@ -21,13 +21,10 @@ void FUN_004aa4e4(JukeBoxController *jukebox_control, int map_id);
 int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id);
 int FUN_004813c8(void *list);
 void FUN_0048441c(void *list, int count, int value);
-int NpcPtrVector_Count(void *list);
 void *Map_NpcIter_End(void *npc_list);
-void Map_AddNpc(void *npc_list, void *position, Npc **npc);
 void FUN_004a9e74(JukeBoxController *jukebox_control, int map_id);
 MapContainer Map_InitBlank(int map_id, int width, int height);
 MapContainer *MapVector_End(Mapcontrol *map_control);
-void MapVector_Insert(void *maps, void *position, MapContainer *map);
 void FUN_0048835c(MapContainer *map, int flag);
 
 typedef std::vector<ChestItem *> GroundItemPtrVector;
@@ -1540,7 +1537,7 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
                 Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 8));
             for (int j = 0; j < npc_count; j++)
             {
-                int index = NpcPtrVector_Count(&map->npc_list) + 1;
+                int index = map->npc_list.size() + 1;
                 Npc *npc =
                     new Npc(index,
                             Mapcontrol::Pub_DecodeNumber_Map(map_control,
@@ -1578,7 +1575,7 @@ int FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
                 if (npc_value.element_weakness > 0 && npc_value.element_weakness < 7)
                     ((short *)&npc->pad_34)[npc_value.element_weakness] =
                         npc_value.element_weakness_damage;
-                Map_AddNpc(&map->npc_list, Map_NpcIter_End(&map->npc_list), &npc);
+                map->npc_list.insert((Npc **)Map_NpcIter_End(&map->npc_list), npc);
             }
             map_buf.Delete(1, 8);
         }
@@ -1882,7 +1879,7 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
                 Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 8));
             for (int j = 0; j < npc_count; j++)
             {
-                int index = NpcPtrVector_Count(&map.npc_list) + 1;
+                int index = map.npc_list.size() + 1;
                 Npc *npc =
                     new Npc(index,
                             Mapcontrol::Pub_DecodeNumber_Map(map_control,
@@ -1920,7 +1917,7 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
                 if (npc_value.element_weakness > 0 && npc_value.element_weakness < 7)
                     ((short *)&npc->pad_34)[npc_value.element_weakness] =
                         npc_value.element_weakness_damage;
-                Map_AddNpc(&map.npc_list, Map_NpcIter_End(&map.npc_list), &npc);
+                map.npc_list.insert((Npc **)Map_NpcIter_End(&map.npc_list), npc);
             }
             map_buf.Delete(1, 8);
         }
@@ -2069,7 +2066,7 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
                 map_buf.Delete(1, 8);
             }
         }
-        MapVector_Insert(map_control, MapVector_End(map_control), &map);
+        map_control->maps.insert(MapVector_End(map_control), map);
         FUN_0048835c(&map, 2);
         return true;
     }

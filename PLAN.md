@@ -687,7 +687,12 @@ Tracked so they are not mistaken for done:
   `FUN_0044f6ec(&obj)` replaced by plain `&obj` with `EOEncodedObj obj;`. The
   remaining step is the log locals' **declaration order** (first log `String` at
   `-0x04` in the reference vs `-0x24` in ours; no `/tmp` logorder note exists yet),
-  frame must stay `-0x88`. The real log sequence
+  frame must stay `-0x88`. **Applying the logorder note's steps regressed**: hoisting
+  `String msg;` to function scope and adding `char action_byte`/`char family_byte`
+  moved the frame to `-0x90` (8 B over) and mismatches 224 -> 369, so it was
+  reverted to the frame-exact form (bare `std::basic_string<char> range`, `msg`
+  declared inside the log `if`, 224 mismatched, prefix 19). The band order
+  therefore cannot be fixed by declaration placement alone in this form. The real log sequence
   (formatters/joins/append trio) is still approximated.
   Blocked on the
   `EO_ByteRange_FromString` RTL helper ABI). `EO_Encode_Interleave` is
