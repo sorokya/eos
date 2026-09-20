@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Shopvalues.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -345,7 +346,7 @@ String ShopValues::EncodeNumber(ShopValues *self, unsigned int value, int width)
     }
     if (result.Length() < width)
     {
-        char pad = 0xfe;
+        char pad = EO_NUM_EMPTY;
         int count = width - result.Length();
         for (int i = 0; i < count; i++)
             result.Insert(pad, result.Length() + 1);
@@ -365,7 +366,7 @@ String ShopValues::BuildOpenData(ShopValues *self, int behavior_id)
         {
             result += EncodeNumber(self, it->id, 2);
             result.Insert(it->name, result.Length() + 1);
-            result.Insert((char)0xff, result.Length() + 1);
+            result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
             if (it->trades.size() > 0)
                 for (trade_iter = it->trades.begin(); trade_iter != it->trades.end();
                      trade_iter++)
@@ -379,7 +380,7 @@ String ShopValues::BuildOpenData(ShopValues *self, int behavior_id)
                     result.Insert(EncodeNumber(self, trade_iter->max_amount, 1),
                                   result.Length() + 1);
                 }
-            result.Insert((char)0xff, result.Length() + 1);
+            result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
             if (it->crafts.size() > 0)
                 for (craft_iter = it->crafts.begin(); craft_iter != it->crafts.end();
                      craft_iter++)
@@ -430,18 +431,18 @@ int ShopValues::DecodeNumber(String value)
         {
             char c = value_copy[byte_index];
             unsigned char ch = c;
-            if (ch == 0xfe || ch == 0)
+            if (ch == EO_NUM_EMPTY || ch == 0)
                 break;
             int n = ch;
             n = n - 1;
             if (byte_index == 1)
                 result = result + n;
             if (byte_index == 2)
-                result = result + n * 0xfd;
+                result = result + n * EO_NUM_MAX;
             if (byte_index == 3)
-                result = result + n * 0xfa09;
+                result = result + n * EO_NUM_MAX_2;
             if (byte_index == 4)
-                result = result + n * 0xf71ae5;
+                result = result + n * EO_NUM_MAX_3;
             byte_index = byte_index + 1;
         }
     }

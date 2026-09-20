@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Npcvalues.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -458,18 +459,18 @@ int NpcValues::DecodeNumber(String value)
         {
             char c = value_copy[byte_index];
             unsigned char ch = c;
-            if (ch == 0xfe || ch == 0)
+            if (ch == EO_NUM_EMPTY || ch == 0)
                 break;
             int n = ch;
             n = n - 1;
             if (byte_index == 1)
                 result = result + n;
             if (byte_index == 2)
-                result = result + n * 0xfd;
+                result = result + n * EO_NUM_MAX;
             if (byte_index == 3)
-                result = result + n * 0xfa09;
+                result = result + n * EO_NUM_MAX_2;
             if (byte_index == 4)
-                result = result + n * 0xf71ae5;
+                result = result + n * EO_NUM_MAX_3;
             byte_index = byte_index + 1;
         }
     }

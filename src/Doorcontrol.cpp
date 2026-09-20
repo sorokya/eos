@@ -5,6 +5,7 @@
 #include "Mapobject.h"
 #include "Map.h"
 #include "Mapcontrol.h"
+#include "Protocol.h"
 
 #include <vector>
 
@@ -26,7 +27,7 @@ void DoorController::Tick(DoorController *self)
     int ms = now.Time - self->last_tick.Time;
 
     bool elapsed = false;
-    if (ms / 1000 + days * 86400 > 1)
+    if (ms / MS_PER_SECOND + days * SECONDS_PER_DAY > 1)
         elapsed = true;
 
     for (std::vector<MapContainer>::iterator map_iter = self->map_control->maps.begin();

@@ -42,7 +42,7 @@ EventController::AppendEncoded(EventController *self, unsigned int value, int wi
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % 0xfd;
+                rem = value % EO_NUM_MAX;
                 c = rem + 1;
                 self->pEncode_scratch[i] = c;
                 value = quotient;
@@ -53,7 +53,7 @@ EventController::AppendEncoded(EventController *self, unsigned int value, int wi
             }
             else
             {
-                char pad = 0xfe;
+                char pad = EO_NUM_EMPTY;
                 self->pEncode_scratch[i] = pad;
             }
         }

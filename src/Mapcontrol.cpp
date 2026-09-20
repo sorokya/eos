@@ -14,6 +14,11 @@
 
 #pragma package(smart_init)
 
+// Quest cooldown ticks a map starts with, and the most ground items one owner
+// may drop on a single tile.
+#define MAP_QUEST_COOLDOWN 10
+#define MAP_GROUND_ITEM_MAX 9
+
 bool Mapcontrol_ParseMapFile(Mapcontrol *map_control, MapContainer *map, int map_id);
 
 typedef std::vector<ChestItem *> GroundItemPtrVector;
@@ -861,18 +866,18 @@ int Mapcontrol::Pub_DecodeNumber_Map(Mapcontrol *map_control, String value)
         {
             char c = value[digit_index];
             unsigned char ch = c;
-            if (ch == 0xFE || ch == 0)
+            if (ch == EO_NUM_EMPTY || ch == 0)
                 break;
             int v = ch;
             v = v - 1;
             if (digit_index == 1)
                 result = result + v;
             if (digit_index == 2)
-                result = result + v * 0xfd;
+                result = result + v * EO_NUM_MAX;
             if (digit_index == 3)
-                result = result + v * 0xfa09;
+                result = result + v * EO_NUM_MAX_2;
             if (digit_index == 4)
-                result = result + v * 0xf71ae5;
+                result = result + v * EO_NUM_MAX_3;
         }
     }
     catch (...)
@@ -910,7 +915,7 @@ String Mapcontrol::Mapcontrol_AppendEncoded(Mapcontrol *map_control,
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % 0xfd;
+                rem = value % EO_NUM_MAX;
                 c = rem + 1;
                 ((char *)map_control->encode_scratch)[i] = c;
                 value = quotient;
@@ -921,7 +926,7 @@ String Mapcontrol::Mapcontrol_AppendEncoded(Mapcontrol *map_control,
             }
             else
             {
-                char pad = 0xfe;
+                char pad = EO_NUM_EMPTY;
                 ((char *)map_control->encode_scratch)[i] = pad;
             }
         }
@@ -940,7 +945,8 @@ char Mapcontrol_TryTakeQuestCooldown(Mapcontrol *map_control, int map_id)
     {
         if (Mapcontrol_GetByIndex(map_control, map_id - 1)->quest_cooldown < 1)
         {
-            Mapcontrol_GetByIndex(map_control, map_id - 1)->quest_cooldown = 10;
+            Mapcontrol_GetByIndex(map_control, map_id - 1)->quest_cooldown =
+                MAP_QUEST_COOLDOWN;
             return 1;
         }
     }
@@ -1179,7 +1185,7 @@ bool Mapcontrol_CanDropItemAt(
                 if ((*cursor)->owner_player_id == player_id)
                 {
                     count = count + 1;
-                    if (count > 9)
+                    if (count > MAP_GROUND_ITEM_MAX)
                         return 0;
                 }
                 else
@@ -1187,7 +1193,7 @@ bool Mapcontrol_CanDropItemAt(
                     TTimeStamp now = DateTimeToTimeStamp(Now());
                     int elapsed = now.Date - (*cursor)->drop_time.Date;
                     int ms = now.Time - (*cursor)->drop_time.Time;
-                    elapsed = ms / 1000 + elapsed * 0x15180;
+                    elapsed = ms / MS_PER_SECOND + elapsed * SECONDS_PER_DAY;
                     if ((*cursor)->protect_ticks > elapsed)
                         return 0;
                 }
@@ -1222,7 +1228,7 @@ GroundItemInfo Mapcontrol_TakeGroundItemInfo(Mapcontrol *map_control,
                 TTimeStamp now = DateTimeToTimeStamp(Now());
                 int elapsed = now.Date - (*cursor)->drop_time.Date;
                 int ms = now.Time - (*cursor)->drop_time.Time;
-                elapsed = ms / 1000 + elapsed * 0x15180;
+                elapsed = ms / MS_PER_SECOND + elapsed * SECONDS_PER_DAY;
                 if ((*cursor)->protect_ticks > elapsed &&
                     (*cursor)->owner_player_id != player_id &&
                     (unsigned int)(*cursor)->owner_player_id > 0)

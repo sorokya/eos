@@ -27,7 +27,7 @@ Players::Players(Settings *settings, Mysqlcontrols *mysql_controls)
     dirty = 0;
     this->settings = settings;
     this->mysql_controls = mysql_controls;
-    for (int i = 0; i < 100000; i++)
+    for (int i = 0; i < SOCKET_HANDLE_MAX; i++)
         by_id[i] = 0;
 }
 
@@ -42,7 +42,7 @@ int Players::Players_ActiveCount(Players *self)
 
 bool Players::Players_Add(Players *self, TCustomWinSocket *socket)
 {
-    if (socket->SocketHandle >= 100000)
+    if (socket->SocketHandle >= SOCKET_HANDLE_MAX)
         return false;
     if (self->by_id[socket->SocketHandle] != 0)
         return false;
@@ -93,7 +93,7 @@ void Players::Players_MarkDirty(Players *self)
 
 Player *Players::Players_GetById(Players *self, int player_id)
 {
-    if (player_id > 0 && player_id < 100000)
+    if (player_id > 0 && player_id < SOCKET_HANDLE_MAX)
         return self->by_id[player_id];
     return 0;
 }
@@ -241,7 +241,7 @@ void Players::Party_AddNewMember(Players *players,
                                  Player *existing_member,
                                  Player *new_member)
 {
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < PARTY_MAX_MEMBERS; i++)
     {
         Player *player = Players_GetById(players, existing_member->party_ids[i]);
         if (player != 0)
@@ -250,7 +250,7 @@ void Players::Party_AddNewMember(Players *players,
     new_member->party_leader_id = existing_member->party_leader_id;
     Player::ClearPartyRoster(new_member);
     new_member->in_party = true;
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < PARTY_MAX_MEMBERS; i++)
         Player::AddPartyMember(new_member, existing_member->party_ids[i]);
 }
 
@@ -260,7 +260,7 @@ void Players::Player_LeaveParty(Players *players, Player *player)
     player->in_party = false;
     if (player->player_id == player->party_leader_id || player->CountPartyMembers() < 3)
         disband = true;
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < PARTY_MAX_MEMBERS; i++)
     {
         if (player->party_ids[i] != player->player_id)
         {
@@ -274,7 +274,7 @@ void Players::Player_LeaveParty(Players *players, Player *player)
                 }
                 else
                 {
-                    for (int j = 0; j < 10; j++)
+                    for (int j = 0; j < PARTY_MAX_MEMBERS; j++)
                     {
                         if (member->party_ids[j] == player->player_id)
                             member->party_ids[j] = -1;

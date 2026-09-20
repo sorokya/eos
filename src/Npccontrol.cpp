@@ -219,7 +219,7 @@ NpcController::Packet_AppendEncoded(NpcController *context, unsigned int value, 
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % 0xfd;
+                rem = value % EO_NUM_MAX;
                 c = rem + 1;
                 ((char *)context->encode_scratch)[i] = c;
                 value = quotient;
@@ -230,7 +230,7 @@ NpcController::Packet_AppendEncoded(NpcController *context, unsigned int value, 
             }
             else
             {
-                char pad = 0xfe;
+                char pad = EO_NUM_EMPTY;
                 ((char *)context->encode_scratch)[i] = pad;
             }
         }
@@ -602,7 +602,8 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                     TTimeStamp stamp = DateTimeToTimeStamp(now);
                     int date_delta = stamp.Date - (*npc)->nDeath_ms.Date;
                     int time_delta = stamp.Time - (*npc)->nDeath_ms.Time;
-                    int elapsed = time_delta / 1000 + date_delta * 86400;
+                    int elapsed =
+                        time_delta / MS_PER_SECOND + date_delta * SECONDS_PER_DAY;
                     if ((int)(unsigned short)(*npc)->spawn_time <= elapsed)
                     {
                         int sx = (*npc)->wSpawn_x;
@@ -762,7 +763,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                     distance = Npc_GetDistance(npc_control, *npc, target);
                                     if (target->in_party != false && 1 < distance)
                                     {
-                                        for (int i = 0; i < 10; i++)
+                                        for (int i = 0; i < PARTY_MAX_MEMBERS; i++)
                                         {
                                             Player *member = Players::Players_GetById(
                                                 npc_control->players,

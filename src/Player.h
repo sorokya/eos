@@ -11,6 +11,9 @@
 #include "Playercommand.h"
 #include "Playerskill.h"
 
+// Size of the party roster and the bound its iteration loops use.
+#define PARTY_MAX_MEMBERS 10
+
 // Layout recovered from the reference (Player unit, 0x410e04..0x411f64).
 // sizeof is 0x3f8, pinned by the `operator new(0x3f8)` at 0x4082d5 and by the
 // destructor's member-destruction counter (0x1c = 28 destructible members).
@@ -192,7 +195,7 @@ class Player
     bool in_party;                            // +0x2f8
     char pad_0x2f9[3];                        // +0x2f9
     int party_leader_id;                      // +0x2fc
-    int party_ids[10];                        // +0x300
+    int party_ids[PARTY_MAX_MEMBERS];         // +0x300
     String invblob1;                          // +0x328
     String invblob2;                          // +0x32c
     String skillblob;                         // +0x330

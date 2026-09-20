@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Learnvalues.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -265,7 +266,7 @@ LearnValues::Pub_EncodeNumber_Learn(LearnValues *self, unsigned int value, int w
             char c;
             double d = n / 253.0;
             q = (int)d;
-            r = n % 253;
+            r = n % EO_NUM_MAX;
             c = r + 1;
             result.Insert(c, result.Length() + 1);
             if (q >= 1)
@@ -297,18 +298,18 @@ int LearnValues::Pub_DecodeNumber_Learn(LearnValues *self, String value)
         {
             char c = value_copy[byte_index];
             unsigned char ch = c;
-            if (ch == 0xfe)
+            if (ch == EO_NUM_EMPTY)
                 break;
             int n = ch;
             n = n - 1;
             if (byte_index == 1)
                 result = result + n;
             if (byte_index == 2)
-                result = result + n * 0xfd;
+                result = result + n * EO_NUM_MAX;
             if (byte_index == 3)
-                result = result + n * 0xfa09;
+                result = result + n * EO_NUM_MAX_2;
             if (byte_index == 4)
-                result = result + n * 0xf71ae5;
+                result = result + n * EO_NUM_MAX_3;
             byte_index = byte_index + 1;
         }
     }

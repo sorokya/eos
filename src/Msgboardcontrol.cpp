@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Msgboardcontrol.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -43,7 +44,7 @@ MsgBoardController::AppendEncoded(MsgBoardController *self, unsigned int value, 
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % 0xfd;
+                rem = value % EO_NUM_MAX;
                 c = rem + 1;
                 self->field_0x118[i] = c;
                 value = quotient;
@@ -54,7 +55,7 @@ MsgBoardController::AppendEncoded(MsgBoardController *self, unsigned int value, 
             }
             else
             {
-                char pad = 0xfe;
+                char pad = EO_NUM_EMPTY;
                 self->field_0x118[i] = pad;
             }
         }
@@ -201,11 +202,11 @@ void MsgBoardController::BuildBoardName(MsgBoardController *self, int board)
              i++, it++)
         {
             result.Insert(AppendEncoded(self, it->id, 2), result.Length() + 1);
-            result.Insert((char)0xff, result.Length() + 1);
+            result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
             result.Insert(it->poster, result.Length() + 1);
-            result.Insert((char)0xff, result.Length() + 1);
+            result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
             result.Insert(it->subject, result.Length() + 1);
-            result.Insert((char)0xff, result.Length() + 1);
+            result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
         }
         self->aBoard_names[board] = result;
     }
@@ -219,7 +220,7 @@ String MsgBoardController::BuildBoardData(MsgBoardController *self, int board)
     {
         board--;
         result = AppendEncoded(self, self->boards[board].size(), 2);
-        result.Insert((char)0xff, result.Length() + 1);
+        result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
         std::vector<MsgBoard>::iterator it;
         for (it = self->boards[board].begin(); it != self->boards[board].end(); it++)
         {
@@ -230,11 +231,11 @@ String MsgBoardController::BuildBoardData(MsgBoardController *self, int board)
             text.Insert(subject, text.Length() + 1);
             text.Insert(message, text.Length() + 1);
             result.Insert(AppendEncoded(self, poster.Length(), 2), result.Length() + 1);
-            result.Insert((char)0xff, result.Length() + 1);
+            result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
             result.Insert(AppendEncoded(self, subject.Length(), 2), result.Length() + 1);
-            result.Insert((char)0xff, result.Length() + 1);
+            result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
             result.Insert(AppendEncoded(self, message.Length(), 2), result.Length() + 1);
-            result.Insert((char)0xff, result.Length() + 1);
+            result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
         }
         result.Insert(text, result.Length() + 1);
     }
@@ -250,7 +251,7 @@ void MsgBoardController::LoadBoard(MsgBoardController *self, int board, String d
             ClearBoard(self, board);
             board--;
             self->aBoard_enabled[board] = 1;
-            SetDecodeSource(self, data, (char)0xff);
+            SetDecodeSource(self, data, (char)EO_BREAK_BYTE);
             int count = DecodeNumber(self, ReadToken(self));
             int total = 0;
             for (int i = 0; i < count && i < 0x20; i++)
@@ -352,18 +353,18 @@ int MsgBoardController::DecodeNumber(MsgBoardController *self, String value)
         {
             char c = value[byte_index];
             unsigned char ch = c;
-            if (ch == 0xfe || ch == 0)
+            if (ch == EO_NUM_EMPTY || ch == 0)
                 break;
             int n = ch;
             n = n - 1;
             if (byte_index == 1)
                 result = result + n;
             if (byte_index == 2)
-                result = result + n * 0xfd;
+                result = result + n * EO_NUM_MAX;
             if (byte_index == 3)
-                result = result + n * 0xfa09;
+                result = result + n * EO_NUM_MAX_2;
             if (byte_index == 4)
-                result = result + n * 0xf71ae5;
+                result = result + n * EO_NUM_MAX_3;
             byte_index = byte_index + 1;
         }
     }

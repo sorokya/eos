@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Questengine.h"
+#include "Protocol.h"
 #include "Settings.h"
 
 #pragma package(smart_init)
@@ -533,7 +534,7 @@ String Questengine::AppendEncoded(Questengine *self, unsigned int value, int wid
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % 0xfd;
+                rem = value % EO_NUM_MAX;
                 c = rem + 1;
                 ((char *)self->encode_scratch)[i] = c;
                 value = quotient;
@@ -544,7 +545,7 @@ String Questengine::AppendEncoded(Questengine *self, unsigned int value, int wid
             }
             else
             {
-                char pad = 0xfe;
+                char pad = EO_NUM_EMPTY;
                 ((char *)self->encode_scratch)[i] = pad;
             }
         }

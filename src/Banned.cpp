@@ -3,6 +3,7 @@
 
 #include "Banned.h"
 #include "Mysqlcontrols.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -144,7 +145,7 @@ bool Banned::IsBanned(Banned *self, String ip, String hdid)
             TTimeStamp now = DateTimeToTimeStamp(Now());
             int days = now.Date - entry->ban_date.Date;
             int secs = now.Time - entry->ban_date.Time;
-            int elapsed = secs / 1000 + days * 0x15180;
+            int elapsed = secs / MS_PER_SECOND + days * SECONDS_PER_DAY;
             if (entry->octet1 == octet1 || entry->octet1 > 0xff)
             {
                 if (hdid == entry->hdid)

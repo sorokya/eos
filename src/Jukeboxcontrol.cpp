@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Jukeboxcontrol.h"
+#include "Protocol.h"
 
 #pragma package(smart_init)
 
@@ -37,7 +38,7 @@ JukeBoxController::EncodeNumber(JukeBoxController *self, unsigned int value, int
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % 0xfd;
+                rem = value % EO_NUM_MAX;
                 c = rem + 1;
                 self->encode_scratch[i] = c;
                 value = quotient;
@@ -48,7 +49,7 @@ JukeBoxController::EncodeNumber(JukeBoxController *self, unsigned int value, int
             }
             else
             {
-                char pad = 0xfe;
+                char pad = EO_NUM_EMPTY;
                 self->encode_scratch[i] = pad;
             }
         }
@@ -78,7 +79,7 @@ String JukeBoxController::BuildRecentTracksString(JukeBoxController *self, int m
         TTimeStamp b = DateTimeToTimeStamp(now);
         int days = b.Date - a.Date;
         int ms = b.Time - a.Time;
-        int secs = ms / 1000 + days * 86400;
+        int secs = ms / MS_PER_SECOND + days * SECONDS_PER_DAY;
         if (secs < 90)
             result.Insert(it->track_name, result.Length() + 1);
         else
@@ -103,7 +104,7 @@ bool JukeBoxController::TryPlayTrack(JukeBoxController *self, int map_id, String
             TTimeStamp b = DateTimeToTimeStamp(now);
             int days = b.Date - a.Date;
             int ms = b.Time - a.Time;
-            int secs = ms / 1000 + days * 86400;
+            int secs = ms / MS_PER_SECOND + days * SECONDS_PER_DAY;
             if (secs > 90)
                 it->active = 0;
         }

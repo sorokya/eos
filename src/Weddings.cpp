@@ -402,7 +402,7 @@ WeddingController::AppendEncoded(WeddingController *self, unsigned int value, in
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % 0xfd;
+                rem = value % EO_NUM_MAX;
                 c = rem + 1;
                 self->encode_scratch[i] = c;
                 value = quotient;
@@ -413,7 +413,7 @@ WeddingController::AppendEncoded(WeddingController *self, unsigned int value, in
             }
             else
             {
-                char pad = 0xfe;
+                char pad = EO_NUM_EMPTY;
                 self->encode_scratch[i] = pad;
             }
         }

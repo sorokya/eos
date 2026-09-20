@@ -4,6 +4,7 @@
 
 #include "Mainform.h"
 #include "Serial.h"
+#include "Protocol.h"
 
 #include "Itemvalues.h"
 #include "Npcvalues.h"
@@ -62,7 +63,7 @@ void __fastcall TGUI::serverClientError(TObject *Sender,
                                         int &ErrorCode)
 {
     ErrorCode = 0;
-    if (Socket->SocketHandle < 1 || Socket->SocketHandle >= 100000)
+    if (Socket->SocketHandle < 1 || Socket->SocketHandle >= SOCKET_HANDLE_MAX)
         Socket->Close();
     else
         Players::Players_MarkRemoving(players, Socket);
@@ -94,7 +95,7 @@ void __fastcall TGUI::serverClientConnect(TObject *Sender, TCustomWinSocket *Soc
 
 void __fastcall TGUI::serverClientDisconnect(TObject *Sender, TCustomWinSocket *Socket)
 {
-    if (Socket->SocketHandle >= 1 && Socket->SocketHandle < 100000)
+    if (Socket->SocketHandle >= 1 && Socket->SocketHandle < SOCKET_HANDLE_MAX)
     {
         Server_RemovePlayer(server_ctrl, Socket);
         Players::Players_Remove(players, Socket);
@@ -103,7 +104,7 @@ void __fastcall TGUI::serverClientDisconnect(TObject *Sender, TCustomWinSocket *
 
 void __fastcall TGUI::serverClientRead(TObject *Sender, TCustomWinSocket *Socket)
 {
-    if (Socket->SocketHandle < 1 || Socket->SocketHandle >= 100000)
+    if (Socket->SocketHandle < 1 || Socket->SocketHandle >= SOCKET_HANDLE_MAX)
     {
         Socket->Close();
         return;

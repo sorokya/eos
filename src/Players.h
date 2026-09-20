@@ -8,6 +8,10 @@
 
 #include "Player.h"
 
+// Largest socket handle the by_id[] index holds: the array bound and the
+// validation range for incoming socket handles.
+#define SOCKET_HANDLE_MAX 100000
+
 class Settings;
 class Mysqlcontrols;
 class Server;
@@ -26,14 +30,14 @@ Player **Players_Iter_End(Players *players);
 class Players
 {
   public:
-    std::vector<Player *> players; // +0x00000
-    Player *by_id[100000];         // +0x00020
-    Settings *settings;            // +0x61aa0
-    Mysqlcontrols *mysql_controls; // +0x61aa4
-    char dirty;                    // +0x61aa8
-    char pad_0x61aa9[3];           // +0x61aa9
-    int idle_timeout;              // +0x61aac
-    int stat_total;                // +0x61ab0
+    std::vector<Player *> players;    // +0x00000
+    Player *by_id[SOCKET_HANDLE_MAX]; // +0x00020
+    Settings *settings;               // +0x61aa0
+    Mysqlcontrols *mysql_controls;    // +0x61aa4
+    char dirty;                       // +0x61aa8
+    char pad_0x61aa9[3];              // +0x61aa9
+    int idle_timeout;                 // +0x61aac
+    int stat_total;                   // +0x61ab0
 
     Players(Settings *settings, Mysqlcontrols *mysql_controls);
     ~Players();
