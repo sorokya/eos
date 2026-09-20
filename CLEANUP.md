@@ -5,7 +5,39 @@ reviewed for (1) inconsistent names, (2) missing names, (3) literals that belong
 [`src/Protocol.h`](src/Protocol.h), (4) literals that belong in named `#define`s, and
 (5) forward declarations that have real implementations.
 
-**Nothing in this file has been applied.** It is a proposal list with evidence.
+**Status (updated):** this file is a snapshot taken at one point in the reconstruction and
+has since gone partly stale. What is applied and what remains:
+
+*Applied and verified byte-neutral* (fresh `scripts/build_asm.sh`, `make verify` 496/496,
+`make track` 1790/1801 rows / 407,957 of 668,128 bytes — unchanged before and after):
+
+| Commit | Content |
+| --- | --- |
+| `810239a` | §2.4 (5 missing enum values + `enum WarpEffect`), §4.1/§4.2 constants added to `Protocol.h`, §1.10 (6 header guards), §1.4 (3 stale comments), §1.14 (hex case), §1.13 (`Serial.cpp` bool literals) |
+| `d186973` | §1.5 (explicit-receiver naming: `Serial`, `Filecache`), §1.9 (`field_0xNN`/`pad_0xNN` unified across the non-cluster headers), §1.11 (`values`→`record_list`, `GetCount` in the `*values` units), §1.12 (no drift found in those units) |
+
+Each was gated on a full rebuild with no `Error E[0-9]+`, `make verify` 496/496 and
+`make track` 1790/1801; nothing regressed.
+
+*Already true in the tree, so the item below is stale:* §2.1's `Packets.cpp`/`Mapcontrol.cpp`
+renames (e.g. `FUN_00463d40` is already `Server_BroadcastToAll`) and **§5.2** — the
+duplicate `int,int` overload does not exist; `Server_Shutdown` already calls the
+`unsigned char,unsigned char` form. Verify each remaining item against the tree before
+acting on it.
+
+*Not applied* — the cross-file cluster `src/Packets.*`, `src/Players.*`, `src/Mapcontrol.*`,
+`src/Mainform.*`, `src/Jukeboxcontrol.*`, `src/Npccontrol.*`, `src/Map.h`, `src/Player.h`,
+`src/Settings.h`, `src/Npc.h`: the rest of §2.1/§2.2, §5.3–§5.5 (remainder), §1.7, §1.8,
+§1.9 there, §1.6/§2.3 (parameter types), §3.x (literals → enums) and §4.x (literals →
+defines); plus the remaining §1.5/§1.11/§1.12 pockets elsewhere. §1.6/§1.7/§1.8/§3.x/§4.x
+are pure renames or literal substitutions and are byte-neutral by construction, but a
+rename must be applied atomically across every call site or the tree stops compiling.
+
+*Verification hazard found while applying this:* `scripts/build_asm.sh` is **incremental**
+(mtime-based), so a broken `src/` can be masked by a stale `build/*.asm`; a rename that is
+interrupted mid-way leaves the tree unbuildable. Always confirm `build_asm.sh` exits 0 with
+no `Error E[0-9]+` before trusting `make track`/`make verify`, and keep the pre-change commit
+handy to revert a partial rename.
 
 ---
 
