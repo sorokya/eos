@@ -27,6 +27,7 @@
 #include "Playerquest.h"
 #include "Skillvalues.h"
 #include "Classvalues.h"
+#include "Learnvalues.h"
 #include "Weddings.h"
 #include "Jukeboxcontrol.h"
 #include "Msgboardcontrol.h"
@@ -3236,6 +3237,287 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     server, player, PacketAction_Dialog, PacketFamily_Quest, out);
             }
             return true;
+        }
+    }
+    if (family == PacketFamily_StatSkill)
+    {
+        if (action == PacketAction_Take)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 6)
+                return false;
+            int session_token = EO_DecodeNumber(server, data.SubString(1, 4));
+            int spell_id = EO_DecodeNumber(server, data.SubString(5, 2));
+            if (player->session_token != session_token)
+                return true;
+            if (!LearnValues::HasSkill(
+                    (*MAINFORM)->learn_values, session_token, spell_id))
+                return true;
+            if (Players::Player_HasSpellId(server->players, player, spell_id))
+                return true;
+            LearnItemVal skill = LearnValues::GetSkill(
+                (*MAINFORM)->learn_values, session_token, spell_id);
+            if (!ClassValues::ClassMatches((*MAINFORM)->class_values,
+                                           player->class_id,
+                                           skill.class_requirement))
+            {
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_StatSkill,
+                    EO_EncodeNumber(server, 2, 2) +
+                        EO_EncodeNumber(server, player->class_id, 1));
+                return true;
+            }
+            if (player->level < skill.level_requirement)
+                return true;
+            if (player->adj_strength < skill.str_requirement)
+                return true;
+            if (player->adj_intelligence < skill.wis_requirement)
+                return true;
+            if (player->adj_wisdom < skill.int_requirement)
+                return true;
+            if (player->adj_agility < skill.agi_requirement)
+                return true;
+            if (player->adj_constitution < skill.con_requirement)
+                return true;
+            if (player->adj_charisma < skill.cha_requirement)
+                return true;
+            if (skill.skill_requirement_1 > 0 &&
+                !Players::Player_HasSpellId(
+                    server->players, player, skill.skill_requirement_1))
+                return true;
+            if (skill.skill_requirement_2 > 0 &&
+                !Players::Player_HasSpellId(
+                    server->players, player, skill.skill_requirement_2))
+                return true;
+            if (skill.skill_requirement_3 > 0 &&
+                !Players::Player_HasSpellId(
+                    server->players, player, skill.skill_requirement_3))
+                return true;
+            if (skill.skill_requirement_4 > 0 &&
+                !Players::Player_HasSpellId(
+                    server->players, player, skill.skill_requirement_4))
+                return true;
+            if (!Players::Player_RemoveItem(server->players, player, 1, skill.price))
+                return true;
+            Players::Player_AddSpell(server->players, player, spell_id);
+            String out = EO_EncodeNumber(server, spell_id, 2);
+            out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                       out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Take, PacketFamily_StatSkill, out);
+            return true;
+        }
+        if (action == PacketAction_Junk)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            int session_token = EO_DecodeNumber(server, data.SubString(1, 4));
+            if (player->session_token != session_token)
+                return true;
+            if (player->boots_graphic_id != 0 || player->accessory_graphic_id != 0 ||
+                player->gloves_graphic_id != 0 || player->armor_graphic_id != 0 ||
+                player->belt_graphic_id != 0 || player->necklace_graphic_id != 0 ||
+                player->hat_graphic_id != 0 || player->shield_graphic_id != 0 ||
+                player->weapon_graphic_id != 0 || player->ring1_graphic_id != 0 ||
+                player->ring2_graphic_id != 0 || player->armlet1_graphic_id != 0 ||
+                player->armlet2_graphic_id != 0 || player->bracer1_graphic_id != 0 ||
+                player->bracer2_graphic_id != 0)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_StatSkill,
+                                   EO_EncodeNumber(server, 1, 2));
+                return true;
+            }
+            player->base_strength = 0;
+            player->base_wisdom = 0;
+            player->base_intelligence = 0;
+            player->base_agility = 0;
+            player->base_constitution = 0;
+            player->base_charisma = 0;
+            Players::Player_ClearSpells(server->players, player);
+            player->stat_points = player->level * 3;
+            player->skill_points = player->level * 4;
+            if (player->hp > player->max_hp)
+                player->hp = player->max_hp;
+            if (player->tp > player->max_tp)
+                player->tp = player->max_tp;
+            Player::UpdateBaseStats(player);
+            Player_CalculateStats(server, player);
+            Player::CalculateHP_TP_SP(player);
+            String out = EO_EncodeNumber(server, player->stat_points, 2);
+            out.Insert(EO_EncodeNumber(server, player->skill_points, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->hp, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->max_hp, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->tp, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->max_tp, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->max_sp, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_strength, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_intelligence, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_wisdom, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_agility, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_constitution, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_charisma, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->min_damage, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->max_damage, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->accuracy, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->evasion, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->armor, 2), out.Length() + 1);
+            player->base_stats_dirty = true;
+            Client_SendEncoded(
+                server, player, PacketAction_Junk, PacketFamily_StatSkill, out);
+            return true;
+        }
+        if (action == PacketAction_Remove)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 6)
+                return false;
+            int session_token = EO_DecodeNumber(server, data.SubString(1, 4));
+            int spell_id = EO_DecodeNumber(server, data.SubString(5, 2));
+            if (player->session_token != session_token)
+                return true;
+            if (Players::Player_RemoveSpell(server->players, player, spell_id))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Remove,
+                                   PacketFamily_StatSkill,
+                                   EO_EncodeNumber(server, spell_id, 2));
+            }
+            return true;
+        }
+        if (action == PacketAction_Open)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
+            MapCoord coords =
+                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            if (coords.x < 0 || coords.y < 0)
+                return true;
+            if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            int npc_id =
+                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
+            if (type_info.type != NpcType_Trainer)
+                return true;
+            player->session_token = type_info.behavior_id;
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Open,
+                               PacketFamily_StatSkill,
+                               LearnValues::BuildOpenData((*MAINFORM)->learn_values,
+                                                          type_info.behavior_id));
+            return true;
+        }
+        if (action == PacketAction_Add)
+        {
+            if (data.Length() != 3)
+                return false;
+            int action_type = EO_DecodeNumber(server, data.SubString(1, 1));
+            int stat_id = EO_DecodeNumber(server, data.SubString(2, 2));
+            if (action_type == TrainType_Stat)
+            {
+                if (player->stat_points < 1)
+                    return true;
+                if (stat_id < StatId_Str || stat_id > StatId_Cha)
+                    return true;
+                player->stat_points--;
+                if (stat_id == StatId_Str)
+                    player->base_strength++;
+                if (stat_id == StatId_Int)
+                    player->base_intelligence++;
+                if (stat_id == StatId_Wis)
+                    player->base_wisdom++;
+                if (stat_id == StatId_Agi)
+                    player->base_agility++;
+                if (stat_id == StatId_Con)
+                    player->base_constitution++;
+                if (stat_id == StatId_Cha)
+                    player->base_charisma++;
+                Player::UpdateBaseStats(player);
+                Player_CalculateStats(server, player);
+                Player::CalculateHP_TP_SP(player);
+                String out = EO_EncodeNumber(server, player->stat_points, 2);
+                out.Insert(EO_EncodeNumber(server, player->adj_strength, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->adj_intelligence, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->adj_wisdom, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->adj_agility, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->adj_constitution, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->adj_charisma, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_hp, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_tp, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_sp, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->weight_max, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->min_damage, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_damage, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->accuracy, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->evasion, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->armor, 2),
+                           out.Length() + 1);
+                player->base_stats_dirty = true;
+                Client_SendEncoded(
+                    server, player, PacketAction_Player, PacketFamily_StatSkill, out);
+                return true;
+            }
+            if (action_type == TrainType_Skill)
+            {
+                if (player->skill_points < 1)
+                    return true;
+                int spell_level =
+                    Players::Player_GetSpellLevel(server->players, player, stat_id);
+                if (spell_level < 0 || spell_level > 0x63)
+                    return true;
+                player->skill_points--;
+                int new_level =
+                    Players::Player_LevelUpSpell(server->players, player, stat_id);
+                String out = EO_EncodeNumber(server, player->skill_points, 2);
+                out.Insert(EO_EncodeNumber(server, stat_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, new_level, 2), out.Length() + 1);
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Accept,
+                                   PacketFamily_StatSkill,
+                                   out);
+                return true;
+            }
         }
     }
     if (family == PacketFamily_Marriage)
