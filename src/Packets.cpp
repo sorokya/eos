@@ -12194,7 +12194,8 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                                                                  (*iter)->wDrop_amount,
                                                                  caster->account_ident,
                                                                  0x3d);
-                    *(TTimeStamp *)&(*iter)->nDeath_ms = DateTimeToTimeStamp(Now());
+                    TDateTime now = Now();
+                    *(TTimeStamp *)&(*iter)->nDeath_ms = DateTimeToTimeStamp(now);
                     (*iter)->chase_target_id = -1;
                     (*iter)->alive = false;
                     if ((*iter)->boss > 0 && Mapcontrol::Mapcontrol_KillChildNpcs(
@@ -12319,6 +12320,133 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
             return 1;
         }
         return 0;
+    }
+    if (action == PacketAction_TargetGroup)
+    {
+        if (!caster->logged_in)
+            return 0;
+        if (caster->sitting || caster->on_chair)
+            return 1;
+        if (data->Length() < 5)
+            return 0;
+        int spell_id = EO_DecodeNumber(server, data->SubString(1, 2));
+        int cast_tick = EO_DecodeNumber(server, data->SubString(3, 3));
+        int target_type = SkillValues::GetTargetType((*MAINFORM)->skill_values, spell_id);
+        if (spell_id != caster->queued_spell_id)
+            return 0;
+        if (cast_tick < caster->expected_cast_timestamp &&
+            (cast_tick > 1000 || caster->expected_cast_timestamp < 0x83ce30))
+            return 0;
+        if (target_type != SkillTargetType_Group)
+            return 1;
+        if (!Players::Player_HasSpellId(server->players, caster, spell_id))
+            return 1;
+        int skill_type = SkillValues::GetSkillType((*MAINFORM)->skill_values, spell_id);
+        int tp_cost = SkillValues::GetTpCost((*MAINFORM)->skill_values, spell_id);
+        int hp_heal = SkillValues::GetHpHeal((*MAINFORM)->skill_values, spell_id);
+        if (caster->tp < tp_cost)
+        {
+            String reply = EO_EncodeNumber(server, spell_id, 2);
+            reply.Insert(EO_EncodeNumber(server, caster->hp, 2), reply.Length() + 1);
+            reply.Insert(EO_EncodeNumber(server, caster->tp, 2), reply.Length() + 1);
+            Client_SendEncoded(
+                server, caster, PacketAction_Reply, PacketFamily_Spell, reply);
+            return 1;
+        }
+        if (hp_heal < 1)
+            return 1;
+        if (!caster->in_party)
+            return 1;
+        caster->tp -= tp_cost;
+        String reply = EO_EncodeNumber(server, spell_id, 2);
+        reply.Insert(EO_EncodeNumber(server, caster->player_id, 2), reply.Length() + 1);
+        reply.Insert(EO_EncodeNumber(server, caster->tp, 2), reply.Length() + 1);
+        reply.Insert(EO_EncodeNumber(server, hp_heal, 2), reply.Length() + 1);
+        for (int i = 0; i < PARTY_MAX_MEMBERS; i++)
+        {
+            Player *target =
+                Players::Players_GetById(server->players, caster->party_ids[i]);
+            if (target != 0 && target->map_id == caster->map_id)
+            {
+                target->hp += hp_heal;
+                if (target->hp > target->max_hp)
+                    target->hp = target->max_hp;
+                int hp_percent = target->hp * 100 / target->max_hp;
+                reply.Insert(EO_EncodeNumber(server, target->player_id, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, hp_percent, 1), reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, target->hp, 2), reply.Length() + 1);
+            }
+        }
+        Server_BroadcastToMap(
+            server, caster->map_id, PacketAction_TargetGroup, PacketFamily_Spell, reply);
+        return 1;
+    }
+    if (action == PacketAction_TargetSelf)
+    {
+        if (!caster->logged_in)
+            return 0;
+        if (caster->sitting || caster->on_chair)
+            return 1;
+        if (data->Length() < 6)
+            return 0;
+        int spell_id = EO_DecodeNumber(server, data->SubString(2, 2));
+        int cast_tick = EO_DecodeNumber(server, data->SubString(4, 3));
+        int target_type = SkillValues::GetTargetType((*MAINFORM)->skill_values, spell_id);
+        if (spell_id != caster->queued_spell_id)
+            return 0;
+        if (cast_tick < caster->expected_cast_timestamp &&
+            (cast_tick > 1000 || caster->expected_cast_timestamp < 0x83ce30))
+            return 0;
+        if (target_type != SkillTargetType_Self)
+            return 1;
+        if (!Players::Player_HasSpellId(server->players, caster, spell_id))
+            return 1;
+        int skill_type = SkillValues::GetSkillType((*MAINFORM)->skill_values, spell_id);
+        int tp_cost = SkillValues::GetTpCost((*MAINFORM)->skill_values, spell_id);
+        int hp_heal = SkillValues::GetHpHeal((*MAINFORM)->skill_values, spell_id);
+        if (caster->tp < tp_cost)
+        {
+            String reply = EO_EncodeNumber(server, spell_id, 2);
+            reply.Insert(EO_EncodeNumber(server, caster->hp, 2), reply.Length() + 1);
+            reply.Insert(EO_EncodeNumber(server, caster->tp, 2), reply.Length() + 1);
+            Client_SendEncoded(
+                server, caster, PacketAction_Reply, PacketFamily_Spell, reply);
+            return 1;
+        }
+        if (skill_type != 0)
+            return 1;
+        caster->hp += hp_heal;
+        caster->tp -= tp_cost;
+        if (caster->hp > caster->max_hp)
+            caster->hp = caster->max_hp;
+        int hp_percent = caster->hp * 100 / caster->max_hp;
+        String reply = EO_EncodeNumber(server, caster->player_id, 2);
+        reply.Insert(EO_EncodeNumber(server, spell_id, 2), reply.Length() + 1);
+        reply.Insert(EO_EncodeNumber(server, hp_heal, 4), reply.Length() + 1);
+        reply.Insert(EO_EncodeNumber(server, hp_percent, 1), reply.Length() + 1);
+        Server_BroadcastNearby(
+            server, caster, PacketAction_TargetSelf, PacketFamily_Spell, reply);
+        reply.Insert(EO_EncodeNumber(server, caster->hp, 2), reply.Length() + 1);
+        reply.Insert(EO_EncodeNumber(server, caster->tp, 2), reply.Length() + 1);
+        Client_SendEncoded(
+            server, caster, PacketAction_TargetSelf, PacketFamily_Spell, reply);
+        return 1;
+    }
+    if (action == PacketAction_Use)
+    {
+        if (!caster->logged_in)
+            return 0;
+        if (caster->sitting || caster->on_chair)
+            return 1;
+        if (data->Length() < 1)
+            return 0;
+        caster->direction = EO_DecodeNumber(server, (*data)[1]);
+        String reply = EO_EncodeNumber(server, caster->player_id, 2);
+        reply = reply + (*data)[1];
+        Server_BroadcastNearby(
+            server, caster, PacketAction_Player, PacketFamily_Spell, reply);
+        return 1;
     }
     return 0;
 }
