@@ -2058,10 +2058,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     bool done = false;
                     while (!done)
                     {
-                        try
+                        String s = PacketReader_GetBreakString(server);
+                        if (s != "EOF" && s.Length() > 0)
                         {
-                            String s = PacketReader_GetBreakString(server);
-                            if (s != "EOF" && s.Length() > 0)
+                            try
                             {
                                 int item_id = StrToInt(s);
                                 int amount =
@@ -2070,12 +2070,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 inv.amount = amount;
                                 player->bank.insert(player->bank.end(), inv);
                             }
-                            else
+                            catch (...)
                             {
                                 done = true;
                             }
                         }
-                        catch (...)
+                        else
                         {
                             done = true;
                         }
@@ -2087,19 +2087,23 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     bool done = false;
                     while (!done)
                     {
-                        try
+                        String s = PacketReader_GetBreakString(server);
+                        if (s != "EOF" && s.Length() > 0)
                         {
-                            String s = PacketReader_GetBreakString(server);
-                            if (s != "EOF" && s.Length() > 0)
+                            try
                             {
                                 int item_id = StrToInt(s);
                                 int amount =
                                     StrToInt(PacketReader_GetBreakString(server));
                                 if (amount < 0)
                                     continue;
-                                if (item_id == 1 && amount > 0x1e8480)
-                                    amount = 0x1e8480;
-                                player->weight_current =
+                                if (item_id == 1)
+                                {
+                                    field_0x19b4 += amount;
+                                    if (amount > 0x1e8480)
+                                        amount = 0x1e8480;
+                                }
+                                player->weight_current +=
                                     ItemValues::GetWeight((*MAINFORM)->item_values,
                                                           item_id) *
                                     amount;
@@ -2107,12 +2111,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 inv.amount = amount;
                                 player->inventory.insert(player->inventory.end(), inv);
                             }
-                            else
+                            catch (...)
                             {
                                 done = true;
                             }
                         }
-                        catch (...)
+                        else
                         {
                             done = true;
                         }
@@ -2124,10 +2128,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     bool done = false;
                     while (!done)
                     {
-                        try
+                        String s = PacketReader_GetBreakString(server);
+                        if (s != "EOF" && s.Length() > 0)
                         {
-                            String s = PacketReader_GetBreakString(server);
-                            if (s != "EOF" && s.Length() > 0)
+                            try
                             {
                                 int skill_id = StrToInt(s);
                                 int level = StrToInt(PacketReader_GetBreakString(server));
@@ -2135,27 +2139,29 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 skill.level = level;
                                 player->spells.insert(player->spells.end(), skill);
                             }
-                            else
+                            catch (...)
                             {
                                 done = true;
                             }
                         }
-                        catch (...)
+                        else
                         {
                             done = true;
                         }
                     }
                 }
+                String field_0x334 = slot->quest_cache;
+                String field_0x338 = slot->quest_blob;
                 if (slot->quest_cache != "EOF" && slot->quest_cache.Length() > 3)
                 {
                     PacketReader_Init(server, slot->quest_cache, ':');
                     bool done = false;
                     while (!done)
                     {
-                        try
+                        String s = PacketReader_GetBreakString(server);
+                        if (s != "EOF" && s.Length() > 0)
                         {
-                            String s = PacketReader_GetBreakString(server);
-                            if (s != "EOF" && s.Length() > 0)
+                            try
                             {
                                 int quest_id = StrToInt(s);
                                 int state_index =
@@ -2182,12 +2188,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                         server, player, &quest, false);
                                 }
                             }
-                            else
+                            catch (...)
                             {
                                 done = true;
                             }
                         }
-                        catch (...)
+                        else
                         {
                             done = true;
                         }
@@ -2199,27 +2205,30 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     bool done = false;
                     while (!done)
                     {
-                        try
+                        String s = PacketReader_GetBreakString(server);
+                        if (s != "EOF" && s.Length() > 0)
                         {
-                            String s = PacketReader_GetBreakString(server);
-                            if (s != "EOF" && s.Length() > 0)
+                            try
                             {
                                 int quest_id = StrToInt(s);
                                 PlayerQuest quest(quest_id, 0, 0);
                                 player->quest_history.insert(player->quest_history.end(),
                                                              quest);
                             }
-                            else
+                            catch (...)
                             {
                                 done = true;
                             }
                         }
-                        catch (...)
+                        else
                         {
                             done = true;
                         }
                     }
                 }
+                player->home_name =
+                    InnValues::GetName((*MAINFORM)->inn_values, player->home_id);
+                player->enter_game_timestamp = Now();
                 player->weight_max = player->adj_strength + 0x46;
                 if (player->weight_max > 0xfa)
                     player->weight_max = 0xfa;
@@ -2285,7 +2294,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             out.Insert(Refresh_BuildReply(server, player), out.Length() + 1);
             Client_SendEncoded(
                 server, player, PacketAction_Reply, PacketFamily_Welcome, out);
-            out = String(EO_GetBreakByte(server, EO_BREAK_BYTE));
+            out = EO_GetBreakByte(server, EO_BREAK_BYTE);
             out.Insert(Player_SerializeAvatar(server, player, -1), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, 1, 1), out.Length() + 1);
             Server_BroadcastNearby(
@@ -2360,8 +2369,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             (*MAINFORM)->class_values->string_list->Strings[index - 1],
                         0xc);
             }
+            return true;
         }
-        return true;
     }
     if (family == PacketFamily_Range && action == PacketAction_Request)
     {
