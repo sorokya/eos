@@ -52,6 +52,12 @@ void Player_FireQuestTriggers(Server *server, Player *player, int state_index, i
 MapCoord FUN_0047c6c0(int map_control, int map_id, unsigned int npc_index);
 unsigned int FUN_0047c634(int map_control, int map_id, unsigned int npc_index);
 char FUN_0047c3a4(int map_control, int map_id);
+char FUN_0047c3f0(int map_control, int map_id);
+unsigned int FUN_0047c27c(int map_control, int map_id, unsigned int x, unsigned int y);
+char FUN_0047c890(int map_control, int map_id, int x, int y);
+bool FUN_004879b0(int map_control, int map_id, int x, int y, int player_id);
+GroundItemInfo FUN_00487ac0(int map_control, int map_id, int index, int player_id);
+void FUN_004876c0(int map_control, int map_id, int index);
 bool Attack_Execute(Server *server, Player *caster, int action, String *reader);
 bool Spell_Execute(Server *server, Player *caster, int action, String *packet_data);
 String Player_SerializeAvatar(Server *server, Player *player, int arg);
@@ -864,6 +870,467 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 weight_current = 250;
             if (weight_max > 250)
                 weight_max = 250;
+            if (item_type == 0x19)
+            {
+                if (Players::Player_UnequipAll(server->players, player))
+                {
+                    String out = "";
+                    out.Insert(EO_EncodeNumber(server, player->player_id, 2),
+                               out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, 1, 1), out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, 0, 1), out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, player->boots_graphic_id, 2),
+                               out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, player->armor_graphic_id, 2),
+                               out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, player->hat_graphic_id, 2),
+                               out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, player->weapon_graphic_id, 2),
+                               out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, player->shield_graphic_id, 2),
+                               out.Length() + 1);
+                    Server_BroadcastNearby(server,
+                                           player,
+                                           PacketAction_Agree,
+                                           PacketFamily_Avatar,
+                                           out);
+                }
+                Player::UpdateBaseStats(player);
+                Player_CalculateStats(server, player);
+                Player::CalculateHP_TP_SP(player);
+                String out = EO_EncodeNumber(server, item_type, 1);
+                out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_hp, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_tp, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->adj_strength, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->adj_intelligence, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->adj_wisdom, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->adj_agility, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->adj_constitution, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->adj_charisma, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->min_damage, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_damage, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->accuracy, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->evasion, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->armor, 2),
+                           out.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Item, out);
+                Player_FireQuestTriggers(server, player, 0x190, 0);
+                return true;
+            }
+            if (item_type == 0x17)
+            {
+                int spec1 =
+                    ItemValues::Eif_GetSpec1((*MAINFORM)->item_values, item_id);
+                String out = EO_EncodeNumber(server, item_type, 1);
+                out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, spec1, 2), out.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Item, out);
+                out += EO_EncodeNumber(server, player->player_id, 2);
+                out.Insert(EO_EncodeNumber(server, spec1, 3), out.Length() + 1);
+                Server_BroadcastNearby(server,
+                                       player,
+                                       PacketAction_Player,
+                                       PacketFamily_Effect,
+                                       out);
+                Player_FireQuestTriggers(server, player, 0x190, 0);
+                return true;
+            }
+            if (item_type == 0x18)
+            {
+                int spec1 =
+                    ItemValues::Eif_GetSpec1((*MAINFORM)->item_values, item_id);
+                player->hair_color = spec1;
+                String out = EO_EncodeNumber(server, item_type, 1);
+                out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, spec1, 1), out.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Item, out);
+                out += EO_EncodeNumber(server, player->player_id, 2);
+                out.Insert(EO_EncodeNumber(server, 3, 1), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, 0, 1), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, spec1, 1), out.Length() + 1);
+                Server_BroadcastNearby(server,
+                                       player,
+                                       PacketAction_Agree,
+                                       PacketFamily_Avatar,
+                                       out);
+                Player_FireQuestTriggers(server, player, 0x190, 0);
+                return true;
+            }
+            if (item_type == 0x16)
+            {
+                String out = EO_EncodeNumber(server, item_type, 1);
+                out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Item, out);
+                Player_FireQuestTriggers(server, player, 0x190, 0);
+                return true;
+            }
+            if (item_type == 0x6)
+            {
+                player->experience +=
+                    ItemValues::Eif_GetSpec1((*MAINFORM)->item_values, item_id);
+                int levels = Players::Player_TryLevelUp(server->players, player);
+                if (levels > 0)
+                {
+                    Server_BroadcastNearby(
+                        server,
+                        player,
+                        PacketAction_Accept,
+                        PacketFamily_Item,
+                        EO_EncodeNumber(server, player->player_id, 2));
+                }
+                String out = EO_EncodeNumber(server, item_type, 1);
+                out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->experience, 4),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, levels, 1), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->stat_points, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->skill_points, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_hp, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_tp, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_sp, 2),
+                           out.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Item, out);
+                Player_FireQuestTriggers(server, player, 0x190, 0);
+                return true;
+            }
+            if (item_type == 0x3)
+            {
+                int hp = ItemValues::Eif_GetHP((*MAINFORM)->item_values, item_id);
+                int tp = ItemValues::Eif_GetTP((*MAINFORM)->item_values, item_id);
+                player->hp += hp;
+                player->tp += tp;
+                if (player->hp > player->max_hp)
+                    player->hp = player->max_hp;
+                if (player->tp > player->max_tp)
+                    player->tp = player->max_tp;
+                String out = EO_EncodeNumber(server, item_type, 1);
+                out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, hp, 4), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->hp, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->tp, 2), out.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Item, out);
+                if (hp > 0)
+                {
+                    int percent = player->hp * 100 / player->max_hp;
+                    out += EO_EncodeNumber(server, player->player_id, 2);
+                    out.Insert(EO_EncodeNumber(server, hp, 4), out.Length() + 1);
+                    out.Insert(EO_EncodeNumber(server, percent, 1), out.Length() + 1);
+                    Server_BroadcastNearby(server,
+                                           player,
+                                           PacketAction_Agree,
+                                           PacketFamily_Recover,
+                                           out);
+                    if (player->in_party)
+                    {
+                        String msg = EO_EncodeNumber(server, player->player_id, 2);
+                        msg.Insert(
+                            EO_EncodeNumber(server, Player::HpPercent(player), 1),
+                            msg.Length() + 1);
+                        Server_BroadcastToParty(server,
+                                                player,
+                                                PacketAction_Agree,
+                                                PacketFamily_Party,
+                                                msg);
+                    }
+                }
+                Player_FireQuestTriggers(server, player, 0x190, 0);
+                return true;
+            }
+            if (item_type == 0x4)
+            {
+                if (player->map_id == 0)
+                    return true;
+                if (FUN_0047c3f0((int)server->map_control, player->map_id))
+                {
+                    Players::Player_AddItem(server->players, player, item_id, 1);
+                    return true;
+                }
+                if (ItemValues::Eif_GetLevelRequirement((*MAINFORM)->item_values,
+                                                        item_id) > player->level)
+                {
+                    String out =
+                        "The scroll is unreadable, it requires level " +
+                        IntToStr(ItemValues::Eif_GetLevelRequirement(
+                            (*MAINFORM)->item_values, item_id));
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Server,
+                                       PacketFamily_Talk,
+                                       out);
+                    Players::Player_AddItem(server->players, player, item_id, 1);
+                    return true;
+                }
+                int scroll_map =
+                    ItemValues::Eif_GetScrollMap((*MAINFORM)->item_values, item_id);
+                ItemSpecXY spec =
+                    ItemValues::Eif_GetSpecXY((*MAINFORM)->item_values, item_id);
+                if (scroll_map < 1 ||
+                    Mapcontrol_GetCount(server->map_control) < scroll_map)
+                {
+                    if (scroll_map == 0 && spec.spec2 == 0 && spec.spec3 == 0)
+                    {
+                        scroll_map = InnValues::GetSpawnMap(
+                            (*MAINFORM)->inn_values, player->home_id, player->level);
+                        spec.spec2 = InnValues::GetSpawnX(
+                            (*MAINFORM)->inn_values, player->home_id, player->level);
+                        spec.spec3 = InnValues::GetSpawnY(
+                            (*MAINFORM)->inn_values, player->home_id, player->level);
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }
+                if (Mapcontrol_GetByIndex(server->map_control, scroll_map - 1)
+                            ->width < 1 ||
+                    Mapcontrol_GetByIndex(server->map_control, scroll_map - 1)
+                            ->height < 1)
+                    return true;
+                String out = EO_EncodeNumber(server, 4, 1);
+                out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Item, out);
+                Player_Warp(server, player, scroll_map, *(MapCoord *)&spec, 1, false);
+                return true;
+            }
+            return true;
+        }
+        if (action == PacketAction_Drop)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 7)
+                return false;
+            int item_id = EO_DecodeNumber(server, data.SubString(1, 2));
+            unsigned int amount = EO_DecodeNumber(server, data.SubString(3, 3));
+            int x = EO_DecodeNumber(server, data.SubString(6, 1));
+            int y = EO_DecodeNumber(server, data.SubString(7, 1));
+            if (ItemValues::Eif_GetSpecial((*MAINFORM)->item_values, item_id) == 4)
+                return true;
+            if (player->map_id == Settings::GetJailMap(server->settings))
+                return false;
+            if (player->drop_counter < 1)
+                return true;
+            player->drop_counter--;
+            if (amount > 0x989680 || amount < 1)
+                return true;
+            if (x > 0xfa || y > 0xfa)
+            {
+                x = player->x;
+                y = player->y;
+            }
+            if (GroundItemPtrVector_Count(
+                    &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                         ->ground_items) > 0x3e7)
+                return true;
+            if (!Server_InViewRing(server, player->x, player->y, x, y))
+                return true;
+            if (!FUN_0047c890((int)server->map_control, player->map_id, x, y))
+                return true;
+            if (!FUN_004879b0(
+                    (int)server->map_control, player->map_id, x, y, player->field_0xc))
+                return true;
+            if (!Players::Player_RemoveItem(server->players, player, item_id, amount))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Agree,
+                                   PacketFamily_Item,
+                                   EO_EncodeNumber(server, item_id, 2));
+                return true;
+            }
+            int ground_index = Mapcontrol::Mapcontrol_AddGroundItem(
+                server->map_control,
+                player->map_id,
+                item_id,
+                x,
+                y,
+                player->item_change_count,
+                player->field_0xc,
+                6);
+            if (ground_index < 0)
+                return true;
+            player->weight_current -=
+                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) *
+                player->item_change_count;
+            if (player->weight_current < 0)
+                player->weight_current = 0;
+            int drop_weight_current = player->weight_current;
+            int drop_weight_max = player->weight_max;
+            if (drop_weight_current > 250)
+                drop_weight_current = 250;
+            if (drop_weight_max > 250)
+                drop_weight_max = 250;
+            String out = EO_EncodeNumber(server, item_id, 2);
+            out.Insert(EO_EncodeNumber(server, ground_index, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->item_change_count, 3),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, x, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, y, 1), out.Length() + 1);
+            Server_BroadcastNearby(
+                server, player, PacketAction_Add, PacketFamily_Item, out);
+            out += EO_EncodeNumber(server, item_id, 2);
+            out.Insert(EO_EncodeNumber(server, player->item_change_count, 3),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, ground_index, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, x, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, y, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, drop_weight_current, 1),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, drop_weight_max, 1), out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Drop, PacketFamily_Item, out);
+            Player_FireQuestTriggers(server, player, 0x190, 0);
+            return true;
+        }
+        if (action == PacketAction_Junk)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 5)
+                return false;
+            int item_id = EO_DecodeNumber(server, data.SubString(1, 2));
+            unsigned int amount = EO_DecodeNumber(server, data.SubString(3, 3));
+            if (amount > 0x989680)
+                return true;
+            if (!Players::Player_RemoveItem(server->players, player, item_id, amount))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Agree,
+                                   PacketFamily_Item,
+                                   EO_EncodeNumber(server, item_id, 2));
+                return true;
+            }
+            player->weight_current -=
+                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) *
+                player->item_change_count;
+            if (player->weight_current < 0)
+                player->weight_current = 0;
+            int junk_weight_current = player->weight_current;
+            int junk_weight_max = player->weight_max;
+            if (junk_weight_current > 250)
+                junk_weight_current = 250;
+            if (junk_weight_max > 250)
+                junk_weight_max = 250;
+            String out = EO_EncodeNumber(server, item_id, 2);
+            out.Insert(EO_EncodeNumber(server, player->item_change_count, 3),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, junk_weight_current, 1),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, junk_weight_max, 1), out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Junk, PacketFamily_Item, out);
+            Player_FireQuestTriggers(server, player, 0x190, 0);
+            return true;
+        }
+        if (action == PacketAction_Get)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int ground_index = EO_DecodeNumber(server, data.SubString(1, 2));
+            GroundItemInfo info = FUN_00487ac0(
+                (int)server->map_control, player->map_id, ground_index, player->field_0xc);
+            if (info.x == -2)
+            {
+                String out = EO_EncodeNumber(server, 2, 2);
+                Client_SendEncoded(
+                    server, player, PacketAction_Spec, PacketFamily_Item, out);
+                return true;
+            }
+            if (info.x < 0 || info.y < 0)
+                return true;
+            if (!Server_InViewRing(server, player->x, player->y, info.x, info.y))
+                return true;
+            FUN_004876c0((int)server->map_control, player->map_id, ground_index);
+            Players::Player_AddItem(server->players, player, info.item_id, info.amount);
+            player->weight_current +=
+                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, info.item_id) *
+                info.amount;
+            if (player->weight_current < 0)
+                player->weight_current = 0;
+            int get_weight_current = player->weight_current;
+            int get_weight_max = player->weight_max;
+            if (get_weight_current > 250)
+                get_weight_current = 250;
+            if (get_weight_max > 250)
+                get_weight_max = 250;
+            String out = EO_EncodeNumber(server, ground_index, 2);
+            Server_BroadcastNearby(
+                server, player, PacketAction_Remove, PacketFamily_Item, out);
+            out += EO_EncodeNumber(server, ground_index, 2);
+            out.Insert(EO_EncodeNumber(server, info.item_id, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, info.amount, 3), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, get_weight_current, 1),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, get_weight_max, 1), out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Get, PacketFamily_Item, out);
+            Player_FireQuestTriggers(server, player, 0x190, 0);
             return true;
         }
     }
@@ -1607,6 +2074,183 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                          type_info.behavior_id);
             Client_SendEncoded(
                 server, player, PacketAction_Open, PacketFamily_Shop, open_data);
+            return true;
+        }
+    }
+    if (family == PacketFamily_Locker)
+    {
+        if (action == PacketAction_Take)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            MapCoord coords;
+            coords.x = EO_DecodeNumber(server, data.SubString(1, 1));
+            coords.y = EO_DecodeNumber(server, data.SubString(2, 1));
+            int item_id = EO_DecodeNumber(server, data.SubString(3, 2));
+            if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            if (FUN_0047c27c((int)server->map_control,
+                             player->map_id,
+                             coords.x,
+                             coords.y) != 0xf)
+                return true;
+            if (!Players::Player_RemoveBankItem(server->players, player, item_id))
+                return true;
+            Players::Player_AddItem(
+                server->players, player, item_id, player->item_change_count);
+            player->weight_current +=
+                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) *
+                player->item_change_count;
+            if (player->weight_current < 0)
+                player->weight_current = 0;
+            int take_weight_current = player->weight_current;
+            int take_weight_max = player->weight_max;
+            if (take_weight_current > 250)
+                take_weight_current = 250;
+            if (take_weight_max > 250)
+                take_weight_max = 250;
+            String out = EO_EncodeNumber(server, item_id, 2);
+            out.Insert(EO_EncodeNumber(server, player->item_change_count, 3),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, take_weight_current, 1),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, take_weight_max, 1), out.Length() + 1);
+            std::vector<PlayerInventory>::iterator iter;
+            for (iter = player->bank.begin(); iter != player->bank.end(); iter++)
+            {
+                out.Insert(EO_EncodeNumber(server, (*iter).item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, (*iter).amount, 3),
+                           out.Length() + 1);
+            }
+            Client_SendEncoded(
+                server, player, PacketAction_Get, PacketFamily_Locker, out);
+            Player_FireQuestTriggers(server, player, 0x190, 0);
+            return true;
+        }
+        if (action == PacketAction_Add)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 7)
+                return false;
+            MapCoord coords;
+            coords.x = EO_DecodeNumber(server, data.SubString(1, 1));
+            coords.y = EO_DecodeNumber(server, data.SubString(2, 1));
+            int item_id = EO_DecodeNumber(server, data.SubString(3, 2));
+            int amount = EO_DecodeNumber(server, data.SubString(5, 3));
+            if (amount > 0xc8 || item_id < 2)
+                return true;
+            if (player->bank.size() > 0x3c)
+            {
+                String out = EO_EncodeNumber(server, player->locker_bank, 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Spec, PacketFamily_Locker, out);
+                return true;
+            }
+            if (player->bank.size() > player->locker_bank * 5 + 0x18)
+            {
+                if (!Players::Player_HasBankItem(server->players, player, item_id))
+                {
+                    String out = EO_EncodeNumber(server, player->locker_bank, 1);
+                    Client_SendEncoded(
+                        server, player, PacketAction_Spec, PacketFamily_Locker, out);
+                    return true;
+                }
+            }
+            if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            if (FUN_0047c27c((int)server->map_control,
+                             player->map_id,
+                             coords.x,
+                             coords.y) != 0xf)
+                return true;
+            if (!Players::Player_RemoveItem(server->players, player, item_id, amount))
+            {
+                String out = EO_EncodeNumber(server, item_id, 2);
+                Client_SendEncoded(
+                    server, player, PacketAction_Agree, PacketFamily_Item, out);
+                return true;
+            }
+            player->weight_current -=
+                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) * amount;
+            if (player->weight_current < 0)
+                player->weight_current = 0;
+            int add_weight_current = player->weight_current;
+            int add_weight_max = player->weight_max;
+            if (add_weight_current > 250)
+                add_weight_current = 250;
+            if (add_weight_max > 250)
+                add_weight_max = 250;
+            Players::Player_AddBankItem(
+                server->players, player, item_id, player->item_change_count);
+            String out = EO_EncodeNumber(server, item_id, 2);
+            out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, add_weight_current, 1),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, add_weight_max, 1), out.Length() + 1);
+            std::vector<PlayerInventory>::iterator iter;
+            for (iter = player->bank.begin(); iter != player->bank.end(); iter++)
+            {
+                out.Insert(EO_EncodeNumber(server, (*iter).item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, (*iter).amount, 3),
+                           out.Length() + 1);
+            }
+            Client_SendEncoded(
+                server, player, PacketAction_Reply, PacketFamily_Locker, out);
+            Player_FireQuestTriggers(server, player, 0x190, 0);
+            return true;
+        }
+        if (action == PacketAction_Open)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            MapCoord coords;
+            coords.x = EO_DecodeNumber(server, data.SubString(1, 1));
+            coords.y = EO_DecodeNumber(server, data.SubString(2, 1));
+            if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            if (FUN_0047c27c((int)server->map_control,
+                             player->map_id,
+                             coords.x,
+                             coords.y) != 0xf)
+                return true;
+            String out = EO_EncodeNumber(server, 1, 2);
+            std::vector<PlayerInventory>::iterator iter;
+            for (iter = player->bank.begin(); iter != player->bank.end(); iter++)
+            {
+                out.Insert(EO_EncodeNumber(server, (*iter).item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, (*iter).amount, 3),
+                           out.Length() + 1);
+            }
+            Client_SendEncoded(
+                server, player, PacketAction_Open, PacketFamily_Locker, out);
+            return true;
+        }
+        if (action == PacketAction_Buy)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 1)
+                return false;
+            if (player->locker_bank > 6)
+                return false;
+            int cost = player->locker_bank * 0x3e8 + 0x3e8;
+            if (!Players::Player_RemoveItem(server->players, player, 1, cost))
+                return true;
+            player->locker_bank++;
+            String out = EO_EncodeNumber(server, player->item_change_remaining, 4);
+            out.Insert(EO_EncodeNumber(server, player->locker_bank, 1),
+                       out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Buy, PacketFamily_Locker, out);
             return true;
         }
     }
