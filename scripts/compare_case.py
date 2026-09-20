@@ -21,9 +21,17 @@ Design (see scripts/README.md for the full rationale):
     until the whole function is complete.
   * Matching is a first-class, reported step.  The tool prints the anchor, the
     matched reference address, our instruction index and source line, and the
-    *number of candidate matches*.  **It refuses (exit 2) unless the anchor
-    matches exactly one place**, because a wrong alignment that reports a
-    plausible-looking mismatch count is the worst possible failure mode.
+    *number of candidate matches*.  A short anchor is not unique wherever a
+    case-dispatch prologue repeats (the first six canonical instructions of
+    `Player_HandlePacket`, `cmp [ebp-SLOT],18` / `jne` / ..., occur verbatim in
+    several `if (action == PacketAction_List)` cases), so the tool **extends the
+    anchor one reference instruction at a time until exactly one candidate
+    remains**, or the whole reference slice has been consumed.  Extension is
+    evidence, never a tie-break: the returned anchor is a longer *exact*
+    sequence.  **If the whole reference slice still matches more than one place
+    it refuses (exit 2) with the candidate list**, because a wrong alignment
+    that reports a plausible-looking mismatch count is the worst possible
+    failure mode.
   * The comparison reuses `compare_asm`'s canonicalization, alias folding and
     strict-operand machinery (imported, not forked), so the two tools cannot
     drift apart.  By default the per-case comparison keeps opcodes, registers,
@@ -60,6 +68,7 @@ import difflib
 import os
 import re
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -123,14 +132,37 @@ def resolve_prefix(func: str, unit: str, functions_tsv: str):
 
 
 def locate(our_norm, ref_norm, anchor_len: int):
-    """Return (anchor, candidate_index_list) for the anchor in our stream."""
+    """Return (anchor, candidate_index_list) for the *shortest unique* anchor.
+
+    The anchor starts as the first `anchor_len` canonicalized reference
+    instructions.  When that prefix matches more than one place it is
+    **extended** one reference instruction at a time, keeping only the
+    candidates that continue to match, until exactly one remains or the whole
+    reference slice has been consumed.
+
+    Extension is evidence, not a tie-break: the returned anchor is a longer
+    *exact* sequence, so a slice whose code is genuinely repeated still ends
+    with more than one candidate and the caller refuses it.  This is what
+    disambiguates the case-dispatch prologue of `Player_HandlePacket`, whose
+    first six canonical instructions (`cmp [ebp-SLOT],18` / `jne` / ... ) occur
+    verbatim in several `if (action == PacketAction_List)` cases; the sites
+    diverge a few instructions later, so a longer anchor is unique while the
+    six-instruction default is not.  Taking `cands[0]` at the default length
+    would silently align to the wrong case.
+    """
     if not ref_norm:
         return [], []
     n = min(anchor_len, len(ref_norm))
     anchor = ref_norm[:n]
     cands = [i for i in range(len(our_norm) - n + 1)
              if our_norm[i:i + n] == anchor]
-    return anchor, cands
+    m = n
+    while len(cands) > 1 and m < len(ref_norm):
+        want = ref_norm[m]
+        cands = [i for i in cands
+                 if i + m < len(our_norm) and our_norm[i + m] == want]
+        m += 1
+    return ref_norm[:m], cands
 
 
 def structural_hunks(ref, our):
@@ -204,9 +236,13 @@ def trim_prologue_pushes(seq, raws):
 # ---------------------------------------------------------------------------
 # Self-test
 #
-# Synthetic streams prove the three properties that make the locator safe to
-# trust: (a) an anchor with two candidate positions is refused, (b) a perturbed
-# instruction is reported, and (c) a correct slice reports zero mismatches.
+# Synthetic streams prove the properties that make the locator safe to trust:
+# (a) an anchor whose *whole* reference slice is repeated is refused, (b) a
+# perturbed instruction is reported, (c) a correct slice reports zero
+# mismatches, (d) a repeated short prefix is extended until it is unique
+# instead of silently taking the first candidate, and (e) a bcc32 `-S` function
+# body with an in-function data region (a jump/exception table emitted as
+# `dd`/`db` between real instructions) parses to the real instructions only.
 # It runs without a build, so it can gate the tool in any environment.
 
 _SELFTEST_REF = [
@@ -220,25 +256,64 @@ _SELFTEST_REF = [
     "ret",
 ]
 
+# A synthetic bcc32 `-S` listing: two blocks of real instructions with a data
+# region (the `@1 label dword` / `dd` / `db` jump table) in between.  The data
+# region must contribute no instructions; if the parser mistook its
+# instruction-shaped bytes for code it would inject duplicate anchors.
+_SELFTEST_LISTING = """\
+_TEXT\tsegment
+@Selftest$qv proc near
+\tpush ebp
+\tmov ebp, esp
+\t?debug L 10
+\tcmp dword ptr [ebp-4], 18
+\tjne @3
+\txor eax, eax
+@1 label dword
+\tdd 0
+\tdd @2
+\tdb 90h
+@2:
+\tret
+@3:
+\tret
+@Selftest$qv endp
+_TEXT\tends
+\tend
+"""
+_SELFTEST_LISTING_CODE = [
+    "push ebp",
+    "mov ebp,esp",
+    "cmp[ebp-4],18",
+    "jne ADDR",
+    "xor eax,eax",
+    "ret",
+    "ret",
+]
+
 
 def selftest() -> int:
     failures = []
 
-    # (a) ambiguous anchor: the same eight-instruction run appears twice.
+    # (a) the whole reference slice is repeated: extension cannot help, so the
+    #     two candidates must survive and the caller must refuse.
     stream = list(_SELFTEST_REF) + ["mov eax,7"] + list(_SELFTEST_REF)
-    _, cands = locate(stream, _SELFTEST_REF, ANCHOR_DEFAULT)
-    if cands == [0, 9]:
-        print("selftest (a) ambiguous anchor: 2 candidates at [0, 9] -> refused")
+    anchor, cands = locate(stream, _SELFTEST_REF, ANCHOR_DEFAULT)
+    if cands == [0, 9] and len(anchor) == len(_SELFTEST_REF):
+        print("selftest (a) fully repeated slice: 2 candidates at [0, 9] -> "
+              "refused")
     else:
-        failures.append(f"(a) expected candidates [0, 9], got {cands}")
+        failures.append(f"(a) expected candidates [0, 9] at full length, "
+                        f"got {cands} at length {len(anchor)}")
 
-    # A unique anchor must yield exactly one candidate.
+    # A unique anchor must yield exactly one candidate at the requested length.
     unique = list(_SELFTEST_REF)
-    _, cands = locate(unique, _SELFTEST_REF, ANCHOR_DEFAULT)
-    if cands == [0]:
+    anchor, cands = locate(unique, _SELFTEST_REF, ANCHOR_DEFAULT)
+    if cands == [0] and len(anchor) == ANCHOR_DEFAULT:
         print("selftest (a) unique anchor: 1 candidate at [0]")
     else:
-        failures.append(f"(a) expected candidates [0], got {cands}")
+        failures.append(f"(a) expected candidates [0] at length "
+                        f"{ANCHOR_DEFAULT}, got {cands} at length {len(anchor)}")
 
     # (b) a deliberately perturbed instruction is reported.
     perturbed = list(unique)
@@ -256,11 +331,50 @@ def selftest() -> int:
     else:
         failures.append(f"(c) expected 0 mismatches, got {mism}")
 
+    # (d) a repeated short prefix, uniquified only by a few later instructions:
+    #     the locator must extend the anchor, not take the first candidate.
+    prefix = list(_SELFTEST_REF[:6])
+    tail_a = ["add ecx,1", "ret"]
+    tail_b = ["sub ecx,1", "ret"]
+    ref_slice = prefix + tail_a
+    repeat_stream = ref_slice + ["mov eax,7"] + prefix + tail_b
+    anchor, cands = locate(repeat_stream, ref_slice, ANCHOR_DEFAULT)
+    if cands == [0] and len(anchor) == len(ref_slice) - 1:
+        print(f"selftest (d) repeated prefix: anchor extended {ANCHOR_DEFAULT} "
+              f"-> {len(anchor)}, 1 candidate at [0]")
+    else:
+        failures.append(f"(d) expected 1 candidate at [0] with anchor length "
+                        f"{len(ref_slice) - 1}, got {cands} at length "
+                        f"{len(anchor)}")
+
+    # (e) an in-function data region must not be treated as instructions.
+    try:
+        fd, tmp = tempfile.mkstemp(suffix=".asm")
+        os.close(fd)
+        with open(tmp, "w", encoding="latin1") as fh:
+            fh.write(_SELFTEST_LISTING)
+        try:
+            out, calls, mk, raw = ca._parse_our(tmp, "@Selftest$qv")
+            out2, _, _, raw2, lines2 = parse_our_with_lines(tmp, "@Selftest$qv")
+        finally:
+            os.unlink(tmp)
+        if out == _SELFTEST_LISTING_CODE and out2 == _SELFTEST_LISTING_CODE:
+            if len(out2) == len(lines2) == len(raw2):
+                print("selftest (e) in-function data region: excluded "
+                      f"({len(out)} real instructions parsed)")
+            else:
+                failures.append("(e) instruction/line/raw lengths disagree: "
+                                f"{len(out2)}/{len(lines2)}/{len(raw2)}")
+        else:
+            failures.append(f"(e) expected {_SELFTEST_LISTING_CODE}, got {out}")
+    except OSError as exc:
+        failures.append(f"(e) could not exercise the parser: {exc}")
+
     if failures:
         for f in failures:
             print(f"selftest FAIL: {f}", file=sys.stderr)
         return 3
-    print("selftest OK (3/3)")
+    print("selftest OK (5/5)")
     return 0
 
 
@@ -281,8 +395,11 @@ def main() -> int:
                     help="read-only Ghidra inventory, used to label strict library "
                          "call targets")
     ap.add_argument("--anchor-len", type=int, default=ANCHOR_DEFAULT,
-                    help="number of leading canonicalized reference instructions "
-                         "that must match exactly once (default %(default)s)")
+                    help="minimum number of leading canonicalized reference "
+                         "instructions used to locate the slice (default "
+                         "%(default)s); the anchor is extended one reference "
+                         "instruction at a time until it matches exactly once or "
+                         "the whole reference slice is consumed")
     ap.add_argument("--strict-operands", action="store_true",
                     help="STRICT comparison: additionally compare the VALUE behind "
                          "each canonicalized address operand - string/data literal "
@@ -306,8 +423,10 @@ def main() -> int:
     ap.add_argument("--calls", action="store_true",
                     help="print the call symbol names in our listing")
     ap.add_argument("--selftest", action="store_true",
-                    help="run the locator/perturbation/clean-slice self-test and "
-                         "exit (does not touch the build)")
+                    help="run the locator (repeated-slice refusal, anchor "
+                         "extension), perturbation, clean-slice and in-function "
+                         "data-region self-test and exit (does not touch the "
+                         "build)")
     args = ap.parse_args()
 
     if args.selftest:
@@ -350,9 +469,13 @@ def main() -> int:
     # --- locate: first-class, reported, and loud on failure ---
     our_anchor = [case_norm(r, True) for r in raw]
     ref_anchor = [case_norm(r, True) for (_, r) in ref_raw]
+    base_len = min(args.anchor_len, len(ref_anchor))
     anchor, cands = locate(our_anchor, ref_anchor, args.anchor_len)
     print(f"\nanchor: {len(anchor)} canonical instruction(s), "
           f"{len(cands)} candidate match(es)")
+    if len(anchor) > base_len:
+        print(f"  (extended from {base_len} to {len(anchor)} instructions to "
+              f"disambiguate repeated code)")
     for k, a in enumerate(anchor):
         print(f"  {k + 1}: {a}")
     if len(cands) != 1:
@@ -362,9 +485,11 @@ def main() -> int:
                   f"instructions differ).")
         else:
             shown = ", ".join(str(c) for c in cands[:20])
-            print(f"anchor is ambiguous ({len(cands)} matches at indices {shown})"
-                  f"; refusing to compare the wrong slice. Increase --anchor-len "
-                  f"or narrow the function.")
+            print(f"anchor is ambiguous even at the full reference slice "
+                  f"({len(cands)} matches at indices {shown}); refusing to "
+                  f"compare the wrong slice — the requested code is genuinely "
+                  f"repeated. Narrow the reference range to a non-repeated "
+                  f"region.")
         return 2
     idx = cands[0]
     line = lines[idx] if idx < len(lines) else "?"

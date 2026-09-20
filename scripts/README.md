@@ -223,12 +223,23 @@ make clean     # remove build/
   function-global facts a partially reconstructed function cannot yet match:
   `[ebp-N]`/`[ebp+N]` offsets become `[ebp-SLOT]`, and an EH scope marker
   (`mov word ptr [ebp-N], imm`) has its value folded to `MARK` (the frame layout
-  and the cleanup-table byte offset are function-global). **It refuses (exit 2,
-  explicit message) unless the anchor matches exactly one place** — a wrong
-  alignment that reports a plausible-looking mismatch count is the worst possible
-  failure mode, so a zero-match or multi-match anchor is never silently resolved.
-  The self-test (`--selftest`; `make case-selftest`) proves the ambiguous-match
-  refusal, the perturbed-instruction report, and the zero-mismatch correct slice.
+  and the cleanup-table byte offset are function-global). A short anchor is
+  ambiguous wherever a case-dispatch prologue repeats — the first six canonical
+  instructions of `Player_HandlePacket` (`cmp [ebp-SLOT],18` / `jne` / ... )
+  occur verbatim in several `if (action == PacketAction_List)` cases — so the
+  tool **extends the anchor one reference instruction at a time, keeping only
+  the candidates that continue to match, until exactly one remains** or the whole
+  reference slice has been consumed. Extension is evidence, not a tie-break: the
+  anchor returned is a longer *exact* sequence, so taking the first of several
+  equally short matches is impossible. **It refuses (exit 2, explicit message)
+  only when even the full reference slice matches zero or more than one place** —
+  a wrong alignment that reports a plausible-looking mismatch count is the worst
+  possible failure mode, so genuine repeats are still never silently resolved.
+  The self-test (`--selftest`; `make case-selftest`) proves the fully-repeated
+  refusal, the anchor extension that uniquifies a repeated short prefix, the
+  perturbed-instruction report, the zero-mismatch correct slice, and that an
+  in-function data region (a jump/exception table emitted as `dd`/`db` between
+  real instructions) is not parsed as instructions.
 
   **The comparison reuses `compare_asm`'s canonicalization, alias folding and
   strict-operand machinery** (imported, not forked, so the two cannot drift

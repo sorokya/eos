@@ -69,7 +69,10 @@ void FUN_00463be8(Server *server,
                   unsigned char action,
                   unsigned char family,
                   String data);
-void FUN_00463d40(Server *server, unsigned char action, unsigned char family, String data);
+void FUN_00463d40(Server *server,
+                  unsigned char action,
+                  unsigned char family,
+                  String data);
 void FUN_00466840(Server *server, int map_id);
 void FUN_00473920(Server *server, String message);
 void Talk_PlayerWhisper(Server *server, int map_id, String message, int break_byte);
@@ -102,10 +105,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
     player->sequence++;
     if (player->sequence > 9)
         player->sequence = 0;
-    for (int i = 1; i < data.Length(); i++)
+    for (int i = 1; i <= data.Length(); i++)
     {
         int c = (unsigned char)data[i];
-        if (c >= 0x80)
+        if (c < 0x80)
             data[i] += (char)0x80;
         if (c > 0x80)
             data[i] += (char)0x80;
@@ -125,7 +128,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         if (server->ping_history[i] == size)
             found = true;
     if (!found)
-        return false;
+        return true;
     (*MAINFORM)->field_370 = family;
     (*MAINFORM)->field_36c = action;
     if (family == PacketFamily_Walk)
@@ -177,8 +180,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         PacketAction_Server,
                         PacketFamily_Talk,
                         "kill status : " + IntToStr(kills) + "/" + IntToStr(max_kills) +
-                            " -> " + IntToStr(remaining) +
-                            " exp-kills left for today.");
+                            " -> " + IntToStr(remaining) + " exp-kills left for today.");
                     return true;
                 }
             }
@@ -306,8 +308,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         return false;
                     }
                     target->flush_queue = 1;
-                    Player_Warp(
-                        server, target, player->map_id, coords, 2, false);
+                    Player_Warp(server, target, player->map_id, coords, 2, false);
                 }
             }
             catch (...)
@@ -333,8 +334,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         MapContainer *map = Mapcontrol_GetByIndex(
                             server->map_control, (short)target->map_id - 1);
                         coords.x = (int)(unsigned int)map->width >> 1;
-                        map = Mapcontrol_GetByIndex(
-                            server->map_control, (short)target->map_id - 1);
+                        map = Mapcontrol_GetByIndex(server->map_control,
+                                                    (short)target->map_id - 1);
                         coords.y = (int)(unsigned int)map->height >> 1;
                         if (coords.x < 7 && coords.y < 7)
                             return true;
@@ -346,10 +347,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             coords.y += (int)(unsigned int)map->height >> 2;
                         if (coords.y <= target->y)
                             coords.y = (int)coords.y >> 1;
-                        if (!Mapcontrol::Map_IsTileClear(server->map_control,
-                                                         target->map_id,
-                                                         coords.x,
-                                                         coords.y))
+                        if (!Mapcontrol::Map_IsTileClear(
+                                server->map_control, target->map_id, coords.x, coords.y))
                         {
                             coords.x = 2;
                             coords.y = 2;
@@ -357,8 +356,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                     server->map_control, target->map_id, 2, 2))
                                 return true;
                         }
-                        Player_Warp(
-                            server, player, target->map_id, coords, 1, false);
+                        Player_Warp(server, player, target->map_id, coords, 1, false);
                     }
                     else
                     {
@@ -370,16 +368,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             coords.x++;
                         if (target->direction == 0)
                             coords.y++;
-                        if (!Mapcontrol::Map_IsTileClear(server->map_control,
-                                                         target->map_id,
-                                                         coords.x,
-                                                         coords.y))
+                        if (!Mapcontrol::Map_IsTileClear(
+                                server->map_control, target->map_id, coords.x, coords.y))
                         {
                             coords.x = target->x;
                             coords.y = target->y;
                         }
-                        Player_Warp(
-                            server, player, target->map_id, coords, 2, false);
+                        Player_Warp(server, player, target->map_id, coords, 2, false);
                     }
                 }
             }
@@ -447,8 +442,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                        player,
                                        PacketAction_Server,
                                        PacketFamily_Talk,
-                                       "World communication changed to: " + comm +
-                                           " -" + player->name);
+                                       "World communication changed to: " + comm + " -" +
+                                           player->name);
                 }
             }
             catch (...)
@@ -472,16 +467,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             return true;
                         String out = EO_EncodeNumber(server, target->player_id, 2);
                         out.Insert(message, out.Length() + 1);
-                        Server_BroadcastNearby(server,
-                                               target,
-                                               PacketAction_Player,
-                                               PacketFamily_Talk,
-                                               out);
-                        Client_SendEncoded(server,
-                                           target,
-                                           PacketAction_Player,
-                                           PacketFamily_Talk,
-                                           out);
+                        Server_BroadcastNearby(
+                            server, target, PacketAction_Player, PacketFamily_Talk, out);
+                        Client_SendEncoded(
+                            server, target, PacketAction_Player, PacketFamily_Talk, out);
                     }
                 }
             }
@@ -499,18 +488,17 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     if (command == "stats")
                     {
                         String out = "Server stats requested by " + player->name + " [";
-                        out.Insert(IntToStr((*MAINFORM)
-                                                ->server->Socket->ActiveConnections) +
-                                       " conn] [",
-                                   out.Length() + 1);
+                        out.Insert(
+                            IntToStr((*MAINFORM)->server->Socket->ActiveConnections) +
+                                " conn] [",
+                            out.Length() + 1);
                         out.Insert(
                             IntToStr(Players::Players_GetIdleTimeout(server->players)) +
                                 " players] [",
                             out.Length() + 1);
-                        out.Insert(
-                            FUN_004731d0(server) + " b/w out] [", out.Length() + 1);
-                        out.Insert(
-                            FUN_00473540(server) + " b/w in]", out.Length() + 1);
+                        out.Insert(FUN_004731d0(server) + " b/w out] [",
+                                   out.Length() + 1);
+                        out.Insert(FUN_00473540(server) + " b/w in]", out.Length() + 1);
                         Server_BroadcastToMap(server,
                                               player->map_id,
                                               PacketAction_Server,
@@ -524,10 +512,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             IntToStr(Settings::GetMaxConnections(server->settings)) +
                                 " max. connections] [",
                             out.Length() + 1);
-                        out.Insert(
-                            IntToStr(Settings::GetMaxPlayers(server->settings)) +
-                                " max. players]",
-                            out.Length() + 1);
+                        out.Insert(IntToStr(Settings::GetMaxPlayers(server->settings)) +
+                                       " max. players]",
+                                   out.Length() + 1);
                         Server_BroadcastToMap(server,
                                               player->map_id,
                                               PacketAction_Server,
@@ -555,12 +542,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             PacketAction_Remove,
                             PacketFamily_AdminInteract,
                             EO_EncodeNumber(server, player->player_id, 2));
-                        Client_SendEncoded(
-                            server,
-                            player,
-                            PacketAction_Remove,
-                            PacketFamily_AdminInteract,
-                            EO_EncodeNumber(server, player->player_id, 2));
+                        Client_SendEncoded(server,
+                                           player,
+                                           PacketAction_Remove,
+                                           PacketFamily_AdminInteract,
+                                           EO_EncodeNumber(server, player->player_id, 2));
                     }
                     else
                     {
@@ -572,20 +558,18 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             PacketAction_Agree,
                             PacketFamily_AdminInteract,
                             EO_EncodeNumber(server, player->player_id, 2));
-                        Client_SendEncoded(
-                            server,
-                            player,
-                            PacketAction_Agree,
-                            PacketFamily_AdminInteract,
-                            EO_EncodeNumber(server, player->player_id, 2));
+                        Client_SendEncoded(server,
+                                           player,
+                                           PacketAction_Agree,
+                                           PacketFamily_AdminInteract,
+                                           EO_EncodeNumber(server, player->player_id, 2));
                     }
                 }
                 if (data[2] == 'k' || data[2] == 's' || data[2] == 'b')
                 {
                     if (player->admin_level < 2)
                         return true;
-                    PacketReader_Init(
-                        server, data.SubString(4, data.Length() - 3), '.');
+                    PacketReader_Init(server, data.SubString(4, data.Length() - 3), '.');
                     int i = 0;
                     do
                     {
@@ -655,8 +639,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 {
                     if (player->admin_level < 4)
                         return true;
-                    PacketReader_Init(
-                        server, data.SubString(4, data.Length() - 3), '.');
+                    PacketReader_Init(server, data.SubString(4, data.Length() - 3), '.');
                     int i = 0;
                     do
                     {
@@ -698,8 +681,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 {
                     if (player->admin_level < 4)
                         return true;
-                    PacketReader_Init(
-                        server, data.SubString(4, data.Length() - 3), '.');
+                    PacketReader_Init(server, data.SubString(4, data.Length() - 3), '.');
                     int i = 0;
                     do
                     {
@@ -718,11 +700,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                      "Attention!! " + target->name +
                                          " has been banned -" + player->name +
                                          " [ perm-IP ban]");
-                        Banned::AddBan(server->banned,
-                                       target->remote_ip,
-                                       target->hdid,
-                                       true,
-                                       0x2ee);
+                        Banned::AddBan(
+                            server->banned, target->remote_ip, target->hdid, true, 0x2ee);
                         Banned::AddBan(server->banned,
                                        target->remote_ip,
                                        target->hdid,
@@ -750,8 +729,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             try
             {
-                if (data[2] == 'i' || data[2] == 'p' || data[2] == 'a' ||
-                    data[2] == 'h')
+                if (data[2] == 'i' || data[2] == 'p' || data[2] == 'a' || data[2] == 'h')
                 {
                     if (player->admin_level < 1)
                         return true;
@@ -763,16 +741,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     if (target->admin_level > 1 && target != player)
                         return true;
                     String out = target->name;
-                    out.Insert(String(EO_GetBreakByte(server, 0xff)),
-                               out.Length() + 1);
+                    out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
                     out.Insert(EO_EncodeNumber(server, target->usage, 4),
                                out.Length() + 1);
-                    out.Insert(String(EO_GetBreakByte(server, 0xff)),
-                               out.Length() + 1);
+                    out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
                     out.Insert(EO_EncodeNumber(server, target->money_bank, 4),
                                out.Length() + 1);
-                    out.Insert(String(EO_GetBreakByte(server, 0xff)),
-                               out.Length() + 1);
+                    out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
                     if (data[2] == 'p')
                     {
                         out.Insert(EO_EncodeNumber(server, target->experience, 4),
@@ -795,16 +770,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    out.Length() + 1);
                         out.Insert(EO_EncodeNumber(server, target->adj_strength, 2),
                                    out.Length() + 1);
-                        out.Insert(
-                            EO_EncodeNumber(server, target->adj_intelligence, 2),
-                            out.Length() + 1);
+                        out.Insert(EO_EncodeNumber(server, target->adj_intelligence, 2),
+                                   out.Length() + 1);
                         out.Insert(EO_EncodeNumber(server, target->adj_wisdom, 2),
                                    out.Length() + 1);
                         out.Insert(EO_EncodeNumber(server, target->adj_agility, 2),
                                    out.Length() + 1);
-                        out.Insert(
-                            EO_EncodeNumber(server, target->adj_constitution, 2),
-                            out.Length() + 1);
+                        out.Insert(EO_EncodeNumber(server, target->adj_constitution, 2),
+                                   out.Length() + 1);
                         out.Insert(EO_EncodeNumber(server, target->adj_charisma, 2),
                                    out.Length() + 1);
                         out.Insert(EO_EncodeNumber(server, target->max_damage, 2),
@@ -835,9 +808,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         out.Insert(
                             EO_EncodeNumber(server, target->element_resistances[5], 2),
                             out.Length() + 1);
-                        out.Insert(
-                            EO_EncodeNumber(server, target->weight_current, 1),
-                            out.Length() + 1);
+                        out.Insert(EO_EncodeNumber(server, target->weight_current, 1),
+                                   out.Length() + 1);
                         out.Insert(EO_EncodeNumber(server, target->weight_max, 1),
                                    out.Length() + 1);
                         Client_SendEncoded(server,
@@ -877,15 +849,15 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         {
                             int kills =
                                 KillCounters::Get(server->kill_counters, target->name);
-                            Client_SendEncoded(
-                                server,
-                                player,
-                                PacketAction_Server,
-                                PacketFamily_Talk,
-                                target->name + " connection: " + target->remote_ip +
-                                    ", hds: " + target->hdid + ", acc: " +
-                                    target->account_name + ", kills: " +
-                                    IntToStr(kills));
+                            Client_SendEncoded(server,
+                                               player,
+                                               PacketAction_Server,
+                                               PacketFamily_Talk,
+                                               target->name +
+                                                   " connection: " + target->remote_ip +
+                                                   ", hds: " + target->hdid +
+                                                   ", acc: " + target->account_name +
+                                                   ", kills: " + IntToStr(kills));
                         }
                     }
                     if (data[2] == 'h')
@@ -904,8 +876,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                player,
                                                PacketAction_Server,
                                                PacketFamily_Talk,
-                                               target->name +
-                                                   " is detected as a BOT.");
+                                               target->name + " is detected as a BOT.");
                     }
                 }
             }
@@ -934,8 +905,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                      PacketAction_Server,
                                      PacketFamily_Talk,
                                      "Attention!! " + target->name +
-                                         " movement has been frozen -" +
-                                         player->name);
+                                         " movement has been frozen -" + player->name);
                     }
                     if (data[2] == 'u')
                     {
@@ -946,8 +916,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                      PacketAction_Server,
                                      PacketFamily_Talk,
                                      "Attention!! " + target->name +
-                                         " movement has been released -" +
-                                         player->name);
+                                         " movement has been released -" + player->name);
                     }
                 }
             }
@@ -1019,15 +988,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         return true;
                     PacketReader_Init(server, data.SubString(4, seq.Length() - 4), '.');
                     int map_id = StrToInt(PacketReader_GetBreakString(server));
-                    if (map_id > 0 &&
-                        map_id < Mapcontrol_GetCount(server->map_control))
+                    if (map_id > 0 && map_id < Mapcontrol_GetCount(server->map_control))
                     {
                         MapCoord coords;
-                        MapContainer *map = Mapcontrol_GetByIndex(
-                            server->map_control, (short)map_id - 1);
+                        MapContainer *map =
+                            Mapcontrol_GetByIndex(server->map_control, (short)map_id - 1);
                         coords.x = (int)(unsigned int)map->width >> 1;
-                        map = Mapcontrol_GetByIndex(
-                            server->map_control, (short)map_id - 1);
+                        map =
+                            Mapcontrol_GetByIndex(server->map_control, (short)map_id - 1);
                         coords.y = (int)(unsigned int)map->height >> 1;
                         player->flush_queue = 1;
                         Player_Warp(server, player, map_id, coords, 0, false);
@@ -1053,8 +1021,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (Settings::GetChatLog(server->settings))
             {
                 FUN_00473920(server,
-                             "[GRP] [" + player->name + "," + player->remote_ip +
-                                 "] " + data);
+                             "[GRP] [" + player->name + "," + player->remote_ip + "] " +
+                                 data);
             }
             Server_BroadcastToPartyExceptSelf(
                 server, player, PacketAction_Open, PacketFamily_Talk, out);
@@ -1073,8 +1041,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (Settings::GetChatLog(server->settings))
             {
                 FUN_00473920(server,
-                             "[GUI] [" + player->name + "," + player->remote_ip +
-                                 "] " + data);
+                             "[GUI] [" + player->name + "," + player->remote_ip + "] " +
+                                 data);
             }
             Guild_BroadcastToAll(
                 server, player, PacketAction_Request, PacketFamily_Talk, out);
@@ -1117,8 +1085,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             {
                 String out = player->name;
                 out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
-                out.Insert("Sorry, " + name +
-                               " cannot hear any whispers at the moment.",
+                out.Insert("Sorry, " + name + " cannot hear any whispers at the moment.",
                            out.Length() + 1);
                 Client_SendEncoded(
                     server, player, PacketAction_Tell, PacketFamily_Talk, out);
@@ -1131,11 +1098,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             {
                 FUN_00473920(server,
                              "[PRV] [" + player->name + "," + player->remote_ip +
-                                 "] to [" + target->name + "," +
-                                 target->remote_ip + "] " + data);
+                                 "] to [" + target->name + "," + target->remote_ip +
+                                 "] " + data);
             }
-            Client_SendEncoded(
-                server, target, PacketAction_Tell, PacketFamily_Talk, out);
+            Client_SendEncoded(server, target, PacketAction_Tell, PacketFamily_Talk, out);
             return true;
         }
         if (action == PacketAction_Msg)
@@ -1160,14 +1126,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (AnsiStrPos("elebot.org for a", data.c_str()) > 0)
             {
-                FUN_00473920(
-                    server, "[SYS] [" + player->name + "] tagged as a BOT.");
+                FUN_00473920(server, "[SYS] [" + player->name + "] tagged as a BOT.");
                 player->cheater_flag = true;
             }
             if (AnsiStrPos("Download Oxybot", data.c_str()) > 0)
             {
-                FUN_00473920(
-                    server, "[SYS] [" + player->name + "] tagged as a BOT.");
+                FUN_00473920(server, "[SYS] [" + player->name + "] tagged as a BOT.");
                 player->cheater_flag = true;
             }
             String out = player->name;
@@ -1176,11 +1140,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (Settings::GetChatLog(server->settings))
             {
                 FUN_00473920(server,
-                             "[GLB] [" + player->name + "," + player->remote_ip +
-                                 "] " + data);
+                             "[GLB] [" + player->name + "," + player->remote_ip + "] " +
+                                 data);
             }
-            Admin_ReportToGMs(
-                server, player, PacketAction_Msg, PacketFamily_Talk, out);
+            Admin_ReportToGMs(server, player, PacketAction_Msg, PacketFamily_Talk, out);
             player->field_0x378--;
             out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
             for (int i = 1; i < 7; i++)
@@ -1201,11 +1164,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (Settings::GetChatLog(server->settings))
             {
                 FUN_00473920(server,
-                             "[ADM] [" + player->name + "," + player->remote_ip +
-                                 "] " + data);
+                             "[ADM] [" + player->name + "," + player->remote_ip + "] " +
+                                 data);
             }
-            FUN_00463be8(
-                server, player, PacketAction_Admin, PacketFamily_Talk, out);
+            FUN_00463be8(server, player, PacketAction_Admin, PacketFamily_Talk, out);
             return true;
         }
         if (action == PacketAction_Announce)
@@ -1225,8 +1187,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (Settings::GetChatLog(server->settings))
             {
                 FUN_00473920(server,
-                             "[GLB2] [" + player->name + "," + player->remote_ip +
-                                 "] " + data);
+                             "[GLB2] [" + player->name + "," + player->remote_ip + "] " +
+                                 data);
             }
             Admin_BroadcastToAdmins(
                 server, player, PacketAction_Announce, PacketFamily_Talk, out);
@@ -1465,8 +1427,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 server->mysql_controls,
                 player->field_0xc,
                 "DELETE FROM endl_characters WHERE ident = " + IntToStr(character_id) +
-                    " AND ident_account = " +
-                    IntToStr((unsigned int)player->field_0xc));
+                    " AND ident_account = " + IntToStr((unsigned int)player->field_0xc));
             server->mysql_controls->file_cache->characters_count--;
             if (player->character_slot_0 != NULL &&
                 player->character_slot_0->character_id == character_id)
@@ -1636,8 +1597,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (Players::Players_GetIdleTimeout(server->players) >
                 Settings::GetMaxPlayers(server->settings))
             {
-                if (!server->logins->ConnectionLog_CheckIP(
-                        player->socket->RemoteAddress))
+                if (!server->logins->ConnectionLog_CheckIP(player->socket->RemoteAddress))
                 {
                     Client_SendEncoded(server,
                                        player,
@@ -1688,36 +1648,30 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                ->filesize,
                                            3),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server,
-                                           (*MAINFORM)->item_values->rid_1, 2),
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->item_values->rid_1, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server,
-                                           (*MAINFORM)->item_values->rid_2, 2),
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->item_values->rid_2, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server,
-                                           (*MAINFORM)->item_values->num_items, 2),
-                           out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, (*MAINFORM)->item_values->num_items, 2),
+                    out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, (*MAINFORM)->npc_values->rid1, 2),
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, (*MAINFORM)->npc_values->rid2, 2),
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, (*MAINFORM)->npc_values->count, 2),
                            out.Length() + 1);
-                out.Insert(
-                    EO_EncodeNumber(server, (*MAINFORM)->skill_values->rid1, 2),
-                    out.Length() + 1);
-                out.Insert(
-                    EO_EncodeNumber(server, (*MAINFORM)->skill_values->rid2, 2),
-                    out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->skill_values->rid1, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->skill_values->rid2, 2),
+                           out.Length() + 1);
                 out.Insert(
                     EO_EncodeNumber(server, (*MAINFORM)->skill_values->num_skills, 2),
                     out.Length() + 1);
-                out.Insert(
-                    EO_EncodeNumber(server, (*MAINFORM)->class_values->rid_1, 2),
-                    out.Length() + 1);
-                out.Insert(
-                    EO_EncodeNumber(server, (*MAINFORM)->class_values->rid_2, 2),
-                    out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->class_values->rid_1, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->class_values->rid_2, 2),
+                           out.Length() + 1);
                 out.Insert(
                     EO_EncodeNumber(server, (*MAINFORM)->class_values->num_classes, 2),
                     out.Length() + 1);
@@ -1759,8 +1713,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, slot->max_damage, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, slot->accuracy, 2),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->accuracy, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, slot->evasion, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, slot->armor, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, slot->adj_strength, 2),
@@ -1824,12 +1777,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                Settings::GetSpyAndLightGuideFloodRate(server->settings),
                                2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(
-                               server, Settings::GetGuardianFloodRate(server->settings), 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(
-                               server, Settings::GetGameMasterFloodRate(server->settings), 2),
-                           out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(
+                        server, Settings::GetGuardianFloodRate(server->settings), 2),
+                    out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(
+                        server, Settings::GetGameMasterFloodRate(server->settings), 2),
+                    out.Length() + 1);
                 out.Insert(EO_EncodeNumber(
                                server,
                                Settings::GetHighGameMasterFloodRate(server->settings),
@@ -2004,8 +1959,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             if (s != "EOF" && s.Length() > 0)
                             {
                                 int item_id = s.ToInt();
-                                int amount =
-                                    PacketReader_GetBreakString(server).ToInt();
+                                int amount = PacketReader_GetBreakString(server).ToInt();
                                 PlayerInventory inv(item_id);
                                 inv.amount = amount;
                                 player->bank.insert(player->bank.end(), inv);
@@ -2033,15 +1987,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             if (s != "EOF" && s.Length() > 0)
                             {
                                 int item_id = s.ToInt();
-                                int amount =
-                                    PacketReader_GetBreakString(server).ToInt();
+                                int amount = PacketReader_GetBreakString(server).ToInt();
                                 if (amount < 0)
                                     continue;
                                 if (item_id == 1 && amount > 0x1e8480)
                                     amount = 0x1e8480;
                                 player->weight_current =
-                                    ItemValues::Eif_GetWeight(
-                                        (*MAINFORM)->item_values, item_id) *
+                                    ItemValues::Eif_GetWeight((*MAINFORM)->item_values,
+                                                              item_id) *
                                     amount;
                                 PlayerInventory inv(item_id);
                                 inv.amount = amount;
@@ -2070,8 +2023,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             if (s != "EOF" && s.Length() > 0)
                             {
                                 int skill_id = s.ToInt();
-                                int level =
-                                    PacketReader_GetBreakString(server).ToInt();
+                                int level = PacketReader_GetBreakString(server).ToInt();
                                 PlayerSkill skill(skill_id);
                                 skill.level = level;
                                 player->spells.insert(player->spells.end(), skill);
@@ -2101,8 +2053,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 int quest_id = s.ToInt();
                                 int state_index =
                                     PacketReader_GetBreakString(server).ToInt();
-                                int version =
-                                    PacketReader_GetBreakString(server).ToInt();
+                                int version = PacketReader_GetBreakString(server).ToInt();
                                 if (version >= 0 &&
                                     Questengine::GetQuestVersion(server->quest_engine,
                                                                  quest_id) == version)
@@ -2126,7 +2077,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                             .ToInt();
                                     player->quest_trackers.insert(
                                         player->quest_trackers.end(), quest);
-                                    Player_ApplyQuestActions(server, player, &quest, false);
+                                    Player_ApplyQuestActions(
+                                        server, player, &quest, false);
                                 }
                             }
                             else
@@ -2153,8 +2105,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             {
                                 int quest_id = s.ToInt();
                                 PlayerQuest quest(quest_id, 0, 0);
-                                player->quest_history.insert(
-                                    player->quest_history.end(), quest);
+                                player->quest_history.insert(player->quest_history.end(),
+                                                             quest);
                             }
                             else
                             {
@@ -2193,7 +2145,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                     ->has_tp_drain;
             player->map_has_spikes =
-                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)->has_spikes;
+                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                    ->has_spikes;
             Mapcontrol::Mapcontrol_inc_player_count(server->map_control, player->map_id);
             String out = EO_EncodeNumber(server, 2, 2);
             out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
@@ -2217,17 +2170,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             for (iter = player->inventory.begin(); iter != player->inventory.end();
                  iter++)
             {
-                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, iter->amount, 4),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->amount, 4), out.Length() + 1);
             }
             out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
             std::vector<PlayerSkill>::iterator iter2;
             for (iter2 = player->spells.begin(); iter2 != player->spells.end(); iter2++)
             {
-                out.Insert(EO_EncodeNumber(server, iter2->skill_id, 2),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter2->skill_id, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, iter2->level, 2), out.Length() + 1);
             }
             out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
@@ -2261,16 +2211,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 Client_SendRaw(
                     server,
                     player,
-                    Map_ReadRawFile(
-                        server->map_control,
-                        EO_DecodeNumber(server, data.SubString(4, 2))),
+                    Map_ReadRawFile(server->map_control,
+                                    EO_DecodeNumber(server, data.SubString(4, 2))),
                     5);
             }
             if (code == 2)
             {
                 int index = EO_DecodeNumber(server, data.SubString(4, 1));
-                if (index > 0 &&
-                    (*MAINFORM)->item_values->string_list->Count >= index)
+                if (index > 0 && (*MAINFORM)->item_values->string_list->Count >= index)
                     Client_SendRaw(
                         server,
                         player,
@@ -2292,8 +2240,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (code == 4)
             {
                 int index = EO_DecodeNumber(server, data.SubString(4, 1));
-                if (index > 0 &&
-                    (*MAINFORM)->skill_values->string_list->Count >= index)
+                if (index > 0 && (*MAINFORM)->skill_values->string_list->Count >= index)
                     Client_SendRaw(
                         server,
                         player,
@@ -2304,8 +2251,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (code == 5)
             {
                 int index = EO_DecodeNumber(server, data.SubString(4, 1));
-                if (index > 0 &&
-                    (*MAINFORM)->class_values->string_list->Count >= index)
+                if (index > 0 && (*MAINFORM)->class_values->string_list->Count >= index)
                     Client_SendRaw(
                         server,
                         player,
@@ -2639,8 +2585,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (data.Length() < 2)
                 return false;
             int item_id = EO_DecodeNumber(server, data.SubString(1, 2));
-            int item_type =
-                ItemValues::Eif_GetType((*MAINFORM)->item_values, item_id);
+            int item_type = ItemValues::Eif_GetType((*MAINFORM)->item_values, item_id);
             if (!Players::Player_RemoveItem(server->players, player, item_id, 1))
             {
                 Client_SendEncoded(server,
@@ -2679,11 +2624,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                out.Length() + 1);
                     out.Insert(EO_EncodeNumber(server, player->shield_graphic_id, 2),
                                out.Length() + 1);
-                    Server_BroadcastNearby(server,
-                                           player,
-                                           PacketAction_Agree,
-                                           PacketFamily_Avatar,
-                                           out);
+                    Server_BroadcastNearby(
+                        server, player, PacketAction_Agree, PacketFamily_Avatar, out);
                 }
                 Player::UpdateBaseStats(player);
                 Player_CalculateStats(server, player);
@@ -2692,13 +2634,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, weight_current, 1),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, player->max_hp, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, player->max_tp, 2),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_hp, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_tp, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->adj_strength, 2),
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->adj_intelligence, 2),
@@ -2717,10 +2656,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->accuracy, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, player->evasion, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, player->armor, 2),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->evasion, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->armor, 2), out.Length() + 1);
                 Client_SendEncoded(
                     server, player, PacketAction_Reply, PacketFamily_Item, out);
                 Player_FireQuestTriggers(server, player, 0x190, 0);
@@ -2728,39 +2665,32 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (item_type == 0x17)
             {
-                int spec1 =
-                    ItemValues::Eif_GetSpec1((*MAINFORM)->item_values, item_id);
+                int spec1 = ItemValues::Eif_GetSpec1((*MAINFORM)->item_values, item_id);
                 String out = EO_EncodeNumber(server, item_type, 1);
                 out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, weight_current, 1),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, spec1, 2), out.Length() + 1);
                 Client_SendEncoded(
                     server, player, PacketAction_Reply, PacketFamily_Item, out);
                 out += EO_EncodeNumber(server, player->player_id, 2);
                 out.Insert(EO_EncodeNumber(server, spec1, 3), out.Length() + 1);
-                Server_BroadcastNearby(server,
-                                       player,
-                                       PacketAction_Player,
-                                       PacketFamily_Effect,
-                                       out);
+                Server_BroadcastNearby(
+                    server, player, PacketAction_Player, PacketFamily_Effect, out);
                 Player_FireQuestTriggers(server, player, 0x190, 0);
                 return true;
             }
             if (item_type == 0x18)
             {
-                int spec1 =
-                    ItemValues::Eif_GetSpec1((*MAINFORM)->item_values, item_id);
+                int spec1 = ItemValues::Eif_GetSpec1((*MAINFORM)->item_values, item_id);
                 player->hair_color = spec1;
                 String out = EO_EncodeNumber(server, item_type, 1);
                 out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, weight_current, 1),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, spec1, 1), out.Length() + 1);
                 Client_SendEncoded(
@@ -2769,11 +2699,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 out.Insert(EO_EncodeNumber(server, 3, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, 0, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, spec1, 1), out.Length() + 1);
-                Server_BroadcastNearby(server,
-                                       player,
-                                       PacketAction_Agree,
-                                       PacketFamily_Avatar,
-                                       out);
+                Server_BroadcastNearby(
+                    server, player, PacketAction_Agree, PacketFamily_Avatar, out);
                 Player_FireQuestTriggers(server, player, 0x190, 0);
                 return true;
             }
@@ -2783,8 +2710,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, weight_current, 1),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
                 Client_SendEncoded(
                     server, player, PacketAction_Reply, PacketFamily_Item, out);
@@ -2798,19 +2724,17 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 int levels = Players::Player_TryLevelUp(server->players, player);
                 if (levels > 0)
                 {
-                    Server_BroadcastNearby(
-                        server,
-                        player,
-                        PacketAction_Accept,
-                        PacketFamily_Item,
-                        EO_EncodeNumber(server, player->player_id, 2));
+                    Server_BroadcastNearby(server,
+                                           player,
+                                           PacketAction_Accept,
+                                           PacketFamily_Item,
+                                           EO_EncodeNumber(server, player->player_id, 2));
                 }
                 String out = EO_EncodeNumber(server, item_type, 1);
                 out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, weight_current, 1),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->experience, 4),
                            out.Length() + 1);
@@ -2819,12 +2743,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->skill_points, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, player->max_hp, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, player->max_tp, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, player->max_sp, 2),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_hp, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_tp, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_sp, 2), out.Length() + 1);
                 Client_SendEncoded(
                     server, player, PacketAction_Reply, PacketFamily_Item, out);
                 Player_FireQuestTriggers(server, player, 0x190, 0);
@@ -2844,8 +2765,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, weight_current, 1),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, hp, 4), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->hp, 2), out.Length() + 1);
@@ -2858,22 +2778,15 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     out += EO_EncodeNumber(server, player->player_id, 2);
                     out.Insert(EO_EncodeNumber(server, hp, 4), out.Length() + 1);
                     out.Insert(EO_EncodeNumber(server, percent, 1), out.Length() + 1);
-                    Server_BroadcastNearby(server,
-                                           player,
-                                           PacketAction_Agree,
-                                           PacketFamily_Recover,
-                                           out);
+                    Server_BroadcastNearby(
+                        server, player, PacketAction_Agree, PacketFamily_Recover, out);
                     if (player->in_party)
                     {
                         String msg = EO_EncodeNumber(server, player->player_id, 2);
-                        msg.Insert(
-                            EO_EncodeNumber(server, Player::HpPercent(player), 1),
-                            msg.Length() + 1);
-                        Server_BroadcastToParty(server,
-                                                player,
-                                                PacketAction_Agree,
-                                                PacketFamily_Party,
-                                                msg);
+                        msg.Insert(EO_EncodeNumber(server, Player::HpPercent(player), 1),
+                                   msg.Length() + 1);
+                        Server_BroadcastToParty(
+                            server, player, PacketAction_Agree, PacketFamily_Party, msg);
                     }
                 }
                 Player_FireQuestTriggers(server, player, 0x190, 0);
@@ -2891,15 +2804,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 if (ItemValues::Eif_GetLevelRequirement((*MAINFORM)->item_values,
                                                         item_id) > player->level)
                 {
-                    String out =
-                        "The scroll is unreadable, it requires level " +
-                        IntToStr(ItemValues::Eif_GetLevelRequirement(
-                            (*MAINFORM)->item_values, item_id));
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Server,
-                                       PacketFamily_Talk,
-                                       out);
+                    String out = "The scroll is unreadable, it requires level " +
+                                 IntToStr(ItemValues::Eif_GetLevelRequirement(
+                                     (*MAINFORM)->item_values, item_id));
+                    Client_SendEncoded(
+                        server, player, PacketAction_Server, PacketFamily_Talk, out);
                     Players::Player_AddItem(server->players, player, item_id, 1);
                     return true;
                 }
@@ -2924,17 +2833,16 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         return true;
                     }
                 }
-                if (Mapcontrol_GetByIndex(server->map_control, scroll_map - 1)
-                            ->width < 1 ||
-                    Mapcontrol_GetByIndex(server->map_control, scroll_map - 1)
-                            ->height < 1)
+                if (Mapcontrol_GetByIndex(server->map_control, scroll_map - 1)->width <
+                        1 ||
+                    Mapcontrol_GetByIndex(server->map_control, scroll_map - 1)->height <
+                        1)
                     return true;
                 String out = EO_EncodeNumber(server, 4, 1);
                 out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, weight_current, 1),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, weight_current, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
                 Client_SendEncoded(
                     server, player, PacketAction_Reply, PacketFamily_Item, out);
@@ -2987,15 +2895,15 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, item_id, 2));
                 return true;
             }
-            int ground_index = Mapcontrol::Mapcontrol_AddGroundItem(
-                server->map_control,
-                player->map_id,
-                item_id,
-                x,
-                y,
-                player->item_change_count,
-                player->field_0xc,
-                6);
+            int ground_index =
+                Mapcontrol::Mapcontrol_AddGroundItem(server->map_control,
+                                                     player->map_id,
+                                                     item_id,
+                                                     x,
+                                                     y,
+                                                     player->item_change_count,
+                                                     player->field_0xc,
+                                                     6);
             if (ground_index < 0)
                 return true;
             player->weight_current -=
@@ -3025,11 +2933,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             out.Insert(EO_EncodeNumber(server, ground_index, 2), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, x, 1), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, y, 1), out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, drop_weight_current, 1),
-                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, drop_weight_current, 1), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, drop_weight_max, 1), out.Length() + 1);
-            Client_SendEncoded(
-                server, player, PacketAction_Drop, PacketFamily_Item, out);
+            Client_SendEncoded(server, player, PacketAction_Drop, PacketFamily_Item, out);
             Player_FireQuestTriggers(server, player, 0x190, 0);
             return true;
         }
@@ -3068,11 +2974,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                        out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
                        out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, junk_weight_current, 1),
-                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, junk_weight_current, 1), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, junk_weight_max, 1), out.Length() + 1);
-            Client_SendEncoded(
-                server, player, PacketAction_Junk, PacketFamily_Item, out);
+            Client_SendEncoded(server, player, PacketAction_Junk, PacketFamily_Item, out);
             Player_FireQuestTriggers(server, player, 0x190, 0);
             return true;
         }
@@ -3083,8 +2987,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (data.Length() < 2)
                 return false;
             int ground_index = EO_DecodeNumber(server, data.SubString(1, 2));
-            GroundItemInfo info = FUN_00487ac0(
-                (int)server->map_control, player->map_id, ground_index, player->field_0xc);
+            GroundItemInfo info = FUN_00487ac0((int)server->map_control,
+                                               player->map_id,
+                                               ground_index,
+                                               player->field_0xc);
             if (info.x == -2)
             {
                 String out = EO_EncodeNumber(server, 2, 2);
@@ -3115,11 +3021,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             out += EO_EncodeNumber(server, ground_index, 2);
             out.Insert(EO_EncodeNumber(server, info.item_id, 2), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, info.amount, 3), out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, get_weight_current, 1),
-                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, get_weight_current, 1), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, get_weight_max, 1), out.Length() + 1);
-            Client_SendEncoded(
-                server, player, PacketAction_Get, PacketFamily_Item, out);
+            Client_SendEncoded(server, player, PacketAction_Get, PacketFamily_Item, out);
             Player_FireQuestTriggers(server, player, 0x190, 0);
             return true;
         }
@@ -3881,10 +3785,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             int item_id = EO_DecodeNumber(server, data.SubString(3, 2));
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            if (FUN_0047c27c((int)server->map_control,
-                             player->map_id,
-                             coords.x,
-                             coords.y) != 0xf)
+            if (FUN_0047c27c(
+                    (int)server->map_control, player->map_id, coords.x, coords.y) != 0xf)
                 return true;
             if (!Players::Player_RemoveBankItem(server->players, player, item_id))
                 return true;
@@ -3904,16 +3806,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             String out = EO_EncodeNumber(server, item_id, 2);
             out.Insert(EO_EncodeNumber(server, player->item_change_count, 3),
                        out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, take_weight_current, 1),
-                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, take_weight_current, 1), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, take_weight_max, 1), out.Length() + 1);
             std::vector<PlayerInventory>::iterator iter;
             for (iter = player->bank.begin(); iter != player->bank.end(); iter++)
             {
-                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, iter->amount, 3),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->amount, 3), out.Length() + 1);
             }
             Client_SendEncoded(
                 server, player, PacketAction_Get, PacketFamily_Locker, out);
@@ -3946,21 +3845,18 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             {
                 if (!Players::Player_HasBankItem(server->players, player, item_id))
                 {
-                    Client_SendEncoded(
-                        server,
-                        player,
-                        PacketAction_Spec,
-                        PacketFamily_Locker,
-                        EO_EncodeNumber(server, player->locker_bank, 1));
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Spec,
+                                       PacketFamily_Locker,
+                                       EO_EncodeNumber(server, player->locker_bank, 1));
                     return true;
                 }
             }
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            if (FUN_0047c27c((int)server->map_control,
-                             player->map_id,
-                             coords.x,
-                             coords.y) != 0xf)
+            if (FUN_0047c27c(
+                    (int)server->map_control, player->map_id, coords.x, coords.y) != 0xf)
                 return true;
             if (!Players::Player_RemoveItem(server->players, player, item_id, amount))
             {
@@ -3986,16 +3882,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             String out = EO_EncodeNumber(server, item_id, 2);
             out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
                        out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, add_weight_current, 1),
-                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, add_weight_current, 1), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, add_weight_max, 1), out.Length() + 1);
             std::vector<PlayerInventory>::iterator iter;
             for (iter = player->bank.begin(); iter != player->bank.end(); iter++)
             {
-                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, iter->amount, 3),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->amount, 3), out.Length() + 1);
             }
             Client_SendEncoded(
                 server, player, PacketAction_Reply, PacketFamily_Locker, out);
@@ -4013,19 +3906,15 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             coords.y = EO_DecodeNumber(server, data.SubString(2, 1));
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            if (FUN_0047c27c((int)server->map_control,
-                             player->map_id,
-                             coords.x,
-                             coords.y) != 0xf)
+            if (FUN_0047c27c(
+                    (int)server->map_control, player->map_id, coords.x, coords.y) != 0xf)
                 return true;
             String out = data.SubString(1, 2);
             std::vector<PlayerInventory>::iterator iter;
             for (iter = player->bank.begin(); iter != player->bank.end(); iter++)
             {
-                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, iter->amount, 3),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->amount, 3), out.Length() + 1);
             }
             Client_SendEncoded(
                 server, player, PacketAction_Open, PacketFamily_Locker, out);
@@ -4044,8 +3933,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             player->locker_bank++;
             String out = EO_EncodeNumber(server, player->item_change_remaining, 4);
-            out.Insert(EO_EncodeNumber(server, player->locker_bank, 1),
-                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->locker_bank, 1), out.Length() + 1);
             Client_SendEncoded(
                 server, player, PacketAction_Buy, PacketFamily_Locker, out);
             return true;
@@ -4506,8 +4394,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             int have = Players::Players_GetItemAmount(server->players, player, item_id);
             if (ItemValues::Eif_GetSpecial((*MAINFORM)->item_values, item_id) == 4)
                 return true;
-            if ((unsigned int)amount > (unsigned int)have ||
-                (unsigned int)amount < 1)
+            if ((unsigned int)amount > (unsigned int)have || (unsigned int)amount < 1)
                 return true;
             if (player->read_len < 1)
                 return false;
@@ -4536,26 +4423,19 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             target->trade_value = 100;
             String out = EO_EncodeNumber(server, player->player_id, 2);
             std::vector<PlayerInventory>::iterator iter;
-            for (iter = player->trade_items.begin();
-                 iter != player->trade_items.end();
+            for (iter = player->trade_items.begin(); iter != player->trade_items.end();
                  iter++)
             {
-                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, iter->amount, 4),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->amount, 4), out.Length() + 1);
             }
             out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, target->player_id, 2),
-                       out.Length() + 1);
-            for (iter = target->trade_items.begin();
-                 iter != target->trade_items.end();
+            out.Insert(EO_EncodeNumber(server, target->player_id, 2), out.Length() + 1);
+            for (iter = target->trade_items.begin(); iter != target->trade_items.end();
                  iter++)
             {
-                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, iter->amount, 4),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->amount, 4), out.Length() + 1);
             }
             out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
             Client_SendEncoded(
@@ -4589,26 +4469,19 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             target->trade_value = 100;
             String out = EO_EncodeNumber(server, player->player_id, 2);
             std::vector<PlayerInventory>::iterator iter;
-            for (iter = player->trade_items.begin();
-                 iter != player->trade_items.end();
+            for (iter = player->trade_items.begin(); iter != player->trade_items.end();
                  iter++)
             {
-                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, iter->amount, 4),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->amount, 4), out.Length() + 1);
             }
             out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, target->player_id, 2),
-                       out.Length() + 1);
-            for (iter = target->trade_items.begin();
-                 iter != target->trade_items.end();
+            out.Insert(EO_EncodeNumber(server, target->player_id, 2), out.Length() + 1);
+            for (iter = target->trade_items.begin(); iter != target->trade_items.end();
                  iter++)
             {
-                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, iter->amount, 4),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->amount, 4), out.Length() + 1);
             }
             out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
             Client_SendEncoded(
@@ -4693,16 +4566,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    out.Length() + 1);
                     }
                     out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Admin,
-                                       PacketFamily_Trade,
-                                       out);
-                    Client_SendEncoded(server,
-                                       target,
-                                       PacketAction_Admin,
-                                       PacketFamily_Trade,
-                                       out);
+                    Client_SendEncoded(
+                        server, player, PacketAction_Admin, PacketFamily_Trade, out);
+                    Client_SendEncoded(
+                        server, target, PacketAction_Admin, PacketFamily_Trade, out);
                     return true;
                 }
                 std::vector<PlayerInventory>::iterator iter;
@@ -4711,8 +4578,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                      iter++)
                 {
                     int item_id = iter->item_id;
-                    int have = Players::Players_GetItemAmount(
-                        server->players, player, item_id);
+                    int have =
+                        Players::Players_GetItemAmount(server->players, player, item_id);
                     if (have < 0)
                         have = 0;
                     if ((unsigned int)iter->amount > (unsigned int)have)
@@ -4741,8 +4608,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                      iter2++)
                 {
                     int item_id = iter2->item_id;
-                    int have = Players::Players_GetItemAmount(
-                        server->players, target, item_id);
+                    int have =
+                        Players::Players_GetItemAmount(server->players, target, item_id);
                     if (have < 0)
                         have = 0;
                     if ((unsigned int)iter2->amount > (unsigned int)have)
@@ -4808,14 +4675,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                out.Length() + 1);
                     player->weight_current =
                         player->weight_current -
-                        ItemValues::Eif_GetWeight(
-                            (*MAINFORM)->item_values, iter->item_id) *
-                        iter->amount;
+                        ItemValues::Eif_GetWeight((*MAINFORM)->item_values,
+                                                  iter->item_id) *
+                            iter->amount;
                     target->weight_current =
                         target->weight_current +
-                        ItemValues::Eif_GetWeight(
-                            (*MAINFORM)->item_values, iter->item_id) *
-                        iter->amount;
+                        ItemValues::Eif_GetWeight((*MAINFORM)->item_values,
+                                                  iter->item_id) *
+                            iter->amount;
                     if (player->weight_current < 0)
                         player->weight_current = 0;
                 }
@@ -4836,14 +4703,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                out.Length() + 1);
                     target->weight_current =
                         target->weight_current -
-                        ItemValues::Eif_GetWeight(
-                            (*MAINFORM)->item_values, iter2->item_id) *
-                        iter2->amount;
+                        ItemValues::Eif_GetWeight((*MAINFORM)->item_values,
+                                                  iter2->item_id) *
+                            iter2->amount;
                     player->weight_current =
                         player->weight_current +
-                        ItemValues::Eif_GetWeight(
-                            (*MAINFORM)->item_values, iter2->item_id) *
-                        iter2->amount;
+                        ItemValues::Eif_GetWeight((*MAINFORM)->item_values,
+                                                  iter2->item_id) *
+                            iter2->amount;
                     if (player->weight_current < 0)
                         player->weight_current = 0;
                 }
@@ -4925,8 +4792,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->trade_value = 100;
             player->trade_items.clear();
             String out = EO_EncodeNumber(server, type, 1);
-            out.Insert(EO_EncodeNumber(server, player->player_id, 2),
-                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->player_id, 2), out.Length() + 1);
             out.Insert(player->name, out.Length() + 1);
             Client_SendEncoded(
                 server, target, PacketAction_Request, PacketFamily_Trade, out);
@@ -4958,8 +4824,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             String out = EO_EncodeNumber(server, player->player_id, 2);
             out.Insert(player->name, out.Length() + 1);
             out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, target->player_id, 2),
-                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, target->player_id, 2), out.Length() + 1);
             out.Insert(target->name, out.Length() + 1);
             out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
             Client_SendEncoded(
@@ -5241,12 +5106,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (!Players::Player_RemoveItem(server->players, player, 1, gold))
                 return true;
-            Mysqlcontrols::Mysql_ExecDirect(
-                server->mysql_controls,
-                0,
-                "UPDATE endl_guilds SET money = money + " +
-                    IntToStr(player->item_change_count) + " WHERE tag = '" +
-                    player->guild_tag + "'");
+            Mysqlcontrols::Mysql_ExecDirect(server->mysql_controls,
+                                            0,
+                                            "UPDATE endl_guilds SET money = money + " +
+                                                IntToStr(player->item_change_count) +
+                                                " WHERE tag = '" + player->guild_tag +
+                                                "'");
             Client_SendEncoded(server,
                                player,
                                PacketAction_Buy,
@@ -5281,14 +5146,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (player->guild_rank_id != 1)
                 return true;
             String rank_field = "rank" + IntToStr(rank);
-            Mysqlcontrols::Mysql_SubmitQuery(
-                server->mysql_controls,
-                0x47,
-                player->player_id,
-                player->query_id,
-                data,
-                "SELECT " + rank_field + " FROM endl_guilds WHERE tag = '" +
-                    player->guild_tag + "' LIMIT 1");
+            Mysqlcontrols::Mysql_SubmitQuery(server->mysql_controls,
+                                             0x47,
+                                             player->player_id,
+                                             player->query_id,
+                                             data,
+                                             "SELECT " + rank_field +
+                                                 " FROM endl_guilds WHERE tag = '" +
+                                                 player->guild_tag + "' LIMIT 1");
             return true;
         }
         if (action == PacketAction_Kick)
@@ -5340,11 +5205,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (member->guild_rank_id == 1)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Guild,
-                                   EO_EncodeNumber(server, GuildReply_RemoveNotMember, 2));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Guild,
+                    EO_EncodeNumber(server, GuildReply_RemoveNotMember, 2));
                 return true;
             }
             member->guild_rank_id = 9;
@@ -5386,13 +5252,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (info_type == GuildInfoType_Description)
             {
-                Mysqlcontrols::Mysql_ExecDirect(
-                    server->mysql_controls,
-                    0,
-                    "UPDATE endl_guilds SET description = '" +
-                        Mysqlcontrols::Mysql_SanitizeString(
-                            server->mysql_controls, rest, 0) +
-                        "' WHERE tag = '" + player->guild_tag + "'");
+                Mysqlcontrols::Mysql_ExecDirect(server->mysql_controls,
+                                                0,
+                                                "UPDATE endl_guilds SET description = '" +
+                                                    Mysqlcontrols::Mysql_SanitizeString(
+                                                        server->mysql_controls, rest, 0) +
+                                                    "' WHERE tag = '" +
+                                                    player->guild_tag + "'");
                 Client_SendEncoded(server,
                                    player,
                                    PacketAction_Reply,
@@ -5533,8 +5399,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     player->player_id,
                     player->query_id,
                     data,
-                    "SELECT money FROM endl_guilds WHERE tag = '" +
-                        player->guild_tag + "' LIMIT 1");
+                    "SELECT money FROM endl_guilds WHERE tag = '" + player->guild_tag +
+                        "' LIMIT 1");
                 return true;
             }
             return true;
@@ -5598,13 +5464,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (guild.Length() > 3)
                 return true;
-            Mysqlcontrols::Mysql_SubmitQuery(
-                server->mysql_controls,
-                0x4e,
-                player->player_id,
-                player->query_id,
-                data,
-                "SELECT * FROM endl_guilds WHERE tag = '" + guild + "' LIMIT 1");
+            Mysqlcontrols::Mysql_SubmitQuery(server->mysql_controls,
+                                             0x4e,
+                                             player->player_id,
+                                             player->query_id,
+                                             data,
+                                             "SELECT * FROM endl_guilds WHERE tag = '" +
+                                                 guild + "' LIMIT 1");
             return true;
         }
         if (action == PacketAction_Remove)
@@ -5650,38 +5516,42 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             Player *target = Players::Players_FindByName(server->players, recruiter);
             if (target == NULL)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Guild,
-                                   EO_EncodeNumber(server, GuildReply_RecruiterOffline, 2));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Guild,
+                    EO_EncodeNumber(server, GuildReply_RecruiterOffline, 2));
                 return true;
             }
             if (target->map_id != player->map_id)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Guild,
-                                   EO_EncodeNumber(server, GuildReply_RecruiterNotHere, 2));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Guild,
+                    EO_EncodeNumber(server, GuildReply_RecruiterNotHere, 2));
                 return true;
             }
             if (target->guild_tag.Length() < 2)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Guild,
-                                   EO_EncodeNumber(server, GuildReply_RecruiterWrongGuild, 2));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Guild,
+                    EO_EncodeNumber(server, GuildReply_RecruiterWrongGuild, 2));
                 return true;
             }
             if (target->guild_tag.LowerCase() != guild.LowerCase())
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Guild,
-                                   EO_EncodeNumber(server, GuildReply_RecruiterWrongGuild, 2));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Guild,
+                    EO_EncodeNumber(server, GuildReply_RecruiterWrongGuild, 2));
                 return true;
             }
             if (target->guild_rank_id > 2)
@@ -5697,7 +5567,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             String msg = EO_EncodeNumber(server, GuildReply_JoinRequest, 2);
             msg.Insert(EO_EncodeNumber(server, player->player_id, 2), msg.Length() + 1);
             msg.Insert(player->name, msg.Length() + 1);
-            Client_SendEncoded(server, target, PacketAction_Reply, PacketFamily_Guild, msg);
+            Client_SendEncoded(
+                server, target, PacketAction_Reply, PacketFamily_Guild, msg);
             return true;
         }
         if (action == PacketAction_Create)
@@ -5757,8 +5628,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 player->player_id,
                 player->query_id,
                 data,
-                "SELECT name FROM endl_guilds WHERE name = '" + name +
-                    "' OR tag = '" + tag_upper + "' LIMIT 1");
+                "SELECT name FROM endl_guilds WHERE name = '" + name + "' OR tag = '" +
+                    tag_upper + "' LIMIT 1");
             return true;
         }
         if (action == PacketAction_Use)
@@ -5781,14 +5652,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (player->name != target->field_0x8c)
                 return true;
-            Mysqlcontrols::Mysql_SubmitQuery(
-                server->mysql_controls,
-                0x52,
-                player->player_id,
-                player->query_id,
-                data,
-                "SELECT * FROM endl_guilds WHERE tag = '" + player->guild_tag +
-                    "' LIMIT 1");
+            Mysqlcontrols::Mysql_SubmitQuery(server->mysql_controls,
+                                             0x52,
+                                             player->player_id,
+                                             player->query_id,
+                                             data,
+                                             "SELECT * FROM endl_guilds WHERE tag = '" +
+                                                 player->guild_tag + "' LIMIT 1");
             return true;
         }
         if (action == PacketAction_Accept)
@@ -5822,9 +5692,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     server, inviter, PacketAction_Reply, PacketFamily_Guild, msg);
                 return true;
             }
-            String msg =
-                EO_EncodeNumber(server, GuildReply_CreateAdd, 2) + player->name;
-            Client_SendEncoded(server, inviter, PacketAction_Reply, PacketFamily_Guild, msg);
+            String msg = EO_EncodeNumber(server, GuildReply_CreateAdd, 2) + player->name;
+            Client_SendEncoded(
+                server, inviter, PacketAction_Reply, PacketFamily_Guild, msg);
             return true;
         }
         if (action == PacketAction_Request)
@@ -5914,8 +5784,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 player->player_id,
                 player->query_id,
                 data,
-                "SELECT name FROM endl_guilds WHERE name = '" + name +
-                    "' OR tag = '" + tag + "' LIMIT 1");
+                "SELECT name FROM endl_guilds WHERE name = '" + name + "' OR tag = '" +
+                    tag + "' LIMIT 1");
             return true;
         }
         if (action == PacketAction_Open)
@@ -6250,19 +6120,17 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (Players::Player_HasSpellId(server->players, player, spell_id))
                 return true;
-            LearnItemVal skill = LearnValues::GetSkill(
-                (*MAINFORM)->learn_values, session_token, spell_id);
-            if (!ClassValues::ClassMatches((*MAINFORM)->class_values,
-                                           player->class_id,
-                                           skill.class_requirement))
+            LearnItemVal skill =
+                LearnValues::GetSkill((*MAINFORM)->learn_values, session_token, spell_id);
+            if (!ClassValues::ClassMatches(
+                    (*MAINFORM)->class_values, player->class_id, skill.class_requirement))
             {
-                Client_SendEncoded(
-                    server,
-                    player,
-                    PacketAction_Reply,
-                    PacketFamily_StatSkill,
-                    EO_EncodeNumber(server, 2, 2) +
-                        EO_EncodeNumber(server, player->class_id, 1));
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_StatSkill,
+                                   EO_EncodeNumber(server, 2, 2) +
+                                       EO_EncodeNumber(server, player->class_id, 1));
                 return true;
             }
             if (player->level < skill.level_requirement)
@@ -6358,22 +6226,16 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                        out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, player->adj_intelligence, 2),
                        out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, player->adj_wisdom, 2),
-                       out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, player->adj_agility, 2),
-                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_wisdom, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_agility, 2), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, player->adj_constitution, 2),
                        out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, player->adj_charisma, 2),
                        out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, player->min_damage, 2),
-                       out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, player->max_damage, 2),
-                       out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, player->accuracy, 2),
-                       out.Length() + 1);
-            out.Insert(EO_EncodeNumber(server, player->evasion, 2),
-                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->min_damage, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->max_damage, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->accuracy, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->evasion, 2), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, player->armor, 2), out.Length() + 1);
             player->base_stats_dirty = true;
             Client_SendEncoded(
@@ -6468,12 +6330,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->adj_charisma, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, player->max_hp, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, player->max_tp, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, player->max_sp, 2),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_hp, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_tp, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->max_sp, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->weight_max, 2),
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->min_damage, 2),
@@ -6482,10 +6341,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->accuracy, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, player->evasion, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, player->armor, 2),
-                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->evasion, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, player->armor, 2), out.Length() + 1);
                 player->base_stats_dirty = true;
                 Client_SendEncoded(
                     server, player, PacketAction_Player, PacketFamily_StatSkill, out);
@@ -6505,11 +6362,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 String out = EO_EncodeNumber(server, player->skill_points, 2);
                 out.Insert(EO_EncodeNumber(server, stat_id, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, new_level, 2), out.Length() + 1);
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Accept,
-                                   PacketFamily_StatSkill,
-                                   out);
+                Client_SendEncoded(
+                    server, player, PacketAction_Accept, PacketFamily_StatSkill, out);
                 return true;
             }
         }

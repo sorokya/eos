@@ -100,8 +100,10 @@ verify:
 	$(PYTHON) scripts/verify_units.py $(if $(JOBS),-j $(JOBS),)
 
 # Self-test the per-case comparison locator (no build required): proves the
-# anchor refuses an ambiguous match, reports a perturbed instruction, and gives
-# zero mismatches on a correct slice. See scripts/compare_case.py.
+# anchor refuses a fully repeated slice, extends a repeated short prefix until
+# unique, reports a perturbed instruction, gives zero mismatches on a correct
+# slice, and excludes an in-function data region from the instruction stream.
+# See scripts/compare_case.py.
 case-selftest:
 	$(PYTHON) scripts/compare_case.py --selftest
 
