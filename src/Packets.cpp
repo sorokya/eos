@@ -4122,6 +4122,735 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             return false;
         }
     }
+    if (family == PacketFamily_Guild)
+    {
+        if (action == PacketAction_Buy)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() != 8)
+                return false;
+            int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            int gold = EO_DecodeNumber(server, data.SubString(5, 4));
+            if (player->session_token != session_id)
+                return true;
+            if (!FUN_004738b0(server))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_Busy, 2));
+                return true;
+            }
+            if (player->guild_tag.Length() < 2)
+                return true;
+            if (!Players::Player_RemoveItem(server->players, player, 1, gold))
+                return true;
+            Mysqlcontrols::Mysql_ExecDirect(
+                server->mysql_controls,
+                0,
+                "UPDATE endl_guilds SET money = money + " +
+                    IntToStr(player->item_change_count) + " WHERE tag = '" +
+                    player->guild_tag + "'");
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Buy,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, player->item_change_remaining, 4));
+            return true;
+        }
+        if (action == PacketAction_Rank)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 9)
+                return false;
+            int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            int rank = EO_DecodeNumber(server, data.SubString(5, 1));
+            String member_name = data.SubString(6, data.Length() - 5);
+            if (rank < 1 || rank > 9)
+                return true;
+            if (player->session_token != session_id)
+                return true;
+            if (!FUN_004738b0(server))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_Busy, 2));
+                return true;
+            }
+            if (player->guild_tag.Length() < 2)
+                return true;
+            if (player->guild_rank_id != 1)
+                return true;
+            String rank_field = "rank" + IntToStr(rank);
+            Mysqlcontrols::Mysql_SubmitQuery(
+                server->mysql_controls,
+                0x47,
+                player->player_id,
+                player->query_id,
+                data,
+                "SELECT " + rank_field + " FROM endl_guilds WHERE tag = '" +
+                    player->guild_tag + "' LIMIT 1");
+            return true;
+        }
+        if (action == PacketAction_Kick)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 7)
+                return false;
+            int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            String member_name = data.SubString(5, data.Length() - 4);
+            if (player->session_token != session_id)
+                return true;
+            if (!FUN_004738b0(server))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_Busy, 2));
+                return true;
+            }
+            if (player->guild_tag.Length() < 2)
+                return true;
+            if (player->guild_rank_id != 1)
+                return true;
+            Player *member = Players::Players_FindByName(server->players, member_name);
+            if (member == NULL)
+            {
+                Mysqlcontrols::Mysql_SubmitQuery(
+                    server->mysql_controls,
+                    0x49,
+                    player->player_id,
+                    player->query_id,
+                    data,
+                    "SELECT ident_guild, ident_rank FROM endl_characters WHERE "
+                    "name = '" +
+                        member_name + "' AND ident_guild = '" + player->guild_tag +
+                        "' LIMIT 1");
+                return true;
+            }
+            if (member->guild_tag != player->guild_tag)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_RemoveLeader, 2));
+                return true;
+            }
+            if (member->guild_rank_id == 1)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_RemoveNotMember, 2));
+                return true;
+            }
+            member->guild_rank_id = 9;
+            member->guild_tag = "0";
+            member->guild_name = "";
+            member->guild_rank_name = "";
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, GuildReply_Removed, 2));
+            return true;
+        }
+        if (action == PacketAction_Junk)
+            return true;
+        if (action == PacketAction_Agree)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 7)
+                return false;
+            int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            int info_type = EO_DecodeNumber(server, data.SubString(5, 2));
+            String rest = data.SubString(7, data.Length() - 6);
+            if (player->session_token != session_id)
+                return true;
+            if (!FUN_004738b0(server))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_Busy, 2));
+                return true;
+            }
+            if (player->guild_tag.Length() < 2)
+                return true;
+            if (player->guild_rank_id != 1)
+                return true;
+            if (info_type == GuildInfoType_Description)
+            {
+                Mysqlcontrols::Mysql_ExecDirect(
+                    server->mysql_controls,
+                    0,
+                    "UPDATE endl_guilds SET description = '" +
+                        Mysqlcontrols::Mysql_SanitizeString(
+                            server->mysql_controls, rest, 0) +
+                        "' WHERE tag = '" + player->guild_tag + "'");
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_Updated, 2));
+                return true;
+            }
+            if (info_type == GuildInfoType_Ranks)
+            {
+                PacketReader_Init(server, rest, EO_GetBreakByte(server, 0xff));
+                String out = "UPDATE endl_guilds SET ";
+                out.Insert("rank1 = '" +
+                               Mysqlcontrols::Mysql_SanitizeString(
+                                   server->mysql_controls,
+                                   PacketReader_GetBreakString(server),
+                                   0) +
+                               "',",
+                           out.Length() + 1);
+                out.Insert("rank2 = '" +
+                               Mysqlcontrols::Mysql_SanitizeString(
+                                   server->mysql_controls,
+                                   PacketReader_GetBreakString(server),
+                                   0) +
+                               "',",
+                           out.Length() + 1);
+                out.Insert("rank3 = '" +
+                               Mysqlcontrols::Mysql_SanitizeString(
+                                   server->mysql_controls,
+                                   PacketReader_GetBreakString(server),
+                                   0) +
+                               "',",
+                           out.Length() + 1);
+                out.Insert("rank4 = '" +
+                               Mysqlcontrols::Mysql_SanitizeString(
+                                   server->mysql_controls,
+                                   PacketReader_GetBreakString(server),
+                                   0) +
+                               "',",
+                           out.Length() + 1);
+                out.Insert("rank5 = '" +
+                               Mysqlcontrols::Mysql_SanitizeString(
+                                   server->mysql_controls,
+                                   PacketReader_GetBreakString(server),
+                                   0) +
+                               "',",
+                           out.Length() + 1);
+                out.Insert("rank6 = '" +
+                               Mysqlcontrols::Mysql_SanitizeString(
+                                   server->mysql_controls,
+                                   PacketReader_GetBreakString(server),
+                                   0) +
+                               "',",
+                           out.Length() + 1);
+                out.Insert("rank7 = '" +
+                               Mysqlcontrols::Mysql_SanitizeString(
+                                   server->mysql_controls,
+                                   PacketReader_GetBreakString(server),
+                                   0) +
+                               "',",
+                           out.Length() + 1);
+                out.Insert("rank8 = '" +
+                               Mysqlcontrols::Mysql_SanitizeString(
+                                   server->mysql_controls,
+                                   PacketReader_GetBreakString(server),
+                                   0) +
+                               "',",
+                           out.Length() + 1);
+                out.Insert("rank9 = '" +
+                               Mysqlcontrols::Mysql_SanitizeString(
+                                   server->mysql_controls,
+                                   PacketReader_GetBreakString(server),
+                                   0) +
+                               "' ",
+                           out.Length() + 1);
+                out.Insert("WHERE tag = '" + player->guild_tag + "'", out.Length() + 1);
+                Mysqlcontrols::Mysql_ExecDirect(server->mysql_controls, 0, out);
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_RanksUpdated, 2));
+                return true;
+            }
+            return true;
+        }
+        if (action == PacketAction_Take)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 6)
+                return false;
+            int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            int info_type = EO_DecodeNumber(server, data.SubString(5, 2));
+            if (player->session_token != session_id)
+                return true;
+            if (player->guild_tag.Length() < 2)
+                return true;
+            if (!FUN_004738b0(server))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_Busy, 2));
+                return true;
+            }
+            if (info_type == GuildInfoType_Description)
+            {
+                if (player->guild_rank_id == 1)
+                    Mysqlcontrols::Mysql_SubmitQuery(
+                        server->mysql_controls,
+                        0x4a,
+                        player->player_id,
+                        player->query_id,
+                        data,
+                        "SELECT description FROM endl_guilds WHERE tag = '" +
+                            player->guild_tag + "' LIMIT 1");
+                return true;
+            }
+            if (info_type == GuildInfoType_Ranks)
+            {
+                Mysqlcontrols::Mysql_SubmitQuery(
+                    server->mysql_controls,
+                    0x4b,
+                    player->player_id,
+                    player->query_id,
+                    data,
+                    "SELECT rank1,rank2,rank3,rank4,rank5,rank6,rank7,rank8,rank9 "
+                    "FROM endl_guilds WHERE tag = '" +
+                        player->guild_tag + "' LIMIT 1");
+                return true;
+            }
+            if (info_type == GuildInfoType_Bank)
+            {
+                Mysqlcontrols::Mysql_SubmitQuery(
+                    server->mysql_controls,
+                    0x4c,
+                    player->player_id,
+                    player->query_id,
+                    data,
+                    "SELECT money FROM endl_guilds WHERE tag = '" +
+                        player->guild_tag + "' LIMIT 1");
+                return true;
+            }
+            return true;
+        }
+        if (action == PacketAction_Tell)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 6)
+                return false;
+            int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            if (player->session_token != session_id)
+                return true;
+            if (!FUN_004738b0(server))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_Busy, 2));
+                return true;
+            }
+            String guild = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, data.SubString(5, data.Length() - 4));
+            if (guild.Length() < 2)
+                return true;
+            if (guild.Length() > 3)
+                return true;
+            Mysqlcontrols::Mysql_SubmitQuery(
+                server->mysql_controls,
+                0x4d,
+                player->player_id,
+                player->query_id,
+                data,
+                "SELECT ident_rank, name, rank FROM endl_characters WHERE "
+                "ident_guild = '" +
+                    guild + "' ORDER BY ident_rank, name LIMIT 100");
+            return true;
+        }
+        if (action == PacketAction_Report)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 6)
+                return false;
+            int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            if (player->session_token != session_id)
+                return true;
+            if (!FUN_004738b0(server))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_Busy, 2));
+                return true;
+            }
+            String guild = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, data.SubString(5, data.Length() - 4));
+            if (guild.Length() < 2)
+                return true;
+            if (guild.Length() > 3)
+                return true;
+            Mysqlcontrols::Mysql_SubmitQuery(
+                server->mysql_controls,
+                0x4e,
+                player->player_id,
+                player->query_id,
+                data,
+                "SELECT * FROM endl_guilds WHERE tag = '" + guild + "' LIMIT 1");
+            return true;
+        }
+        if (action == PacketAction_Remove)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            if (player->session_token != session_id)
+                return true;
+            player->guild_tag = "";
+            player->guild_name = "";
+            player->guild_rank_id = 9;
+            player->guild_rank_name = "";
+            player->guild_inviter_id = -1;
+            return true;
+        }
+        if (action == PacketAction_Player)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 0xa)
+                return false;
+            int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            if (player->session_token != session_id)
+                return true;
+            PacketReader_Init(server, data, EO_GetBreakByte(server, 0xff));
+            String t = PacketReader_GetBreakString(server);
+            String guild = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, PacketReader_GetBreakString(server));
+            String recruiter = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, PacketReader_GetBreakString(server));
+            if (player->guild_tag.Length() > 1)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_AlreadyMember, 2));
+                return true;
+            }
+            Player *target = Players::Players_FindByName(server->players, recruiter);
+            if (target == NULL)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_RecruiterOffline, 2));
+                return true;
+            }
+            if (target->map_id != player->map_id)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_RecruiterNotHere, 2));
+                return true;
+            }
+            if (target->guild_tag.Length() < 2)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_RecruiterWrongGuild, 2));
+                return true;
+            }
+            if (target->guild_tag.LowerCase() != guild.LowerCase())
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_RecruiterWrongGuild, 2));
+                return true;
+            }
+            if (target->guild_rank_id > 2)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_NotRecruiter, 2));
+                return true;
+            }
+            player->field_0x8c = target->name;
+            String msg = EO_EncodeNumber(server, GuildReply_JoinRequest, 2);
+            msg.Insert(EO_EncodeNumber(server, player->player_id, 2), msg.Length() + 1);
+            msg.Insert(player->name, msg.Length() + 1);
+            Client_SendEncoded(server, target, PacketAction_Reply, PacketFamily_Guild, msg);
+            return true;
+        }
+        if (action == PacketAction_Create)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 0xd)
+                return false;
+            int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            if (player->session_token != session_id)
+                return true;
+            if (session_id < 0x493e0 || session_id > 0x61a80)
+                return true;
+            PacketReader_Init(server, data, EO_GetBreakByte(server, 0xff));
+            String t = PacketReader_GetBreakString(server);
+            String tag = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, PacketReader_GetBreakString(server));
+            String tag_upper = tag.UpperCase();
+            String name = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, PacketReader_GetBreakString(server));
+            String description = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, PacketReader_GetBreakString(server));
+            name = Mysqlcontrols::Mysql_SanitizeString(server->mysql_controls, name, 0);
+            tag_upper =
+                Mysqlcontrols::Mysql_SanitizeString(server->mysql_controls, tag_upper, 1);
+            if (tag_upper == "GM" || tag_upper == "HGM" || tag_upper == "GOD" ||
+                tag_upper == "ADM" || tag_upper == "SUK" || tag_upper == "SUX" ||
+                tag_upper == "ASS" || tag_upper == "FUK" || tag_upper == "BRA" ||
+                tag_upper == "FUC" || tag_upper == "SEX" || tag_upper == "CUM" ||
+                tag_upper == "HOE" || tag_upper == "TIT" || tag_upper == "HO" ||
+                tag_upper == "FU" || tag_upper == "KKK" || tag_upper == "XXX")
+                return true;
+            if (tag_upper.Length() < 2 || tag_upper.Length() > 3)
+                return true;
+            if (name.Length() < 4 || name.Length() > 0x18)
+                return true;
+            if (player->guild_inviter_id != player->player_id)
+                return true;
+            player->guild_inviter_id = -1;
+            if (player->guild_tag.Length() > 1)
+                return true;
+            if (!CharName_CheckUnique(server, name))
+                return true;
+            if (tag_upper.SubString(1, 1).LowerCase() != name.SubString(1, 1).LowerCase())
+                return true;
+            if (tag_upper[1] == ' ' || tag_upper[2] == ' ')
+                return true;
+            if (!Mysqlcontrols::IsAlphabeticText(server->mysql_controls, tag_upper))
+            {
+                Banned::AddBan(
+                    server->banned, player->remote_ip, player->hdid, (char)0, 0x3840);
+                return true;
+            }
+            Mysqlcontrols::Mysql_SubmitQuery(
+                server->mysql_controls,
+                0x51,
+                player->player_id,
+                player->query_id,
+                data,
+                "SELECT name FROM endl_guilds WHERE name = '" + name +
+                    "' OR tag = '" + tag_upper + "' LIMIT 1");
+            return true;
+        }
+        if (action == PacketAction_Use)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() != 2)
+                return false;
+            if (player->guild_tag.Length() < 2)
+                return true;
+            if (player->guild_rank_id > 2)
+                return true;
+            int use_id = EO_DecodeNumber(server, data.SubString(1, 2));
+            Player *target = Players::Players_GetById(server->players, use_id);
+            if (target == NULL)
+                return true;
+            if (target->guild_tag.Length() > 1)
+                return true;
+            if (target->map_id != player->map_id)
+                return true;
+            if (player->name != target->field_0x8c)
+                return true;
+            Mysqlcontrols::Mysql_SubmitQuery(
+                server->mysql_controls,
+                0x52,
+                player->player_id,
+                player->query_id,
+                data,
+                "SELECT * FROM endl_guilds WHERE tag = '" + player->guild_tag +
+                    "' LIMIT 1");
+            return true;
+        }
+        if (action == PacketAction_Accept)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() != 6)
+                return false;
+            int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            int inviter_id = EO_DecodeNumber(server, data.SubString(5, 2));
+            if (session_id != 0x4eea)
+                return false;
+            if (player->guild_tag.Length() > 1)
+                return true;
+            Player *inviter = Players::Players_GetById(server->players, inviter_id);
+            if (inviter == NULL)
+                return true;
+            if (inviter->player_id == player->player_id)
+                return true;
+            if (inviter->map_id != player->map_id)
+                return true;
+            int invites = Players::Players_CountGuildInvites(server->players, inviter);
+            if (invites >= 0xa)
+                return true;
+            player->guild_inviter_id = inviter_id;
+            if (invites == 9)
+            {
+                String msg = EO_EncodeNumber(server, GuildReply_CreateAddConfirm, 2) +
+                             player->name;
+                Client_SendEncoded(
+                    server, inviter, PacketAction_Reply, PacketFamily_Guild, msg);
+                return true;
+            }
+            String msg =
+                EO_EncodeNumber(server, GuildReply_CreateAdd, 2) + player->name;
+            Client_SendEncoded(server, inviter, PacketAction_Reply, PacketFamily_Guild, msg);
+            return true;
+        }
+        if (action == PacketAction_Request)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 0xd)
+                return false;
+            int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            if (player->session_token != session_id)
+                return true;
+            if (session_id < 0x493e0 || session_id > 0x61a80)
+                return true;
+            PacketReader_Init(server, data, EO_GetBreakByte(server, 0xff));
+            String t = PacketReader_GetBreakString(server);
+            String tag = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, PacketReader_GetBreakString(server));
+            String name = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, PacketReader_GetBreakString(server));
+            if (tag.Length() < 2 || tag.Length() > 3)
+                return true;
+            if (name.Length() < 4 || name.Length() > 0x18)
+                return true;
+            if (player->guild_tag.Length() > 1)
+                return true;
+            if (tag == "GM" || tag == "HGM" || tag == "GOD" || tag == "ADM" ||
+                tag == "SUK" || tag == "SUX" || tag == "ASS" || tag == "FUK" ||
+                tag == "BRA" || tag == "FUC" || tag == "SEX" || tag == "CUM" ||
+                tag == "HOE" || tag == "TIT" || tag == "HO" || tag == "FU" ||
+                tag == "KKK" || tag == "XXX")
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_NotApproved, 2));
+                return true;
+            }
+            if (!CharName_CheckUnique(server, name))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_NotApproved, 2));
+                return true;
+            }
+            if (tag.SubString(1, 1).LowerCase() != name.SubString(1, 1).LowerCase())
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_NotApproved, 2));
+                return true;
+            }
+            if (tag[1] == ' ' || tag[2] == ' ')
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_NotApproved, 2));
+                return true;
+            }
+            if (Players::Players_CountGuildOnMap(server->players, player) < 0xa)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_NoCandidates, 2));
+                return true;
+            }
+            if (!FUN_004738b0(server))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_Busy, 2));
+                return true;
+            }
+            Mysqlcontrols::Mysql_SubmitQuery(
+                server->mysql_controls,
+                0x50,
+                player->player_id,
+                player->query_id,
+                data,
+                "SELECT name FROM endl_guilds WHERE name = '" + name +
+                    "' OR tag = '" + tag + "' LIMIT 1");
+            return true;
+        }
+        if (action == PacketAction_Open)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
+            MapCoord coords =
+                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            if (coords.x < 0 || coords.y < 0)
+                return true;
+            if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            int npc_id =
+                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
+            if (type_info.type != NpcType_Guild)
+                return true;
+            player->session_token = RandRange(0x2710) + 0x493e1;
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Open,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, player->session_token, 3));
+            return true;
+        }
+    }
     if (family == PacketFamily_Quest)
     {
         if (action == PacketAction_List)
