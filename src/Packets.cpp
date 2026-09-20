@@ -267,7 +267,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 "SELECT ident, account, DECODE(password,'eoeokeyendl') as password, "
                 "type, signup, serial_c, serial_h, ipaddress, banned FROM "
                 "endl_accounts WHERE ident = '" +
-                    IntToStr(player->field_0xc) + "' LIMIT 1");
+                    IntToStr((unsigned int)player->field_0xc) + "' LIMIT 1");
             return true;
         }
         if (action == PacketAction_Request)
@@ -362,7 +362,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 server->mysql_controls,
                 player->field_0xc,
                 "DELETE FROM endl_characters WHERE ident = " + IntToStr(character_id) +
-                    " AND ident_account = " + IntToStr(player->field_0xc));
+                    " AND ident_account = " +
+                    IntToStr((unsigned int)player->field_0xc));
             server->mysql_controls->file_cache->characters_count--;
             if (player->character_slot_0 != NULL &&
                 player->character_slot_0->character_id == character_id)
@@ -832,6 +833,39 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                          encoded);
         }
         return true;
+    }
+    if (family == PacketFamily_Item)
+    {
+        if (action == PacketAction_Use)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int item_id = EO_DecodeNumber(server, data.SubString(1, 2));
+            int item_type =
+                ItemValues::Eif_GetType((*MAINFORM)->item_values, item_id);
+            if (!Players::Player_RemoveItem(server->players, player, item_id, 1))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Agree,
+                                   PacketFamily_Item,
+                                   EO_EncodeNumber(server, item_id, 2));
+                return true;
+            }
+            player->weight_current -=
+                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id);
+            if (player->weight_current < 0)
+                player->weight_current = 0;
+            int weight_current = player->weight_current;
+            int weight_max = player->weight_max;
+            if (weight_current > 250)
+                weight_current = 250;
+            if (weight_max > 250)
+                weight_max = 250;
+            return true;
+        }
     }
     if (family == PacketFamily_Warp)
     {
