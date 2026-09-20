@@ -15,6 +15,8 @@ has since gone partly stale. What is applied and what remains:
 | --- | --- |
 | `810239a` | §2.4 (5 missing enum values + `enum WarpEffect`), §4.1/§4.2 constants added to `Protocol.h`, §1.10 (6 header guards), §1.4 (3 stale comments), §1.14 (hex case), §1.13 (`Serial.cpp` bool literals) |
 | `d186973` | §1.5 (explicit-receiver naming: `Serial`, `Filecache`), §1.9 (`field_0xNN`/`pad_0xNN` unified across the non-cluster headers), §1.11 (`values`→`record_list`, `GetCount` in the `*values` units), §1.12 (no drift found in those units) |
+| `325ea7b` | cluster (`Packets`/`Players`/`Mapcontrol`/`Mainform`/`Jukeboxcontrol`/`Npccontrol`/`Map.h`/`Player.h`/`Settings.h`/`Npc.h`): §2.1/§2.2 (`Account_DecodePassword`/`Account_EncodePassword`, `Server_BuildInit*Reply`; the rest were already named), §5.3/§5.4/§5.5 prototype hygiene, §1.7 (`PlayerCommand` `family`/`action`), §1.8 (`Player::account_ident`, `Players_IsAccountIdentOnline`), §1.9, §1.6/§2.3 (`Server *self`, `Mapcontrol *map_control`) |
+| `835f401` | §3.x so far: §3.1 (reply codes), §3.2 (action/family pairs + guild replies), §3.3 (`WarpEffect`), §3.4 (`Direction`), §3.5 (`AdminLevel`), §3.6 (`SitAction`), §3.7, §3.8 (`Emote`/`Gender`) — the remainder of §3.x in *other* units' call sites is still open |
 
 Each was gated on a full rebuild with no `Error E[0-9]+`, `make verify` 496/496 and
 `make track` 1790/1801; nothing regressed.
