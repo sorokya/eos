@@ -66,6 +66,10 @@ String FUN_00473540(Server *server);
 String Message_BuildServerStatus(Server *server);
 String Paperdoll_BuildReply(Server *server, Player *player);
 void Player_CalculateStats(Server *server, Player *player);
+void Player_ApplyQuestActions(Server *server,
+                              Player *player,
+                              PlayerQuest *tracker,
+                              bool flag);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
@@ -888,11 +892,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             out.Insert(EO_EncodeNumber(server, player->shield_graphic_id, 2),
                        out.Length() + 1);
             if (player->equip_result > 1)
-                Server_BroadcastNearby(server,
-                                       player,
-                                       PacketAction_Agree,
-                                       PacketFamily_Avatar,
-                                       out);
+                Server_BroadcastNearby(
+                    server, player, PacketAction_Agree, PacketFamily_Avatar, out);
             out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, player->equip_result_count, 3),
                        out.Length() + 1);
@@ -965,11 +966,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             out.Insert(EO_EncodeNumber(server, player->shield_graphic_id, 2),
                        out.Length() + 1);
             if (player->equip_result > 1)
-                Server_BroadcastNearby(server,
-                                       player,
-                                       PacketAction_Agree,
-                                       PacketFamily_Avatar,
-                                       out);
+                Server_BroadcastNearby(
+                    server, player, PacketAction_Agree, PacketFamily_Avatar, out);
             out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, slot, 1), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, player->max_hp, 2), out.Length() + 1);
@@ -1541,8 +1539,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             if (player->hp >= player->max_hp)
                 return true;
-            int cost =
-                (player->max_hp - player->hp) + (player->max_tp - player->tp);
+            int cost = (player->max_hp - player->hp) + (player->max_tp - player->tp);
             if (action == PacketAction_Request)
             {
                 Client_SendEncoded(server,
@@ -1680,9 +1677,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             String out = EO_EncodeNumber(server, player->session_token, 3);
             out.Insert(EO_EncodeNumber(server, player->home_id, 1), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, player->session_id, 2), out.Length() + 1);
-            out.Insert(
-                InnValues::GetQuestion((*MAINFORM)->inn_values, type_info.behavior_id - 1),
-                out.Length() + 1);
+            out.Insert(InnValues::GetQuestion((*MAINFORM)->inn_values,
+                                              type_info.behavior_id - 1),
+                       out.Length() + 1);
             Client_SendEncoded(
                 server, player, PacketAction_Open, PacketFamily_Citizen, out);
             return true;
@@ -2153,6 +2150,77 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 Client_SendEncoded(
                     server, player, PacketAction_List, PacketFamily_Quest, out);
                 return true;
+            }
+            return true;
+        }
+        if (action == PacketAction_Accept)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 0xa)
+                return false;
+            int session = EO_DecodeNumber(server, data.SubString(1, 2));
+            int token = EO_DecodeNumber(server, data.SubString(3, 2));
+            int quest_id = EO_DecodeNumber(server, data.SubString(5, 2));
+            int rule = EO_DecodeNumber(server, data.SubString(7, 2));
+            int type = EO_DecodeNumber(server, data.SubString(9, 1));
+            int arg = EO_DecodeNumber(server, data.SubString(0xa, 1));
+            int result = -1;
+            if (player->session_id != session)
+                return false;
+            if (player->session_token != token)
+                return false;
+            if (player->field_0x80 != rule)
+                return false;
+            player->session_token = RandRange(0x2710);
+            PlayerQuest *iter;
+            for (iter = player->quest_trackers.begin();
+                 iter != player->quest_trackers.end();
+                 iter++)
+            {
+                if (iter->quest_id != quest_id)
+                    continue;
+                int value = -1;
+                if (type == 1)
+                    value = Questengine::GetRuleValue(
+                        server->quest_engine, iter->quest_id, iter->state_index, rule);
+                if (type == 2)
+                    value = Questengine::GetRuleValue2(
+                        server->quest_engine, iter->quest_id, iter->state_index, arg);
+                if (value < 0)
+                    continue;
+                iter->state_index = (short)value;
+                Player_ApplyQuestActions(server, player, iter, true);
+                if (iter->done != 0)
+                {
+                    player->quest_trackers.erase(iter);
+                    break;
+                }
+                if (player->map_id <= 0)
+                    break;
+                {
+                    String out = Questengine::GetActionData2(
+                        server->quest_engine, iter->quest_id, iter->state_index, rule);
+                    if (out.Length() < 1)
+                        break;
+                    player->session_id = RandRange(0xc350) + 0x2710;
+                    player->session_token = RandRange(0x7530) + 0x2710;
+                    player->field_0x80 = rule;
+                    out.Insert(EO_GetBreakByte(server, 0xff), 1);
+                    out.Insert(
+                        Questengine::GetQuestName(server->quest_engine, iter->quest_id),
+                        1);
+                    out.Insert(EO_EncodeNumber(server, iter->quest_id, 2), 1);
+                    out.Insert(EO_GetBreakByte(server, 0xff), 1);
+                    out.Insert(EO_EncodeNumber(server, player->session_token, 2), 1);
+                    out.Insert(EO_EncodeNumber(server, player->session_id, 2), 1);
+                    out.Insert(EO_EncodeNumber(server, iter->quest_id, 2), 1);
+                    out.Insert(EO_EncodeNumber(server, rule, 2), 1);
+                    out.Insert(EO_EncodeNumber(server, 1, 1), 1);
+                    Client_SendEncoded(
+                        server, player, PacketAction_Dialog, PacketFamily_Quest, out);
+                }
+                break;
             }
             return true;
         }
