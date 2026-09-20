@@ -119,7 +119,7 @@ void Player_Warp(Server *server,
                  Player *player,
                  int target_map,
                  MapCoord coords,
-                 int warp_anim,
+                 int warp_effect,
                  bool do_leave);
 void Server_BroadcastToPartyExceptSelf(Server *server,
                                        Player *player,

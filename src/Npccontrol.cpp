@@ -438,7 +438,7 @@ void NpcController::Npc_ChaseTarget(
                     dir = 3;
                 if (player->x == npc->x)
                 {
-                    if (npc->direction == 1)
+                    if (npc->direction == Direction_Left)
                         dir = 1;
                     else
                         dir = 3;
@@ -452,7 +452,7 @@ void NpcController::Npc_ChaseTarget(
                     dir = 0;
                 if (player->y == npc->y)
                 {
-                    if (npc->direction == 0)
+                    if (npc->direction == Direction_Down)
                         dir = 0;
                     else
                         dir = 2;

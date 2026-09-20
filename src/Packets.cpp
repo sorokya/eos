@@ -158,11 +158,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     return true;
                 }
             }
-            if (player->admin_level > 0 && data.Length() > 1 && data[1] == '$')
+            if (player->admin_level > AdminLevel_Player && data.Length() > 1 &&
+                data[1] == '$')
             {
                 if (data[2] == 'j' || data[2] == 'f')
                 {
-                    if (player->admin_level < 2)
+                    if (player->admin_level < AdminLevel_LightGuide)
                         return true;
                     PacketReader_Init(server, data.SubString(4, seq.Length() - 4), '.');
                     Player *target = Players::Players_FindByName(
@@ -184,7 +185,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                            message);
                         return true;
                     }
-                    if (target->admin_level > 1)
+                    if (target->admin_level > AdminLevel_Spy)
                         return true;
                     if (data[2] == 'j')
                     {
@@ -196,7 +197,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                     target,
                                     Settings::GetJailMap(server->settings),
                                     coords,
-                                    0,
+                                    WarpEffect_None,
                                     false);
                         String message = "Attention!! " + target->name +
                                          " has been jailed -" + player->name;
@@ -209,14 +210,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         MapCoord coords;
                         coords.x = 9;
                         coords.y = 0xb;
-                        Player_Warp(server, target, 0x4c, coords, 0, false);
+                        Player_Warp(server, target, 0x4c, coords, WarpEffect_None, false);
                     }
                 }
                 if (data[2] == 't')
                 {
                     try
                     {
-                        if (player->admin_level < 3)
+                        if (player->admin_level < AdminLevel_Guardian)
                             return true;
                         PacketReader_Init(
                             server, data.SubString(4, seq.Length() - 4), '.');
@@ -242,13 +243,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         MapCoord coords;
                         coords.x = player->x;
                         coords.y = player->y;
-                        if (player->direction == 1)
+                        if (player->direction == Direction_Left)
                             coords.x--;
-                        if (player->direction == 2)
+                        if (player->direction == Direction_Up)
                             coords.y--;
-                        if (player->direction == 3)
+                        if (player->direction == Direction_Right)
                             coords.x++;
-                        if (player->direction == 0)
+                        if (player->direction == Direction_Down)
                             coords.y++;
                         if (!Mapcontrol::Map_IsTileClear(
                                 server->map_control, player->map_id, coords.x, coords.y))
@@ -278,7 +279,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             return false;
                         }
                         target->flush_queue = 1;
-                        Player_Warp(server, target, player->map_id, coords, 2, false);
+                        Player_Warp(server,
+                                    target,
+                                    player->map_id,
+                                    coords,
+                                    WarpEffect_Admin,
+                                    false);
                     }
                     catch (...)
                     {
@@ -300,15 +306,15 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         MapCoord coords;
                         coords.x = target->x;
                         coords.y = target->y;
-                        if (player->admin_level > 1)
+                        if (player->admin_level > AdminLevel_Spy)
                         {
-                            if (target->direction == 1)
+                            if (target->direction == Direction_Left)
                                 coords.x--;
-                            if (target->direction == 2)
+                            if (target->direction == Direction_Up)
                                 coords.y--;
-                            if (target->direction == 3)
+                            if (target->direction == Direction_Right)
                                 coords.x++;
-                            if (target->direction == 0)
+                            if (target->direction == Direction_Down)
                                 coords.y++;
                             if (!Mapcontrol::Map_IsTileClear(server->map_control,
                                                              target->map_id,
@@ -318,7 +324,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 coords.x = target->x;
                                 coords.y = target->y;
                             }
-                            Player_Warp(server, player, target->map_id, coords, 2, false);
+                            Player_Warp(server,
+                                        player,
+                                        target->map_id,
+                                        coords,
+                                        WarpEffect_Admin,
+                                        false);
                         }
                         else
                         {
@@ -353,7 +364,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                                  coords.y))
                                     return true;
                             }
-                            Player_Warp(server, player, target->map_id, coords, 1, false);
+                            Player_Warp(server,
+                                        player,
+                                        target->map_id,
+                                        coords,
+                                        WarpEffect_Scroll,
+                                        false);
                         }
                     }
                     catch (...)
@@ -362,7 +378,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 }
                 if (data[2] == 'm')
                 {
-                    if (player->admin_level < 2)
+                    if (player->admin_level < AdminLevel_LightGuide)
                         return true;
                     try
                     {
@@ -374,7 +390,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             return true;
                         if (target->player_id == player->player_id)
                             return true;
-                        if (target->admin_level > 1)
+                        if (target->admin_level > AdminLevel_Spy)
                             return true;
                         Client_SendEncoded(server,
                                            target,
@@ -388,7 +404,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 }
                 if (data[2] == 'q')
                 {
-                    if (player->admin_level < 3)
+                    if (player->admin_level < AdminLevel_Guardian)
                         return true;
                     try
                     {
@@ -409,7 +425,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 {
                     try
                     {
-                        if (player->admin_level < 3)
+                        if (player->admin_level < AdminLevel_Guardian)
                             return true;
                         String comm = "off";
                         if (Settings::GetWorldCommunication(server->settings) != 0)
@@ -471,7 +487,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 {
                     try
                     {
-                        if (player->admin_level < 2)
+                        if (player->admin_level < AdminLevel_LightGuide)
                             return true;
                         PacketReader_Init(
                             server, data.SubString(4, seq.Length() - 4), ' ');
@@ -523,7 +539,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 }
                 if (data[2] == 'x')
                 {
-                    if (player->admin_level < 2)
+                    if (player->admin_level < AdminLevel_LightGuide)
                         return true;
                     if (player->hide_online)
                     {
@@ -560,7 +576,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 }
                 if (data[2] == 'k' || data[2] == 's' || data[2] == 'b')
                 {
-                    if (player->admin_level < 2)
+                    if (player->admin_level < AdminLevel_LightGuide)
                         return true;
                     try
                     {
@@ -575,7 +591,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 Players::Players_FindByName(server->players, name);
                             if (target == NULL)
                                 return true;
-                            if (target->admin_level > 1)
+                            if (target->admin_level > AdminLevel_Spy)
                                 return true;
                             target->removing = true;
                             Players::Players_MarkDirty(server->players);
@@ -608,7 +624,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             }
                             if (data[2] == 'b')
                             {
-                                if (player->admin_level < 3)
+                                if (player->admin_level < AdminLevel_Guardian)
                                     return true;
                                 Banned::AddBan(server->banned,
                                                target->remote_ip,
@@ -632,7 +648,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 }
                 if (data[2] == '<')
                 {
-                    if (player->admin_level < 4)
+                    if (player->admin_level < AdminLevel_GameMaster)
                         return true;
                     try
                     {
@@ -672,7 +688,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 }
                 if (data[2] == '>')
                 {
-                    if (player->admin_level < 4)
+                    if (player->admin_level < AdminLevel_GameMaster)
                         return true;
                     try
                     {
@@ -727,7 +743,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 {
                     try
                     {
-                        if (player->admin_level < 1)
+                        if (player->admin_level < AdminLevel_Spy)
                             return true;
                         PacketReader_Init(
                             server, data.SubString(4, seq.Length() - 4), ' ');
@@ -735,7 +751,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             server->players, PacketReader_GetBreakString(server));
                         if (target == NULL)
                             return true;
-                        if (target->admin_level > 1 && target != player)
+                        if (target->admin_level > AdminLevel_Spy && target != player)
                             return true;
                         String out = target->name;
                         out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
@@ -843,7 +859,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                PacketAction_List,
                                                PacketFamily_AdminInteract,
                                                out);
-                            if (player->admin_level >= 4)
+                            if (player->admin_level >= AdminLevel_GameMaster)
                             {
                                 String message =
                                     target->name + " connection: " + target->remote_ip +
@@ -891,7 +907,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 {
                     try
                     {
-                        if (player->admin_level < 2)
+                        if (player->admin_level < AdminLevel_LightGuide)
                             return true;
                         PacketReader_Init(
                             server, data.SubString(4, seq.Length() - 4), ' ');
@@ -899,7 +915,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             server->players, PacketReader_GetBreakString(server));
                         if (target == NULL)
                             return true;
-                        if (target->admin_level > 1)
+                        if (target->admin_level > AdminLevel_Spy)
                             return true;
                         if (data[2] == 'l')
                         {
@@ -937,7 +953,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     {
                     }
                 }
-                if (data[2] == 'r' && player->admin_level >= 4)
+                if (data[2] == 'r' && player->admin_level >= AdminLevel_GameMaster)
                 {
                     PacketReader_Init(server, data.SubString(4, seq.Length() - 4), ' ');
                     String command = PacketReader_GetBreakString(server);
@@ -972,7 +988,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 {
                     try
                     {
-                        if (player->admin_level < 3)
+                        if (player->admin_level < AdminLevel_Guardian)
                             return true;
                         PacketReader_Init(
                             server, data.SubString(4, seq.Length() - 4), '.');
@@ -996,7 +1012,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 {
                     try
                     {
-                        if (player->admin_level < 2)
+                        if (player->admin_level < AdminLevel_LightGuide)
                             return true;
                         PacketReader_Init(
                             server, data.SubString(4, seq.Length() - 4), '.');
@@ -1014,7 +1030,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                     ->height /
                                 2;
                             player->flush_queue = 1;
-                            Player_Warp(server, player, map_id, coords, 0, false);
+                            Player_Warp(
+                                server, player, map_id, coords, WarpEffect_None, false);
                         }
                     }
                     catch (...)
@@ -1146,7 +1163,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (Settings::GetJailMap(server->settings) == player->map_id)
                 return false;
-            if (player->field_0x378 < 1 && player->admin_level < 1)
+            if (player->field_0x378 < 1 && player->admin_level < AdminLevel_Spy)
                 return true;
             if (!Mysqlcontrols::IsAsciiText(server->mysql_controls, data))
                 return true;
@@ -1181,7 +1198,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         }
         if (action == PacketAction_Admin)
         {
-            if (player->admin_level < 1)
+            if (player->admin_level < AdminLevel_Spy)
                 return false;
             if (data.Length() < 0)
                 return false;
@@ -1201,7 +1218,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         }
         if (action == PacketAction_Announce)
         {
-            if (player->admin_level < 2)
+            if (player->admin_level < AdminLevel_LightGuide)
                 return false;
             if (data.Length() < 1)
                 return true;
@@ -1327,7 +1344,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                player,
                                PacketAction_Reply,
                                PacketFamily_Login,
-                               EO_EncodeNumber(server, 6, 2) + "NO");
+                               EO_EncodeNumber(server, LoginReply_Busy, 2) + "NO");
             return false;
         }
         if (Login_CheckConnectionThreshold(server) &&
@@ -1337,7 +1354,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                player,
                                PacketAction_Reply,
                                PacketFamily_Login,
-                               EO_EncodeNumber(server, 6, 2) + "NO");
+                               EO_EncodeNumber(server, LoginReply_Busy, 2) + "NO");
             return false;
         }
         PacketReader_Init(server, data, EO_GetBreakByte(server, 0xff));
@@ -1381,20 +1398,22 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             if (Settings::GetAccountLock(server->settings))
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Account,
-                                   EO_EncodeNumber(server, 7, 2) + "NO");
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Account,
+                    EO_EncodeNumber(server, AccountReply_RequestDenied, 2) + "NO");
                 return false;
             }
             if (player->remove_timer > 0)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Account,
-                                   EO_EncodeNumber(server, 7, 2) + "NO");
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Account,
+                    EO_EncodeNumber(server, AccountReply_RequestDenied, 2) + "NO");
                 return false;
             }
             if (data.Length() < 4)
@@ -1550,7 +1569,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    player,
                                    PacketAction_Reply,
                                    PacketFamily_Character,
-                                   EO_EncodeNumber(server, 3, 2) + "NO");
+                                   EO_EncodeNumber(server, CharacterReply_Full3, 2) +
+                                       "NO");
                 return true;
             }
             else
@@ -1586,9 +1606,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             if (name.Length() > 0xc)
                 return false;
-            if (gender < 0 || gender > 1 || hair_style < 1 || hair_style > 0x14 ||
-                hair_color < 0 || hair_color > 9 || skin < 0 || skin > 3 ||
-                name.Length() < 4)
+            if (gender < Gender_Female || gender > Gender_Male || hair_style < 1 ||
+                hair_style > 0x14 || hair_color < 0 || hair_color > 9 || skin < 0 ||
+                skin > 3 || name.Length() < 4)
                 return false;
             if (player->character_slot_0 != NULL && player->character_slot_1 != NULL &&
                 player->character_slot_2 != NULL)
@@ -1597,16 +1617,18 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    player,
                                    PacketAction_Reply,
                                    PacketFamily_Character,
-                                   EO_EncodeNumber(server, 2, 2) + "NO");
+                                   EO_EncodeNumber(server, CharacterReply_Full, 2) +
+                                       "NO");
                 return true;
             }
             if (!CharName_CheckUnique(server, name))
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Character,
-                                   EO_EncodeNumber(server, 4, 2) + "NO");
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Character,
+                    EO_EncodeNumber(server, CharacterReply_NotApproved, 2) + "NO");
                 return true;
             }
             if (!Mysqlcontrols::IsAlphabeticText(server->mysql_controls, name))
@@ -1640,11 +1662,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             {
                 if (!server->logins->ConnectionLog_CheckIP(player->socket->RemoteAddress))
                 {
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Reply,
-                                       PacketFamily_Welcome,
-                                       EO_EncodeNumber(server, 3, 2) + "NO");
+                    Client_SendEncoded(
+                        server,
+                        player,
+                        PacketAction_Reply,
+                        PacketFamily_Welcome,
+                        EO_EncodeNumber(server, WelcomeCode_ServerBusy, 2) + "NO");
                     return true;
                 }
             }
@@ -1856,7 +1879,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    player,
                                    PacketAction_Reply,
                                    PacketFamily_Welcome,
-                                   EO_EncodeNumber(server, 3, 2) + "NO");
+                                   EO_EncodeNumber(server, WelcomeCode_ServerBusy, 2) +
+                                       "NO");
                 return true;
             }
             int selected_id = EO_DecodeNumber(server, data.SubString(4, 4));
@@ -2460,8 +2484,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         if (data.Length() < 1)
             return false;
         int emote = EO_DecodeNumber(server, String(data[1]));
-        if ((unsigned int)EO_DecodeNumber(server, String(data[1])) > 10 &&
-            EO_DecodeNumber(server, String(data[1])) != 14)
+        if ((unsigned int)EO_DecodeNumber(server, String(data[1])) > Emote_Embarrassed &&
+            EO_DecodeNumber(server, String(data[1])) != Emote_Playful)
             return true;
         String buf = EO_EncodeNumber(server, player->player_id, 2);
         buf.Insert(data[1], buf.Length() + 1);
@@ -2489,8 +2513,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             if (data.Length() < 1)
                 return false;
-            int type = EO_DecodeNumber(server, String(data[1]));
-            if (type == 1)
+            int sit_action = EO_DecodeNumber(server, String(data[1]));
+            if (sit_action == SitAction_Sit)
             {
                 if (!player->sitting && !player->on_chair)
                 {
@@ -2883,7 +2907,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
                 Client_SendEncoded(
                     server, player, PacketAction_Reply, PacketFamily_Item, out);
-                Player_Warp(server, player, scroll_map, *(MapCoord *)&spec, 1, false);
+                Player_Warp(server,
+                            player,
+                            scroll_map,
+                            *(MapCoord *)&spec,
+                            WarpEffect_Scroll,
+                            false);
                 return true;
             }
             return true;
@@ -4165,7 +4194,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     Server_BroadcastToParty(
                         server, player, PacketAction_Agree, PacketFamily_Party, msg);
                 }
-                Player_Warp(server, player, sleep_map, sleep_pos, 0, false);
+                Player_Warp(server, player, sleep_map, sleep_pos, WarpEffect_None, false);
                 return true;
             }
         }
@@ -4180,29 +4209,32 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             if (player->home_id != id)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Remove,
-                                   PacketFamily_Citizen,
-                                   EO_EncodeNumber(server, 0, 1));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Remove,
+                    PacketFamily_Citizen,
+                    EO_EncodeNumber(server, InnUnsubscribeReply_NotCitizen, 1));
                 return true;
             }
             if (player->home_id == 0)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Remove,
-                                   PacketFamily_Citizen,
-                                   EO_EncodeNumber(server, 0, 1));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Remove,
+                    PacketFamily_Citizen,
+                    EO_EncodeNumber(server, InnUnsubscribeReply_NotCitizen, 1));
                 return true;
             }
             player->home_id = 0;
             player->home_name = InnValues::GetName((*MAINFORM)->inn_values, 0);
-            Client_SendEncoded(server,
-                               player,
-                               PacketAction_Remove,
-                               PacketFamily_Citizen,
-                               EO_EncodeNumber(server, 1, 1));
+            Client_SendEncoded(
+                server,
+                player,
+                PacketAction_Remove,
+                PacketFamily_Citizen,
+                EO_EncodeNumber(server, InnUnsubscribeReply_Unsubscribed, 1));
             return true;
         }
         if (action == PacketAction_Reply)
@@ -4917,21 +4949,24 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 if (player->in_party && target->in_party &&
                     player->party_leader_id == target->party_leader_id)
                 {
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Reply,
-                                       PacketFamily_Party,
-                                       EO_EncodeNumber(server, 1, 1) + target->name);
+                    Client_SendEncoded(
+                        server,
+                        player,
+                        PacketAction_Reply,
+                        PacketFamily_Party,
+                        EO_EncodeNumber(server, PartyReplyCode_AlreadyInYourParty, 1) +
+                            target->name);
                     return true;
                 }
                 if (target->in_party && target->CountPartyMembers() + 1 >=
                                             Settings::GetGroupMax(server->settings))
                 {
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Reply,
-                                       PacketFamily_Party,
-                                       EO_EncodeNumber(server, 2, 1));
+                    Client_SendEncoded(
+                        server,
+                        player,
+                        PacketAction_Reply,
+                        PacketFamily_Party,
+                        EO_EncodeNumber(server, PartyReplyCode_PartyIsFull, 1));
                     return true;
                 }
                 player->read_pos = target->player_id;
@@ -4947,21 +4982,24 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             {
                 if (target->in_party)
                 {
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Reply,
-                                       PacketFamily_Party,
-                                       EO_EncodeNumber(server, 0, 1) + target->name);
+                    Client_SendEncoded(
+                        server,
+                        player,
+                        PacketAction_Reply,
+                        PacketFamily_Party,
+                        EO_EncodeNumber(server, PartyReplyCode_AlreadyInAnotherParty, 1) +
+                            target->name);
                     return true;
                 }
                 if (player->in_party && player->CountPartyMembers() + 1 >=
                                             Settings::GetGroupMax(server->settings))
                 {
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Reply,
-                                       PacketFamily_Party,
-                                       EO_EncodeNumber(server, 2, 1));
+                    Client_SendEncoded(
+                        server,
+                        player,
+                        PacketAction_Reply,
+                        PacketFamily_Party,
+                        EO_EncodeNumber(server, PartyReplyCode_PartyIsFull, 1));
                     return true;
                 }
                 player->read_pos = target->player_id;
@@ -6165,12 +6203,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (!ClassValues::ClassMatches(
                     (*MAINFORM)->class_values, player->class_id, skill.class_requirement))
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_StatSkill,
-                                   EO_EncodeNumber(server, 2, 2) +
-                                       EO_EncodeNumber(server, player->class_id, 1));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_StatSkill,
+                    EO_EncodeNumber(server, SkillMasterReply_WrongClass, 2) +
+                        EO_EncodeNumber(server, player->class_id, 1));
                 return true;
             }
             if (player->level < skill.level_requirement)
@@ -6231,11 +6270,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 player->armlet2_graphic_id != 0 || player->bracer1_graphic_id != 0 ||
                 player->bracer2_graphic_id != 0)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_StatSkill,
-                                   EO_EncodeNumber(server, 1, 2));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_StatSkill,
+                    EO_EncodeNumber(server, SkillMasterReply_RemoveItems, 2));
                 return true;
             }
             player->base_strength = 0;
@@ -6433,20 +6473,22 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             {
                 if (player->partner_name.Length() > 3)
                 {
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Reply,
-                                       PacketFamily_Marriage,
-                                       EO_EncodeNumber(server, 1, 2));
+                    Client_SendEncoded(
+                        server,
+                        player,
+                        PacketAction_Reply,
+                        PacketFamily_Marriage,
+                        EO_EncodeNumber(server, MarriageReply_AlreadyMarried, 2));
                     return true;
                 }
                 if (!Players::Player_RemoveItem(server->players, player, 1, 0x1f4))
                 {
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Reply,
-                                       PacketFamily_Marriage,
-                                       EO_EncodeNumber(server, 4, 2));
+                    Client_SendEncoded(
+                        server,
+                        player,
+                        PacketAction_Reply,
+                        PacketFamily_Marriage,
+                        EO_EncodeNumber(server, MarriageReply_NotEnoughGold, 2));
                     return true;
                 }
                 player->partner_name = name.SubString(1, 3);
@@ -6461,20 +6503,22 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             {
                 if (player->partner_name.Length() < 4)
                 {
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Reply,
-                                       PacketFamily_Marriage,
-                                       EO_EncodeNumber(server, 2, 2));
+                    Client_SendEncoded(
+                        server,
+                        player,
+                        PacketAction_Reply,
+                        PacketFamily_Marriage,
+                        EO_EncodeNumber(server, MarriageReply_NotMarried, 2));
                     return true;
                 }
                 if (LowerCase(player->partner_name) != LowerCase(name))
                 {
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Reply,
-                                       PacketFamily_Marriage,
-                                       EO_EncodeNumber(server, 5, 2));
+                    Client_SendEncoded(
+                        server,
+                        player,
+                        PacketAction_Reply,
+                        PacketFamily_Marriage,
+                        EO_EncodeNumber(server, MarriageReply_WrongName, 2));
                     return true;
                 }
                 Player *target = Players::Players_FindByName(server->players, name);
@@ -6482,38 +6526,42 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 {
                     if (!Players::Player_RemoveItem(server->players, player, 1, 0x2710))
                     {
-                        Client_SendEncoded(server,
-                                           player,
-                                           PacketAction_Reply,
-                                           PacketFamily_Marriage,
-                                           EO_EncodeNumber(server, 4, 2));
+                        Client_SendEncoded(
+                            server,
+                            player,
+                            PacketAction_Reply,
+                            PacketFamily_Marriage,
+                            EO_EncodeNumber(server, MarriageReply_NotEnoughGold, 2));
                         return true;
                     }
-                    Client_SendEncoded(server,
-                                       target,
-                                       PacketAction_Reply,
-                                       PacketFamily_Marriage,
-                                       EO_EncodeNumber(server, 7, 2));
+                    Client_SendEncoded(
+                        server,
+                        target,
+                        PacketAction_Reply,
+                        PacketFamily_Marriage,
+                        EO_EncodeNumber(server, MarriageReply_DivorceNotification, 2));
                     target->partner_name = "";
                 }
                 else
                 {
                     if (!Server_TickOncePerFiveSeconds(server))
                     {
-                        Client_SendEncoded(server,
-                                           player,
-                                           PacketAction_Reply,
-                                           PacketFamily_Marriage,
-                                           EO_EncodeNumber(server, 6, 2));
+                        Client_SendEncoded(
+                            server,
+                            player,
+                            PacketAction_Reply,
+                            PacketFamily_Marriage,
+                            EO_EncodeNumber(server, MarriageReply_ServiceBusy, 2));
                         return true;
                     }
                     if (!Players::Player_RemoveItem(server->players, player, 1, 0x2710))
                     {
-                        Client_SendEncoded(server,
-                                           player,
-                                           PacketAction_Reply,
-                                           PacketFamily_Marriage,
-                                           EO_EncodeNumber(server, 4, 2));
+                        Client_SendEncoded(
+                            server,
+                            player,
+                            PacketAction_Reply,
+                            PacketFamily_Marriage,
+                            EO_EncodeNumber(server, MarriageReply_NotEnoughGold, 2));
                         return true;
                     }
                     Mysqlcontrols::Mysql_ExecDirect(
@@ -6581,7 +6629,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    player,
                                    PacketAction_Reply,
                                    PacketFamily_Priest,
-                                   EO_EncodeNumber(server, 5, 2));
+                                   EO_EncodeNumber(server, PriestReply_Busy, 2));
                 return true;
             }
             int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
@@ -6595,7 +6643,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    player,
                                    PacketAction_Reply,
                                    PacketFamily_Priest,
-                                   EO_EncodeNumber(server, 2, 2));
+                                   EO_EncodeNumber(server, PriestReply_LowLevel, 2));
                 return true;
             }
             if (player->gender == 1 && player->armor_graphic_id != 0x15)
@@ -6604,7 +6652,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    player,
                                    PacketAction_Reply,
                                    PacketFamily_Priest,
-                                   EO_EncodeNumber(server, 1, 2));
+                                   EO_EncodeNumber(server, PriestReply_NotDressed, 2));
                 return true;
             }
             if (player->gender == 0 && player->armor_graphic_id != 2)
@@ -6613,7 +6661,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    player,
                                    PacketAction_Reply,
                                    PacketFamily_Priest,
-                                   EO_EncodeNumber(server, 1, 2));
+                                   EO_EncodeNumber(server, PriestReply_NotDressed, 2));
                 return true;
             }
             player->session_token = RandRange(0x2710) + 0xc3501;
@@ -6645,38 +6693,42 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             Player *target = Players::Players_FindByName(server->players, name);
             if (target == NULL)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Priest,
-                                   EO_EncodeNumber(server, 3, 2));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Priest,
+                    EO_EncodeNumber(server, PriestReply_PartnerNotPresent, 2));
                 return true;
             }
             if (target->player_id == player->player_id)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Priest,
-                                   EO_EncodeNumber(server, 3, 2));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Priest,
+                    EO_EncodeNumber(server, PriestReply_PartnerNotPresent, 2));
                 return true;
             }
             if (target->map_id != player->map_id)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Priest,
-                                   EO_EncodeNumber(server, 3, 2));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Priest,
+                    EO_EncodeNumber(server, PriestReply_PartnerNotPresent, 2));
                 return true;
             }
             if (target->partner_name.Length() > 3)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Priest,
-                                   EO_EncodeNumber(server, 7, 2));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Priest,
+                    EO_EncodeNumber(server, PriestReply_PartnerAlreadyMarried, 2));
                 return true;
             }
             if (LowerCase(name.SubString(1, 3)) != LowerCase(player->partner_name))
@@ -6685,7 +6737,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    player,
                                    PacketAction_Reply,
                                    PacketFamily_Priest,
-                                   EO_EncodeNumber(server, 8, 2));
+                                   EO_EncodeNumber(server, PriestReply_NoPermission, 2));
                 return true;
             }
             if (LowerCase(target->partner_name) !=
@@ -6695,25 +6747,27 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    player,
                                    PacketAction_Reply,
                                    PacketFamily_Priest,
-                                   EO_EncodeNumber(server, 8, 2));
+                                   EO_EncodeNumber(server, PriestReply_NoPermission, 2));
                 return true;
             }
             if (target->gender == 1 && target->armor_graphic_id != 0x15)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Priest,
-                                   EO_EncodeNumber(server, 4, 2));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Priest,
+                    EO_EncodeNumber(server, PriestReply_PartnerNotDressed, 2));
                 return true;
             }
             if (target->gender == 0 && target->armor_graphic_id != 2)
             {
-                Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Reply,
-                                   PacketFamily_Priest,
-                                   EO_EncodeNumber(server, 4, 2));
+                Client_SendEncoded(
+                    server,
+                    player,
+                    PacketAction_Reply,
+                    PacketFamily_Priest,
+                    EO_EncodeNumber(server, PriestReply_PartnerNotDressed, 2));
                 return true;
             }
             player->read_break = target->player_id;
@@ -7554,7 +7608,7 @@ void Player_Warp(Server *server,
                  Player *player,
                  int target_map,
                  MapCoord coords,
-                 int warp_anim,
+                 int warp_effect,
                  bool do_leave)
 {
     if (target_map == 0x50 || target_map == 0x51)
@@ -7567,7 +7621,7 @@ void Player_Warp(Server *server,
     if (player->warp_state < 0)
         player->session_id = RandRange(50000) + 10000;
     int old_map = player->map_id;
-    player->warp_state = warp_anim;
+    player->warp_state = warp_effect;
     player->warp_pending = true;
     player->dead = false;
     player->warp_map = target_map;
@@ -7688,7 +7742,7 @@ bool Player_CheckIdleWarp(Server *server, Player *player, int x, int y)
             if (player->level < level_req)
                 return false;
             player->flush_queue = 1;
-            Player_Warp(server, player, target_map, dest, 0, false);
+            Player_Warp(server, player, target_map, dest, WarpEffect_None, false);
             return true;
         }
     }
@@ -8325,9 +8379,9 @@ String Server_BuildOnlineList(Server *server)
                             list.Length() + 1);
                 if ((*iter)->in_party)
                 {
-                    if ((*iter)->admin_level > 1)
+                    if ((*iter)->admin_level > AdminLevel_Spy)
                     {
-                        if ((*iter)->admin_level < 4)
+                        if ((*iter)->admin_level < AdminLevel_GameMaster)
                             list.Insert(EO_EncodeNumber(server, 9, 1), list.Length() + 1);
                         else
                             list.Insert(EO_EncodeNumber(server, 10, 1),
@@ -8338,9 +8392,9 @@ String Server_BuildOnlineList(Server *server)
                 }
                 else
                 {
-                    if ((*iter)->admin_level > 1)
+                    if ((*iter)->admin_level > AdminLevel_Spy)
                     {
-                        if ((*iter)->admin_level < 4)
+                        if ((*iter)->admin_level < AdminLevel_GameMaster)
                             list.Insert(EO_EncodeNumber(server, 4, 1), list.Length() + 1);
                         else
                             list.Insert(EO_EncodeNumber(server, 5, 1), list.Length() + 1);
@@ -8588,9 +8642,9 @@ String Paperdoll_BuildReply(Server *server, Player *player)
                     data.Length() + 1);
         if (player->in_party)
         {
-            if (player->admin_level > 1)
+            if (player->admin_level > AdminLevel_Spy)
             {
-                if (player->admin_level < 4)
+                if (player->admin_level < AdminLevel_GameMaster)
                     data.Insert(EO_EncodeNumber(server, 9, 1), data.Length() + 1);
                 else
                     data.Insert(EO_EncodeNumber(server, 10, 1), data.Length() + 1);
@@ -8600,9 +8654,9 @@ String Paperdoll_BuildReply(Server *server, Player *player)
         }
         else
         {
-            if (player->admin_level > 1)
+            if (player->admin_level > AdminLevel_Spy)
             {
-                if (player->admin_level < 4)
+                if (player->admin_level < AdminLevel_GameMaster)
                     data.Insert(EO_EncodeNumber(server, 4, 1), data.Length() + 1);
                 else
                     data.Insert(EO_EncodeNumber(server, 5, 1), data.Length() + 1);
@@ -8641,9 +8695,9 @@ String Player_SerializePaperdoll(Server *server, Player *player)
         out.Insert(EO_EncodeNumber(server, player->admin_level, 1), out.Length() + 1);
         if (player->in_party)
         {
-            if (player->admin_level > 1)
+            if (player->admin_level > AdminLevel_Spy)
             {
-                if (player->admin_level < 4)
+                if (player->admin_level < AdminLevel_GameMaster)
                     out.Insert(EO_EncodeNumber(server, 9, 1), out.Length() + 1);
                 else
                     out.Insert(EO_EncodeNumber(server, 10, 1), out.Length() + 1);
@@ -8653,9 +8707,9 @@ String Player_SerializePaperdoll(Server *server, Player *player)
         }
         else
         {
-            if (player->admin_level > 1)
+            if (player->admin_level > AdminLevel_Spy)
             {
-                if (player->admin_level < 4)
+                if (player->admin_level < AdminLevel_GameMaster)
                     out.Insert(EO_EncodeNumber(server, 4, 1), out.Length() + 1);
                 else
                     out.Insert(EO_EncodeNumber(server, 5, 1), out.Length() + 1);
@@ -9076,7 +9130,7 @@ void Player_Respawn(Server *server, Player *player)
         coords.y = Settings::GetStartY(server->settings);
     }
     player->flush_queue = 1;
-    Player_Warp(server, player, map_id, coords, 0, true);
+    Player_Warp(server, player, map_id, coords, WarpEffect_None, true);
 }
 
 void Server_BroadcastToPartyExceptSelf(Server *server,
@@ -9246,7 +9300,8 @@ void Server_BroadcastToMapAndAdmins(
          player_iter != Players_Iter_End(server->players);
          player_iter++)
     {
-        if ((*player_iter)->map_id == map_id || (*player_iter)->admin_level > 0)
+        if ((*player_iter)->map_id == map_id ||
+            (*player_iter)->admin_level > AdminLevel_Player)
         {
             if ((*player_iter)->logged_in)
                 Client_SendEncoded(server, *player_iter, action, family, data);
@@ -9264,8 +9319,8 @@ void Admin_BroadcastToOtherAdmins(Server *server,
          player_iter != Players_Iter_End(server->players);
          player_iter++)
     {
-        if ((*player_iter)->admin_level > 0 && (*player_iter)->logged_in &&
-            (*player_iter)->player_id != player->player_id)
+        if ((*player_iter)->admin_level > AdminLevel_Player &&
+            (*player_iter)->logged_in && (*player_iter)->player_id != player->player_id)
             Client_SendEncoded(server, *player_iter, action, family, data);
     }
 }
@@ -10081,22 +10136,32 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             server->mysql_controls, PacketReader_GetBreakString(server));
         if ((*MAINFORM)->myquery->RecordCount < 1)
         {
-            Client_SendEncoded(
-                server, player, 3, 4, EO_EncodeNumber(server, 1, 2) + "NO");
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Login,
+                               EO_EncodeNumber(server, LoginReply_WrongUser, 2) + "NO");
             return;
         }
         if (password !=
             Account_DecodePassword(
                 server, Mysqlcontrols::Db_GetString(server->mysql_controls, "password")))
         {
-            Client_SendEncoded(
-                server, player, 3, 4, EO_EncodeNumber(server, 2, 2) + "NO");
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Login,
+                               EO_EncodeNumber(server, LoginReply_WrongUserPassword, 2) +
+                                   "NO");
             return;
         }
         if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls, "banned") > 0)
         {
-            Client_SendEncoded(
-                server, player, 3, 4, EO_EncodeNumber(server, 4, 2) + "NO");
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Login,
+                               EO_EncodeNumber(server, LoginReply_Banned, 2) + "NO");
             player->removing = true;
             return;
         }
@@ -10106,14 +10171,20 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         String account_type = Mysqlcontrols::Db_GetString(server->mysql_controls, "type");
         if (Mysqlcontrols::IsTaskPending(server->mysql_controls, ident))
         {
-            Client_SendEncoded(
-                server, player, 3, 4, EO_EncodeNumber(server, 5, 2) + "NO");
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Login,
+                               EO_EncodeNumber(server, LoginReply_LoggedIn, 2) + "NO");
             return;
         }
         if (Players::Players_IsAccountIdentOnline(server->players, ident))
         {
-            Client_SendEncoded(
-                server, player, 3, 4, EO_EncodeNumber(server, 5, 2) + "NO");
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Login,
+                               EO_EncodeNumber(server, LoginReply_LoggedIn, 2) + "NO");
             return;
         }
         if (account_type == "VIP" || account_type == "DEV")
@@ -10172,7 +10243,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                                player,
                                PacketAction_Reply,
                                PacketFamily_Character,
-                               EO_EncodeNumber(server, 1, 2) + "NO");
+                               EO_EncodeNumber(server, CharacterReply_Exists, 2) + "NO");
             return;
         }
         int gender = EO_DecodeNumber(server, query_result->data.SubString(3, 2));
@@ -10234,7 +10305,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                                player,
                                PacketAction_Reply,
                                PacketFamily_Account,
-                               EO_EncodeNumber(server, 1, 2) + "NO");
+                               EO_EncodeNumber(server, AccountReply_Exists, 2) + "NO");
             return;
         }
         String reply = EO_EncodeNumber(server, player->session_id, 2);
@@ -10298,7 +10369,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                            player,
                            PacketAction_Reply,
                            PacketFamily_Account,
-                           EO_EncodeNumber(server, 3, 2) + "GO");
+                           EO_EncodeNumber(server, AccountReply_Created, 2) + "GO");
         server->mysql_controls->file_cache->accounts_count++;
         player->session_id = RandRange(50000) + 10000;
         return;
@@ -10327,14 +10398,15 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                                player,
                                PacketAction_Reply,
                                PacketFamily_Account,
-                               EO_EncodeNumber(server, 5, 2) + "NO");
+                               EO_EncodeNumber(server, AccountReply_ChangeFailed, 2) +
+                                   "NO");
             return;
         }
         Client_SendEncoded(server,
                            player,
                            PacketAction_Reply,
                            PacketFamily_Account,
-                           EO_EncodeNumber(server, 6, 2) + "OK");
+                           EO_EncodeNumber(server, AccountReply_Changed, 2) + "OK");
         Mysqlcontrols::Mysql_ExecDirect(
             server->mysql_controls,
             player->account_ident,
@@ -10373,19 +10445,34 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         }
         if (target->guild_tag != player->guild_tag)
         {
-            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x18, 2));
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, GuildReply_RankingNotMember, 2));
             return;
         }
         if (target->guild_rank_id == 1)
         {
-            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x17, 2));
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, GuildReply_RankingLeader, 2));
             return;
         }
         target->guild_rank_name = rank_value;
         target->guild_rank_id = token;
-        Client_SendEncoded(
-            server, target, 2, 0x27, EO_EncodeNumber(server, token, 1) + rank_value);
-        Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x12, 2));
+        Client_SendEncoded(server,
+                           target,
+                           PacketAction_Accept,
+                           PacketFamily_Guild,
+                           EO_EncodeNumber(server, token, 1) + rank_value);
+        Client_SendEncoded(server,
+                           player,
+                           PacketAction_Reply,
+                           PacketFamily_Guild,
+                           EO_EncodeNumber(server, GuildReply_Updated, 2));
         return;
     }
     if (query_result->query_id == 0x48)
@@ -10399,13 +10486,21 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                 Mysqlcontrols::Db_GetString(server->mysql_controls, "ident_guild")) !=
             AnsiLowerCase(player->guild_tag))
         {
-            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x18, 2));
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, GuildReply_RankingNotMember, 2));
             return;
         }
         if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls,
                                                    "ident_rank") == 1)
         {
-            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x17, 2));
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, GuildReply_RankingLeader, 2));
             return;
         }
         Mysqlcontrols::Mysql_ExecDirect_FromCallback(
@@ -10414,7 +10509,11 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             "UPDATE endl_characters SET ident_rank = " + IntToStr(token) + ", rank = '" +
                 player->field_0x14 + "' WHERE name = '" + char_name +
                 "' AND ident_guild = '" + player->guild_tag + "'");
-        Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x12, 2));
+        Client_SendEncoded(server,
+                           player,
+                           PacketAction_Reply,
+                           PacketFamily_Guild,
+                           EO_EncodeNumber(server, GuildReply_Updated, 2));
         return;
     }
     if (query_result->query_id == 0x49)
@@ -10425,13 +10524,21 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                 Mysqlcontrols::Db_GetString(server->mysql_controls, "ident_guild")) !=
             AnsiLowerCase(player->guild_tag))
         {
-            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x14, 2));
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, GuildReply_RemoveLeader, 2));
             return;
         }
         if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls,
                                                    "ident_rank") == 1)
         {
-            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x15, 2));
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, GuildReply_RemoveNotMember, 2));
             return;
         }
         String char_name =
@@ -10442,7 +10549,11 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             "UPDATE endl_characters SET ident_guild = '0', ident_rank = 9, "
             "guild = '', rank = '' WHERE name = '" +
                 char_name + "' AND ident_guild = '" + player->guild_tag + "'");
-        Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x16, 2));
+        Client_SendEncoded(server,
+                           player,
+                           PacketAction_Reply,
+                           PacketFamily_Guild,
+                           EO_EncodeNumber(server, GuildReply_Removed, 2));
         return;
     }
     if (query_result->query_id == 0x4a)
@@ -10453,7 +10564,8 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             Mysqlcontrols::Db_GetString(server->mysql_controls, "description");
         if (description.Length() == 0)
             description = " ";
-        Client_SendEncoded(server, player, 9, 0x27, description);
+        Client_SendEncoded(
+            server, player, PacketAction_Take, PacketFamily_Guild, description);
         return;
     }
     if (query_result->query_id == 0x4b)
@@ -10486,7 +10598,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank9"),
                      ranks.Length() + 1);
         ranks.Insert(EO_GetBreakByte(server, 0xff), ranks.Length() + 1);
-        Client_SendEncoded(server, player, 0x1d, 0x27, ranks);
+        Client_SendEncoded(server, player, PacketAction_Rank, PacketFamily_Guild, ranks);
         return;
     }
     if (query_result->query_id == 0x4c)
@@ -10496,8 +10608,8 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         Client_SendEncoded(
             server,
             player,
-            12,
-            0x27,
+            PacketAction_Sell,
+            PacketFamily_Guild,
             EO_EncodeNumber(
                 server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "money"), 4));
         return;
@@ -10506,7 +10618,11 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
     {
         if ((*MAINFORM)->myquery->RecordCount < 1)
         {
-            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x11, 2));
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, GuildReply_NotFound, 2));
             return;
         }
         String list = EO_EncodeNumber(server, (*MAINFORM)->myquery->RecordCount, 2);
@@ -10527,14 +10643,18 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             list.Insert(EO_GetBreakByte(server, 0xff), list.Length() + 1);
             (*MAINFORM)->myquery->Next();
         }
-        Client_SendEncoded(server, player, 0x14, 0x27, list);
+        Client_SendEncoded(server, player, PacketAction_Tell, PacketFamily_Guild, list);
         return;
     }
     if (query_result->query_id == 0x4e)
     {
         if ((*MAINFORM)->myquery->RecordCount < 1)
         {
-            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x11, 2));
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, GuildReply_NotFound, 2));
             return;
         }
         String type = "bankrupt";
@@ -10656,14 +10776,19 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                 Mysqlcontrols::NextResultRecord(server->mysql_controls);
             }
         }
-        Client_SendEncoded(server, player, 0x15, 0x27, player->field_0x14);
+        Client_SendEncoded(
+            server, player, PacketAction_Report, PacketFamily_Guild, player->field_0x14);
         return;
     }
     if (query_result->query_id == 0x50)
     {
         if (Mysqlcontrols::GetResultCount(server->mysql_controls) > 0)
         {
-            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 5, 2));
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, GuildReply_Exists, 2));
             return;
         }
         PacketReader_Init(server, query_result->data, EO_GetBreakByte(server, 0xff));
@@ -10673,10 +10798,15 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         String name = Mysqlcontrols::Db_SanitizeString(
             server->mysql_controls, PacketReader_GetBreakString(server));
         player->guild_inviter_id = player->player_id;
-        Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 6, 2));
+        Client_SendEncoded(server,
+                           player,
+                           PacketAction_Reply,
+                           PacketFamily_Guild,
+                           EO_EncodeNumber(server, GuildReply_CreateBegin, 2));
         String msg = EO_EncodeNumber(server, player->player_id, 2);
         msg.Insert(name + " (" + guild + ")", msg.Length() + 1);
-        Server_BroadcastToMap(server, player->map_id, 1, 0x27, msg);
+        Server_BroadcastToMap(
+            server, player->map_id, PacketAction_Request, PacketFamily_Guild, msg);
         return;
     }
     if (query_result->query_id == 0x51)
@@ -10685,7 +10815,11 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             return;
         if (Players::Players_CountGuildInvites(server->players, player) < 10)
         {
-            Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 4, 2));
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, GuildReply_NoCandidates, 2));
             return;
         }
         if (!Players::Player_RemoveItem(server->players, player, 1, 0xc350))
@@ -10729,11 +10863,12 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
         msg.Insert("Leader", msg.Length() + 1);
         msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
-        Guild_BroadcastToAll(server, player, 6, 0x27, msg);
+        Guild_BroadcastToAll(
+            server, player, PacketAction_Create, PacketFamily_Guild, msg);
         msg.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
                    msg.Length() + 1);
         msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
-        Client_SendEncoded(server, player, 6, 0x27, msg);
+        Client_SendEncoded(server, player, PacketAction_Create, PacketFamily_Guild, msg);
         server->mysql_controls->file_cache->guilds_count++;
         return;
     }
@@ -10780,8 +10915,12 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
         msg.Insert(rank9, msg.Length() + 1);
         msg.Insert(EO_GetBreakByte(server, 0xff), msg.Length() + 1);
-        Client_SendEncoded(server, other, 5, 0x27, msg);
-        Client_SendEncoded(server, player, 3, 0x27, EO_EncodeNumber(server, 0x10, 2));
+        Client_SendEncoded(server, other, PacketAction_Agree, PacketFamily_Guild, msg);
+        Client_SendEncoded(server,
+                           player,
+                           PacketAction_Reply,
+                           PacketFamily_Guild,
+                           EO_EncodeNumber(server, GuildReply_Accepted, 2));
         return;
     }
     if (query_result->query_id == 0x53)
@@ -10844,7 +10983,7 @@ void Player_ApplyQuestActions(Server *server,
                 MapCoord coords;
                 coords.x = (*iter)->args[1];
                 coords.y = (*iter)->args[2];
-                Player_Warp(server, player, target_map, coords, 0, true);
+                Player_Warp(server, player, target_map, coords, WarpEffect_None, true);
             }
             if ((*iter)->action == 5)
             {
@@ -11456,13 +11595,13 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
         }
         int offset_y = 0;
         int offset_x = 0;
-        if (caster->direction == 0)
+        if (caster->direction == Direction_Down)
             offset_y++;
-        if (caster->direction == 1)
+        if (caster->direction == Direction_Left)
             offset_x--;
-        if (caster->direction == 2)
+        if (caster->direction == Direction_Up)
             offset_y--;
-        if (caster->direction == 3)
+        if (caster->direction == Direction_Right)
             offset_x++;
         for (Player **iter = Players_Iter_Begin(server->players);
              iter != Players_Iter_End(server->players);
@@ -11532,7 +11671,8 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
                 String party_pkt = EO_EncodeNumber(server, (*iter)->player_id, 2);
                 party_pkt.Insert(EO_EncodeNumber(server, Player::HpPercent(*iter), 1),
                                  party_pkt.Length() + 1);
-                Server_BroadcastToParty(server, (*iter), 5, 0x18, party_pkt);
+                Server_BroadcastToParty(
+                    server, (*iter), PacketAction_Agree, PacketFamily_Party, party_pkt);
             }
             String pkt = EO_EncodeNumber(server, caster->player_id, 2);
             pkt.Insert(EO_EncodeNumber(server, (*iter)->player_id, 2), pkt.Length() + 1);
@@ -11565,7 +11705,8 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
             String pkt = EO_EncodeNumber(server, caster->player_id, 2);
             String chr = String(reader[1]);
             pkt = pkt + chr;
-            Server_BroadcastNearby(server, caster, 8, 0xb, pkt);
+            Server_BroadcastNearby(
+                server, caster, PacketAction_Player, PacketFamily_Attack, pkt);
             return 1;
         }
         return 0;
@@ -11595,7 +11736,8 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
             EO_DecodeNumber(server, packet_data->SubString(3, 3)) + cast_time - 1;
         String pkt = EO_EncodeNumber(server, caster->player_id, 2);
         pkt.Insert(EO_EncodeNumber(server, caster->queued_spell_id, 2), pkt.Length() + 1);
-        Server_BroadcastNearby(server, caster, 1, 0xc, pkt);
+        Server_BroadcastNearby(
+            server, caster, PacketAction_Request, PacketFamily_Spell, pkt);
         return 1;
     }
     if (action == 0x1f)
@@ -12132,7 +12274,7 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
     if (action != PacketAction_Player && action != PacketAction_Spec &&
         action != PacketAction_Admin)
         return false;
-    if (action == PacketAction_Admin && player->admin_level < 3)
+    if (action == PacketAction_Admin && player->admin_level < AdminLevel_Guardian)
         return false;
     if (action == PacketAction_Spec)
     {
@@ -12188,7 +12330,7 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
         return true;
     }
     if (direction > 3)
-        direction = 3;
+        direction = Direction_Right;
     int coord_delta = (player->x + player->y) - (target_x + target_y);
     if (coord_delta > 3 || coord_delta < -3 || player->on_chair || player->sitting)
     {
@@ -12203,22 +12345,22 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
         }
         return true;
     }
-    if (direction == 0)
+    if (direction == Direction_Down)
     {
         target_y = player->y + 1;
         target_x = player->x;
     }
-    if (direction == 1)
+    if (direction == Direction_Left)
     {
         target_x = player->x - 1;
         target_y = player->y;
     }
-    if (direction == 2)
+    if (direction == Direction_Up)
     {
         target_y = player->y - 1;
         target_x = player->x;
     }
-    if (direction == 3)
+    if (direction == Direction_Right)
     {
         target_x = player->x + 1;
         target_y = player->y;
@@ -12241,7 +12383,7 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
             }
             return true;
         }
-        if (player->admin_level < 2)
+        if (player->admin_level < AdminLevel_LightGuide)
         {
             TTimeStamp now = DateTimeToTimeStamp(Now());
             int elapsed = now.Date - player->last_pass_ms.Date;

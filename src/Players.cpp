@@ -869,27 +869,27 @@ void Players::Players_Tick(Players *self)
         Server *server = Mainform_GetServer(*MAINFORM);
         (*iter)->flush_queue = 0;
         (*iter)->fast_action = 0;
-        if ((*iter)->action_queue[0].family == 6)
+        if ((*iter)->action_queue[0].family == PacketFamily_Walk)
             Walk_Execute(server,
                          *iter,
                          (*iter)->action_queue[0].action,
                          &(*iter)->action_queue[0].text);
-        if ((*iter)->action_queue[0].family == 11)
+        if ((*iter)->action_queue[0].family == PacketFamily_Attack)
             Attack_Execute(server,
                            *iter,
                            (*iter)->action_queue[0].action,
                            &(*iter)->action_queue[0].text);
-        if ((*iter)->action_queue[0].family == 12)
+        if ((*iter)->action_queue[0].family == PacketFamily_Spell)
             Spell_Execute(server,
                           *iter,
                           (*iter)->action_queue[0].action,
                           &(*iter)->action_queue[0].text);
-        if ((*iter)->action_queue[0].family == 8)
+        if ((*iter)->action_queue[0].family == PacketFamily_Chair)
             Chair_Execute(server,
                           *iter,
                           (*iter)->action_queue[0].action,
                           &(*iter)->action_queue[0].text);
-        if ((*iter)->action_queue[0].family == 7)
+        if ((*iter)->action_queue[0].family == PacketFamily_Face)
         {
             (*iter)->fast_action = 1;
             Face_Execute(server,
