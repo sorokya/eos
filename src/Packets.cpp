@@ -4628,11 +4628,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 player->trade_accepted = false;
                 return false;
             }
-            if (target->trade_accepted == 0)
-                goto trade_pending;
-            if (arg == 1)
-                goto trade_accept;
-        trade_pending:
+            if (target->trade_accepted == 0 || arg != 1)
             {
                 if (arg == 0)
                 {
@@ -4655,207 +4651,193 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, arg, 1));
                 return true;
             }
-        trade_accept:
+            if ((int)player->trade_items.size() != target->trade_value)
             {
-                if ((int)player->trade_items.size() != target->trade_value)
-                {
-                    player->trade_accepted = 0;
-                    player->trade_value = 100;
-                    target->trade_accepted = 0;
-                    target->trade_value = 100;
-                    String out = EO_EncodeNumber(server, player->player_id, 2);
-                    std::vector<PlayerInventory>::iterator iter;
-                    for (iter = player->trade_items.begin();
-                         iter != player->trade_items.end();
-                         iter++)
-                    {
-                        out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
-                                   out.Length() + 1);
-                        out.Insert(EO_EncodeNumber(server, iter->amount, 4),
-                                   out.Length() + 1);
-                    }
-                    out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
-                    out.Insert(EO_EncodeNumber(server, target->player_id, 2),
-                               out.Length() + 1);
-                    for (iter = target->trade_items.begin();
-                         iter != target->trade_items.end();
-                         iter++)
-                    {
-                        out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
-                                   out.Length() + 1);
-                        out.Insert(EO_EncodeNumber(server, iter->amount, 4),
-                                   out.Length() + 1);
-                    }
-                    out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
-                    Client_SendEncoded(
-                        server, player, PacketAction_Admin, PacketFamily_Trade, out);
-                    Client_SendEncoded(
-                        server, target, PacketAction_Admin, PacketFamily_Trade, out);
-                    return true;
-                }
+                player->trade_accepted = 0;
+                player->trade_value = 100;
+                target->trade_accepted = 0;
+                target->trade_value = 100;
+                String out = EO_EncodeNumber(server, player->player_id, 2);
                 std::vector<PlayerInventory>::iterator iter;
                 for (iter = player->trade_items.begin();
                      iter != player->trade_items.end();
                      iter++)
                 {
-                    int item_id = iter->item_id;
-                    int have =
-                        Players::Players_GetItemAmount(server->players, player, item_id);
-                    if (have < 0)
-                        have = 0;
-                    if ((unsigned int)iter->amount > (unsigned int)have)
-                        goto trade_invalid_player;
-                    if ((unsigned int)iter->amount >= 1)
-                        continue;
-                trade_invalid_player:
-                    player->trade_items.clear();
-                    player->trade_accepted = 0;
-                    target->trade_accepted = 0;
-                    Client_SendEncoded(server,
-                                       target,
-                                       PacketAction_Close,
-                                       PacketFamily_Trade,
-                                       EO_EncodeNumber(server, player->player_id, 2));
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Close,
-                                       PacketFamily_Trade,
-                                       EO_EncodeNumber(server, target->player_id, 2));
-                    return true;
-                }
-                std::vector<PlayerInventory>::iterator iter2;
-                for (iter2 = target->trade_items.begin();
-                     iter2 != target->trade_items.end();
-                     iter2++)
-                {
-                    int item_id = iter2->item_id;
-                    int have =
-                        Players::Players_GetItemAmount(server->players, target, item_id);
-                    if (have < 0)
-                        have = 0;
-                    if ((unsigned int)iter2->amount > (unsigned int)have)
-                        goto trade_invalid_target;
-                    if ((unsigned int)iter2->amount >= 1)
-                        continue;
-                trade_invalid_target:
-                    target->trade_items.clear();
-                    target->trade_accepted = 0;
-                    player->trade_accepted = 0;
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Close,
-                                       PacketFamily_Trade,
-                                       EO_EncodeNumber(server, target->player_id, 2));
-                    Client_SendEncoded(server,
-                                       target,
-                                       PacketAction_Close,
-                                       PacketFamily_Trade,
-                                       EO_EncodeNumber(server, player->player_id, 2));
-                    return true;
-                }
-                if ((int)player->trade_items.size() < 1)
-                {
-                    Client_SendEncoded(server,
-                                       target,
-                                       PacketAction_Close,
-                                       PacketFamily_Trade,
-                                       EO_EncodeNumber(server, player->player_id, 2));
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Close,
-                                       PacketFamily_Trade,
-                                       EO_EncodeNumber(server, target->player_id, 2));
-                    return true;
-                }
-                if ((int)target->trade_items.size() < 1)
-                {
-                    Client_SendEncoded(server,
-                                       target,
-                                       PacketAction_Close,
-                                       PacketFamily_Trade,
-                                       EO_EncodeNumber(server, player->player_id, 2));
-                    Client_SendEncoded(server,
-                                       player,
-                                       PacketAction_Close,
-                                       PacketFamily_Trade,
-                                       EO_EncodeNumber(server, target->player_id, 2));
-                    return true;
-                }
-                String out = EO_EncodeNumber(server, player->player_id, 2);
-                for (iter = player->trade_items.begin();
-                     iter != player->trade_items.end();
-                     iter++)
-                {
-                    Players::Player_RemoveItem(
-                        server->players, player, iter->item_id, iter->amount);
-                    Players::Player_AddItem(
-                        server->players, target, iter->item_id, iter->amount);
                     out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
                                out.Length() + 1);
                     out.Insert(EO_EncodeNumber(server, iter->amount, 4),
                                out.Length() + 1);
-                    player->weight_current =
-                        player->weight_current -
-                        ItemValues::GetWeight((*MAINFORM)->item_values, iter->item_id) *
-                            iter->amount;
-                    target->weight_current =
-                        target->weight_current +
-                        ItemValues::GetWeight((*MAINFORM)->item_values, iter->item_id) *
-                            iter->amount;
-                    if (player->weight_current < 0)
-                        player->weight_current = 0;
                 }
                 out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, target->player_id, 2),
                            out.Length() + 1);
-                for (iter2 = target->trade_items.begin();
-                     iter2 != target->trade_items.end();
-                     iter2++)
+                for (iter = target->trade_items.begin();
+                     iter != target->trade_items.end();
+                     iter++)
                 {
-                    Players::Player_RemoveItem(
-                        server->players, target, iter2->item_id, iter2->amount);
-                    Players::Player_AddItem(
-                        server->players, player, iter2->item_id, iter2->amount);
-                    out.Insert(EO_EncodeNumber(server, iter2->item_id, 2),
+                    out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
                                out.Length() + 1);
-                    out.Insert(EO_EncodeNumber(server, iter2->amount, 4),
+                    out.Insert(EO_EncodeNumber(server, iter->amount, 4),
                                out.Length() + 1);
-                    target->weight_current =
-                        target->weight_current -
-                        ItemValues::GetWeight((*MAINFORM)->item_values, iter2->item_id) *
-                            iter2->amount;
-                    player->weight_current =
-                        player->weight_current +
-                        ItemValues::GetWeight((*MAINFORM)->item_values, iter2->item_id) *
-                            iter2->amount;
-                    if (player->weight_current < 0)
-                        player->weight_current = 0;
                 }
                 out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
-                player->trade_items.clear();
-                player->read_len = -1;
-                player->trade_accepted = 0;
-                player->trade_value = 100;
-                target->trade_items.clear();
-                target->read_len = -1;
-                target->trade_accepted = 0;
-                target->trade_value = 100;
                 Client_SendEncoded(
-                    server, player, PacketAction_Use, PacketFamily_Trade, out);
+                    server, player, PacketAction_Admin, PacketFamily_Trade, out);
                 Client_SendEncoded(
-                    server, target, PacketAction_Use, PacketFamily_Trade, out);
-                String out2 = EO_EncodeNumber(server, player->player_id, 2);
-                out2.Insert(EO_EncodeNumber(server, 0xc, 1), out2.Length() + 1);
-                Server_BroadcastNearby(
-                    server, player, PacketAction_Player, PacketFamily_Emote, out2);
-                out2 = EO_EncodeNumber(server, target->player_id, 2);
-                out2.Insert(EO_EncodeNumber(server, 0xc, 1), out2.Length() + 1);
-                Server_BroadcastNearby(
-                    server, target, PacketAction_Player, PacketFamily_Emote, out2);
-                Player_FireQuestTriggers(server, player, 0x190, 0);
-                Player_FireQuestTriggers(server, target, 0x190, 0);
+                    server, target, PacketAction_Admin, PacketFamily_Trade, out);
                 return true;
             }
+            std::vector<PlayerInventory>::iterator iter;
+            for (iter = player->trade_items.begin(); iter != player->trade_items.end();
+                 iter++)
+            {
+                int item_id = iter->item_id;
+                int have =
+                    Players::Players_GetItemAmount(server->players, player, item_id);
+                if (have < 0)
+                    have = 0;
+                if ((unsigned int)iter->amount > (unsigned int)have)
+                    goto trade_invalid_player;
+                if ((unsigned int)iter->amount >= 1)
+                    continue;
+            trade_invalid_player:
+                player->trade_items.clear();
+                player->trade_accepted = 0;
+                target->trade_accepted = 0;
+                Client_SendEncoded(server,
+                                   target,
+                                   PacketAction_Close,
+                                   PacketFamily_Trade,
+                                   EO_EncodeNumber(server, player->player_id, 2));
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Close,
+                                   PacketFamily_Trade,
+                                   EO_EncodeNumber(server, target->player_id, 2));
+                return true;
+            }
+            std::vector<PlayerInventory>::iterator iter2;
+            for (iter2 = target->trade_items.begin(); iter2 != target->trade_items.end();
+                 iter2++)
+            {
+                int item_id = iter2->item_id;
+                int have =
+                    Players::Players_GetItemAmount(server->players, target, item_id);
+                if (have < 0)
+                    have = 0;
+                if ((unsigned int)iter2->amount > (unsigned int)have)
+                    goto trade_invalid_target;
+                if ((unsigned int)iter2->amount >= 1)
+                    continue;
+            trade_invalid_target:
+                target->trade_items.clear();
+                target->trade_accepted = 0;
+                player->trade_accepted = 0;
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Close,
+                                   PacketFamily_Trade,
+                                   EO_EncodeNumber(server, target->player_id, 2));
+                Client_SendEncoded(server,
+                                   target,
+                                   PacketAction_Close,
+                                   PacketFamily_Trade,
+                                   EO_EncodeNumber(server, player->player_id, 2));
+                return true;
+            }
+            if ((int)player->trade_items.size() < 1)
+            {
+                Client_SendEncoded(server,
+                                   target,
+                                   PacketAction_Close,
+                                   PacketFamily_Trade,
+                                   EO_EncodeNumber(server, player->player_id, 2));
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Close,
+                                   PacketFamily_Trade,
+                                   EO_EncodeNumber(server, target->player_id, 2));
+                return true;
+            }
+            if ((int)target->trade_items.size() < 1)
+            {
+                Client_SendEncoded(server,
+                                   target,
+                                   PacketAction_Close,
+                                   PacketFamily_Trade,
+                                   EO_EncodeNumber(server, player->player_id, 2));
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Close,
+                                   PacketFamily_Trade,
+                                   EO_EncodeNumber(server, target->player_id, 2));
+                return true;
+            }
+            String out = EO_EncodeNumber(server, player->player_id, 2);
+            for (iter = player->trade_items.begin(); iter != player->trade_items.end();
+                 iter++)
+            {
+                Players::Player_RemoveItem(
+                    server->players, player, iter->item_id, iter->amount);
+                Players::Player_AddItem(
+                    server->players, target, iter->item_id, iter->amount);
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->amount, 4), out.Length() + 1);
+                player->weight_current =
+                    player->weight_current -
+                    ItemValues::GetWeight((*MAINFORM)->item_values, iter->item_id) *
+                        iter->amount;
+                target->weight_current =
+                    target->weight_current +
+                    ItemValues::GetWeight((*MAINFORM)->item_values, iter->item_id) *
+                        iter->amount;
+                if (player->weight_current < 0)
+                    player->weight_current = 0;
+            }
+            out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, target->player_id, 2), out.Length() + 1);
+            for (iter2 = target->trade_items.begin(); iter2 != target->trade_items.end();
+                 iter2++)
+            {
+                Players::Player_RemoveItem(
+                    server->players, target, iter2->item_id, iter2->amount);
+                Players::Player_AddItem(
+                    server->players, player, iter2->item_id, iter2->amount);
+                out.Insert(EO_EncodeNumber(server, iter2->item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter2->amount, 4), out.Length() + 1);
+                target->weight_current =
+                    target->weight_current -
+                    ItemValues::GetWeight((*MAINFORM)->item_values, iter2->item_id) *
+                        iter2->amount;
+                player->weight_current =
+                    player->weight_current +
+                    ItemValues::GetWeight((*MAINFORM)->item_values, iter2->item_id) *
+                        iter2->amount;
+                if (player->weight_current < 0)
+                    player->weight_current = 0;
+            }
+            out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
+            player->trade_items.clear();
+            player->read_len = -1;
+            player->trade_accepted = 0;
+            player->trade_value = 100;
+            target->trade_items.clear();
+            target->read_len = -1;
+            target->trade_accepted = 0;
+            target->trade_value = 100;
+            Client_SendEncoded(server, player, PacketAction_Use, PacketFamily_Trade, out);
+            Client_SendEncoded(server, target, PacketAction_Use, PacketFamily_Trade, out);
+            String out2 = EO_EncodeNumber(server, player->player_id, 2);
+            out2.Insert(EO_EncodeNumber(server, 0xc, 1), out2.Length() + 1);
+            Server_BroadcastNearby(
+                server, player, PacketAction_Player, PacketFamily_Emote, out2);
+            out2 = EO_EncodeNumber(server, target->player_id, 2);
+            out2.Insert(EO_EncodeNumber(server, 0xc, 1), out2.Length() + 1);
+            Server_BroadcastNearby(
+                server, target, PacketAction_Player, PacketFamily_Emote, out2);
+            Player_FireQuestTriggers(server, player, 0x190, 0);
+            Player_FireQuestTriggers(server, target, 0x190, 0);
+            return true;
         }
         if (action == PacketAction_Close)
         {
