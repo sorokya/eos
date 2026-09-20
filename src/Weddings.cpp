@@ -92,7 +92,7 @@ void WeddingController::Confirm(WeddingController *self,
 
                     Players::Player_AddItem(self->players, player1, item, 1);
                     player1->weight_current +=
-                        ItemValues::Eif_GetWeight(GUI->item_values, item);
+                        ItemValues::GetWeight(GUI->item_values, item);
                     weight = player1->weight_current;
                     if (weight > 0xfa)
                         weight = 0xfa;
@@ -107,7 +107,7 @@ void WeddingController::Confirm(WeddingController *self,
 
                     Players::Player_AddItem(self->players, player2, item, 1);
                     player2->weight_current +=
-                        ItemValues::Eif_GetWeight(GUI->item_values, item);
+                        ItemValues::GetWeight(GUI->item_values, item);
                     weight = player2->weight_current;
                     if (weight > 0xfa)
                         weight = 0xfa;

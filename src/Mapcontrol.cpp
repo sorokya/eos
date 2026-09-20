@@ -126,7 +126,8 @@ int Mapcontrol::Mapcontrol_GetWarpY(Mapcontrol *self, int map_id, int x, int y)
     return result;
 }
 
-unsigned int Mapcontrol::Map_GetTileSpec(Mapcontrol *self, int map_id, int x, int y)
+unsigned int
+Mapcontrol::Mapcontrol_GetTileSpec(Mapcontrol *self, int map_id, int x, int y)
 {
     unsigned int result = 0xffffffff;
     for (std::vector<MapObject>::iterator spec_iter =

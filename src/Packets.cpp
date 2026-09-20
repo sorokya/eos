@@ -2100,8 +2100,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 if (item_id == 1 && amount > 0x1e8480)
                                     amount = 0x1e8480;
                                 player->weight_current =
-                                    ItemValues::Eif_GetWeight((*MAINFORM)->item_values,
-                                                              item_id) *
+                                    ItemValues::GetWeight((*MAINFORM)->item_values,
+                                                          item_id) *
                                     amount;
                                 PlayerInventory inv(item_id);
                                 inv.amount = amount;
@@ -2686,7 +2686,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (data.Length() < 2)
                 return false;
             int item_id = EO_DecodeNumber(server, data.SubString(1, 2));
-            int item_type = ItemValues::Eif_GetType((*MAINFORM)->item_values, item_id);
+            int item_type = ItemValues::GetType((*MAINFORM)->item_values, item_id);
             if (!Players::Player_RemoveItem(server->players, player, item_id, 1))
             {
                 Client_SendEncoded(server,
@@ -2697,7 +2697,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             }
             player->weight_current -=
-                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id);
+                ItemValues::GetWeight((*MAINFORM)->item_values, item_id);
             if (player->weight_current < 0)
                 player->weight_current = 0;
             int weight_current = player->weight_current;
@@ -2766,7 +2766,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (item_type == 0x17)
             {
-                int spec1 = ItemValues::Eif_GetSpec1((*MAINFORM)->item_values, item_id);
+                int spec1 = ItemValues::GetSpec1((*MAINFORM)->item_values, item_id);
                 String out = EO_EncodeNumber(server, item_type, 1);
                 out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->item_change_remaining, 4),
@@ -2785,7 +2785,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (item_type == 0x18)
             {
-                int spec1 = ItemValues::Eif_GetSpec1((*MAINFORM)->item_values, item_id);
+                int spec1 = ItemValues::GetSpec1((*MAINFORM)->item_values, item_id);
                 player->hair_color = spec1;
                 String out = EO_EncodeNumber(server, item_type, 1);
                 out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
@@ -2821,7 +2821,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (item_type == 0x6)
             {
                 player->experience +=
-                    ItemValues::Eif_GetSpec1((*MAINFORM)->item_values, item_id);
+                    ItemValues::GetSpec1((*MAINFORM)->item_values, item_id);
                 int levels = Players::Player_TryLevelUp(server->players, player);
                 if (levels > 0)
                 {
@@ -2854,8 +2854,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (item_type == 0x3)
             {
-                int hp = ItemValues::Eif_GetHP((*MAINFORM)->item_values, item_id);
-                int tp = ItemValues::Eif_GetTP((*MAINFORM)->item_values, item_id);
+                int hp = ItemValues::GetHP((*MAINFORM)->item_values, item_id);
+                int tp = ItemValues::GetTP((*MAINFORM)->item_values, item_id);
                 player->hp += hp;
                 player->tp += tp;
                 if (player->hp > player->max_hp)
@@ -2902,11 +2902,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     Players::Player_AddItem(server->players, player, item_id, 1);
                     return true;
                 }
-                if (ItemValues::Eif_GetLevelRequirement((*MAINFORM)->item_values,
-                                                        item_id) > player->level)
+                if (ItemValues::GetLevelRequirement((*MAINFORM)->item_values, item_id) >
+                    player->level)
                 {
                     String out = "The scroll is unreadable, it requires level " +
-                                 IntToStr(ItemValues::Eif_GetLevelRequirement(
+                                 IntToStr(ItemValues::GetLevelRequirement(
                                      (*MAINFORM)->item_values, item_id));
                     Client_SendEncoded(
                         server, player, PacketAction_Server, PacketFamily_Talk, out);
@@ -2914,9 +2914,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     return true;
                 }
                 int scroll_map =
-                    ItemValues::Eif_GetScrollMap((*MAINFORM)->item_values, item_id);
+                    ItemValues::GetScrollMap((*MAINFORM)->item_values, item_id);
                 ItemSpecXY spec =
-                    ItemValues::Eif_GetSpecXY((*MAINFORM)->item_values, item_id);
+                    ItemValues::GetSpecXY((*MAINFORM)->item_values, item_id);
                 if (scroll_map < 1 ||
                     Mapcontrol_GetCount(server->map_control) < scroll_map)
                 {
@@ -2967,7 +2967,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             unsigned int amount = EO_DecodeNumber(server, data.SubString(3, 3));
             int x = EO_DecodeNumber(server, data.SubString(6, 1));
             int y = EO_DecodeNumber(server, data.SubString(7, 1));
-            if (ItemValues::Eif_GetSpecial((*MAINFORM)->item_values, item_id) == 4)
+            if (ItemValues::GetSpecial((*MAINFORM)->item_values, item_id) == 4)
                 return true;
             if (player->map_id == Settings::GetJailMap(server->settings))
                 return false;
@@ -3013,7 +3013,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (ground_index < 0)
                 return true;
             player->weight_current -=
-                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) *
+                ItemValues::GetWeight((*MAINFORM)->item_values, item_id) *
                 player->item_change_count;
             if (player->weight_current < 0)
                 player->weight_current = 0;
@@ -3065,7 +3065,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             }
             player->weight_current -=
-                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) *
+                ItemValues::GetWeight((*MAINFORM)->item_values, item_id) *
                 player->item_change_count;
             if (player->weight_current < 0)
                 player->weight_current = 0;
@@ -3110,7 +3110,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 server->map_control, player->map_id, ground_index);
             Players::Player_AddItem(server->players, player, info.item_id, info.amount);
             player->weight_current +=
-                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, info.item_id) *
+                ItemValues::GetWeight((*MAINFORM)->item_values, info.item_id) *
                 info.amount;
             if (player->weight_current < 0)
                 player->weight_current = 0;
@@ -3414,7 +3414,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             int item_id = EO_DecodeNumber(server, data.SubString(1, 2));
             int slot = EO_DecodeNumber(server, data.SubString(3, 1));
-            if (ItemValues::Eif_GetSpecial((*MAINFORM)->item_values, item_id) == 5)
+            if (ItemValues::GetSpecial((*MAINFORM)->item_values, item_id) == 5)
                 return true;
             if (!Players::Player_UnequipItem(server->players, player, item_id, slot))
                 return true;
@@ -3518,8 +3518,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             Players::Player_AddItem(server->players, player, stack.id, stack.amount);
             player->weight_current +=
-                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, stack.id) *
-                stack.amount;
+                ItemValues::GetWeight((*MAINFORM)->item_values, stack.id) * stack.amount;
             if (player->weight_current < 0)
                 player->weight_current = 0;
             int weight = player->weight_current;
@@ -3551,7 +3550,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             coords.y = EO_DecodeNumber(server, data.SubString(2, 1));
             int item_id = EO_DecodeNumber(server, data.SubString(3, 2));
             int amount = EO_DecodeNumber(server, data.SubString(5, 3));
-            if (ItemValues::Eif_GetSpecial((*MAINFORM)->item_values, item_id) == 4)
+            if (ItemValues::GetSpecial((*MAINFORM)->item_values, item_id) == 4)
                 return true;
             if ((unsigned int)amount > 10000000)
                 return true;
@@ -3575,7 +3574,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             }
             player->weight_current -=
-                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) *
+                ItemValues::GetWeight((*MAINFORM)->item_values, item_id) *
                 player->item_change_count;
             if (player->weight_current < 0)
                 player->weight_current = 0;
@@ -3745,7 +3744,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             Players::Player_AddItem(server->players, player, craft_id, 1);
             player->weight_current +=
-                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, craft_id);
+                ItemValues::GetWeight((*MAINFORM)->item_values, craft_id);
             if (player->weight_current < 0)
                 player->weight_current = 0;
             int weight = player->weight_current;
@@ -3788,7 +3787,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             Players::Player_AddItem(server->players, player, item_id, amount);
             player->weight_current +=
-                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) * amount;
+                ItemValues::GetWeight((*MAINFORM)->item_values, item_id) * amount;
             if (player->weight_current < 0)
                 player->weight_current = 0;
             int weight = player->weight_current;
@@ -3832,7 +3831,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             Players::Player_AddItem(server->players, player, 1, price);
             player->weight_current -=
-                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) *
+                ItemValues::GetWeight((*MAINFORM)->item_values, item_id) *
                 player->item_change_count;
             if (player->weight_current < 0)
                 player->weight_current = 0;
@@ -3901,7 +3900,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             Players::Player_AddItem(
                 server->players, player, item_id, player->item_change_count);
             player->weight_current +=
-                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) *
+                ItemValues::GetWeight((*MAINFORM)->item_values, item_id) *
                 player->item_change_count;
             if (player->weight_current < 0)
                 player->weight_current = 0;
@@ -3976,7 +3975,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             }
             player->weight_current -=
-                ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item_id) * amount;
+                ItemValues::GetWeight((*MAINFORM)->item_values, item_id) * amount;
             if (player->weight_current < 0)
                 player->weight_current = 0;
             int add_weight_current = player->weight_current;
@@ -4503,7 +4502,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             int item_id = EO_DecodeNumber(server, data.SubString(1, 2));
             int amount = EO_DecodeNumber(server, data.SubString(3, 4));
             int have = Players::Players_GetItemAmount(server->players, player, item_id);
-            if (ItemValues::Eif_GetSpecial((*MAINFORM)->item_values, item_id) == 4)
+            if (ItemValues::GetSpecial((*MAINFORM)->item_values, item_id) == 4)
                 return true;
             if ((unsigned int)amount > (unsigned int)have || (unsigned int)amount < 1)
                 return true;
@@ -4786,13 +4785,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                out.Length() + 1);
                     player->weight_current =
                         player->weight_current -
-                        ItemValues::Eif_GetWeight((*MAINFORM)->item_values,
-                                                  iter->item_id) *
+                        ItemValues::GetWeight((*MAINFORM)->item_values, iter->item_id) *
                             iter->amount;
                     target->weight_current =
                         target->weight_current +
-                        ItemValues::Eif_GetWeight((*MAINFORM)->item_values,
-                                                  iter->item_id) *
+                        ItemValues::GetWeight((*MAINFORM)->item_values, iter->item_id) *
                             iter->amount;
                     if (player->weight_current < 0)
                         player->weight_current = 0;
@@ -4814,13 +4811,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                out.Length() + 1);
                     target->weight_current =
                         target->weight_current -
-                        ItemValues::Eif_GetWeight((*MAINFORM)->item_values,
-                                                  iter2->item_id) *
+                        ItemValues::GetWeight((*MAINFORM)->item_values, iter2->item_id) *
                             iter2->amount;
                     player->weight_current =
                         player->weight_current +
-                        ItemValues::Eif_GetWeight((*MAINFORM)->item_values,
-                                                  iter2->item_id) *
+                        ItemValues::GetWeight((*MAINFORM)->item_values, iter2->item_id) *
                             iter2->amount;
                     if (player->weight_current < 0)
                         player->weight_current = 0;
@@ -7422,8 +7417,8 @@ bool Chair_Execute(Server *server, Player *player, int action, String *data)
             if (player->map_id < 1 ||
                 Mapcontrol_GetCount(server->map_control) < player->map_id)
                 return true;
-            int spec =
-                Mapcontrol::Map_GetTileSpec(server->map_control, player->map_id, x, y);
+            int spec = Mapcontrol::Mapcontrol_GetTileSpec(
+                server->map_control, player->map_id, x, y);
             if (spec >= 0 && spec <= 6)
             {
                 MapObject tile = Mapcontrol_GetTileSpecObject(
@@ -7877,7 +7872,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
     player->equip_agility_bonus = 0;
     player->equip_constitution_bonus = 0;
     player->equip_charisma_bonus = 0;
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->boots_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->boots_item_id) ==
         ItemType_Boots)
     {
         ItemValue *boots =
@@ -7912,7 +7907,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->boots_item_id = 0;
         player->boots_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->accessory_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->accessory_item_id) ==
         ItemType_Accessory)
     {
         ItemValue *accessory = ItemValues::GetByIndex((*MAINFORM)->item_values,
@@ -7949,7 +7944,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->accessory_item_id = 0;
         player->accessory_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->gloves_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->gloves_item_id) ==
         ItemType_Gloves)
     {
         ItemValue *gloves =
@@ -7984,7 +7979,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->gloves_item_id = 0;
         player->gloves_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->armor_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->armor_item_id) ==
         ItemType_Armor)
     {
         ItemValue *armor =
@@ -8019,7 +8014,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->armor_item_id = 0;
         player->armor_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->belt_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->belt_item_id) ==
         ItemType_Belt)
     {
         ItemValue *belt =
@@ -8052,7 +8047,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->belt_item_id = 0;
         player->belt_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->necklace_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->necklace_item_id) ==
         ItemType_Necklace)
     {
         ItemValue *necklace = ItemValues::GetByIndex((*MAINFORM)->item_values,
@@ -8088,7 +8083,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->necklace_item_id = 0;
         player->necklace_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->hat_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->hat_item_id) ==
         ItemType_Hat)
     {
         ItemValue *hat =
@@ -8121,7 +8116,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->hat_item_id = 0;
         player->hat_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->shield_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->shield_item_id) ==
         ItemType_Shield)
     {
         ItemValue *shield =
@@ -8156,7 +8151,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->shield_item_id = 0;
         player->shield_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->weapon_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->weapon_item_id) ==
         ItemType_Weapon)
     {
         ItemValue *weapon =
@@ -8191,7 +8186,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->weapon_item_id = 0;
         player->weapon_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->ring1_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->ring1_item_id) ==
         ItemType_Ring)
     {
         ItemValue *ring1 =
@@ -8226,7 +8221,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->ring1_item_id = 0;
         player->ring1_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->ring2_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->ring2_item_id) ==
         ItemType_Ring)
     {
         ItemValue *ring2 =
@@ -8261,7 +8256,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->ring2_item_id = 0;
         player->ring2_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->armlet1_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->armlet1_item_id) ==
         ItemType_Armlet)
     {
         ItemValue *armlet1 =
@@ -8296,7 +8291,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->armlet1_item_id = 0;
         player->armlet1_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->armlet2_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->armlet2_item_id) ==
         ItemType_Armlet)
     {
         ItemValue *armlet2 =
@@ -8331,7 +8326,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->armlet2_item_id = 0;
         player->armlet2_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->bracer1_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->bracer1_item_id) ==
         ItemType_Bracer)
     {
         ItemValue *bracer1 =
@@ -8367,7 +8362,7 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
         player->bracer1_item_id = 0;
         player->bracer1_graphic_id = 0;
     }
-    if (ItemValues::Eif_GetType((*MAINFORM)->item_values, player->bracer2_item_id) ==
+    if (ItemValues::GetType((*MAINFORM)->item_values, player->bracer2_item_id) ==
         ItemType_Bracer)
     {
         ItemValue *bracer2 =
@@ -11046,8 +11041,7 @@ void Player_ApplyQuestActions(Server *server,
                 {
                     Players::Player_AddItem(server->players, player, item, amount);
                     player->weight_current +=
-                        ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item) *
-                        amount;
+                        ItemValues::GetWeight((*MAINFORM)->item_values, item) * amount;
                     if (player->weight_current < 0)
                         player->weight_current = 0;
                     int weight = player->weight_current;
@@ -11071,7 +11065,7 @@ void Player_ApplyQuestActions(Server *server,
                     Players::Player_RemoveItemNoQuestRules(
                         server->players, player, item, amount);
                     player->weight_current -=
-                        ItemValues::Eif_GetWeight((*MAINFORM)->item_values, item) *
+                        ItemValues::GetWeight((*MAINFORM)->item_values, item) *
                         player->item_change_count;
                     if (player->weight_current < 0)
                         player->weight_current = 0;
@@ -11467,34 +11461,34 @@ void Login_SendCharacterList(
             data.Length() + 1);
         data.Insert(EO_EncodeNumber(
                         server,
-                        ItemValues::Eif_GetSpec1ForTypes(
+                        ItemValues::GetSpec1ForTypes(
                             (*MAINFORM)->item_values,
                             Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_boots")),
                         2),
                     data.Length() + 1);
         data.Insert(EO_EncodeNumber(
                         server,
-                        ItemValues::Eif_GetSpec1ForTypes(
+                        ItemValues::GetSpec1ForTypes(
                             (*MAINFORM)->item_values,
                             Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_armor")),
                         2),
                     data.Length() + 1);
         data.Insert(EO_EncodeNumber(
                         server,
-                        ItemValues::Eif_GetSpec1ForTypes(
+                        ItemValues::GetSpec1ForTypes(
                             (*MAINFORM)->item_values,
                             Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_hat")),
                         2),
                     data.Length() + 1);
         data.Insert(EO_EncodeNumber(server,
-                                    ItemValues::Eif_GetSpec1ForTypes(
+                                    ItemValues::GetSpec1ForTypes(
                                         (*MAINFORM)->item_values,
                                         Mysqlcontrols::Db_GetInt(server->mysql_controls,
                                                                  "eq_shield")),
                                     2),
                     data.Length() + 1);
         data.Insert(EO_EncodeNumber(server,
-                                    ItemValues::Eif_GetSpec1ForTypes(
+                                    ItemValues::GetSpec1ForTypes(
                                         (*MAINFORM)->item_values,
                                         Mysqlcontrols::Db_GetInt(server->mysql_controls,
                                                                  "eq_weapon")),
@@ -11688,8 +11682,8 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
             }
             if (caster->weapon_item_id > 0)
             {
-                ItemElement element = ItemValues::Eif_GetElement((*MAINFORM)->item_values,
-                                                                 caster->weapon_item_id);
+                ItemElement element = ItemValues::GetElement((*MAINFORM)->item_values,
+                                                             caster->weapon_item_id);
                 element.element_damage = 0;
                 if (element.element == 1)
                 {
@@ -12443,7 +12437,7 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
             player->last_pass_ms = now;
             if (elapsed < 7)
                 return true;
-            if (Mapcontrol::Map_GetTileSpec(
+            if (Mapcontrol::Mapcontrol_GetTileSpec(
                     server->map_control, player->map_id, target_x, target_y) ==
                 MapTileSpec_Reserved31)
             {
@@ -12476,7 +12470,7 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
             server, player, PacketAction_Player, PacketFamily_Walk, walk);
         if (player->map_has_spikes)
         {
-            unsigned int spec = Mapcontrol::Map_GetTileSpec(
+            unsigned int spec = Mapcontrol::Mapcontrol_GetTileSpec(
                 server->map_control, player->map_id, player->x, player->y);
             if (spec == MapTileSpec_TimedSpikes || spec == MapTileSpec_Spikes)
             {

@@ -8,15 +8,15 @@
 // offset 0; every remaining EifRecord field is widened to a 16-bit slot (the
 // one-byte on-disk fields are decoded to `short`) except `spec1`, which is a
 // 32-bit word decoded from three bytes. `weight`/`element`/`element_damage`
-// offsets are confirmed by the Eif_Get* accessors (0x47a2b8, 0x47a634); the
+// offsets are confirmed by the Get* accessors (0x47a2b8, 0x47a634); the
 // field-to-offset assignment order is confirmed by the AddItem stores. sizeof
 // is 0x58 (operator new(0x58) in AddItem) due to 4-byte alignment.
 struct ItemValue
 {
     int id;                         // +0x00
-    short type;                     // +0x04 (Eif_GetType)
-    short subtype;                  // +0x06 (Eif_GetSubtype)
-    short special;                  // +0x08 (Eif_GetSpecial)
+    short type;                     // +0x04 (GetType)
+    short subtype;                  // +0x06 (GetSubtype)
+    short special;                  // +0x08 (GetSpecial)
     short hp;                       // +0x0a
     short tp;                       // +0x0c
     short min_damage;               // +0x0e
@@ -37,7 +37,7 @@ struct ItemValue
     short air_resistance;           // +0x2c
     short water_resistance;         // +0x2e
     short fire_resistance;          // +0x30
-    int spec1;                      // +0x34 (Eif_GetSpec1)
+    int spec1;                      // +0x34 (GetSpec1)
     short spec2;                    // +0x38
     short spec3;                    // +0x3a
     short level_requirement;        // +0x3c
@@ -48,11 +48,11 @@ struct ItemValue
     short agility_requirement;      // +0x46
     short constitution_requirement; // +0x48
     short charisma_requirement;     // +0x4a
-    short weight;                   // +0x4c (Eif_GetWeight)
+    short weight;                   // +0x4c (GetWeight)
     short size;                     // +0x4e
     short weapon_target_area;       // +0x50 (unnamed "Weapon Target Area" EIF field)
-    short element;                  // +0x52 (Eif_GetElement)
-    short element_damage;           // +0x54 (Eif_GetElement)
+    short element;                  // +0x52 (GetElement)
+    short element_damage;           // +0x54 (GetElement)
 
     ItemValue(int id);
     ~ItemValue();

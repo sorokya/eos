@@ -116,19 +116,19 @@ class ItemValues
                         short weapon_target_area,
                         short size);
 
-    static int Eif_GetType(ItemValues *self, int item_id);
-    static int Eif_GetSubtype(ItemValues *self, int item_id);
-    static int Eif_GetSpecial(ItemValues *self, int item_id);
-    static int Eif_GetWeight(ItemValues *self, int item_id);
-    static int Eif_GetHP(ItemValues *self, int item_id);
-    static int Eif_GetTP(ItemValues *self, int item_id);
-    static int Eif_GetSpec1(ItemValues *self, int item_id);
-    static int Eif_GetSpec1ForTypes(ItemValues *self, int item_id);
-    static int Eif_GetLevelRequirement(ItemValues *self, int item_id);
-    static int Eif_GetScrollMap(ItemValues *self, int item_id);
-    static int Eif_GetGender(ItemValues *self, int item_id);
-    static ItemElement Eif_GetElement(ItemValues *self, int item_id);
-    static ItemSpecXY Eif_GetSpecXY(ItemValues *self, int item_id);
+    static int GetType(ItemValues *self, int item_id);
+    static int GetSubtype(ItemValues *self, int item_id);
+    static int GetSpecial(ItemValues *self, int item_id);
+    static int GetWeight(ItemValues *self, int item_id);
+    static int GetHP(ItemValues *self, int item_id);
+    static int GetTP(ItemValues *self, int item_id);
+    static int GetSpec1(ItemValues *self, int item_id);
+    static int GetSpec1ForTypes(ItemValues *self, int item_id);
+    static int GetLevelRequirement(ItemValues *self, int item_id);
+    static int GetScrollMap(ItemValues *self, int item_id);
+    static int GetGender(ItemValues *self, int item_id);
+    static ItemElement GetElement(ItemValues *self, int item_id);
+    static ItemSpecXY GetSpecXY(ItemValues *self, int item_id);
 };
 
 #endif

@@ -157,10 +157,9 @@ bool Players::Player_HasKeyItem(Players *self, Player *player, int key_item_id)
          iter != player->inventory.end();
          iter++)
     {
-        if (ItemValues::Eif_GetType((*MAINFORM)->item_values, iter->item_id) ==
-            ItemType_Key)
+        if (ItemValues::GetType((*MAINFORM)->item_values, iter->item_id) == ItemType_Key)
         {
-            if (ItemValues::Eif_GetSpec1((*MAINFORM)->item_values, iter->item_id) ==
+            if (ItemValues::GetSpec1((*MAINFORM)->item_values, iter->item_id) ==
                 key_item_id)
                 return true;
         }
@@ -634,7 +633,7 @@ void Players::Players_Remove(Players *self, TCustomWinSocket *socket)
 }
 
 #define PLAYER_UNEQUIP_SLOT(slot, graphic, set_flag)                                     \
-    if (ItemValues::Eif_GetSpecial((*MAINFORM)->item_values, player->slot) == 5)         \
+    if (ItemValues::GetSpecial((*MAINFORM)->item_values, player->slot) == 5)             \
     {                                                                                    \
         ItemValue *item =                                                                \
             ItemValues::GetByIndex((*MAINFORM)->item_values, player->slot - 1);          \
@@ -688,7 +687,7 @@ char Players::Player_UnequipAll(Players *self, Player *player)
         player->equip_result = result;                                                   \
         player->slot = item_id;                                                          \
         player->graphic =                                                                \
-            ItemValues::Eif_GetSpec1ForTypes((*MAINFORM)->item_values, item_id);         \
+            ItemValues::GetSpec1ForTypes((*MAINFORM)->item_values, item_id);             \
     }
 
 #define EQUIP_SLOT_ID(itype, slot, graphic, result)                                      \
@@ -712,7 +711,7 @@ bool Players::Player_EquipItem(Players *self, Player *player, int item_id, int s
     player->equipment_dirty = 1;
     player->inventory_dirty = 1;
     player->equip_result = 0;
-    int type = ItemValues::Eif_GetType((*MAINFORM)->item_values, item_id);
+    int type = ItemValues::GetType((*MAINFORM)->item_values, item_id);
     for (PlayerInventory *iter = player->inventory.begin();
          iter != player->inventory.end();
          iter++)
@@ -725,13 +724,13 @@ bool Players::Player_EquipItem(Players *self, Player *player, int item_id, int s
                 EQUIP_SLOT_TYPE(ItemType_Weapon, weapon_item_id, weapon_graphic_id, 2)
                 EQUIP_SLOT_TYPE(ItemType_Shield, shield_item_id, shield_graphic_id, 2)
                 if (type == ItemType_Armor && player->armor_item_id <= 0 &&
-                    ItemValues::Eif_GetGender((*MAINFORM)->item_values, item_id) ==
+                    ItemValues::GetGender((*MAINFORM)->item_values, item_id) ==
                         player->gender)
                 {
                     player->equip_result = 2;
                     player->armor_item_id = item_id;
-                    player->armor_graphic_id = ItemValues::Eif_GetSpec1ForTypes(
-                        (*MAINFORM)->item_values, item_id);
+                    player->armor_graphic_id =
+                        ItemValues::GetSpec1ForTypes((*MAINFORM)->item_values, item_id);
                 }
                 EQUIP_SLOT_TYPE(ItemType_Hat, hat_item_id, hat_graphic_id, 2)
                 EQUIP_SLOT_TYPE(ItemType_Boots, boots_item_id, boots_graphic_id, 2)
@@ -786,7 +785,7 @@ bool Players::Player_UnequipItem(Players *self, Player *player, int item_id, int
     player->equipment_dirty = 1;
     player->inventory_dirty = 1;
     player->equip_result = 0;
-    int type = ItemValues::Eif_GetType((*MAINFORM)->item_values, item_id);
+    int type = ItemValues::GetType((*MAINFORM)->item_values, item_id);
     UNEQUIP_SLOT(ItemType_Weapon, weapon_item_id, weapon_graphic_id, 2)
     UNEQUIP_SLOT(ItemType_Shield, shield_item_id, shield_graphic_id, 2)
     UNEQUIP_SLOT(ItemType_Armor, armor_item_id, armor_graphic_id, 2)

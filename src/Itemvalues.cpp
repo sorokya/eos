@@ -249,7 +249,7 @@ int ItemValues::GetCount(ItemValues *self)
     return self->record_list.size();
 }
 
-int ItemValues::Eif_GetSpec1ForTypes(ItemValues *self, int item_id)
+int ItemValues::GetSpec1ForTypes(ItemValues *self, int item_id)
 {
     int result = 0;
     if (item_id > 0)
@@ -272,7 +272,7 @@ int ItemValues::Eif_GetSpec1ForTypes(ItemValues *self, int item_id)
     return result;
 }
 
-ItemElement ItemValues::Eif_GetElement(ItemValues *self, int item_id)
+ItemElement ItemValues::GetElement(ItemValues *self, int item_id)
 {
     ItemElement result;
     result.element = Element_None;
@@ -294,7 +294,7 @@ ItemElement ItemValues::Eif_GetElement(ItemValues *self, int item_id)
     return result;
 }
 
-ItemSpecXY ItemValues::Eif_GetSpecXY(ItemValues *self, int item_id)
+ItemSpecXY ItemValues::GetSpecXY(ItemValues *self, int item_id)
 {
     ItemSpecXY result;
     result.spec2 = -1;
@@ -314,7 +314,7 @@ ItemSpecXY ItemValues::Eif_GetSpecXY(ItemValues *self, int item_id)
     return result;
 }
 
-int ItemValues::Eif_GetSpec1(ItemValues *self, int item_id)
+int ItemValues::GetSpec1(ItemValues *self, int item_id)
 {
     int result = 0;
     if (item_id > 0)
@@ -329,7 +329,7 @@ int ItemValues::Eif_GetSpec1(ItemValues *self, int item_id)
     return result;
 }
 
-int ItemValues::Eif_GetScrollMap(ItemValues *self, int item_id)
+int ItemValues::GetScrollMap(ItemValues *self, int item_id)
 {
     int result = 0;
     if (item_id > 0)
@@ -348,7 +348,7 @@ int ItemValues::Eif_GetScrollMap(ItemValues *self, int item_id)
     return result;
 }
 
-int ItemValues::Eif_GetGender(ItemValues *self, int item_id)
+int ItemValues::GetGender(ItemValues *self, int item_id)
 {
     int result = -1;
     if (item_id > 0)
@@ -366,7 +366,7 @@ int ItemValues::Eif_GetGender(ItemValues *self, int item_id)
     return result;
 }
 
-int ItemValues::Eif_GetType(ItemValues *self, int item_id)
+int ItemValues::GetType(ItemValues *self, int item_id)
 {
     int result = ItemType_General;
     if (item_id > 0)
@@ -381,7 +381,7 @@ int ItemValues::Eif_GetType(ItemValues *self, int item_id)
     return result;
 }
 
-int ItemValues::Eif_GetSubtype(ItemValues *self, int item_id)
+int ItemValues::GetSubtype(ItemValues *self, int item_id)
 {
     if (item_id > 0)
     {
@@ -391,7 +391,7 @@ int ItemValues::Eif_GetSubtype(ItemValues *self, int item_id)
     return ItemSubtype_None;
 }
 
-int ItemValues::Eif_GetLevelRequirement(ItemValues *self, int item_id)
+int ItemValues::GetLevelRequirement(ItemValues *self, int item_id)
 {
     int result = 0;
     if (item_id > 0)
@@ -406,7 +406,7 @@ int ItemValues::Eif_GetLevelRequirement(ItemValues *self, int item_id)
     return result;
 }
 
-int ItemValues::Eif_GetSpecial(ItemValues *self, int item_id)
+int ItemValues::GetSpecial(ItemValues *self, int item_id)
 {
     int result = -1;
     if (item_id > 0)
@@ -421,7 +421,7 @@ int ItemValues::Eif_GetSpecial(ItemValues *self, int item_id)
     return result;
 }
 
-int ItemValues::Eif_GetWeight(ItemValues *self, int item_id)
+int ItemValues::GetWeight(ItemValues *self, int item_id)
 {
     int result = 0;
     if (item_id > 0)
@@ -436,7 +436,7 @@ int ItemValues::Eif_GetWeight(ItemValues *self, int item_id)
     return result;
 }
 
-int ItemValues::Eif_GetHP(ItemValues *self, int item_id)
+int ItemValues::GetHP(ItemValues *self, int item_id)
 {
     int result = 0;
     if (item_id > 0)
@@ -451,7 +451,7 @@ int ItemValues::Eif_GetHP(ItemValues *self, int item_id)
     return result;
 }
 
-int ItemValues::Eif_GetTP(ItemValues *self, int item_id)
+int ItemValues::GetTP(ItemValues *self, int item_id)
 {
     int result = 0;
     if (item_id > 0)

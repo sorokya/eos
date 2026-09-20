@@ -135,7 +135,8 @@ class Mapcontrol
     static int Mapcontrol_GetWarpLevelReq(Mapcontrol *self, int map_id, int x, int y);
     static int Mapcontrol_GetWarpX(Mapcontrol *self, int map_id, int x, int y);
     static int Mapcontrol_GetWarpY(Mapcontrol *self, int map_id, int x, int y);
-    static unsigned int Map_GetTileSpec(Mapcontrol *self, int map_id, int x, int y);
+    static unsigned int
+    Mapcontrol_GetTileSpec(Mapcontrol *self, int map_id, int x, int y);
     static bool Mapcontrol_IsOccupied(Mapcontrol *self, int map_id, int x, int y);
     static bool Mapcontrol_IsTileClear(Mapcontrol *self, int map_id, int x, int y);
     static bool Mapcontrol_IsTileWalkable(Mapcontrol *self, int map_id, int x, int y);
