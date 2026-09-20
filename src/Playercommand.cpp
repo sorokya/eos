@@ -5,10 +5,10 @@
 
 #pragma package(smart_init)
 
-PlayerCommand::PlayerCommand(int action, int arg, String text)
+PlayerCommand::PlayerCommand(int family, int action, String text)
 {
+    this->family = family;
     this->action = action;
-    this->arg = arg;
     this->text = text;
 }
 

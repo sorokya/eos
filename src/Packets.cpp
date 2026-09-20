@@ -54,13 +54,10 @@ void Server_BroadcastToAll(Server *server,
 void Server_SyncMapHazardFlags(Server *server, int map_id);
 void Server_AppendChatLog(Server *server, String message);
 void Talk_PlayerWhisper(Server *server, int map_id, String message, int break_byte);
-bool Attack_Execute(Server *server, Player *caster, int action, String *reader);
-bool Spell_Execute(Server *server, Player *caster, int action, String *packet_data);
 String Server_BuildOnlineNames(Server *server);
 String Server_BuildOnlineList(Server *server);
 String Refresh_BuildReply(Server *server, Player *player);
 String Party_EncodeMemberList(Server *server, Player *player);
-bool Walk_Execute(Server *server, Player *player, int action, String *data);
 bool Server_TickOncePerFiveSeconds(Server *server);
 String Message_BuildServerStatus(Server *server);
 String Paperdoll_BuildReply(Server *server, Player *player);
@@ -91,8 +88,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                   player->client_encryption_multiple,
                                   (char *)range.end(),
                                   (char *)range.begin());
-    int action = EO_DecodeByte((void *)server, data[1]);
-    int family = EO_DecodeByte((void *)server, data[2]);
+    int action = EO_DecodeByte(server, data[1]);
+    int family = EO_DecodeByte(server, data[2]);
     int size = EO_DecodeNumber(server, String(data[3]));
     size -= player->sequence;
     data.Delete(1, 3);
@@ -102,8 +99,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             found = true;
     if (!found)
         return true;
-    (*MAINFORM)->field_370 = family;
-    (*MAINFORM)->field_36c = action;
+    (*MAINFORM)->field_0x370 = family;
+    (*MAINFORM)->field_0x36c = action;
     if (family == PacketFamily_Walk)
     {
         if (!player->logged_in)
@@ -259,7 +256,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             coords.x = player->x;
                             coords.y = player->y;
                         }
-                        if (Mapcontrol_CountBlockedNeighbors((int)server->map_control,
+                        if (Mapcontrol_CountBlockedNeighbors(server->map_control,
                                                              player->map_id,
                                                              coords.x,
                                                              coords.y) == 0)
@@ -664,9 +661,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                            200);
                             Mysqlcontrols::Mysql_ExecDirect(
                                 server->mysql_controls,
-                                target->field_0xc,
+                                target->account_ident,
                                 "UPDATE endl_accounts SET banned = 1 WHERE ident = " +
-                                    IntToStr((unsigned int)target->field_0xc));
+                                    IntToStr((unsigned int)target->account_ident));
                         }
                     }
                     catch (...)
@@ -709,12 +706,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                            200);
                             Mysqlcontrols::Mysql_ExecDirect(
                                 server->mysql_controls,
-                                target->field_0xc,
+                                target->account_ident,
                                 "UPDATE endl_accounts SET banned = 1 WHERE ident = " +
-                                    IntToStr((unsigned int)target->field_0xc));
+                                    IntToStr((unsigned int)target->account_ident));
                             Mysqlcontrols::Mysql_ExecDirect(
                                 server->mysql_controls,
-                                target->field_0xc,
+                                target->account_ident,
                                 "INSERT INTO endl_banlist "
                                 "(bandate,permanent,executor,ipaddress,serial_h,reason) "
                                 "VALUES (NOW(),1,'" +
@@ -946,8 +943,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     String command = PacketReader_GetBreakString(server);
                     if (command == "map")
                     {
-                        if (Mapcontrol_ReloadMap((int)server->map_control,
-                                                 player->map_id))
+                        if (Mapcontrol_ReloadMap(server->map_control, player->map_id))
                         {
                             Server_SyncMapHazardFlags(server, player->map_id);
                             Talk_PlayerWhisper(
@@ -1376,7 +1372,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 "SELECT ident, account, DECODE(password,'eoeokeyendl') as password, "
                 "type, signup, serial_c, serial_h, ipaddress, banned FROM "
                 "endl_accounts WHERE ident = '" +
-                    IntToStr((unsigned int)player->field_0xc) + "' LIMIT 1");
+                    IntToStr((unsigned int)player->account_ident) + "' LIMIT 1");
             return true;
         }
         if (action == PacketAction_Request)
@@ -1469,9 +1465,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             int character_id = EO_DecodeNumber(server, data.SubString(3, 4));
             Mysqlcontrols::Mysql_ExecDirect(
                 server->mysql_controls,
-                player->field_0xc,
+                player->account_ident,
                 "DELETE FROM endl_characters WHERE ident = " + IntToStr(character_id) +
-                    " AND ident_account = " + IntToStr((unsigned int)player->field_0xc));
+                    " AND ident_account = " +
+                    IntToStr((unsigned int)player->account_ident));
             server->mysql_controls->file_cache->characters_count--;
             if (player->character_slot_0 != NULL &&
                 player->character_slot_0->character_id == character_id)
@@ -1667,7 +1664,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 if (slot->character_id != selected_id)
                     continue;
                 if (!Mapcontrol_CountBlockedNeighbors(
-                        (int)server->map_control, slot->map_id, slot->x, slot->y))
+                        server->map_control, slot->map_id, slot->x, slot->y))
                 {
                     slot->map_id = Settings::GetRescueMap(server->settings);
                     slot->x = Settings::GetRescueX(server->settings);
@@ -2233,7 +2230,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->session_id = RandRange(0xc350) + 0x2710;
             Mysqlcontrols::Mysql_ExecDirect(
                 server->mysql_controls,
-                player->field_0xc,
+                player->account_ident,
                 "UPDATE endl_characters SET online = 1 WHERE ident = " +
                     IntToStr(player->character_id));
             Players::Players_UpdatePeakOnline(server->players);
@@ -2836,7 +2833,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             {
                 if (player->map_id == 0)
                     return true;
-                if (Mapcontrol_GetCanScroll((int)server->map_control, player->map_id))
+                if (Mapcontrol_GetCanScroll(server->map_control, player->map_id))
                 {
                     Players::Player_AddItem(server->players, player, item_id, 1);
                     return true;
@@ -2921,11 +2918,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (!Server_InViewRing(server, player->x, player->y, x, y))
                 return true;
-            if (!Mapcontrol_IsDropTileClear(
-                    (int)server->map_control, player->map_id, x, y))
+            if (!Mapcontrol_IsDropTileClear(server->map_control, player->map_id, x, y))
                 return true;
             if (!Mapcontrol_CanDropItemAt(
-                    (int)server->map_control, player->map_id, x, y, player->field_0xc))
+                    server->map_control, player->map_id, x, y, player->account_ident))
                 return true;
             if (!Players::Player_RemoveItem(server->players, player, item_id, amount))
             {
@@ -2943,7 +2939,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                      x,
                                                      y,
                                                      player->item_change_count,
-                                                     player->field_0xc,
+                                                     player->account_ident,
                                                      6);
             if (ground_index < 0)
                 return true;
@@ -3028,10 +3024,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (data.Length() < 2)
                 return false;
             int ground_index = EO_DecodeNumber(server, data.SubString(1, 2));
-            GroundItemInfo info = Mapcontrol_TakeGroundItemInfo((int)server->map_control,
-                                                                player->map_id,
-                                                                ground_index,
-                                                                player->field_0xc);
+            GroundItemInfo info = Mapcontrol_TakeGroundItemInfo(
+                server->map_control, player->map_id, ground_index, player->account_ident);
             if (info.x == -2)
             {
                 String out = EO_EncodeNumber(server, 2, 2);
@@ -3044,7 +3038,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (!Server_InViewRing(server, player->x, player->y, info.x, info.y))
                 return true;
             Mapcontrol_RemoveGroundItem(
-                (int)server->map_control, player->map_id, ground_index);
+                server->map_control, player->map_id, ground_index);
             Players::Player_AddItem(server->players, player, info.item_id, info.amount);
             player->weight_current +=
                 ItemValues::Eif_GetWeight((*MAINFORM)->item_values, info.item_id) *
@@ -3560,8 +3554,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     server, player, PacketAction_Close, PacketFamily_Chest, "N");
                 return true;
             }
-            int chest_slot = Mapcontrol_GetChestKeyAt(
-                (int)server->map_control, player->map_id, coords);
+            int chest_slot =
+                Mapcontrol_GetChestKeyAt(server->map_control, player->map_id, coords);
             if (chest_slot < 1)
             {
                 out.Insert(data.SubString(1, 2), 1);
@@ -3798,13 +3792,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
             MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return true;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
             int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Shop)
                 return true;
@@ -3831,7 +3825,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
             if (Mapcontrol_GetTileSpecValueAt(
-                    (int)server->map_control, player->map_id, coords.x, coords.y) != 0xf)
+                    server->map_control, player->map_id, coords.x, coords.y) != 0xf)
                 return true;
             if (!Players::Player_RemoveBankItem(server->players, player, item_id))
                 return true;
@@ -3901,7 +3895,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
             if (Mapcontrol_GetTileSpecValueAt(
-                    (int)server->map_control, player->map_id, coords.x, coords.y) != 0xf)
+                    server->map_control, player->map_id, coords.x, coords.y) != 0xf)
                 return true;
             if (!Players::Player_RemoveItem(server->players, player, item_id, amount))
             {
@@ -3952,7 +3946,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
             if (Mapcontrol_GetTileSpecValueAt(
-                    (int)server->map_control, player->map_id, coords.x, coords.y) != 0xf)
+                    server->map_control, player->map_id, coords.x, coords.y) != 0xf)
                 return true;
             String out = data.SubString(1, 2);
             std::vector<PlayerInventory>::iterator iter;
@@ -4099,13 +4093,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
             MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return false;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
             int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Barber)
                 return true;
@@ -4258,13 +4252,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
             MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return false;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
             int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Inn)
                 return true;
@@ -4333,13 +4327,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
             MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return false;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
             int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Bank)
                 return true;
@@ -5841,13 +5835,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
             MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return true;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
             int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Guild)
                 return true;
@@ -6015,13 +6009,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
             int quest_filter = EO_DecodeNumber(server, data.SubString(3, 2));
             MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return true;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
             int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Quest)
                 return true;
@@ -6066,7 +6060,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 {
                     if (name.Length() == 0)
                     {
-                        if (Mapcontrol_TryTakeQuestCooldown((int)server->map_control,
+                        if (Mapcontrol_TryTakeQuestCooldown(server->map_control,
                                                             player->map_id))
                         {
                             name = Questengine::GetActionData(server->quest_engine,
@@ -6316,13 +6310,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
             MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return true;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
             int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Trainer)
                 return true;
@@ -6524,7 +6518,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     }
                     Mysqlcontrols::Mysql_ExecDirect(
                         server->mysql_controls,
-                        player->field_0xc,
+                        player->account_ident,
                         "UPDATE endl_characters SET partner = 'DV-' WHERE name = '" +
                             name + "'");
                 }
@@ -6545,13 +6539,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
             MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return true;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
             int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Lawyer)
                 return true;
@@ -6576,7 +6570,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
             MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return false;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
@@ -6591,7 +6585,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             }
             int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
-                (int)server->map_control, player->map_id, npc_index);
+                server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Priest)
                 return true;
@@ -6747,7 +6741,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     (*MAINFORM)->weddings, target->map_id, target->npc_index))
                 return true;
             int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
-                (int)server->map_control, target->map_id, target->npc_index);
+                server->map_control, target->map_id, target->npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Priest)
                 return true;
@@ -7082,7 +7076,7 @@ void Game_Tick(Server *server)
                     if (!(*player)->removing)
                         Mysqlcontrols::Mysql_ExecDirect(
                             server->mysql_controls,
-                            (*player)->field_0xc,
+                            (*player)->account_ident,
                             Character_BuildSaveQuery(server->players, *player, 1));
                     (*player)->hangup_ticks = 0;
                     server->hangup_gate = 0;
@@ -9494,7 +9488,7 @@ String EO_EncodeNumber(Server *server, unsigned int value, int width)
     return result;
 }
 
-int EO_DecodeNumber(void *self, String data)
+int EO_DecodeNumber(Server *self, String data)
 {
     int result = 0;
     try
@@ -9524,14 +9518,14 @@ int EO_DecodeNumber(void *self, String data)
     return result;
 }
 
-int EO_DecodeByte(void *self, char value)
+int EO_DecodeByte(Server *self, char value)
 {
     char c = value;
     int result = (unsigned char)c;
     return result;
 }
 
-char EO_GetBreakByte(void *self, int value)
+char EO_GetBreakByte(Server *self, int value)
 {
     char c = value;
     char result = c;
@@ -9576,7 +9570,8 @@ String PacketReader_GetBreakString(Server *reader)
     return result;
 }
 
-String PacketReader_GetBreakStringAt(void *reader, int end, String break_str, char append)
+String
+PacketReader_GetBreakStringAt(Server *reader, int end, String break_str, char append)
 {
     String result = "";
     try
@@ -9626,7 +9621,7 @@ bool CharName_CheckUnique(Server *server, String name)
     return true;
 }
 
-unsigned int Server_DecodePacketLength(void *self, String data)
+unsigned int Server_DecodePacketLength(Server *self, String data)
 {
     int result = 0;
     try
@@ -9652,7 +9647,7 @@ unsigned int Server_DecodePacketLength(void *self, String data)
     return result;
 }
 
-bool Coords_IsAdjacent(void *self, int x1, int y1, int x2, int y2)
+bool Coords_IsAdjacent(Server *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -9666,7 +9661,7 @@ bool Coords_IsAdjacent(void *self, int x1, int y1, int x2, int y2)
     return result;
 }
 
-bool Server_InViewRange(void *self, int x1, int y1, int x2, int y2)
+bool Server_InViewRange(Server *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -9688,7 +9683,7 @@ bool Server_InViewRange(void *self, int x1, int y1, int x2, int y2)
     return result;
 }
 
-bool Server_InViewRing(void *self, int x1, int y1, int x2, int y2)
+bool Server_InViewRing(Server *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -9710,7 +9705,7 @@ bool Server_InViewRing(void *self, int x1, int y1, int x2, int y2)
     return result;
 }
 
-bool Server_InViewRangeReverse(void *self, int x1, int y1, int x2, int y2)
+bool Server_InViewRangeReverse(Server *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -9732,7 +9727,7 @@ bool Server_InViewRangeReverse(void *self, int x1, int y1, int x2, int y2)
     return result;
 }
 
-bool Server_InItemViewRing(void *self, int x1, int y1, int x2, int y2)
+bool Server_InItemViewRing(Server *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -9789,7 +9784,7 @@ void Server_RemovePlayer(Server *server, TCustomWinSocket *socket)
         if (player->map_id > 0)
         {
             MapCoord coords =
-                Mapcontrol_GetRelogCoords((int)server->map_control, player->map_id);
+                Mapcontrol_GetRelogCoords(server->map_control, player->map_id);
             if (coords.x > 0 && coords.y > 0)
             {
                 player->x = coords.x;
@@ -10062,8 +10057,8 @@ int FUN_004505e0_Stub(int a0, int a1)
 {
     return 0;
 }
-String FUN_0047060c(Server *server, String value);
-String FUN_004708d4(Server *server, String value);
+String Account_DecodePassword(Server *server, String value);
+String Account_EncodePassword(Server *server, String value);
 void Login_SendCharacterList(Server *server,
                              Player *player,
                              PacketAction action,
@@ -10091,8 +10086,8 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             return;
         }
         if (password !=
-            FUN_0047060c(server,
-                         Mysqlcontrols::Db_GetString(server->mysql_controls, "password")))
+            Account_DecodePassword(
+                server, Mysqlcontrols::Db_GetString(server->mysql_controls, "password")))
         {
             Client_SendEncoded(
                 server, player, 3, 4, EO_EncodeNumber(server, 2, 2) + "NO");
@@ -10115,7 +10110,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                 server, player, 3, 4, EO_EncodeNumber(server, 5, 2) + "NO");
             return;
         }
-        if (Players::Players_HasField0C(server->players, ident))
+        if (Players::Players_IsAccountIdentOnline(server->players, ident))
         {
             Client_SendEncoded(
                 server, player, 3, 4, EO_EncodeNumber(server, 5, 2) + "NO");
@@ -10132,7 +10127,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             player->removing = true;
             return;
         }
-        player->field_0xc = ident;
+        player->account_ident = ident;
         player->account_name = account_name;
         player->field_0x48 = account_type;
         if (Players::Players_IsAccountNameTaken(
@@ -10146,7 +10141,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         TDateTime now = Now();
         Mysqlcontrols::Mysql_ExecDirect_FromCallback(
             server->mysql_controls,
-            player->field_0xc,
+            player->account_ident,
             "UPDATE endl_accounts SET lastvisit = '" + String(now) +
                 "' WHERE ident = " + IntToStr(ident));
         Mysqlcontrols::Mysql_SubmitQuery_FromCallback(
@@ -10156,7 +10151,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             player->query_id,
             "",
             "SELECT * FROM endl_characters WHERE ident_account = " +
-                IntToStr((unsigned int)player->field_0xc) +
+                IntToStr((unsigned int)player->account_ident) +
                 " ORDER BY level DESC LIMIT 3");
         return;
     }
@@ -10194,7 +10189,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             "name, signup, gender, hairmodal, haircolor, skincolor, nav_map, nav_x,"
             " nav_y, hp_max, hp_now, mp_max, mp_now, sp_max, clientusge, money_bank ) "
             "VALUES (";
-        sql = sql + IntToStr((unsigned int)player->field_0xc) + ",";
+        sql = sql + IntToStr((unsigned int)player->account_ident) + ",";
         sql = sql + "'0',1,'";
         sql = sql + name + "',";
         sql = sql + "'" + String(now) + "',";
@@ -10207,7 +10202,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         sql = sql + IntToStr(Settings::GetStartY(server->settings)) + ",";
         sql = sql + "10,10,10,10,20,0,0)";
         Mysqlcontrols::Mysql_ExecDirect_FromCallback(
-            server->mysql_controls, player->field_0xc, sql);
+            server->mysql_controls, player->account_ident, sql);
         Mysqlcontrols::Mysql_SubmitQuery_FromCallback(
             server->mysql_controls,
             0x46,
@@ -10215,7 +10210,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             player->query_id,
             "",
             "SELECT * FROM endl_characters WHERE ident_account = " +
-                IntToStr((unsigned int)player->field_0xc) +
+                IntToStr((unsigned int)player->account_ident) +
                 " ORDER BY level DESC LIMIT 3");
         server->mysql_controls->file_cache->characters_count++;
         return;
@@ -10287,7 +10282,8 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                      "email,  signup, lastvisit, serial_c, serial_h , ipaddress, banned) "
                      "VALUES (";
         sql = sql + "'" + account + "',";
-        sql = sql + "ENCODE('" + FUN_004708d4(server, password) + "','eoeokeyendl'),";
+        sql = sql + "ENCODE('" + Account_EncodePassword(server, password) +
+              "','eoeokeyendl'),";
         sql = sql + "'" + realname + "',";
         sql = sql + "'" + location + "',";
         sql = sql + "'" + email + "',";
@@ -10321,9 +10317,10 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             player->removing = true;
             return;
         }
-        if (FUN_0047060c(server,
-                         Mysqlcontrols::Db_GetString(server->mysql_controls,
-                                                     "password")) != old_password ||
+        if (Account_DecodePassword(
+                server,
+                Mysqlcontrols::Db_GetString(server->mysql_controls, "password")) !=
+                old_password ||
             Mysqlcontrols::Db_GetString(server->mysql_controls, "account") != account)
         {
             Client_SendEncoded(server,
@@ -10338,12 +10335,13 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                            PacketAction_Reply,
                            PacketFamily_Account,
                            EO_EncodeNumber(server, 6, 2) + "OK");
-        Mysqlcontrols::Mysql_ExecDirect(server->mysql_controls,
-                                        player->field_0xc,
-                                        "UPDATE endl_accounts SET password = ENCODE('" +
-                                            FUN_004708d4(server, new_password) +
-                                            "','eoeokeyendl') WHERE ident = " +
-                                            IntToStr((unsigned int)player->field_0xc));
+        Mysqlcontrols::Mysql_ExecDirect(
+            server->mysql_controls,
+            player->account_ident,
+            "UPDATE endl_accounts SET password = ENCODE('" +
+                Account_EncodePassword(server, new_password) +
+                "','eoeokeyendl') WHERE ident = " +
+                IntToStr((unsigned int)player->account_ident));
         return;
     }
     if (query_result->query_id == 0x47)
@@ -10412,7 +10410,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         }
         Mysqlcontrols::Mysql_ExecDirect_FromCallback(
             server->mysql_controls,
-            player->field_0xc,
+            player->account_ident,
             "UPDATE endl_characters SET ident_rank = " + IntToStr(token) + ", rank = '" +
                 player->field_0x14 + "' WHERE name = '" + char_name +
                 "' AND ident_guild = '" + player->guild_tag + "'");
@@ -10440,7 +10438,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             query_result->data.SubString(5, query_result->data.Length() - 4);
         Mysqlcontrols::Mysql_ExecDirect_FromCallback(
             server->mysql_controls,
-            player->field_0xc,
+            player->account_ident,
             "UPDATE endl_characters SET ident_guild = '0', ident_rank = 9, "
             "guild = '', rank = '' WHERE name = '" +
                 char_name + "' AND ident_guild = '" + player->guild_tag + "'");
@@ -11325,7 +11323,7 @@ void *Walk_BuildReply_Stub(void *a0, void *a1, void *a2)
 {
     return 0;
 }
-String FUN_004628b0(Server *server, Player *player)
+String Server_BuildInitOkReply(Server *server, Player *player)
 {
     int total = server->ping_history[0] + 0x0d;
     int major = total / 7;
@@ -11344,7 +11342,7 @@ String FUN_004628b0(Server *server, Player *player)
     out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
     return out;
 }
-String FUN_00462bf8(Server *server)
+String Server_BuildInitVersionReply(Server *server)
 {
     String out = EO_GetBreakByte(server, 0xff);
     out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
@@ -11355,7 +11353,7 @@ String FUN_00462bf8(Server *server)
     out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
     return out;
 }
-String FUN_00462e38(Server *server)
+String Server_BuildInitBanReply(Server *server)
 {
     String out = EO_GetBreakByte(server, 0xff);
     out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
@@ -11996,7 +11994,7 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
                                                                  (*iter)->x,
                                                                  (*iter)->y,
                                                                  (*iter)->wDrop_amount,
-                                                                 caster->field_0xc,
+                                                                 caster->account_ident,
                                                                  0x3d);
                     *(TTimeStamp *)&(*iter)->nDeath_ms = DateTimeToTimeStamp(Now());
                     (*iter)->chase_target_id = -1;
@@ -12416,7 +12414,7 @@ int FUN_00470598(int a0, int value)
     value = a3 + value + 0x1b138;
     return value;
 }
-String FUN_0047060c(Server *server, String value)
+String Account_DecodePassword(Server *server, String value)
 {
     String reversed = "";
     String result = "";
@@ -12461,7 +12459,7 @@ String FUN_0047060c(Server *server, String value)
     }
     return result;
 }
-String FUN_004708d4(Server *server, String value)
+String Account_EncodePassword(Server *server, String value)
 {
     String reversed = "";
     String result = "";
@@ -12987,7 +12985,7 @@ void Server_AddReceivedBytes(Server *server, int value)
         server->received_kilobytes -= 0x400;
     }
 }
-bool Coords_IsWithinTwo(void *self, int x1, int y1, int x2, int y2)
+bool Coords_IsWithinTwo(Server *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;

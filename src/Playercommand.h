@@ -10,11 +10,11 @@
 // and assigns the by-value string, the destructor is the normal deleting form.
 struct PlayerCommand
 {
+    int family;
     int action;
-    int arg;
     String text;
 
-    PlayerCommand(int action, int arg, String text);
+    PlayerCommand(int family, int action, String text);
     ~PlayerCommand();
 };
 

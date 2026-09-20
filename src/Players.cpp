@@ -11,14 +11,9 @@
 #include "Mysqlcontrols.h"
 #include "Filecache.h"
 #include "Protocol.h"
+#include "Packets.h"
 
 #pragma package(smart_init)
-
-bool Walk_Execute(Server *server, Player *player, int action, String *data);
-bool Attack_Execute(Server *server, Player *player, int action, String *data);
-bool Spell_Execute(Server *server, Player *player, int action, String *data);
-bool Face_Execute(Server *server, Player *player, int action, String *data);
-bool Chair_Execute(Server *server, Player *player, int action, String *data);
 
 int RandRange(int max)
 {
@@ -512,11 +507,11 @@ void Players::Player_AddSpell(Players *self, Player *player, int spell_id)
     player->spells.insert(player->spells.end(), spell);
 }
 
-bool Players::Players_HasField0C(Players *self, int field_c)
+bool Players::Players_IsAccountIdentOnline(Players *self, int field_c)
 {
     for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
     {
-        if ((*iter)->field_0xc == field_c)
+        if ((*iter)->account_ident == field_c)
             return true;
     }
     return false;
@@ -614,7 +609,7 @@ void Players::Players_Remove(Players *self, TCustomWinSocket *socket)
             if (self->idle_timeout > 0)
                 self->idle_timeout = self->idle_timeout - 1;
             Mysqlcontrols::Mysql_ExecDirect(self->mysql_controls,
-                                            player->field_0xc,
+                                            player->account_ident,
                                             Character_BuildSaveQuery(self, player, 0));
             player->trade_items.clear();
             player->inventory.clear();
@@ -874,32 +869,32 @@ void Players::Players_Tick(Players *self)
         Server *server = Mainform_GetServer(*MAINFORM);
         (*iter)->flush_queue = 0;
         (*iter)->fast_action = 0;
-        if ((*iter)->action_queue[0].action == 6)
+        if ((*iter)->action_queue[0].family == 6)
             Walk_Execute(server,
                          *iter,
-                         (*iter)->action_queue[0].arg,
+                         (*iter)->action_queue[0].action,
                          &(*iter)->action_queue[0].text);
-        if ((*iter)->action_queue[0].action == 11)
+        if ((*iter)->action_queue[0].family == 11)
             Attack_Execute(server,
                            *iter,
-                           (*iter)->action_queue[0].arg,
+                           (*iter)->action_queue[0].action,
                            &(*iter)->action_queue[0].text);
-        if ((*iter)->action_queue[0].action == 12)
+        if ((*iter)->action_queue[0].family == 12)
             Spell_Execute(server,
                           *iter,
-                          (*iter)->action_queue[0].arg,
+                          (*iter)->action_queue[0].action,
                           &(*iter)->action_queue[0].text);
-        if ((*iter)->action_queue[0].action == 8)
+        if ((*iter)->action_queue[0].family == 8)
             Chair_Execute(server,
                           *iter,
-                          (*iter)->action_queue[0].arg,
+                          (*iter)->action_queue[0].action,
                           &(*iter)->action_queue[0].text);
-        if ((*iter)->action_queue[0].action == 7)
+        if ((*iter)->action_queue[0].family == 7)
         {
             (*iter)->fast_action = 1;
             Face_Execute(server,
                          *iter,
-                         (*iter)->action_queue[0].arg,
+                         (*iter)->action_queue[0].action,
                          &(*iter)->action_queue[0].text);
         }
         if ((*iter)->flush_queue == 0)

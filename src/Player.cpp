@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Player.h"
+#include "Players.h"
 #include "Protocol.h"
 
 #pragma package(smart_init)
@@ -38,7 +39,7 @@ Player::Player(TCustomWinSocket *socket)
     receive_buffer += "";
     ping_timeout = false;
     packet_count = 0;
-    field_0xc = -1;
+    account_ident = -1;
     character_id = 0xffffffff;
     idle_ticks = 0;
     map_id = 0;

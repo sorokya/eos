@@ -2,6 +2,7 @@
 #pragma hdrstop
 
 #include "Npc.h"
+#include "Players.h"
 
 #pragma package(smart_init)
 

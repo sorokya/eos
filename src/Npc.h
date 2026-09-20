@@ -4,8 +4,6 @@
 #include <Classes.hpp>
 #include <SysUtils.hpp>
 
-int RandRange(int max);
-
 // Layout recovered from the reference (Npc unit, 0x47a868..0x47aa2c). sizeof is
 // 0x94. The constructor (0x47a868) constructs the three AnsiString buffers at
 // +0x68/+0x70/+0x78, writes the act-rate tier to act_ticks, copies the spawn
@@ -35,7 +33,7 @@ struct Npc
     short nHp_pct;                          // +0x2c
     short pad_0x2e;                         // +0x2e
     int element_weakness;                   // +0x30
-    short pad_34;                           // +0x34
+    short pad_0x34;                         // +0x34
     short element_weakness_damage_table[6]; // +0x36
     bool alive;                             // +0x42
     int death_ticks;                        // +0x44
@@ -64,7 +62,7 @@ struct Npc
     int target_player_id;                   // +0x84
     int chase_target_id;                    // +0x88
     int nStuck_pos;                         // +0x8c
-    char pad_90[4];                         // +0x90
+    char pad_0x90[4];                       // +0x90
 
     Npc(int npc_index,
         short npc_id,

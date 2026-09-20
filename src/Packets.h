@@ -108,6 +108,9 @@ void Client_SendEncoded(Server *server,
                         unsigned char action,
                         unsigned char family,
                         String data);
+bool Walk_Execute(Server *server, Player *player, int action, String *data);
+bool Attack_Execute(Server *server, Player *caster, int action, String *reader);
+bool Spell_Execute(Server *server, Player *caster, int action, String *packet_data);
 bool Face_Execute(Server *server, Player *player, int action, String *data);
 bool Chair_Execute(Server *server, Player *player, int action, String *data);
 bool Player_CheckIdleWarp(Server *server, Player *player, int x, int y);
@@ -194,22 +197,22 @@ struct EOEncodedObj
 
 int FUN_0044f73c(void *range);
 int FUN_0044f710(void *range);
-int EO_DecodeNumber(void *self, String data);
-int EO_DecodeByte(void *self, char value);
-char EO_GetBreakByte(void *self, int value);
-unsigned int Server_DecodePacketLength(void *self, String data);
+int EO_DecodeNumber(Server *self, String data);
+int EO_DecodeByte(Server *self, char value);
+char EO_GetBreakByte(Server *self, int value);
+unsigned int Server_DecodePacketLength(Server *self, String data);
 bool Login_CheckConnectionThreshold(Server *server);
 void Connection_Ping(Server *server);
 void PacketReader_Init(Server *reader, String data, unsigned char break_byte);
 String PacketReader_GetBreakString(Server *reader);
 String
-PacketReader_GetBreakStringAt(void *reader, int end, String break_str, char append);
+PacketReader_GetBreakStringAt(Server *reader, int end, String break_str, char append);
 bool CharName_CheckUnique(Server *server, String name);
 
-bool Coords_IsAdjacent(void *self, int x1, int y1, int x2, int y2);
-bool Server_InViewRange(void *self, int x1, int y1, int x2, int y2);
-bool Server_InViewRing(void *self, int x1, int y1, int x2, int y2);
-bool Server_InViewRangeReverse(void *self, int x1, int y1, int x2, int y2);
-bool Server_InItemViewRing(void *self, int x1, int y1, int x2, int y2);
+bool Coords_IsAdjacent(Server *self, int x1, int y1, int x2, int y2);
+bool Server_InViewRange(Server *self, int x1, int y1, int x2, int y2);
+bool Server_InViewRing(Server *self, int x1, int y1, int x2, int y2);
+bool Server_InViewRangeReverse(Server *self, int x1, int y1, int x2, int y2);
+bool Server_InItemViewRing(Server *self, int x1, int y1, int x2, int y2);
 
 #endif

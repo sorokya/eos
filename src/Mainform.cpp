@@ -119,9 +119,9 @@ void __fastcall TGUI::ApplicationEvents1Exception(TObject *Sender, Exception *E)
     s.Insert(" EndlServ ", s.Length() + 1);
     s.Insert(E->Message, s.Length() + 1);
     s.Insert(" ", s.Length() + 1);
-    s.Insert(IntToStr(field_36c), s.Length() + 1);
+    s.Insert(IntToStr(field_0x36c), s.Length() + 1);
     s.Insert(",", s.Length() + 1);
-    s.Insert(IntToStr(field_370), s.Length() + 1);
+    s.Insert(IntToStr(field_0x370), s.Length() + 1);
     s.Insert("\n", s.Length() + 1);
     FILE *fp;
     fp = fopen(".\\logs\\error.log", "a");

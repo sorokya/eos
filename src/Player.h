@@ -11,8 +11,6 @@
 #include "Playercommand.h"
 #include "Playerskill.h"
 
-int RandRange(int max);
-
 // Layout recovered from the reference (Player unit, 0x410e04..0x411f64).
 // sizeof is 0x3f8, pinned by the `operator new(0x3f8)` at 0x4082d5 and by the
 // destructor's member-destruction counter (0x1c = 28 destructible members).
@@ -31,7 +29,7 @@ class Player
     bool ping_timeout;                        // +0x005
     char pad_0x6[2];                          // +0x006
     int player_id;                            // +0x008
-    int field_0xc;                            // +0x00c
+    int account_ident;                        // +0x00c
     int query_id;                             // +0x010
     String field_0x14;                        // +0x014
     String signup;                            // +0x018

@@ -423,7 +423,7 @@ void NpcController::Npc_ChaseTarget(
         if (attempt == 2)
         {
             npc->nStuck_pos = npc->x;
-            *(int *)&npc->pad_90 = npc->y;
+            *(int *)&npc->pad_0x90 = npc->y;
             dir = dir + 2;
             if (dir > 3)
                 dir = dir - 4;
@@ -464,7 +464,7 @@ void NpcController::Npc_ChaseTarget(
         {
             if (npc->y >= map_h)
                 continue;
-            if (npc->x == npc->nStuck_pos && npc->y + 1 == *(int *)&npc->pad_90)
+            if (npc->x == npc->nStuck_pos && npc->y + 1 == *(int *)&npc->pad_0x90)
                 continue;
             if (Mapcontrol::Map_IsWalkableNPC(
                     mc->map_control, map_id, npc->x, npc->y + 1, 0) != 0)
@@ -493,7 +493,7 @@ void NpcController::Npc_ChaseTarget(
         {
             if (npc->x < 1)
                 continue;
-            if (npc->x - 1 == npc->nStuck_pos && npc->y == *(int *)&npc->pad_90)
+            if (npc->x - 1 == npc->nStuck_pos && npc->y == *(int *)&npc->pad_0x90)
                 continue;
             if (Mapcontrol::Map_IsWalkableNPC(
                     mc->map_control, map_id, npc->x - 1, npc->y, 0) != 0)
@@ -522,7 +522,7 @@ void NpcController::Npc_ChaseTarget(
         {
             if (npc->y < 1)
                 continue;
-            if (npc->x == npc->nStuck_pos && npc->y - 1 == *(int *)&npc->pad_90)
+            if (npc->x == npc->nStuck_pos && npc->y - 1 == *(int *)&npc->pad_0x90)
                 continue;
             if (Mapcontrol::Map_IsWalkableNPC(
                     mc->map_control, map_id, npc->x, npc->y - 1, 0) != 0)
@@ -551,7 +551,7 @@ void NpcController::Npc_ChaseTarget(
         {
             if (npc->x >= map_w)
                 continue;
-            if (npc->x + 1 == npc->nStuck_pos && npc->y == *(int *)&npc->pad_90)
+            if (npc->x + 1 == npc->nStuck_pos && npc->y == *(int *)&npc->pad_0x90)
                 continue;
             if (Mapcontrol::Map_IsWalkableNPC(
                     mc->map_control, map_id, npc->x + 1, npc->y, 0) != 0)

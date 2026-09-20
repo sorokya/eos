@@ -86,9 +86,9 @@ class TGUI : public TForm
     Questengine *quest_engine;            // +0x360
     Newscontrol *news_control;            // +0x364
     Gamecontrol *game_control;            // +0x368
-    int field_36c;                        // +0x36c
-    int field_370;                        // +0x370
-    int field_374;                        // +0x374
+    int field_0x36c;                      // +0x36c
+    int field_0x370;                      // +0x370
+    int field_0x374;                      // +0x374
 
     __fastcall TGUI(TComponent *Owner);
     __fastcall void FormCreate(TObject *Sender);

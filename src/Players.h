@@ -77,7 +77,7 @@ class Players
     static int Player_LevelUpSpell(Players *self, Player *player, int spell_id);
     static bool Player_RemoveSpell(Players *self, Player *player, int spell_id);
     static void Player_ClearSpells(Players *self, Player *player);
-    static bool Players_HasField0C(Players *self, int field_c);
+    static bool Players_IsAccountIdentOnline(Players *self, int field_c);
     static int Players_CountGuildInvites(Players *self, Player *player);
     static int Players_CountGuildOnMap(Players *self, Player *player);
     static void Players_UpdatePeakOnline(Players *self);
