@@ -4554,11 +4554,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, target->player_id, 2), out.Length() + 1);
-            for (iter = target->trade_items.begin(); iter != target->trade_items.end();
-                 iter++)
+            std::vector<PlayerInventory>::iterator iter2;
+            for (iter2 = target->trade_items.begin(); iter2 != target->trade_items.end();
+                 iter2++)
             {
-                out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, iter->amount, 4), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter2->item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter2->amount, 4), out.Length() + 1);
             }
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             Client_SendEncoded(
@@ -4600,11 +4601,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, target->player_id, 2), out.Length() + 1);
-            for (iter = target->trade_items.begin(); iter != target->trade_items.end();
-                 iter++)
+            std::vector<PlayerInventory>::iterator iter2;
+            for (iter2 = target->trade_items.begin(); iter2 != target->trade_items.end();
+                 iter2++)
             {
-                out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, iter->amount, 4), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter2->item_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter2->amount, 4), out.Length() + 1);
             }
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             Client_SendEncoded(
@@ -4673,13 +4675,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, target->player_id, 2),
                            out.Length() + 1);
-                for (iter = target->trade_items.begin();
-                     iter != target->trade_items.end();
-                     iter++)
+                std::vector<PlayerInventory>::iterator iter2;
+                for (iter2 = target->trade_items.begin();
+                     iter2 != target->trade_items.end();
+                     iter2++)
                 {
-                    out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
+                    out.Insert(EO_EncodeNumber(server, iter2->item_id, 2),
                                out.Length() + 1);
-                    out.Insert(EO_EncodeNumber(server, iter->amount, 4),
+                    out.Insert(EO_EncodeNumber(server, iter2->amount, 4),
                                out.Length() + 1);
                 }
                 out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
