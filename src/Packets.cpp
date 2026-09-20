@@ -7189,7 +7189,7 @@ void *PtrVector_GetEnd(void *list)
     return *(void **)((char *)list + 0x08);
 }
 
-int GroundItemPtrVector_Count(void *list)
+unsigned int GroundItemPtrVector_Count(void *list)
 {
     return (void **)PtrVector_GetEnd(list) - (void **)GroundItemPtrVector_Begin(list);
 }
