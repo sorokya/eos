@@ -51,6 +51,7 @@ String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index);
 void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value);
 MapCoord FUN_0047c6c0(int map_control, int map_id, unsigned int npc_index);
 unsigned int FUN_0047c634(int map_control, int map_id, unsigned int npc_index);
+char FUN_0047c3a4(int map_control, int map_id);
 bool Attack_Execute(Server *server, Player *caster, int action, String *reader);
 bool Spell_Execute(Server *server, Player *caster, int action, String *packet_data);
 String Player_SerializeAvatar(Server *server, Player *player, int arg);
@@ -330,6 +331,46 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 "endl_accounts WHERE account = '" +
                     account + "' LIMIT 1");
             return true;
+        }
+    }
+    if (family == PacketFamily_Character)
+    {
+        if (action == PacketAction_Take)
+        {
+            if (player->account_logged_in)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Player,
+                                   PacketFamily_Character,
+                                   data.SubString(1, 4) +
+                                       EO_EncodeNumber(server, player->session_id, 2));
+            }
+            return true;
+        }
+        if (action == PacketAction_Request)
+        {
+            if (!player->account_logged_in)
+                return false;
+            if (player->character_slot_0 != NULL && player->character_slot_1 != NULL &&
+                player->character_slot_2 != NULL)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Character,
+                                   EO_EncodeNumber(server, 3, 2) + "NO");
+                return true;
+            }
+            else
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Character,
+                                   EO_EncodeNumber(server, player->session_id, 2) + "OK");
+                return true;
+            }
         }
     }
     if (family == PacketFamily_Range && action == PacketAction_Request)
@@ -2221,6 +2262,147 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         server, player, PacketAction_Dialog, PacketFamily_Quest, out);
                 }
                 break;
+            }
+            return true;
+        }
+        if (action == PacketAction_Use)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
+            int quest_filter = EO_DecodeNumber(server, data.SubString(3, 2));
+            MapCoord coords =
+                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            if (coords.x < 0 || coords.y < 0)
+                return true;
+            if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
+                return true;
+            int npc_id =
+                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
+            if (type_info.type != NpcType_Quest)
+                return true;
+            if (Questengine::GetQuestLoaded(server->quest_engine, type_info.behavior_id))
+            {
+                bool found = true;
+                PlayerQuest *iter;
+                for (iter = player->quest_history.begin();
+                     iter != player->quest_history.end();
+                     iter++)
+                    if (iter->quest_id == type_info.behavior_id)
+                    {
+                        found = false;
+                        break;
+                    }
+                for (iter = player->quest_trackers.begin();
+                     iter != player->quest_trackers.end();
+                     iter++)
+                    if (iter->quest_id == type_info.behavior_id)
+                    {
+                        found = false;
+                        break;
+                    }
+                if (found && player->quest_trackers.size() < 10)
+                {
+                    int version = Questengine::GetQuestVersion(server->quest_engine,
+                                                               type_info.behavior_id);
+                    PlayerQuest tracker(type_info.behavior_id, 0, version);
+                    player->quest_trackers.insert(player->quest_trackers.end(), tracker);
+                }
+            }
+            String out;
+            String name;
+            String payload;
+            int count = 0;
+            PlayerQuest *iter;
+            for (iter = player->quest_trackers.begin();
+                 iter != player->quest_trackers.end();
+                 iter++)
+            {
+                if (iter->quest_id == quest_filter || quest_filter == 0)
+                {
+                    if (name.Length() == 0)
+                    {
+                        if (FUN_0047c3a4((int)server->map_control, player->map_id))
+                        {
+                            name = Questengine::GetActionData(server->quest_engine,
+                                                              iter->quest_id,
+                                                              iter->state_index,
+                                                              type_info.behavior_id);
+                            if (name.Length() > 0)
+                            {
+                                name.Insert(EO_GetBreakByte(server, 0xff), 1);
+                                name.Insert(EO_EncodeNumber(server, npc_index, 2), 1);
+                                Server_BroadcastNearTile(server,
+                                                         -1,
+                                                         player->map_id,
+                                                         coords,
+                                                         PacketAction_Report,
+                                                         PacketFamily_Quest,
+                                                         name);
+                            }
+                        }
+                    }
+                    if (out.Length() == 0)
+                    {
+                        out = Questengine::GetActionData2(server->quest_engine,
+                                                          iter->quest_id,
+                                                          iter->state_index,
+                                                          type_info.behavior_id);
+                        if (out.Length() > 0)
+                        {
+                            player->session_id = RandRange(0xc350) + 0x2710;
+                            player->session_token = RandRange(0x7530) + 0x2710;
+                            player->field_0x80 = type_info.behavior_id;
+                            payload = EO_EncodeNumber(server, type_info.behavior_id, 2);
+                            payload.Insert(EO_EncodeNumber(server, iter->quest_id, 2),
+                                           payload.Length() + 1);
+                            payload.Insert(EO_EncodeNumber(server, player->session_id, 2),
+                                           payload.Length() + 1);
+                            payload.Insert(
+                                EO_EncodeNumber(server, player->session_token, 2),
+                                payload.Length() + 1);
+                            payload.Insert(EO_GetBreakByte(server, 0xff),
+                                           payload.Length() + 1);
+                            payload.Insert(EO_EncodeNumber(server, iter->quest_id, 2),
+                                           payload.Length() + 1);
+                            payload.Insert(Questengine::GetQuestName(server->quest_engine,
+                                                                     iter->quest_id),
+                                           payload.Length() + 1);
+                            payload.Insert(EO_GetBreakByte(server, 0xff),
+                                           payload.Length() + 1);
+                            count++;
+                        }
+                    }
+                    else
+                    {
+                        if (quest_filter != 0)
+                            continue;
+                        if (Questengine::GetActionData2(server->quest_engine,
+                                                        iter->quest_id,
+                                                        iter->state_index,
+                                                        type_info.behavior_id) != "")
+                        {
+                            payload.Insert(EO_EncodeNumber(server, iter->quest_id, 2),
+                                           payload.Length() + 1);
+                            payload.Insert(Questengine::GetQuestName(server->quest_engine,
+                                                                     iter->quest_id),
+                                           payload.Length() + 1);
+                            payload.Insert(EO_GetBreakByte(server, 0xff),
+                                           payload.Length() + 1);
+                            count++;
+                        }
+                    }
+                }
+            }
+            if (out.Length() > 0)
+            {
+                payload.Insert(EO_EncodeNumber(server, count, 1), 1);
+                out.Insert(payload, 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Dialog, PacketFamily_Quest, out);
             }
             return true;
         }

@@ -440,6 +440,22 @@ them to pick the form that matches the reference.
   `char`-constructor temporary that does not match; the explicit `String(...)`
   lets bcc32 reuse the constructor's `eax`, which is what the reference does
   (verified in `Serial::DecodeString`).
+- **Put the `AnsiString` operand first in a concatenation.** A string literal on
+  the **left** of `+` binds the `char *` + `AnsiString` operator, emitting a
+  different call than the reference's 3-argument `AnsiString` + `AnsiString`
+  concat. Write `EO_EncodeNumber(...) + "NO"`, not `"NO" + EO_EncodeNumber(...)`
+  (verified in `Player_HandlePacket` case `0x3`).
+- **Register allocation is a whole-function property; do not "fix" a residual by
+  re-ordering a comparison.** A controlled probe showed the same source
+  (`player->level < item->level_requirement`) compiles to different register
+  assignments depending only on the surrounding function's locals; the mirrored
+  form (`item->level_requirement > player->level`) produces identical bytes, and
+  the same class appears in a plain assignment (`player->field_0x80 = rule;`)
+  where no operand-order freedom exists. A comparison/assignment register mirror
+  in a *partially written* function is therefore bcc register allocation against an
+  incomplete frame, not a source-form error — match the operands and move on;
+  the whole-function comparison is the only authority (established while writing
+  `Player_HandlePacket`, `tests/guard_probe.cpp`).
 - **Positive-count guards lower two ways.** `if (n > 0)` compiles to
   `test eax,eax` / `jle`, while `if (n >= 1)` compiles to `dec eax` / `jl`. Same
   semantics, different bytes — the reference uses the `dec`/`jl` form, so write
