@@ -5,7 +5,7 @@
 
 #pragma package(smart_init)
 
-PlayerQuest::PlayerQuest(int quest_id, short state_index, short version)
+PlayerQuest::PlayerQuest(int quest_id, int state_index, int version)
 {
     this->quest_id = quest_id;
     this->state_index = state_index;

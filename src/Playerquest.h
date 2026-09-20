@@ -24,7 +24,7 @@ struct PlayerQuest
     short counters[5];
     char done;
 
-    PlayerQuest(int quest_id, short state_index, short version);
+    PlayerQuest(int quest_id, int state_index, int version);
     ~PlayerQuest();
 };
 
