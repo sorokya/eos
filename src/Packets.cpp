@@ -11632,28 +11632,30 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
             return 1;
         if (data->Length() < 4)
             return 0;
-        int attack_tick = EO_DecodeNumber(server, data->SubString(3, 2));
+        int attack_tick = EO_DecodeNumber(server, data->SubString(2, 3));
         int elapsed = attack_tick - caster->last_client_walk_tick;
         if (elapsed < 0 && caster->last_client_walk_tick > WALK_DELAY_SANITY_MS)
             elapsed = 0x2c;
         caster->last_client_walk_tick = attack_tick;
         if (elapsed < 0x2c)
             return 0;
-        int window = DateTimeToTimeStamp(Now()).Time / 10 + 0x64;
+        TTimeStamp stamp = DateTimeToTimeStamp(Now());
+        int window = stamp.Time / 10 + 0x64;
+        int clock_drift;
         if (attack_tick > window)
         {
-            int ahead = attack_tick - window;
+            clock_drift = attack_tick - window;
             if (caster->sync_base_ahead < 0)
-                caster->sync_base_ahead = ahead;
-            if (Math_Abs(ahead - caster->sync_base_ahead) > 0x320)
+                caster->sync_base_ahead = clock_drift;
+            if (Math_Abs(clock_drift - caster->sync_base_ahead) > 0x320)
                 return 1;
         }
         else
         {
-            int behind = window - attack_tick;
+            clock_drift = window - attack_tick;
             if (caster->sync_base_behind < 0)
-                caster->sync_base_behind = behind;
-            if (Math_Abs(behind - caster->sync_base_behind) > 0x320)
+                caster->sync_base_behind = clock_drift;
+            if (Math_Abs(clock_drift - caster->sync_base_behind) > 0x320)
                 return 1;
         }
         caster->direction = EO_DecodeNumber(server, (*data)[1]);
@@ -11688,7 +11690,8 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     offset_y--;
                 if (caster->direction == Direction_Right)
                     offset_x++;
-                for (Player **iter = Players_Iter_Begin(server->players);
+                Player **iter;
+                for (iter = Players_Iter_Begin(server->players);
                      iter != Players_Iter_End(server->players);
                      iter++)
                 {
@@ -11820,8 +11823,391 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     return 1;
                 }
             }
+            offset_x = caster->x;
+            offset_y = caster->y;
         }
-        return 0;
+        for (int tile_step = 0; tile_step < reach; tile_step++)
+        {
+            if (caster->direction == Direction_Down)
+                offset_y++;
+            if (caster->direction == Direction_Left)
+                offset_x--;
+            if (caster->direction == Direction_Up)
+                offset_y--;
+            if (caster->direction == Direction_Right)
+                offset_x++;
+            if (offset_y < 0 || offset_x < 0)
+            {
+                String pkt = EO_EncodeNumber(server, caster->player_id, 2);
+                pkt = pkt + (*data)[1];
+                Server_BroadcastNearby(
+                    server, caster, PacketAction_Player, PacketFamily_Attack, pkt);
+                return 1;
+            }
+            if (!Mapcontrol::Mapcontrol_IsTileClear(
+                    server->map_control, caster->map_id, offset_x, offset_y))
+            {
+                String pkt = EO_EncodeNumber(server, caster->player_id, 2);
+                pkt = pkt + (*data)[1];
+                Server_BroadcastNearby(
+                    server, caster, PacketAction_Player, PacketFamily_Attack, pkt);
+                return 1;
+            }
+            Npc **npc_iter;
+            for (npc_iter = (Npc **)Map_NpcIter_Begin(
+                     &Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
+                          ->npc_list);
+                 npc_iter !=
+                 (Npc **)Map_NpcIter_End(
+                     &Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
+                          ->npc_list);
+                 npc_iter++)
+            {
+                if ((*npc_iter)->x != offset_x)
+                    continue;
+                if ((*npc_iter)->y != offset_y)
+                    continue;
+                if (!(*npc_iter)->alive)
+                    continue;
+                NpcTypeInfo type_info =
+                    NpcValues::GetType((*MAINFORM)->npc_values, (*npc_iter)->id);
+                if (type_info.type <= 0 || type_info.type >= 6)
+                    continue;
+                if ((*npc_iter)->chase_target_id != caster->player_id &&
+                    (*npc_iter)->chase_target_id > 0 &&
+                    !Player::IsPartyMember(caster, (*npc_iter)->chase_target_id))
+                {
+                    String reply = EO_EncodeNumber(server, caster->player_id, 2);
+                    reply.Insert((*data)[1], reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, (*npc_iter)->index, 2),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, 0, 3), reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, (*npc_iter)->nHp_pct, 2),
+                                 reply.Length() + 1);
+                    Server_BroadcastNearby(
+                        server, caster, PacketAction_Reply, PacketFamily_Npc, reply);
+                    reply.Insert(EO_EncodeNumber(server, 2, 1), reply.Length() + 1);
+                    Client_SendEncoded(
+                        server, caster, PacketAction_Reply, PacketFamily_Npc, reply);
+                    return 1;
+                }
+                int damage = 0;
+                int hit_rate = Gamecontrol::Combat_CalcHitRate(
+                    (*MAINFORM)->game_control, caster->accuracy, (*npc_iter)->evade, 0.9);
+                if (RandRange(100) < hit_rate)
+                {
+                    hit_rate = Gamecontrol::Combat_CalcArmorPen(
+                        (*MAINFORM)->game_control,
+                        (caster->min_damage + caster->max_damage) / 2,
+                        (*npc_iter)->armor,
+                        0.8);
+                    double scaled = (double)(int)caster->min_damage;
+                    if (scaled < 1.0)
+                        scaled = 1.0;
+                    scaled *= 1.2L;
+                    scaled *= (double)hit_rate;
+                    scaled +=
+                        (double)RandRange(caster->max_damage - caster->min_damage + 2);
+                    damage = (int)scaled;
+                    if (damage < 1)
+                        damage = 1;
+                }
+                if (caster->weapon_item_id > 0)
+                {
+                    ItemElement element = ItemValues::GetElement((*MAINFORM)->item_values,
+                                                                 caster->weapon_item_id);
+                    element.element_damage = 0;
+                    if (element.element == 1)
+                        damage =
+                            (int)((double)damage *
+                                  Gamecontrol::Combat_CalcElementMult(
+                                      (*MAINFORM)->game_control,
+                                      *(MapCoord *)&element,
+                                      caster->element_resistances[1],
+                                      (*npc_iter)->element_weakness_damage_table[1]));
+                    if (element.element == 2)
+                        damage =
+                            (int)((double)damage *
+                                  Gamecontrol::Combat_CalcElementMult(
+                                      (*MAINFORM)->game_control,
+                                      *(MapCoord *)&element,
+                                      caster->element_resistances[2],
+                                      (*npc_iter)->element_weakness_damage_table[0]));
+                    if (element.element == 3)
+                        damage =
+                            (int)((double)damage *
+                                  Gamecontrol::Combat_CalcElementMult(
+                                      (*MAINFORM)->game_control,
+                                      *(MapCoord *)&element,
+                                      caster->element_resistances[3],
+                                      (*npc_iter)->element_weakness_damage_table[5]));
+                    if (element.element == 4)
+                        damage =
+                            (int)((double)damage *
+                                  Gamecontrol::Combat_CalcElementMult(
+                                      (*MAINFORM)->game_control,
+                                      *(MapCoord *)&element,
+                                      caster->element_resistances[4],
+                                      (*npc_iter)->element_weakness_damage_table[2]));
+                    if (element.element == 5)
+                        damage =
+                            (int)((double)damage *
+                                  Gamecontrol::Combat_CalcElementMult(
+                                      (*MAINFORM)->game_control,
+                                      *(MapCoord *)&element,
+                                      caster->element_resistances[5],
+                                      (*npc_iter)->element_weakness_damage_table[3]));
+                    if (element.element == 6)
+                        damage =
+                            (int)((double)damage *
+                                  Gamecontrol::Combat_CalcElementMult(
+                                      (*MAINFORM)->game_control,
+                                      *(MapCoord *)&element,
+                                      caster->element_resistances[6],
+                                      (*npc_iter)->element_weakness_damage_table[4]));
+                }
+                if ((unsigned short)(*npc_iter)->nAttack_dir ==
+                        (unsigned int)caster->direction ||
+                    (*npc_iter)->hp == (*npc_iter)->max_hp)
+                    damage += damage / 2;
+                if ((unsigned short)(*npc_iter)->boss > 0)
+                    Mapcontrol::Mapcontrol_AggroChildNpcs(server->map_control,
+                                                          caster->map_id);
+                (*npc_iter)->aggressive = true;
+                (*npc_iter)->nLeash_timer = (short)(RandRange(0x32) + 100);
+                if (Mapcontrol::Mapcontrol_CountNpcsChasingPlayer(
+                        server->map_control, caster->map_id, caster->player_id) < 2 &&
+                    type_info.behavior_id == 0)
+                    (*npc_iter)->chase_target_id = caster->player_id;
+                (*npc_iter)->hp -= damage;
+                (*npc_iter)->nHp_pct =
+                    (short)((*npc_iter)->hp * 100 /
+                            NpcValues::GetMaxHp((*MAINFORM)->npc_values,
+                                                (*npc_iter)->id));
+                if ((*npc_iter)->hp < 1)
+                {
+                    int exp = NpcValues::GetExp((*MAINFORM)->npc_values, (*npc_iter)->id);
+                    int drop_result = 0;
+                    exp = Party_ShareExp(server, caster, exp);
+                    if ((*npc_iter)->wDrop_item_id > 0 && (*npc_iter)->wDrop_amount > 0)
+                        drop_result = Mapcontrol::Mapcontrol_AddGroundItem(
+                            server->map_control,
+                            caster->map_id,
+                            (*npc_iter)->wDrop_item_id,
+                            (*npc_iter)->x,
+                            (*npc_iter)->y,
+                            (*npc_iter)->wDrop_amount,
+                            caster->account_ident,
+                            0x3d);
+                    TDateTime now = Now();
+                    *(TTimeStamp *)&(*npc_iter)->nDeath_ms = DateTimeToTimeStamp(now);
+                    (*npc_iter)->chase_target_id = -1;
+                    (*npc_iter)->alive = false;
+                    if ((unsigned short)(*npc_iter)->boss > 0 &&
+                        Mapcontrol::Mapcontrol_KillChildNpcs(server->map_control,
+                                                             caster->map_id))
+                        Server_BroadcastToMap(
+                            server,
+                            caster->map_id,
+                            PacketAction_Junk,
+                            PacketFamily_Npc,
+                            EO_EncodeNumber(server,
+                                            (unsigned short)Mapcontrol_GetByIndex(
+                                                server->map_control, caster->map_id - 1)
+                                                ->child_npc_id,
+                                            2));
+                    String reply = EO_EncodeNumber(server, caster->player_id, 2);
+                    reply.Insert(EO_EncodeNumber(server, caster->direction, 1),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, (*npc_iter)->index, 2),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, drop_result, 2),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, (*npc_iter)->wDrop_item_id, 2),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, (*npc_iter)->x, 1),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, (*npc_iter)->y, 1),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, (*npc_iter)->wDrop_amount, 4),
+                                 reply.Length() + 1);
+                    reply.Insert(EO_EncodeNumber(server, damage, 3), reply.Length() + 1);
+                    if (Settings::GetMaxKills(server->settings) != 0)
+                    {
+                        if (KillCounters::IncrementAndGet(server->kill_counters,
+                                                          caster->name) >
+                            Settings::GetMaxKills(server->settings))
+                            exp = 0;
+                    }
+                    caster->experience += exp;
+                    if (Players::Player_TryLevelUp(server->players, caster) > 0)
+                    {
+                        Server_BroadcastNearby(
+                            server, caster, PacketAction_Accept, PacketFamily_Npc, reply);
+                        reply.Insert(EO_EncodeNumber(server, caster->experience, 4),
+                                     reply.Length() + 1);
+                        reply.Insert(EO_EncodeNumber(server, caster->level, 1),
+                                     reply.Length() + 1);
+                        reply.Insert(EO_EncodeNumber(server, caster->stat_points, 2),
+                                     reply.Length() + 1);
+                        reply.Insert(EO_EncodeNumber(server, caster->skill_points, 2),
+                                     reply.Length() + 1);
+                        reply.Insert(EO_EncodeNumber(server, caster->max_hp, 2),
+                                     reply.Length() + 1);
+                        reply.Insert(EO_EncodeNumber(server, caster->max_tp, 2),
+                                     reply.Length() + 1);
+                        reply.Insert(EO_EncodeNumber(server, caster->max_sp, 2),
+                                     reply.Length() + 1);
+                        Client_SendEncoded(
+                            server, caster, PacketAction_Accept, PacketFamily_Npc, reply);
+                        return 1;
+                    }
+                    Server_BroadcastNearby(
+                        server, caster, PacketAction_Spec, PacketFamily_Npc, reply);
+                    reply.Insert(EO_EncodeNumber(server, caster->experience, 4),
+                                 reply.Length() + 1);
+                    if (!caster->cheater_flag)
+                        Client_SendEncoded(
+                            server, caster, PacketAction_Spec, PacketFamily_Npc, reply);
+                    else
+                    {
+                        if (RandRange(6) > 2)
+                            caster->experience -= exp;
+                    }
+                    Player_FireQuestTriggers(server, caster, 8, (*npc_iter)->id);
+                    return 1;
+                }
+                String reply = EO_EncodeNumber(server, caster->player_id, 2);
+                reply.Insert((*data)[1], reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, (*npc_iter)->index, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, damage, 3), reply.Length() + 1);
+                if (!caster->cheater_flag)
+                    reply.Insert(EO_EncodeNumber(server, (*npc_iter)->nHp_pct, 2),
+                                 reply.Length() + 1);
+                else if ((*npc_iter)->nHp_pct < 1)
+                    reply.Insert(EO_EncodeNumber(server, RandRange(2) + 1, 2),
+                                 reply.Length() + 1);
+                Server_BroadcastNearby(
+                    server, caster, PacketAction_Reply, PacketFamily_Npc, reply);
+                reply.Insert(EO_EncodeNumber(server, 1, 1), reply.Length() + 1);
+                Client_SendEncoded(
+                    server, caster, PacketAction_Reply, PacketFamily_Npc, reply);
+                return 1;
+            }
+            if (caster->arena_queued)
+            {
+                if (!(char)Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
+                         ->arena_enabled)
+                    caster->arena_queued = false;
+                else if (tile_step == 0)
+                {
+                    Player *target = Players::Players_GetByMapTile(
+                        server->players, caster->map_id, offset_x, offset_y);
+                    if (target != 0)
+                    {
+                        caster->arena_kills++;
+                        target->arena_queued = false;
+                        MapCoord coords;
+                        coords.x =
+                            Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
+                                ->relog_x;
+                        coords.y =
+                            Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
+                                ->relog_y;
+                        Player_Warp(server,
+                                    target,
+                                    target->map_id,
+                                    coords,
+                                    WarpEffect_None,
+                                    true);
+                        if (Players::Players_CountArenaPlayers(server->players,
+                                                               caster->map_id) < 2)
+                        {
+                            String arena_win_pkt = caster->name;
+                            arena_win_pkt.Insert(" ", arena_win_pkt.Length() + 1);
+                            if (caster->title.Length() > 0)
+                            {
+                                arena_win_pkt.Insert("(", arena_win_pkt.Length() + 1);
+                                arena_win_pkt.Insert(caster->title,
+                                                     arena_win_pkt.Length() + 1);
+                                arena_win_pkt.Insert(") ", arena_win_pkt.Length() + 1);
+                            }
+                            arena_win_pkt.Insert(EO_GetBreakByte(server, 0xff),
+                                                 arena_win_pkt.Length() + 1);
+                            arena_win_pkt.Insert(
+                                EO_EncodeNumber(server, caster->arena_kills, 1),
+                                arena_win_pkt.Length() + 1);
+                            arena_win_pkt.Insert(EO_GetBreakByte(server, 0xff),
+                                                 arena_win_pkt.Length() + 1);
+                            arena_win_pkt.Insert(caster->name,
+                                                 arena_win_pkt.Length() + 1);
+                            arena_win_pkt.Insert(EO_GetBreakByte(server, 0xff),
+                                                 arena_win_pkt.Length() + 1);
+                            arena_win_pkt.Insert(target->name,
+                                                 arena_win_pkt.Length() + 1);
+                            Server_BroadcastToMap(server,
+                                                  caster->map_id,
+                                                  PacketAction_Accept,
+                                                  PacketFamily_Arena,
+                                                  arena_win_pkt);
+                            Client_SendEncoded(server,
+                                               target,
+                                               PacketAction_Accept,
+                                               PacketFamily_Arena,
+                                               arena_win_pkt);
+                            if (Mapcontrol_GetByIndex(server->map_control,
+                                                      caster->map_id - 1)
+                                    ->arena_block > 2)
+                            {
+                                caster->arena_queued = false;
+                                Player_Warp(server,
+                                            caster,
+                                            caster->map_id,
+                                            coords,
+                                            WarpEffect_None,
+                                            true);
+                            }
+                            return 1;
+                        }
+                        String arena_elim_pkt =
+                            EO_EncodeNumber(server, caster->player_id, 2);
+                        arena_elim_pkt.Insert(EO_GetBreakByte(server, 0xff),
+                                              arena_elim_pkt.Length() + 1);
+                        arena_elim_pkt.Insert(
+                            EO_EncodeNumber(server, caster->direction, 1),
+                            arena_elim_pkt.Length() + 1);
+                        arena_elim_pkt.Insert(EO_GetBreakByte(server, 0xff),
+                                              arena_elim_pkt.Length() + 1);
+                        arena_elim_pkt.Insert(
+                            EO_EncodeNumber(server, caster->arena_kills, 1),
+                            arena_elim_pkt.Length() + 1);
+                        arena_elim_pkt.Insert(EO_GetBreakByte(server, 0xff),
+                                              arena_elim_pkt.Length() + 1);
+                        arena_elim_pkt.Insert(caster->name, arena_elim_pkt.Length() + 1);
+                        arena_elim_pkt.Insert(EO_GetBreakByte(server, 0xff),
+                                              arena_elim_pkt.Length() + 1);
+                        arena_elim_pkt.Insert(target->name, arena_elim_pkt.Length() + 1);
+                        Server_BroadcastToMap(server,
+                                              caster->map_id,
+                                              PacketAction_Spec,
+                                              PacketFamily_Arena,
+                                              arena_elim_pkt);
+                        Client_SendEncoded(server,
+                                           target,
+                                           PacketAction_Spec,
+                                           PacketFamily_Arena,
+                                           arena_elim_pkt);
+                        return 1;
+                    }
+                }
+            }
+        }
+        String final_pkt = EO_EncodeNumber(server, caster->player_id, 2);
+        final_pkt = final_pkt + (*data)[1];
+        Server_BroadcastNearby(
+            server, caster, PacketAction_Player, PacketFamily_Attack, final_pkt);
+        return 1;
     }
     return 0;
 }
