@@ -64,6 +64,8 @@ bool FUN_004738b0(Server *server);
 String FUN_004731d0(Server *server);
 String FUN_00473540(Server *server);
 String Message_BuildServerStatus(Server *server);
+String Paperdoll_BuildReply(Server *server, Player *player);
+void Player_CalculateStats(Server *server, Player *player);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
@@ -786,6 +788,209 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             Client_SendEncoded(
                 server, player, PacketAction_Agree, PacketFamily_Warp, out);
             Player_FireQuestTriggers(server, player, 0xb, 0);
+            return true;
+        }
+    }
+    if (family == PacketFamily_Paperdoll)
+    {
+        if (action == PacketAction_Request)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 2)
+                return false;
+            int id = EO_DecodeNumber(server, data.SubString(1, 2));
+            if (player->player_id == id)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Paperdoll,
+                                   Paperdoll_BuildReply(server, player));
+                return true;
+            }
+            Player *target = Players::Players_GetById(server->players, id);
+            if (target == NULL)
+                return true;
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Reply,
+                               PacketFamily_Paperdoll,
+                               Paperdoll_BuildReply(server, target));
+            return true;
+        }
+        if (action == PacketAction_Add)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 3)
+                return false;
+            int item_id = EO_DecodeNumber(server, data.SubString(1, 2));
+            int slot = EO_DecodeNumber(server, data.SubString(3, 1));
+            ItemValue *item =
+                ItemValues::GetByIndex((*MAINFORM)->item_values, item_id - 1);
+            if (!ClassValues::ClassMatches(
+                    (*MAINFORM)->class_values, player->class_id, item->class_requirement))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Ping,
+                                   PacketFamily_Paperdoll,
+                                   EO_EncodeNumber(server, player->class_id, 1));
+                return true;
+            }
+            if (item->level_requirement > player->level)
+                return true;
+            if (item->strength_requirement > player->adj_strength)
+                return true;
+            if (item->intelligence_requirement > player->adj_intelligence)
+                return true;
+            if (item->wisdom_requirement > player->adj_wisdom)
+                return true;
+            if (item->agility_requirement > player->adj_agility)
+                return true;
+            if (item->constitution_requirement > player->adj_constitution)
+                return true;
+            if (item->charisma_requirement > player->adj_charisma)
+                return true;
+            if (!Players::Player_EquipItem(server->players, player, item_id, slot))
+                return true;
+            if (item->element < 7)
+                player->element_resistances[item->element] += item->element_damage;
+            player->min_damage = item->min_damage;
+            player->max_damage = item->max_damage;
+            player->accuracy = item->accuracy;
+            player->evasion = item->evade;
+            player->armor = item->armor;
+            player->equip_bonus_hp = item->hp;
+            player->equip_bonus_tp = item->tp;
+            player->equip_strength_bonus = item->strength;
+            player->equip_wisdom_bonus = item->wisdom;
+            player->equip_intelligence_bonus = item->intelligence;
+            player->equip_agility_bonus = item->agility;
+            player->equip_constitution_bonus = item->constitution;
+            player->equip_charisma_bonus = item->charisma;
+            Player::UpdateBaseStats(player);
+            Player_CalculateStats(server, player);
+            Player::CalculateHP_TP_SP(player);
+            String out = "";
+            out.Insert(EO_EncodeNumber(server, player->player_id, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, 1, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, 0, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->boots_graphic_id, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->armor_graphic_id, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->hat_graphic_id, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->weapon_graphic_id, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->shield_graphic_id, 2),
+                       out.Length() + 1);
+            if (player->equip_result > 1)
+                Server_BroadcastNearby(server,
+                                       player,
+                                       PacketAction_Agree,
+                                       PacketFamily_Avatar,
+                                       out);
+            out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->equip_result_count, 3),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, slot, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->max_hp, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->max_tp, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_strength, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_intelligence, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_wisdom, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_agility, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_constitution, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_charisma, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->min_damage, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->max_damage, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->accuracy, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->evasion, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->armor, 2), out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Agree, PacketFamily_Paperdoll, out);
+            return true;
+        }
+        if (action == PacketAction_Remove)
+        {
+            if (!player->logged_in)
+                return false;
+            if (data.Length() < 3)
+                return false;
+            int item_id = EO_DecodeNumber(server, data.SubString(1, 2));
+            int slot = EO_DecodeNumber(server, data.SubString(3, 1));
+            if (ItemValues::Eif_GetSpecial((*MAINFORM)->item_values, item_id) == 5)
+                return true;
+            if (!Players::Player_UnequipItem(server->players, player, item_id, slot))
+                return true;
+            ItemValue *item =
+                ItemValues::GetByIndex((*MAINFORM)->item_values, item_id - 1);
+            if (item->element < 7)
+                player->element_resistances[item->element] -= item->element_damage;
+            player->min_damage = item->min_damage;
+            player->max_damage = item->max_damage;
+            player->accuracy = item->accuracy;
+            player->evasion = item->evade;
+            player->armor = item->armor;
+            player->equip_bonus_hp = item->hp;
+            player->equip_bonus_tp = item->tp;
+            player->equip_strength_bonus = item->strength;
+            player->equip_wisdom_bonus = item->wisdom;
+            player->equip_intelligence_bonus = item->intelligence;
+            player->equip_agility_bonus = item->agility;
+            player->equip_constitution_bonus = item->constitution;
+            player->equip_charisma_bonus = item->charisma;
+            Player::UpdateBaseStats(player);
+            Player_CalculateStats(server, player);
+            Player::CalculateHP_TP_SP(player);
+            String out = "";
+            out.Insert(EO_EncodeNumber(server, player->player_id, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, 1, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, 0, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->boots_graphic_id, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->armor_graphic_id, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->hat_graphic_id, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->weapon_graphic_id, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->shield_graphic_id, 2),
+                       out.Length() + 1);
+            if (player->equip_result > 1)
+                Server_BroadcastNearby(server,
+                                       player,
+                                       PacketAction_Agree,
+                                       PacketFamily_Avatar,
+                                       out);
+            out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, slot, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->max_hp, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->max_tp, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_strength, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_intelligence, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_wisdom, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_agility, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_constitution, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->adj_charisma, 2),
+                       out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->min_damage, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->max_damage, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->accuracy, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->evasion, 2), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, player->armor, 2), out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Remove, PacketFamily_Paperdoll, out);
             return true;
         }
     }
