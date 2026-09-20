@@ -147,13 +147,19 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->action_queue.insert(player->action_queue.end(), command);
             return true;
         }
-        if (player->action_queue.size() > 0)
+        else
         {
-            PlayerCommand command(family, action, data);
-            player->action_queue.insert(player->action_queue.end(), command);
-            return true;
+            if (player->action_queue.size() > 0)
+            {
+                PlayerCommand command(family, action, data);
+                player->action_queue.insert(player->action_queue.end(), command);
+                return true;
+            }
+            else
+            {
+                return Walk_Execute(server, player, action, &data);
+            }
         }
-        return Walk_Execute(server, player, action, &data);
     }
     if (family == PacketFamily_Talk)
     {
@@ -174,13 +180,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     if (kills > max_kills)
                         kills = max_kills;
                     int remaining = max_kills - kills;
+                    String message = "kill status : " + IntToStr(kills) + "/" +
+                                     IntToStr(max_kills) + " -> " + IntToStr(remaining) +
+                                     " exp-kills left for today.";
                     Client_SendEncoded(
-                        server,
-                        player,
-                        PacketAction_Server,
-                        PacketFamily_Talk,
-                        "kill status : " + IntToStr(kills) + "/" + IntToStr(max_kills) +
-                            " -> " + IntToStr(remaining) + " exp-kills left for today.");
+                        server, player, PacketAction_Server, PacketFamily_Talk, message);
                     return true;
                 }
             }
