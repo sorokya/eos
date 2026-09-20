@@ -551,55 +551,52 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     {
                     }
                 }
-                try
+                if (data[2] == 'x')
                 {
-                    if (data[2] == 'x')
+                    if (player->admin_level < 2)
+                        return true;
+                    if (player->hide_online)
                     {
-                        if (player->admin_level < 2)
-                            return true;
-                        if (!player->hide_online)
-                        {
-                            player->hide_online = true;
-                            player->hidden = true;
-                            Server_BroadcastNearby(
-                                server,
-                                player,
-                                PacketAction_Remove,
-                                PacketFamily_AdminInteract,
-                                EO_EncodeNumber(server, player->player_id, 2));
-                            Client_SendEncoded(
-                                server,
-                                player,
-                                PacketAction_Remove,
-                                PacketFamily_AdminInteract,
-                                EO_EncodeNumber(server, player->player_id, 2));
-                        }
-                        else
-                        {
-                            player->hide_online = false;
-                            player->hidden = false;
-                            Server_BroadcastNearby(
-                                server,
-                                player,
-                                PacketAction_Agree,
-                                PacketFamily_AdminInteract,
-                                EO_EncodeNumber(server, player->player_id, 2));
-                            Client_SendEncoded(
-                                server,
-                                player,
-                                PacketAction_Agree,
-                                PacketFamily_AdminInteract,
-                                EO_EncodeNumber(server, player->player_id, 2));
-                        }
+                        player->hide_online = false;
+                        player->hidden = false;
+                        Server_BroadcastNearby(
+                            server,
+                            player,
+                            PacketAction_Agree,
+                            PacketFamily_AdminInteract,
+                            EO_EncodeNumber(server, player->player_id, 2));
+                        Client_SendEncoded(server,
+                                           player,
+                                           PacketAction_Agree,
+                                           PacketFamily_AdminInteract,
+                                           EO_EncodeNumber(server, player->player_id, 2));
                     }
-                    if (data[2] == 'k' || data[2] == 's' || data[2] == 'b')
+                    else
                     {
-                        if (player->admin_level < 2)
-                            return true;
+                        player->hide_online = true;
+                        player->hidden = true;
+                        Server_BroadcastNearby(
+                            server,
+                            player,
+                            PacketAction_Remove,
+                            PacketFamily_AdminInteract,
+                            EO_EncodeNumber(server, player->player_id, 2));
+                        Client_SendEncoded(server,
+                                           player,
+                                           PacketAction_Remove,
+                                           PacketFamily_AdminInteract,
+                                           EO_EncodeNumber(server, player->player_id, 2));
+                    }
+                }
+                if (data[2] == 'k' || data[2] == 's' || data[2] == 'b')
+                {
+                    if (player->admin_level < 2)
+                        return true;
+                    try
+                    {
                         PacketReader_Init(
                             server, data.SubString(4, data.Length() - 3), '.');
-                        int i = 0;
-                        do
+                        for (int i = 0; i <= 10; i++)
                         {
                             String name = PacketReader_GetBreakString(server);
                             if (name.Length() < 1)
@@ -614,13 +611,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             Players::Players_MarkDirty(server->players);
                             if (data[2] == 'k')
                             {
+                                String message = "Attention!! " + target->name +
+                                                 " has been removed from game -" +
+                                                 player->name + " [kick]";
                                 FUN_004639b8(server,
                                              target->map_id,
                                              PacketAction_Server,
                                              PacketFamily_Talk,
-                                             "Attention!! " + target->name +
-                                                 " has been removed from game -" +
-                                                 player->name + " [kick]");
+                                             message);
                             }
                             if (data[2] == 's')
                             {
@@ -629,13 +627,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                target->hdid,
                                                (char)0,
                                                0x4b0);
+                                String message = "Attention!! " + target->name +
+                                                 " has been removed from game -" +
+                                                 player->name + " [20min. ban]";
                                 FUN_004639b8(server,
                                              target->map_id,
                                              PacketAction_Server,
                                              PacketFamily_Talk,
-                                             "Attention!! " + target->name +
-                                                 " has been removed from game -" +
-                                                 player->name + " [20min. ban]");
+                                             message);
                             }
                             if (data[2] == 'b')
                             {
@@ -646,31 +645,30 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                target->hdid,
                                                (char)0,
                                                0x1c20);
+                                String message = "Attention!! " + target->name +
+                                                 " has been banned from game -" +
+                                                 player->name + " [2hr. ban]";
                                 FUN_004639b8(server,
                                              target->map_id,
                                              PacketAction_Server,
                                              PacketFamily_Talk,
-                                             "Attention!! " + target->name +
-                                                 " has been banned from game -" +
-                                                 player->name + " [2hr. ban]");
+                                             message);
                             }
-                            i++;
-                        } while (i < 0xb);
+                        }
+                    }
+                    catch (...)
+                    {
                     }
                 }
-                catch (...)
+                if (data[2] == '<')
                 {
-                }
-                try
-                {
-                    if (data[2] == '<')
+                    if (player->admin_level < 4)
+                        return true;
+                    try
                     {
-                        if (player->admin_level < 4)
-                            return true;
                         PacketReader_Init(
                             server, data.SubString(4, data.Length() - 3), '.');
-                        int i = 0;
-                        do
+                        for (int i = 0; i <= 10; i++)
                         {
                             String name = PacketReader_GetBreakString(server);
                             if (name.Length() < 1)
@@ -681,12 +679,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 return true;
                             target->removing = true;
                             Players::Players_MarkDirty(server->players);
-                            FUN_00463d40(server,
-                                         PacketAction_Server,
-                                         PacketFamily_Talk,
-                                         "Attention!! " + target->name +
+                            String message = "Attention!! " + target->name +
                                              " has been banned -" + player->name +
-                                             " [ perm-account ban]");
+                                             " [ perm-account ban]";
+                            FUN_00463d40(
+                                server, PacketAction_Server, PacketFamily_Talk, message);
                             Banned::AddBan(server->banned,
                                            target->remote_ip,
                                            target->hdid,
@@ -697,23 +694,21 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 target->field_0xc,
                                 "UPDATE endl_accounts SET banned = 1 WHERE ident = " +
                                     IntToStr((unsigned int)target->field_0xc));
-                            i++;
-                        } while (i < 0xb);
+                        }
+                    }
+                    catch (...)
+                    {
                     }
                 }
-                catch (...)
+                if (data[2] == '>')
                 {
-                }
-                try
-                {
-                    if (data[2] == '>')
+                    if (player->admin_level < 4)
+                        return true;
+                    try
                     {
-                        if (player->admin_level < 4)
-                            return true;
                         PacketReader_Init(
                             server, data.SubString(4, data.Length() - 3), '.');
-                        int i = 0;
-                        do
+                        for (int i = 0; i <= 10; i++)
                         {
                             String name = PacketReader_GetBreakString(server);
                             if (name.Length() < 1)
@@ -724,12 +719,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 return true;
                             target->removing = true;
                             Players::Players_MarkDirty(server->players);
-                            FUN_00463d40(server,
-                                         PacketAction_Server,
-                                         PacketFamily_Talk,
-                                         "Attention!! " + target->name +
+                            String message = "Attention!! " + target->name +
                                              " has been banned -" + player->name +
-                                             " [ perm-IP ban]");
+                                             " [ perm-IP ban]";
+                            FUN_00463d40(
+                                server, PacketAction_Server, PacketFamily_Talk, message);
                             Banned::AddBan(server->banned,
                                            target->remote_ip,
                                            target->hdid,
@@ -753,17 +747,15 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 "VALUES (NOW(),1,'" +
                                     player->name + "','" + target->remote_ip + "','" +
                                     target->hdid + "','perm-ban by HGM'");
-                            i++;
-                        } while (i < 0xb);
+                        }
+                    }
+                    catch (...)
+                    {
                     }
                 }
-                catch (...)
+                if (data[2] == 'i' || data[2] == 'p' || data[2] == 'a' || data[2] == 'h')
                 {
-                }
-                try
-                {
-                    if (data[2] == 'i' || data[2] == 'p' || data[2] == 'a' ||
-                        data[2] == 'h')
+                    try
                     {
                         if (player->admin_level < 1)
                             return true;
@@ -776,16 +768,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         if (target->admin_level > 1 && target != player)
                             return true;
                         String out = target->name;
-                        out.Insert(String(EO_GetBreakByte(server, 0xff)),
-                                   out.Length() + 1);
+                        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
                         out.Insert(EO_EncodeNumber(server, target->usage, 4),
                                    out.Length() + 1);
-                        out.Insert(String(EO_GetBreakByte(server, 0xff)),
-                                   out.Length() + 1);
+                        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
                         out.Insert(EO_EncodeNumber(server, target->money_bank, 4),
                                    out.Length() + 1);
-                        out.Insert(String(EO_GetBreakByte(server, 0xff)),
-                                   out.Length() + 1);
+                        out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
                         if (data[2] == 'p')
                         {
                             out.Insert(EO_EncodeNumber(server, target->experience, 4),
@@ -831,9 +820,6 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             out.Insert(EO_EncodeNumber(server, target->armor, 2),
                                        out.Length() + 1);
                             out.Insert(EO_EncodeNumber(
-                                           server, target->element_resistances[0], 2),
-                                       out.Length() + 1);
-                            out.Insert(EO_EncodeNumber(
                                            server, target->element_resistances[1], 2),
                                        out.Length() + 1);
                             out.Insert(EO_EncodeNumber(
@@ -847,6 +833,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                        out.Length() + 1);
                             out.Insert(EO_EncodeNumber(
                                            server, target->element_resistances[5], 2),
+                                       out.Length() + 1);
+                            out.Insert(EO_EncodeNumber(
+                                           server, target->element_resistances[6], 2),
                                        out.Length() + 1);
                             out.Insert(EO_EncodeNumber(server, target->weight_current, 1),
                                        out.Length() + 1);
@@ -870,8 +859,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 out.Insert(EO_EncodeNumber(server, iter->amount, 4),
                                            out.Length() + 1);
                             }
-                            out.Insert(String(EO_GetBreakByte(server, 0xff)),
-                                       out.Length() + 1);
+                            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
                             for (iter = target->bank.begin(); iter != target->bank.end();
                                  iter++)
                             {
@@ -885,48 +873,53 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                PacketAction_List,
                                                PacketFamily_AdminInteract,
                                                out);
-                            if (player->admin_level > 3)
+                            if (player->admin_level >= 4)
                             {
-                                int kills = KillCounters::Get(server->kill_counters,
-                                                              target->name);
-                                Client_SendEncoded(
-                                    server,
-                                    player,
-                                    PacketAction_Server,
-                                    PacketFamily_Talk,
+                                String message =
                                     target->name + " connection: " + target->remote_ip +
-                                        ", hds: " + target->hdid +
-                                        ", acc: " + target->account_name +
-                                        ", kills: " + IntToStr(kills));
+                                    ", hds: " + target->hdid +
+                                    ", acc: " + target->account_name + ", kills: " +
+                                    IntToStr(KillCounters::Get(server->kill_counters,
+                                                               target->name));
+                                Client_SendEncoded(server,
+                                                   player,
+                                                   PacketAction_Server,
+                                                   PacketFamily_Talk,
+                                                   message);
                             }
                         }
                         if (data[2] == 'h')
                             target->cheater_flag = true;
                         if (data[2] == 'a')
                         {
-                            if (!target->cheater_flag)
+                            if (target->cheater_flag)
+                            {
+                                String message = target->name + " is detected as a BOT.";
                                 Client_SendEncoded(server,
                                                    player,
                                                    PacketAction_Server,
                                                    PacketFamily_Talk,
-                                                   target->name +
-                                                       " is not detected as a bot.");
+                                                   message);
+                            }
                             else
+                            {
+                                String message =
+                                    target->name + " is not detected as a bot.";
                                 Client_SendEncoded(server,
                                                    player,
                                                    PacketAction_Server,
                                                    PacketFamily_Talk,
-                                                   target->name +
-                                                       " is detected as a BOT.");
+                                                   message);
+                            }
                         }
                     }
+                    catch (...)
+                    {
+                    }
                 }
-                catch (...)
+                if (data[2] == 'l' || data[2] == 'u')
                 {
-                }
-                try
-                {
-                    if (data[2] == 'l' || data[2] == 'u')
+                    try
                     {
                         if (player->admin_level < 2)
                             return true;
@@ -945,13 +938,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                PacketAction_Close,
                                                PacketFamily_Walk,
                                                "S");
+                            String message = "Attention!! " + target->name +
+                                             " movement has been frozen -" + player->name;
                             FUN_004639b8(server,
                                          target->map_id,
                                          PacketAction_Server,
                                          PacketFamily_Talk,
-                                         "Attention!! " + target->name +
-                                             " movement has been frozen -" +
-                                             player->name);
+                                         message);
                         }
                         if (data[2] == 'u')
                         {
@@ -960,102 +953,103 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                PacketAction_Open,
                                                PacketFamily_Walk,
                                                "S");
+                            String message = "Attention!! " + target->name +
+                                             " movement has been released -" +
+                                             player->name;
                             FUN_004639b8(server,
                                          target->map_id,
                                          PacketAction_Server,
                                          PacketFamily_Talk,
-                                         "Attention!! " + target->name +
-                                             " movement has been released -" +
-                                             player->name);
+                                         message);
                         }
                     }
-                }
-                catch (...)
-                {
-                }
-                try
-                {
-                    if (data[2] == 'r' || data[2] == 'v')
+                    catch (...)
                     {
-                        if (data[2] == 'r' && player->admin_level > 3)
+                    }
+                }
+                if (data[2] == 'r' && player->admin_level >= 4)
+                {
+                    PacketReader_Init(server, data.SubString(4, seq.Length() - 4), ' ');
+                    String command = PacketReader_GetBreakString(server);
+                    if (command == "map")
+                    {
+                        if (FUN_004827c8((int)server->map_control, player->map_id))
                         {
-                            PacketReader_Init(
-                                server, data.SubString(4, seq.Length() - 4), ' ');
-                            String command = PacketReader_GetBreakString(server);
-                            if (command == "map" &&
-                                FUN_004827c8((int)server->map_control, player->map_id))
-                            {
-                                FUN_00466840(server, player->map_id);
-                                Talk_PlayerWhisper(
-                                    server,
-                                    player->map_id,
-                                    Map_ReadRawFile(server->map_control, player->map_id),
-                                    10);
-                            }
-                            if (command == "guilds")
-                            {
-                                Mysqlcontrols::Mysql_SubmitQuery(
-                                    server->mysql_controls,
-                                    0x53,
-                                    player->player_id,
-                                    player->query_id,
-                                    data,
-                                    "SELECT ident_guild, guild, SUM(level) as exptotal, "
-                                    "MAX(level) as exphigh, COUNT(ident_guild) as "
-                                    "members FROM endl_characters WHERE "
-                                    "LENGTH(ident_guild) > 1 AND privilege = 0 GROUP BY "
-                                    "ident_guild desc ORDER BY exptotal desc LIMIT 100");
-                            }
+                            FUN_00466840(server, player->map_id);
+                            Talk_PlayerWhisper(
+                                server,
+                                player->map_id,
+                                Map_ReadRawFile(server->map_control, player->map_id),
+                                10);
                         }
-                        if (data[2] == 'v')
-                        {
-                            if (player->admin_level < 3)
-                                return true;
-                            PacketReader_Init(
-                                server, data.SubString(4, seq.Length() - 4), '.');
-                            int map_id = StrToInt(PacketReader_GetBreakString(server));
-                            Server_BroadcastNearby(server,
-                                                   player,
-                                                   PacketAction_Player,
-                                                   PacketFamily_Jukebox,
-                                                   EO_EncodeNumber(server, map_id, 1));
-                            Client_SendEncoded(server,
+                    }
+                    if (command == "guilds")
+                    {
+                        Mysqlcontrols::Mysql_SubmitQuery(
+                            server->mysql_controls,
+                            0x53,
+                            player->player_id,
+                            player->query_id,
+                            data,
+                            "SELECT ident_guild, guild, SUM(level) as exptotal, "
+                            "MAX(level) as exphigh, COUNT(ident_guild) as "
+                            "members FROM endl_characters WHERE "
+                            "LENGTH(ident_guild) > 1 AND privilege = 0 GROUP BY "
+                            "ident_guild desc ORDER BY exptotal desc LIMIT 100");
+                    }
+                }
+                if (data[2] == 'v')
+                {
+                    try
+                    {
+                        if (player->admin_level < 3)
+                            return true;
+                        PacketReader_Init(
+                            server, data.SubString(4, seq.Length() - 4), '.');
+                        int map_id = StrToInt(PacketReader_GetBreakString(server));
+                        Server_BroadcastNearby(server,
                                                player,
                                                PacketAction_Player,
                                                PacketFamily_Jukebox,
                                                EO_EncodeNumber(server, map_id, 1));
-                        }
+                        Client_SendEncoded(server,
+                                           player,
+                                           PacketAction_Player,
+                                           PacketFamily_Jukebox,
+                                           EO_EncodeNumber(server, map_id, 1));
+                    }
+                    catch (...)
+                    {
                     }
                 }
-                catch (...)
+                if (data[2] == 'y' && data.Length() > 3)
                 {
-                }
-                try
-                {
-                    if (data[2] == 'y' && data.Length() > 3)
+                    try
                     {
                         if (player->admin_level < 2)
                             return true;
                         PacketReader_Init(
                             server, data.SubString(4, seq.Length() - 4), '.');
                         int map_id = StrToInt(PacketReader_GetBreakString(server));
-                        if (map_id > 0 &&
-                            map_id < Mapcontrol_GetCount(server->map_control))
+                        if (map_id > 0 && map_id < (unsigned int)Mapcontrol_GetCount(
+                                                       server->map_control))
                         {
                             MapCoord coords;
-                            MapContainer *map = Mapcontrol_GetByIndex(server->map_control,
-                                                                      (short)map_id - 1);
-                            coords.x = (int)(unsigned int)map->width >> 1;
-                            map = Mapcontrol_GetByIndex(server->map_control,
-                                                        (short)map_id - 1);
-                            coords.y = (int)(unsigned int)map->height >> 1;
+                            coords.x =
+                                Mapcontrol_GetByIndex(server->map_control, map_id - 1)
+                                    ->width /
+                                2;
+                            coords.y =
+                                Mapcontrol_GetByIndex(server->map_control, map_id - 1)
+                                    ->height /
+                                2;
                             player->flush_queue = 1;
                             Player_Warp(server, player, map_id, coords, 0, false);
                         }
                     }
-                }
-                catch (...)
-                {
+                    catch (...)
+                    {
+                    }
                 }
                 return true;
             }
@@ -1098,7 +1092,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (player->guild_tag.Length() < 2)
                 return false;
             String out = player->name;
-            out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
             out.Insert(data, out.Length() + 1);
             if (Settings::GetChatLog(server->settings))
             {
@@ -1145,8 +1139,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (target->show_players)
             {
-                String out = player->name;
-                out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
+                String out = name;
+                out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
                 out.Insert("Sorry, " + name + " cannot hear any whispers at the moment.",
                            out.Length() + 1);
                 Client_SendEncoded(
@@ -1154,7 +1148,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             }
             String out = player->name;
-            out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
             out.Insert(message, out.Length() + 1);
             if (Settings::GetChatLog(server->settings))
             {
@@ -1174,7 +1168,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (Settings::GetWorldCommunication(server->settings) == 0)
             {
                 String out = "Server";
-                out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
+                out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
                 out.Insert("This channel is temporary disabled", out.Length() + 1);
                 Client_SendEncoded(
                     server, player, PacketAction_Msg, PacketFamily_Talk, out);
@@ -1186,18 +1180,18 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (!Mysqlcontrols::IsAsciiText(server->mysql_controls, data))
                 return true;
-            if (AnsiStrPos("elebot.org for a", data.c_str()) > 0)
+            if (AnsiPos("elebot.org for a", data) > 0)
             {
                 FUN_00473920(server, "[SYS] [" + player->name + "] tagged as a BOT.");
                 player->cheater_flag = true;
             }
-            if (AnsiStrPos("Download Oxybot", data.c_str()) > 0)
+            if (AnsiPos("Download Oxybot", data) > 0)
             {
                 FUN_00473920(server, "[SYS] [" + player->name + "] tagged as a BOT.");
                 player->cheater_flag = true;
             }
             String out = player->name;
-            out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
             out.Insert(data, out.Length() + 1);
             if (Settings::GetChatLog(server->settings))
             {
@@ -1207,7 +1201,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             Admin_ReportToGMs(server, player, PacketAction_Msg, PacketFamily_Talk, out);
             player->field_0x378--;
-            out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
             for (int i = 1; i < 7; i++)
                 server->field_0x8c[i - 1] = server->field_0x8c[i];
             server->field_0x8c[6] = out;
@@ -1221,7 +1215,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             Mysqlcontrols::NormalizePlayerText(server->mysql_controls, data);
             String out = player->name;
-            out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
             out.Insert(data, out.Length() + 1);
             if (Settings::GetChatLog(server->settings))
             {
@@ -1241,10 +1235,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             Mysqlcontrols::NormalizePlayerText(server->mysql_controls, data);
             if (Settings::GetWorldCommunication(server->settings) == 0)
                 return true;
-            if (AnsiStrPos("elebot", data.c_str()) > 0)
+            if (AnsiPos("elebot", data) > 0)
                 return true;
             String out = player->name;
-            out.Insert(String(EO_GetBreakByte(server, 0xff)), out.Length() + 1);
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
             out.Insert(data, out.Length() + 1);
             if (Settings::GetChatLog(server->settings))
             {
@@ -1256,7 +1250,6 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 server, player, PacketAction_Announce, PacketFamily_Talk, out);
             return true;
         }
-        return true;
     }
     if (family == PacketFamily_Attack)
     {
@@ -1279,13 +1272,19 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->action_queue.insert(player->action_queue.end(), command);
             return true;
         }
-        if (player->action_queue.size() > 0)
+        else
         {
-            PlayerCommand command(family, action, data);
-            player->action_queue.insert(player->action_queue.end(), command);
-            return true;
+            if (player->action_queue.size() > 0)
+            {
+                PlayerCommand command(family, action, data);
+                player->action_queue.insert(player->action_queue.end(), command);
+                return true;
+            }
+            else
+            {
+                return Attack_Execute(server, player, action, &data);
+            }
         }
-        return Attack_Execute(server, player, action, &data);
     }
     if (family == PacketFamily_Spell)
     {
@@ -1308,13 +1307,19 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->action_queue.insert(player->action_queue.end(), command);
             return true;
         }
-        if (player->action_queue.size() > 0)
+        else
         {
-            PlayerCommand command(family, action, data);
-            player->action_queue.insert(player->action_queue.end(), command);
-            return true;
+            if (player->action_queue.size() > 0)
+            {
+                PlayerCommand command(family, action, data);
+                player->action_queue.insert(player->action_queue.end(), command);
+                return true;
+            }
+            else
+            {
+                return Spell_Execute(server, player, action, &data);
+            }
         }
-        return Spell_Execute(server, player, action, &data);
     }
     if (family == PacketFamily_Connection)
     {
