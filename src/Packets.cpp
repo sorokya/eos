@@ -873,6 +873,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         if (data[2] == 'i')
                         {
                             std::vector<PlayerInventory>::iterator iter;
+                            std::vector<PlayerInventory>::iterator bank_iter;
                             for (iter = target->inventory.begin();
                                  iter != target->inventory.end();
                                  iter++)
@@ -884,12 +885,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             }
                             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                        out.Length() + 1);
-                            for (iter = target->bank.begin(); iter != target->bank.end();
-                                 iter++)
+                            for (bank_iter = target->bank.begin();
+                                 bank_iter != target->bank.end();
+                                 bank_iter++)
                             {
-                                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
+                                out.Insert(EO_EncodeNumber(server, bank_iter->item_id, 2),
                                            out.Length() + 1);
-                                out.Insert(EO_EncodeNumber(server, iter->amount, 3),
+                                out.Insert(EO_EncodeNumber(server, bank_iter->amount, 3),
                                            out.Length() + 1);
                             }
                             Client_SendEncoded(server,
@@ -5534,15 +5536,15 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (guild.Length() > 3)
                 return true;
-            Mysqlcontrols::Mysql_SubmitQuery(
-                server->mysql_controls,
-                0x4d,
-                player->player_id,
-                player->query_id,
-                data,
-                "SELECT ident_rank, name, rank FROM endl_characters WHERE "
-                "ident_guild = '" +
-                    guild + "' ORDER BY ident_rank, name LIMIT 100");
+            String query = "SELECT ident_rank, name, rank FROM endl_characters WHERE "
+                           "ident_guild = '" +
+                           guild + "' ORDER BY ident_rank, name LIMIT 100";
+            Mysqlcontrols::Mysql_SubmitQuery(server->mysql_controls,
+                                             0x4d,
+                                             player->player_id,
+                                             player->query_id,
+                                             data,
+                                             query);
             return true;
         }
         if (action == PacketAction_Report)
@@ -5569,13 +5571,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (guild.Length() > 3)
                 return true;
+            String query =
+                "SELECT * FROM endl_guilds WHERE tag = '" + guild + "' LIMIT 1";
             Mysqlcontrols::Mysql_SubmitQuery(server->mysql_controls,
                                              0x4e,
                                              player->player_id,
                                              player->query_id,
                                              data,
-                                             "SELECT * FROM endl_guilds WHERE tag = '" +
-                                                 guild + "' LIMIT 1");
+                                             query);
             return true;
         }
         if (action == PacketAction_Remove)
