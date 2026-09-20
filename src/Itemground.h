@@ -22,7 +22,7 @@ struct ChestItem
     TTimeStamp drop_time; // +0x14
     int owner_player_id;  // +0x1c
     short protect_ticks;  // +0x20
-    char pad_22[2];       // +0x22
+    char pad_0x22[2];     // +0x22
 
     ChestItem();
     ~ChestItem();

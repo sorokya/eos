@@ -42,7 +42,7 @@ class Server
     Settings *settings;            // +0x28
     KillCounters *kill_counters;   // +0x2c
     QuestCounters *quest_counters; // +0x30
-    int padding_0x34;              // +0x34
+    int pad_0x34;                  // +0x34
     TDateTime start_time;          // +0x38
     char *encode_buffer;           // +0x40
     char *packet_buffer;           // +0x44
@@ -69,10 +69,10 @@ class Server
     char hangup_gate;              // +0xb8
     char kill_counters_cleared;    // +0xb9
     char shutting_down;            // +0xba
-    char pad_bb[1];                // +0xbb
+    char pad_0xbb[1];              // +0xbb
     int cheat_offset_x;            // +0xbc
     int cheat_offset_y;            // +0xc0
-    int padding_0xc4;              // +0xc4
+    int pad_0xc4;                  // +0xc4
 
     Server(Mapcontrol *map_control,
            Questengine *quest_engine,
@@ -95,6 +95,13 @@ MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 void Game_Tick(Server *server);
 void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data);
 void Server_Shutdown(Server *server);
+void Server_RemovePlayer(Server *server, TCustomWinSocket *socket);
+String Server_FormatSentTraffic(Server *server);
+String Server_FormatReceivedTraffic(Server *server);
+bool Player_HandlePacket(Server *server, Player *player, String data);
+void Player_CalculateStats(Server *server, Player *player);
+String Player_SerializeAvatar(Server *server, Player *player, int arg);
+String Player_SerializePaperdoll(Server *server, Player *player);
 void Client_SendRaw(Server *server, Player *client, String data, int break_byte);
 void Client_SendEncoded(Server *server,
                         Player *player,

@@ -33,11 +33,6 @@
 
 #pragma package(smart_init)
 
-void Server_RemovePlayer(Server *server, TCustomWinSocket *socket);
-void Mapcontrol_AddArenaSpawn(
-    Mapcontrol *map, int map_id, int from_x, int from_y, int to_x, int to_y);
-String FUN_00473540(Server *server);
-String FUN_004731d0(Server *server);
 String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code);
 
 // Non-PACKAGE redeclaration keeps `&GUI` a link-time constant, so bcc emits a
@@ -262,8 +257,8 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
                                           server->Socket->ActiveConnections,
                                           Players::Players_GetIdleTimeout(players),
                                           Players::Players_GetStatTotal(players),
-                                          FUN_004731d0(server_ctrl),
-                                          FUN_00473540(server_ctrl));
+                                          Server_FormatSentTraffic(server_ctrl),
+                                          Server_FormatReceivedTraffic(server_ctrl));
         if (Visible)
         {
             String s = IntToStr(server->Socket->ActiveConnections) + " con / ";
@@ -272,8 +267,8 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
             panel_buffer->Caption =
                 IntToStr(Mysqlcontrols::Db_GetActiveConnectionCount(mysql_controls)) +
                 " sql";
-            panel_send->Caption = FUN_004731d0(server_ctrl);
-            panel_received->Caption = FUN_00473540(server_ctrl);
+            panel_send->Caption = Server_FormatSentTraffic(server_ctrl);
+            panel_received->Caption = Server_FormatReceivedTraffic(server_ctrl);
             panel_connections->Caption = s;
         }
     }

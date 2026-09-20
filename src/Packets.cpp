@@ -36,61 +36,34 @@
 
 #pragma package(smart_init)
 
-Player **Players_Iter_Begin(Players *players);
-int RandRange(int range);
-MapCoord FUN_0047c428(int map_control, int map_id);
-int FUN_0047cd28(int map_control, int map_id, unsigned int x, unsigned int y);
-void Server_BroadcastToParty(Server *server,
-                             Player *player,
-                             unsigned char action,
-                             unsigned char family,
-                             String data);
-Player **Players_Iter_End(Players *players);
-bool Player_HandlePacket(Server *server, Player *player, String data);
-void FUN_00472944(Server *server, int value);
-void FUN_004728f8(Server *server, int value);
-String Player_SerializePaperdoll(Server *server, Player *player);
+void Server_AddReceivedBytes(Server *server, int value);
+void Server_AddSentBytes(Server *server, int value);
 String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index);
 void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value);
-MapCoord FUN_0047c6c0(int map_control, int map_id, unsigned int npc_index);
-unsigned int FUN_0047c634(int map_control, int map_id, unsigned int npc_index);
-char FUN_0047c3a4(int map_control, int map_id);
-char FUN_0047c3f0(int map_control, int map_id);
-unsigned int FUN_0047c27c(int map_control, int map_id, unsigned int x, unsigned int y);
-char FUN_0047c890(int map_control, int map_id, int x, int y);
-bool FUN_004879b0(int map_control, int map_id, int x, int y, int player_id);
-GroundItemInfo FUN_00487ac0(int map_control, int map_id, int index, int player_id);
-void FUN_004876c0(int map_control, int map_id, int index);
-char FUN_004827c8(int map_control, int map_id);
-void FUN_004639b8(
+void Server_BroadcastToMapAndAdmins(
     Server *server, int map_id, unsigned char action, unsigned char family, String data);
-void FUN_00463be8(Server *server,
-                  Player *player,
-                  unsigned char action,
-                  unsigned char family,
-                  String data);
-void FUN_00463d40(Server *server,
-                  unsigned char action,
-                  unsigned char family,
-                  String data);
-void FUN_00466840(Server *server, int map_id);
-void FUN_00473920(Server *server, String message);
+void Admin_BroadcastToOtherAdmins(Server *server,
+                                  Player *player,
+                                  unsigned char action,
+                                  unsigned char family,
+                                  String data);
+void Server_BroadcastToAll(Server *server,
+                           unsigned char action,
+                           unsigned char family,
+                           String data);
+void Server_SyncMapHazardFlags(Server *server, int map_id);
+void Server_AppendChatLog(Server *server, String message);
 void Talk_PlayerWhisper(Server *server, int map_id, String message, int break_byte);
 bool Attack_Execute(Server *server, Player *caster, int action, String *reader);
 bool Spell_Execute(Server *server, Player *caster, int action, String *packet_data);
-String Player_SerializeAvatar(Server *server, Player *player, int arg);
 String Server_BuildOnlineNames(Server *server);
 String Server_BuildOnlineList(Server *server);
 String Refresh_BuildReply(Server *server, Player *player);
 String Party_EncodeMemberList(Server *server, Player *player);
-String Map_ReadRawFile(Mapcontrol *map_control, int map_id);
 bool Walk_Execute(Server *server, Player *player, int action, String *data);
-bool FUN_004738b0(Server *server);
-String FUN_004731d0(Server *server);
-String FUN_00473540(Server *server);
+bool Server_TickOncePerFiveSeconds(Server *server);
 String Message_BuildServerStatus(Server *server);
 String Paperdoll_BuildReply(Server *server, Player *player);
-void Player_CalculateStats(Server *server, Player *player);
 void Player_ApplyQuestActions(Server *server,
                               Player *player,
                               PlayerQuest *tracker,
@@ -98,7 +71,7 @@ void Player_ApplyQuestActions(Server *server,
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
-    FUN_00472944(server, data.Length());
+    Server_AddReceivedBytes(server, data.Length());
     if (data.Length() < 4)
         return false;
     player->packet_count++;
@@ -230,7 +203,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                     false);
                         String message = "Attention!! " + target->name +
                                          " has been jailed -" + player->name;
-                        FUN_00463d40(
+                        Server_BroadcastToAll(
                             server, PacketAction_Server, PacketFamily_Talk, message);
                     }
                     if (data[2] == 'f' &&
@@ -286,10 +259,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             coords.x = player->x;
                             coords.y = player->y;
                         }
-                        if (FUN_0047cd28((int)server->map_control,
-                                         player->map_id,
-                                         coords.x,
-                                         coords.y) == 0)
+                        if (Mapcontrol_CountBlockedNeighbors((int)server->map_control,
+                                                             player->map_id,
+                                                             coords.x,
+                                                             coords.y) == 0)
                         {
                             Banned::AddBan(server->banned,
                                            player->remote_ip,
@@ -300,11 +273,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 "Attention!! " + player->name +
                                 " has been banned for a wall-attempt on a player -" +
                                 player->name + " [2hr. ban]";
-                            FUN_004639b8(server,
-                                         player->map_id,
-                                         PacketAction_Server,
-                                         PacketFamily_Talk,
-                                         message);
+                            Server_BroadcastToMapAndAdmins(server,
+                                                           player->map_id,
+                                                           PacketAction_Server,
+                                                           PacketFamily_Talk,
+                                                           message);
                             return false;
                         }
                         target->flush_queue = 1;
@@ -518,9 +491,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                            server->players)) +
                                            " players] [",
                                        out.Length() + 1);
-                            out.Insert(FUN_004731d0(server) + " b/w out] [",
+                            out.Insert(Server_FormatSentTraffic(server) + " b/w out] [",
                                        out.Length() + 1);
-                            out.Insert(FUN_00473540(server) + " b/w in]",
+                            out.Insert(Server_FormatReceivedTraffic(server) + " b/w in]",
                                        out.Length() + 1);
                             Server_BroadcastToMap(server,
                                                   player->map_id,
@@ -614,11 +587,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 String message = "Attention!! " + target->name +
                                                  " has been removed from game -" +
                                                  player->name + " [kick]";
-                                FUN_004639b8(server,
-                                             target->map_id,
-                                             PacketAction_Server,
-                                             PacketFamily_Talk,
-                                             message);
+                                Server_BroadcastToMapAndAdmins(server,
+                                                               target->map_id,
+                                                               PacketAction_Server,
+                                                               PacketFamily_Talk,
+                                                               message);
                             }
                             if (data[2] == 's')
                             {
@@ -630,11 +603,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 String message = "Attention!! " + target->name +
                                                  " has been removed from game -" +
                                                  player->name + " [20min. ban]";
-                                FUN_004639b8(server,
-                                             target->map_id,
-                                             PacketAction_Server,
-                                             PacketFamily_Talk,
-                                             message);
+                                Server_BroadcastToMapAndAdmins(server,
+                                                               target->map_id,
+                                                               PacketAction_Server,
+                                                               PacketFamily_Talk,
+                                                               message);
                             }
                             if (data[2] == 'b')
                             {
@@ -648,11 +621,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 String message = "Attention!! " + target->name +
                                                  " has been banned from game -" +
                                                  player->name + " [2hr. ban]";
-                                FUN_004639b8(server,
-                                             target->map_id,
-                                             PacketAction_Server,
-                                             PacketFamily_Talk,
-                                             message);
+                                Server_BroadcastToMapAndAdmins(server,
+                                                               target->map_id,
+                                                               PacketAction_Server,
+                                                               PacketFamily_Talk,
+                                                               message);
                             }
                         }
                     }
@@ -682,7 +655,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             String message = "Attention!! " + target->name +
                                              " has been banned -" + player->name +
                                              " [ perm-account ban]";
-                            FUN_00463d40(
+                            Server_BroadcastToAll(
                                 server, PacketAction_Server, PacketFamily_Talk, message);
                             Banned::AddBan(server->banned,
                                            target->remote_ip,
@@ -722,7 +695,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             String message = "Attention!! " + target->name +
                                              " has been banned -" + player->name +
                                              " [ perm-IP ban]";
-                            FUN_00463d40(
+                            Server_BroadcastToAll(
                                 server, PacketAction_Server, PacketFamily_Talk, message);
                             Banned::AddBan(server->banned,
                                            target->remote_ip,
@@ -940,11 +913,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                "S");
                             String message = "Attention!! " + target->name +
                                              " movement has been frozen -" + player->name;
-                            FUN_004639b8(server,
-                                         target->map_id,
-                                         PacketAction_Server,
-                                         PacketFamily_Talk,
-                                         message);
+                            Server_BroadcastToMapAndAdmins(server,
+                                                           target->map_id,
+                                                           PacketAction_Server,
+                                                           PacketFamily_Talk,
+                                                           message);
                         }
                         if (data[2] == 'u')
                         {
@@ -956,11 +929,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             String message = "Attention!! " + target->name +
                                              " movement has been released -" +
                                              player->name;
-                            FUN_004639b8(server,
-                                         target->map_id,
-                                         PacketAction_Server,
-                                         PacketFamily_Talk,
-                                         message);
+                            Server_BroadcastToMapAndAdmins(server,
+                                                           target->map_id,
+                                                           PacketAction_Server,
+                                                           PacketFamily_Talk,
+                                                           message);
                         }
                     }
                     catch (...)
@@ -973,9 +946,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     String command = PacketReader_GetBreakString(server);
                     if (command == "map")
                     {
-                        if (FUN_004827c8((int)server->map_control, player->map_id))
+                        if (Mapcontrol_ReloadMap((int)server->map_control,
+                                                 player->map_id))
                         {
-                            FUN_00466840(server, player->map_id);
+                            Server_SyncMapHazardFlags(server, player->map_id);
                             Talk_PlayerWhisper(
                                 server,
                                 player->map_id,
@@ -1076,9 +1050,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             out.Insert(data, out.Length() + 1);
             if (Settings::GetChatLog(server->settings))
             {
-                FUN_00473920(server,
-                             "[GRP] [" + player->name + "," + player->remote_ip + "] " +
-                                 data);
+                Server_AppendChatLog(server,
+                                     "[GRP] [" + player->name + "," + player->remote_ip +
+                                         "] " + data);
             }
             Server_BroadcastToPartyExceptSelf(
                 server, player, PacketAction_Open, PacketFamily_Talk, out);
@@ -1096,9 +1070,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             out.Insert(data, out.Length() + 1);
             if (Settings::GetChatLog(server->settings))
             {
-                FUN_00473920(server,
-                             "[GUI] [" + player->name + "," + player->remote_ip + "] " +
-                                 data);
+                Server_AppendChatLog(server,
+                                     "[GUI] [" + player->name + "," + player->remote_ip +
+                                         "] " + data);
             }
             Guild_BroadcastToAll(
                 server, player, PacketAction_Request, PacketFamily_Talk, out);
@@ -1152,10 +1126,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             out.Insert(message, out.Length() + 1);
             if (Settings::GetChatLog(server->settings))
             {
-                FUN_00473920(server,
-                             "[PRV] [" + player->name + "," + player->remote_ip +
-                                 "] to [" + target->name + "," + target->remote_ip +
-                                 "] " + data);
+                Server_AppendChatLog(server,
+                                     "[PRV] [" + player->name + "," + player->remote_ip +
+                                         "] to [" + target->name + "," +
+                                         target->remote_ip + "] " + data);
             }
             Client_SendEncoded(server, target, PacketAction_Tell, PacketFamily_Talk, out);
             return true;
@@ -1182,12 +1156,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (AnsiPos("elebot.org for a", data) > 0)
             {
-                FUN_00473920(server, "[SYS] [" + player->name + "] tagged as a BOT.");
+                Server_AppendChatLog(server,
+                                     "[SYS] [" + player->name + "] tagged as a BOT.");
                 player->cheater_flag = true;
             }
             if (AnsiPos("Download Oxybot", data) > 0)
             {
-                FUN_00473920(server, "[SYS] [" + player->name + "] tagged as a BOT.");
+                Server_AppendChatLog(server,
+                                     "[SYS] [" + player->name + "] tagged as a BOT.");
                 player->cheater_flag = true;
             }
             String out = player->name;
@@ -1195,9 +1171,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             out.Insert(data, out.Length() + 1);
             if (Settings::GetChatLog(server->settings))
             {
-                FUN_00473920(server,
-                             "[GLB] [" + player->name + "," + player->remote_ip + "] " +
-                                 data);
+                Server_AppendChatLog(server,
+                                     "[GLB] [" + player->name + "," + player->remote_ip +
+                                         "] " + data);
             }
             Admin_ReportToGMs(server, player, PacketAction_Msg, PacketFamily_Talk, out);
             player->field_0x378--;
@@ -1219,11 +1195,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             out.Insert(data, out.Length() + 1);
             if (Settings::GetChatLog(server->settings))
             {
-                FUN_00473920(server,
-                             "[ADM] [" + player->name + "," + player->remote_ip + "] " +
-                                 data);
+                Server_AppendChatLog(server,
+                                     "[ADM] [" + player->name + "," + player->remote_ip +
+                                         "] " + data);
             }
-            FUN_00463be8(server, player, PacketAction_Admin, PacketFamily_Talk, out);
+            Admin_BroadcastToOtherAdmins(
+                server, player, PacketAction_Admin, PacketFamily_Talk, out);
             return true;
         }
         if (action == PacketAction_Announce)
@@ -1242,9 +1219,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             out.Insert(data, out.Length() + 1);
             if (Settings::GetChatLog(server->settings))
             {
-                FUN_00473920(server,
-                             "[GLB2] [" + player->name + "," + player->remote_ip + "] " +
-                                 data);
+                Server_AppendChatLog(server,
+                                     "[GLB2] [" + player->name + "," + player->remote_ip +
+                                         "] " + data);
             }
             Admin_BroadcastToAdmins(
                 server, player, PacketAction_Announce, PacketFamily_Talk, out);
@@ -1689,7 +1666,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     return false;
                 if (slot->character_id != selected_id)
                     continue;
-                if (!FUN_0047cd28(
+                if (!Mapcontrol_CountBlockedNeighbors(
                         (int)server->map_control, slot->map_id, slot->x, slot->y))
                 {
                     slot->map_id = Settings::GetRescueMap(server->settings);
@@ -2859,7 +2836,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             {
                 if (player->map_id == 0)
                     return true;
-                if (FUN_0047c3f0((int)server->map_control, player->map_id))
+                if (Mapcontrol_GetCanScroll((int)server->map_control, player->map_id))
                 {
                     Players::Player_AddItem(server->players, player, item_id, 1);
                     return true;
@@ -2944,9 +2921,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (!Server_InViewRing(server, player->x, player->y, x, y))
                 return true;
-            if (!FUN_0047c890((int)server->map_control, player->map_id, x, y))
+            if (!Mapcontrol_IsDropTileClear(
+                    (int)server->map_control, player->map_id, x, y))
                 return true;
-            if (!FUN_004879b0(
+            if (!Mapcontrol_CanDropItemAt(
                     (int)server->map_control, player->map_id, x, y, player->field_0xc))
                 return true;
             if (!Players::Player_RemoveItem(server->players, player, item_id, amount))
@@ -3050,10 +3028,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (data.Length() < 2)
                 return false;
             int ground_index = EO_DecodeNumber(server, data.SubString(1, 2));
-            GroundItemInfo info = FUN_00487ac0((int)server->map_control,
-                                               player->map_id,
-                                               ground_index,
-                                               player->field_0xc);
+            GroundItemInfo info = Mapcontrol_TakeGroundItemInfo((int)server->map_control,
+                                                                player->map_id,
+                                                                ground_index,
+                                                                player->field_0xc);
             if (info.x == -2)
             {
                 String out = EO_EncodeNumber(server, 2, 2);
@@ -3065,7 +3043,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (!Server_InViewRing(server, player->x, player->y, info.x, info.y))
                 return true;
-            FUN_004876c0((int)server->map_control, player->map_id, ground_index);
+            Mapcontrol_RemoveGroundItem(
+                (int)server->map_control, player->map_id, ground_index);
             Players::Player_AddItem(server->players, player, info.item_id, info.amount);
             player->weight_current +=
                 ItemValues::Eif_GetWeight((*MAINFORM)->item_values, info.item_id) *
@@ -3486,7 +3465,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 weight = 250;
             if (weight_max > 250)
                 weight_max = 250;
-            String item_str = FUN_0047badc(server->map_control, player->map_id, coords);
+            String item_str = Mapcontrol_BuildChestItemsString(
+                server->map_control, player->map_id, coords);
             Server_BroadcastAdjacent(
                 server, player, coords, PacketAction_Agree, PacketFamily_Chest, item_str);
             String out = EO_EncodeNumber(server, stack.id, 2);
@@ -3547,7 +3527,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                                 coords,
                                                 item_id,
                                                 player->item_change_count);
-            String item_str = FUN_0047badc(server->map_control, player->map_id, coords);
+            String item_str = Mapcontrol_BuildChestItemsString(
+                server->map_control, player->map_id, coords);
             Server_BroadcastAdjacent(
                 server, player, coords, PacketAction_Agree, PacketFamily_Chest, item_str);
             String out = EO_EncodeNumber(server, item_id, 2);
@@ -3571,15 +3552,16 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             coords.y = EO_DecodeNumber(server, data.SubString(2, 1));
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            String out = FUN_0047badc(server->map_control, player->map_id, coords);
+            String out = Mapcontrol_BuildChestItemsString(
+                server->map_control, player->map_id, coords);
             if (out == "N")
             {
                 Client_SendEncoded(
                     server, player, PacketAction_Close, PacketFamily_Chest, "N");
                 return true;
             }
-            int chest_slot =
-                FUN_00486e64((int)server->map_control, player->map_id, coords);
+            int chest_slot = Mapcontrol_GetChestKeyAt(
+                (int)server->map_control, player->map_id, coords);
             if (chest_slot < 1)
             {
                 out.Insert(data.SubString(1, 2), 1);
@@ -3815,14 +3797,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (data.Length() < 2)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
-            MapCoord coords =
-                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return true;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            int npc_id =
-                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Shop)
                 return true;
@@ -3848,7 +3830,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             int item_id = EO_DecodeNumber(server, data.SubString(3, 2));
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            if (FUN_0047c27c(
+            if (Mapcontrol_GetTileSpecValueAt(
                     (int)server->map_control, player->map_id, coords.x, coords.y) != 0xf)
                 return true;
             if (!Players::Player_RemoveBankItem(server->players, player, item_id))
@@ -3918,7 +3900,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            if (FUN_0047c27c(
+            if (Mapcontrol_GetTileSpecValueAt(
                     (int)server->map_control, player->map_id, coords.x, coords.y) != 0xf)
                 return true;
             if (!Players::Player_RemoveItem(server->players, player, item_id, amount))
@@ -3969,7 +3951,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             coords.y = EO_DecodeNumber(server, data.SubString(2, 1));
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            if (FUN_0047c27c(
+            if (Mapcontrol_GetTileSpecValueAt(
                     (int)server->map_control, player->map_id, coords.x, coords.y) != 0xf)
                 return true;
             String out = data.SubString(1, 2);
@@ -4116,14 +4098,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (data.Length() < 2)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
-            MapCoord coords =
-                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return false;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            int npc_id =
-                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Barber)
                 return true;
@@ -4275,14 +4257,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (data.Length() < 2)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
-            MapCoord coords =
-                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return false;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            int npc_id =
-                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Inn)
                 return true;
@@ -4350,14 +4332,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (data.Length() < 2)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
-            MapCoord coords =
-                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return false;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            int npc_id =
-                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Bank)
                 return true;
@@ -5156,7 +5138,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             int gold = EO_DecodeNumber(server, data.SubString(5, 4));
             if (player->session_token != session_id)
                 return true;
-            if (!FUN_004738b0(server))
+            if (!Server_TickOncePerFiveSeconds(server))
             {
                 Client_SendEncoded(server,
                                    player,
@@ -5195,7 +5177,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (player->session_token != session_id)
                 return true;
-            if (!FUN_004738b0(server))
+            if (!Server_TickOncePerFiveSeconds(server))
             {
                 Client_SendEncoded(server,
                                    player,
@@ -5229,7 +5211,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             String member_name = data.SubString(5, data.Length() - 4);
             if (player->session_token != session_id)
                 return true;
-            if (!FUN_004738b0(server))
+            if (!Server_TickOncePerFiveSeconds(server))
             {
                 Client_SendEncoded(server,
                                    player,
@@ -5300,7 +5282,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             String rest = data.SubString(7, data.Length() - 6);
             if (player->session_token != session_id)
                 return true;
-            if (!FUN_004738b0(server))
+            if (!Server_TickOncePerFiveSeconds(server))
             {
                 Client_SendEncoded(server,
                                    player,
@@ -5419,7 +5401,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (player->guild_tag.Length() < 2)
                 return true;
-            if (!FUN_004738b0(server))
+            if (!Server_TickOncePerFiveSeconds(server))
             {
                 Client_SendEncoded(server,
                                    player,
@@ -5477,7 +5459,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
             if (player->session_token != session_id)
                 return true;
-            if (!FUN_004738b0(server))
+            if (!Server_TickOncePerFiveSeconds(server))
             {
                 Client_SendEncoded(server,
                                    player,
@@ -5512,7 +5494,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             int session_id = EO_DecodeNumber(server, data.SubString(1, 4));
             if (player->session_token != session_id)
                 return true;
-            if (!FUN_004738b0(server))
+            if (!Server_TickOncePerFiveSeconds(server))
             {
                 Client_SendEncoded(server,
                                    player,
@@ -5832,7 +5814,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, GuildReply_NoCandidates, 2));
                 return true;
             }
-            if (!FUN_004738b0(server))
+            if (!Server_TickOncePerFiveSeconds(server))
             {
                 Client_SendEncoded(server,
                                    player,
@@ -5858,14 +5840,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (data.Length() < 2)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
-            MapCoord coords =
-                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return true;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            int npc_id =
-                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Guild)
                 return true;
@@ -6032,14 +6014,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
             int quest_filter = EO_DecodeNumber(server, data.SubString(3, 2));
-            MapCoord coords =
-                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return true;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            int npc_id =
-                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Quest)
                 return true;
@@ -6084,7 +6066,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 {
                     if (name.Length() == 0)
                     {
-                        if (FUN_0047c3a4((int)server->map_control, player->map_id))
+                        if (Mapcontrol_TryTakeQuestCooldown((int)server->map_control,
+                                                            player->map_id))
                         {
                             name = Questengine::GetActionData(server->quest_engine,
                                                               iter->quest_id,
@@ -6332,14 +6315,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (data.Length() < 2)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
-            MapCoord coords =
-                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return true;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            int npc_id =
-                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Trainer)
                 return true;
@@ -6521,7 +6504,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 }
                 else
                 {
-                    if (!FUN_004738b0(server))
+                    if (!Server_TickOncePerFiveSeconds(server))
                     {
                         Client_SendEncoded(server,
                                            player,
@@ -6561,14 +6544,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (data.Length() < 2)
                 return false;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
-            MapCoord coords =
-                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return true;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            int npc_id =
-                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Lawyer)
                 return true;
@@ -6592,8 +6575,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (player->partner_name.Length() > 3)
                 return true;
             int npc_index = EO_DecodeNumber(server, data.SubString(1, 2));
-            MapCoord coords =
-                FUN_0047c6c0((int)server->map_control, player->map_id, npc_index);
+            MapCoord coords = Mapcontrol_GetNpcCoordsByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             if (coords.x < 0 || coords.y < 0)
                 return false;
             if (!Server_InViewRange(server, coords.x, coords.y, player->x, player->y))
@@ -6607,8 +6590,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, 5, 2));
                 return true;
             }
-            int npc_id =
-                (int)FUN_0047c634((int)server->map_control, player->map_id, npc_index);
+            int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
+                (int)server->map_control, player->map_id, npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Priest)
                 return true;
@@ -6763,7 +6746,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (WeddingController::Has(
                     (*MAINFORM)->weddings, target->map_id, target->npc_index))
                 return true;
-            int npc_id = (int)FUN_0047c634(
+            int npc_id = (int)Mapcontrol_GetNpcIdByIndex(
                 (int)server->map_control, target->map_id, target->npc_index);
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Priest)
@@ -6873,9 +6856,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         server, server->mysql_controls->file_cache->guilds_count, 4),
                     out.Length() + 1);
                 out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
-                out.Insert(FUN_004731d0(server), out.Length() + 1);
+                out.Insert(Server_FormatSentTraffic(server), out.Length() + 1);
                 out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
-                out.Insert(FUN_00473540(server), out.Length() + 1);
+                out.Insert(Server_FormatReceivedTraffic(server), out.Length() + 1);
                 out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
                 Client_SendEncoded(
                     server, player, PacketAction_Reply, PacketFamily_Message, out);
@@ -7000,8 +6983,6 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
 }
 
 bool FUN_00462374(Server *server, Player *player, String data);
-String Character_BuildSaveQuery(Players *players, Player *player, int flag);
-MapObject Map_GetTileSpecObject(Mapcontrol *map_control, int map_id, int x, int y);
 void Server_BroadcastToMapExceptSelf(Server *server,
                                      Player *player,
                                      unsigned char action,
@@ -7454,13 +7435,6 @@ bool Chair_Execute(Server *server, Player *player, int action, String *data)
     }
     return false;
 }
-
-void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value);
-
-void Player_ApplyQuestActions(Server *server,
-                              Player *player,
-                              PlayerQuest *tracker,
-                              bool flag);
 
 void Player_EvaluateQuestRules(Server *server,
                                Player *player,
@@ -9002,7 +8976,7 @@ String Party_EncodeMemberList(Server *server, Player *player)
     return s;
 }
 
-void FUN_00466840(Server *server, int map_id)
+void Server_SyncMapHazardFlags(Server *server, int map_id)
 {
     for (Player **iter = Players_Iter_Begin(server->players);
          iter != Players_Iter_End(server->players);
@@ -9257,11 +9231,11 @@ void Admin_BroadcastToAdmins(Server *server,
     }
 }
 
-void FUN_00463750(Server *server,
-                  Player *player,
-                  unsigned char action,
-                  unsigned char family,
-                  String data)
+void Server_BroadcastToPartyOnMap(Server *server,
+                                  Player *player,
+                                  unsigned char action,
+                                  unsigned char family,
+                                  String data)
 {
     for (int i = 0; i < 0xa; i++)
     {
@@ -9271,7 +9245,7 @@ void FUN_00463750(Server *server,
     }
 }
 
-void FUN_004639b8(
+void Server_BroadcastToMapAndAdmins(
     Server *server, int map_id, unsigned char action, unsigned char family, String data)
 {
     for (Player **player_iter = Players_Iter_Begin(server->players);
@@ -9286,11 +9260,11 @@ void FUN_004639b8(
     }
 }
 
-void FUN_00463be8(Server *server,
-                  Player *player,
-                  unsigned char action,
-                  unsigned char family,
-                  String data)
+void Admin_BroadcastToOtherAdmins(Server *server,
+                                  Player *player,
+                                  unsigned char action,
+                                  unsigned char family,
+                                  String data)
 {
     for (Player **player_iter = Players_Iter_Begin(server->players);
          player_iter != Players_Iter_End(server->players);
@@ -9302,7 +9276,10 @@ void FUN_00463be8(Server *server,
     }
 }
 
-void FUN_00463d40(Server *server, unsigned char action, unsigned char family, String data)
+void Server_BroadcastToAll(Server *server,
+                           unsigned char action,
+                           unsigned char family,
+                           String data)
 {
     for (Player **player_iter = Players_Iter_Begin(server->players);
          player_iter != Players_Iter_End(server->players);
@@ -9366,10 +9343,9 @@ void Server_BroadcastToMap(
     }
 }
 
-void FUN_00463d40(Server *server, int action, int family, String data);
 void Server_Shutdown(Server *server)
 {
-    FUN_00463d40(server, PacketAction_Close, PacketFamily_Message, "r");
+    Server_BroadcastToAll(server, PacketAction_Close, PacketFamily_Message, "r");
     Players::Players_MarkDirty(server->players);
     for (Player **player_iter = Players_Iter_Begin(server->players);
          player_iter != Players_Iter_End(server->players);
@@ -9812,7 +9788,8 @@ void Server_RemovePlayer(Server *server, TCustomWinSocket *socket)
                                EO_EncodeNumber(server, socket->SocketHandle, 2));
         if (player->map_id > 0)
         {
-            MapCoord coords = FUN_0047c428((int)server->map_control, player->map_id);
+            MapCoord coords =
+                Mapcontrol_GetRelogCoords((int)server->map_control, player->map_id);
             if (coords.x > 0 && coords.y > 0)
             {
                 player->x = coords.x;
@@ -11441,7 +11418,7 @@ void Client_SendEncoded(Server *server,
                 out[i] += (char)0x80;
         }
         out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
-        FUN_004728f8(server, out.Length());
+        Server_AddSentBytes(server, out.Length());
         Sock_Send(player->socket, *(char **)&out);
     }
 }
@@ -12980,7 +12957,7 @@ void FUN_004728a4_Stub(int a0)
 void FUN_004728b4_Stub(void *a0)
 {
 }
-void FUN_004728f8(Server *server, int value)
+void Server_AddSentBytes(Server *server, int value)
 {
     server->sent_bytes += value;
     while (server->sent_bytes > 0x3ff)
@@ -12994,9 +12971,9 @@ void FUN_004728f8(Server *server, int value)
         server->sent_kilobytes -= 0x400;
     }
 }
-// STUB(0x00472944, 74 bytes) FUN_00472944 - ref: undefined FUN_00472944(int param_1, int
-// param_2)
-void FUN_00472944(Server *server, int value)
+// STUB(0x00472944, 74 bytes) Server_AddReceivedBytes - ref: undefined
+// Server_AddReceivedBytes(int param_1, int param_2)
+void Server_AddReceivedBytes(Server *server, int value)
 {
     server->received_bytes += value;
     while (server->received_bytes > 0x3ff)
@@ -13010,7 +12987,7 @@ void FUN_00472944(Server *server, int value)
         server->received_kilobytes -= 0x400;
     }
 }
-bool FUN_00473124(void *self, int x1, int y1, int x2, int y2)
+bool Coords_IsWithinTwo(void *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -13023,7 +13000,7 @@ bool FUN_00473124(void *self, int x1, int y1, int x2, int y2)
         result = true;
     return result;
 }
-String FUN_004731d0(Server *server)
+String Server_FormatSentTraffic(Server *server)
 {
     if (server->sent_megabytes > 0)
         return IntToStr(server->sent_megabytes) + "." +
@@ -13033,7 +13010,7 @@ String FUN_004731d0(Server *server)
                IntToStr(server->sent_bytes / 0x67).SubString(1, 2) + " Kb";
     return "n/a";
 }
-String FUN_00473540(Server *server)
+String Server_FormatReceivedTraffic(Server *server)
 {
     if (server->received_megabytes > 0)
         return IntToStr(server->received_megabytes) + "." +
@@ -13043,7 +13020,7 @@ String FUN_00473540(Server *server)
                IntToStr(server->received_bytes / 0x67).SubString(1, 2) + " Kb";
     return "n/a";
 }
-bool FUN_004738b0(Server *server)
+bool Server_TickOncePerFiveSeconds(Server *server)
 {
     TTimeStamp stamp = DateTimeToTimeStamp(server->start_time);
     TTimeStamp now = DateTimeToTimeStamp(Now());
@@ -13057,7 +13034,7 @@ bool FUN_004738b0(Server *server)
     }
     return false;
 }
-void FUN_00473920(Server *server, String message)
+void Server_AppendChatLog(Server *server, String message)
 {
     String line = DateToStr(Now());
     line.Insert(" ", line.Length() + 1);

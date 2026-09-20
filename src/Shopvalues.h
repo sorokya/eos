@@ -25,14 +25,14 @@ struct ShopCraftIngredient
 // (0x4b15c0) and the parser/accessors: the loader reads ./pub/dts001.esf once.
 //   +0x00 char                        loaded
 //   +0x04 std::vector<ShopValue>      record_list
-//   +0x24 int                         field_24 = -1
+//   +0x24 int                         field_0x24 = -1
 class ShopValues
 {
   public:
     char loaded;
-    char pad_1[3];
+    char pad_0x1[3];
     std::vector<ShopValue> record_list;
-    int field_24;
+    int field_0x24;
 
     ShopValues();
     ~ShopValues();
@@ -42,7 +42,7 @@ class ShopValues
 
     static void LoadShops(ShopValues *self);
     static void Clear(ShopValues *self);
-    static int GetRecordCount(ShopValues *self);
+    static int GetCount(ShopValues *self);
 
     static ShopCraftIngredient
     GetCraftIngredient1(ShopValues *self, int shop_id, int craft_id);

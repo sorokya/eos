@@ -13,9 +13,6 @@
 
 #pragma package(smart_init)
 
-Player **Players_Iter_Begin(Players *players);
-Player **Players_Iter_End(Players *players);
-
 NpcController::NpcController(Mapcontrol *map,
                              Players *players,
                              Server *server,

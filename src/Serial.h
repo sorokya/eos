@@ -26,18 +26,18 @@ struct Serial
     Serial();
     ~Serial();
 
-    static int GetCounter(Serial *s);
-    static void SetCounter(Serial *s, int value);
-    static bool IsValid(Serial *s);
-    static String GetKeyBaseCopy(Serial *s);
-    static String GetUnlockCode(Serial *s);
-    static String GetRegName(Serial *s);
-    static String GetDisplayCode(Serial *s);
-    static void SetIniPath(Serial *s, String path);
-    static void ReloadIni(Serial *s);
-    static String ReadKey(Serial *s, String key, String default_value);
-    static String DecodeString(Serial *s, String src);
-    static void Validate(Serial *s);
+    static int GetCounter(Serial *self);
+    static void SetCounter(Serial *self, int value);
+    static bool IsValid(Serial *self);
+    static String GetKeyBaseCopy(Serial *self);
+    static String GetUnlockCode(Serial *self);
+    static String GetRegName(Serial *self);
+    static String GetDisplayCode(Serial *self);
+    static void SetIniPath(Serial *self, String path);
+    static void ReloadIni(Serial *self);
+    static String ReadKey(Serial *self, String key, String default_value);
+    static String DecodeString(Serial *self, String src);
+    static void Validate(Serial *self);
 };
 
 #endif

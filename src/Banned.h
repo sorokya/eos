@@ -20,7 +20,7 @@ class Asocketban
     short octet3;           // +0x08
     short octet4;           // +0x0a
     unsigned char ban_type; // +0x0c
-    char pad_0d[3];         // +0x0d
+    char pad_0xd[3];        // +0x0d
     int duration;           // +0x10
     TTimeStamp ban_date;    // +0x14
 };
@@ -35,9 +35,9 @@ class Banned
   public:
     Mysqlcontrols *db_handle; // +0x00
     TList *ban_list;          // +0x04
-    int field_8;              // +0x08
-    unsigned char field_c;    // +0x0c
-    char pad_0d[3];           // +0x0d
+    int field_0x8;            // +0x08
+    unsigned char field_0xc;  // +0x0c
+    char pad_0xd[3];          // +0x0d
 
     Banned(Mysqlcontrols *db_handle);
     ~Banned();

@@ -119,7 +119,7 @@ bool JukeBoxController::TryPlayTrack(JukeBoxController *self, int map_id, String
     return played;
 }
 
-void FUN_004aa4e4(JukeBoxController *self, int map_id)
+void JukeBoxController_RemoveMap(JukeBoxController *self, int map_id)
 {
     for (std::vector<JukeBox>::iterator it = self->recent_plays.begin();
          it != self->recent_plays.end();

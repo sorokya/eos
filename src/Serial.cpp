@@ -38,39 +38,39 @@ Serial::~Serial()
 {
 }
 
-int Serial::GetCounter(Serial *s)
+int Serial::GetCounter(Serial *self)
 {
-    return s->counter;
+    return self->counter;
 }
 
-void Serial::SetCounter(Serial *s, int value)
+void Serial::SetCounter(Serial *self, int value)
 {
-    s->counter = value;
+    self->counter = value;
 }
 
-bool Serial::IsValid(Serial *s)
+bool Serial::IsValid(Serial *self)
 {
-    return s->valid;
+    return self->valid;
 }
 
-String Serial::GetKeyBaseCopy(Serial *s)
+String Serial::GetKeyBaseCopy(Serial *self)
 {
-    return s->key_base_copy;
+    return self->key_base_copy;
 }
 
-String Serial::GetUnlockCode(Serial *s)
+String Serial::GetUnlockCode(Serial *self)
 {
-    return s->unlock_code;
+    return self->unlock_code;
 }
 
-String Serial::GetRegName(Serial *s)
+String Serial::GetRegName(Serial *self)
 {
-    return s->reg_name;
+    return self->reg_name;
 }
 
-void Serial::SetIniPath(Serial *s, String path)
+void Serial::SetIniPath(Serial *self, String path)
 {
-    s->ini_file->Clear();
+    self->ini_file->Clear();
 
     try
     {
@@ -103,28 +103,28 @@ void Serial::SetIniPath(Serial *s, String path)
         else
             tail = path;
 
-        s->ini_file->LoadFromFile(exe + tail);
+        self->ini_file->LoadFromFile(exe + tail);
     }
     catch (...)
     {
     }
 }
 
-void Serial::ReloadIni(Serial *s)
+void Serial::ReloadIni(Serial *self)
 {
-    s->ini_file->Clear();
+    self->ini_file->Clear();
 }
 
-String Serial::ReadKey(Serial *s, String key, String default_value)
+String Serial::ReadKey(Serial *self, String key, String default_value)
 {
     String result = default_value;
-    if (s->ini_file->Count >= 1)
+    if (self->ini_file->Count >= 1)
     {
         try
         {
-            for (int i = 0; i < s->ini_file->Count; i++)
+            for (int i = 0; i < self->ini_file->Count; i++)
             {
-                String line = s->ini_file->Strings[i];
+                String line = self->ini_file->Strings[i];
                 bool before_eq = true;
                 bool after_eq = true;
                 String ini_name = "";
@@ -169,7 +169,7 @@ String Serial::ReadKey(Serial *s, String key, String default_value)
     return result;
 }
 
-String Serial::DecodeString(Serial *s, String src)
+String Serial::DecodeString(Serial *self, String src)
 {
     String rev = "";
     String result = "";
@@ -219,27 +219,27 @@ String Serial::DecodeString(Serial *s, String src)
     return result;
 }
 
-void Serial::Validate(Serial *s)
+void Serial::Validate(Serial *self)
 {
     bool stage1_passed = false;
-    s->valid = false;
+    self->valid = false;
     int acc5 = 400;
     int acc4 = 0x19a;
     int acc3 = 0x19d;
-    for (int i = 1; i <= s->key_base.Length(); i++)
+    for (int i = 1; i <= self->key_base.Length(); i++)
     {
-        acc5 += (unsigned char)s->key_base[i] % 0x11;
-        acc4 += (unsigned char)s->key_base[i] / 0x16;
-        acc3 += (unsigned char)s->key_base[i] % 0x16;
+        acc5 += (unsigned char)self->key_base[i] % 0x11;
+        acc4 += (unsigned char)self->key_base[i] / 0x16;
+        acc3 += (unsigned char)self->key_base[i] % 0x16;
     }
     String c1 = IntToHex(acc5 * 2 % 100 << 5, 3);
     String c2 = IntToHex(acc4 * 0xb % 0x58 * 0x25, 3);
     String c3 = IntToHex(acc3 * 3 % 0x70 * 0x1f, 3);
-    if (s->serial_code.Length() >= 0xf)
+    if (self->serial_code.Length() >= 0xf)
     {
-        String p1 = s->serial_code.SubString(5, 3);
-        String p2 = s->serial_code.SubString(9, 3);
-        String p3 = s->serial_code.SubString(0xd, 3);
+        String p1 = self->serial_code.SubString(5, 3);
+        String p2 = self->serial_code.SubString(9, 3);
+        String p3 = self->serial_code.SubString(0xd, 3);
         if (c1 == p1 && c2 == p2 && c3 == p3)
             stage1_passed = true;
     }
@@ -272,40 +272,40 @@ void Serial::Validate(Serial *s)
         unsigned int char_sum = 0;
         for (int i = 1; i <= vs.Length(); i++)
             char_sum += (unsigned char)vs[i];
-        for (int i = 1; i <= s->serial_code.Length(); i++)
-            char_sum += (unsigned char)s->serial_code[i];
+        for (int i = 1; i <= self->serial_code.Length(); i++)
+            char_sum += (unsigned char)self->serial_code[i];
         char_sum = vs.Length() * char_sum;
         char_sum = char_sum * 0x87;
-        s->key_base_copy += s->key_base;
-        s->key_base += IntToStr((int)char_sum);
+        self->key_base_copy += self->key_base;
+        self->key_base += IntToStr((int)char_sum);
 
         acc5 = 0x199;
         acc4 = 0x19b;
         acc3 = 0x19c;
-        for (int i = 1; i <= s->key_base.Length(); i++)
+        for (int i = 1; i <= self->key_base.Length(); i++)
         {
-            acc5 += (unsigned char)s->key_base[i] % 0x16;
-            acc4 += (unsigned char)s->key_base[i] / 0x11;
-            acc3 += (unsigned char)s->key_base[i] % 0x12;
+            acc5 += (unsigned char)self->key_base[i] % 0x16;
+            acc4 += (unsigned char)self->key_base[i] / 0x11;
+            acc3 += (unsigned char)self->key_base[i] % 0x12;
         }
         c1 += IntToHex(acc5 * 2 % 100 << 5, 3);
         c2 += IntToHex(acc4 * 0xb % 0x58 * 0x25, 3);
         c3 += IntToHex(acc3 * 3 % 0x70 * 0x1f, 3);
-        if (s->serial_code.Length() >= 0xf)
+        if (self->serial_code.Length() >= 0xf)
         {
-            String u1 = s->unlock_code.SubString(5, 3);
-            String u2 = s->unlock_code.SubString(9, 3);
-            String u3 = s->unlock_code.SubString(0xd, 3);
+            String u1 = self->unlock_code.SubString(5, 3);
+            String u2 = self->unlock_code.SubString(9, 3);
+            String u3 = self->unlock_code.SubString(0xd, 3);
             if (c1 == u1 && c2 == u2 && c3 == u3)
-                s->valid = true;
+                self->valid = true;
         }
     }
 }
 
-String Serial::GetDisplayCode(Serial *s)
+String Serial::GetDisplayCode(Serial *self)
 {
-    String result = DecodeString(s, SERIAL_ENC_STR_NOT_LICENCED);
-    if (s->serial_code.Length() >= 1 && s->valid != 0)
-        result = s->serial_code;
+    String result = DecodeString(self, SERIAL_ENC_STR_NOT_LICENCED);
+    if (self->serial_code.Length() >= 1 && self->valid != 0)
+        result = self->serial_code;
     return result;
 }

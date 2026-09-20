@@ -155,8 +155,8 @@ bool Banned::IsBanned(Banned *self, String ip, String hdid)
                     match = true;
                 if (match && entry->duration > elapsed)
                 {
-                    self->field_8 = (entry->duration - elapsed) / 60 + 1;
-                    self->field_c = entry->ban_type;
+                    self->field_0x8 = (entry->duration - elapsed) / 60 + 1;
+                    self->field_0xc = entry->ban_type;
                     banned = true;
                 }
                 if (entry->ban_type == 0 && entry->duration <= elapsed)
@@ -176,10 +176,10 @@ bool Banned::IsBanned(Banned *self, String ip, String hdid)
 
 int Banned::GetBanType(Banned *self)
 {
-    return self->field_c;
+    return self->field_0xc;
 }
 
 int Banned::GetBanTime(Banned *self)
 {
-    return self->field_8;
+    return self->field_0x8;
 }

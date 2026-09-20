@@ -11,8 +11,8 @@
 class Gamecontrol
 {
   public:
-    int field_0;
-    int field_4;
+    int field_0x0;
+    int field_0x4;
 
     Gamecontrol();
     ~Gamecontrol();

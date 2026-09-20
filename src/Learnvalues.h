@@ -13,14 +13,14 @@
 // -1 at +0x24 and 0 at 0, then calls the loader.
 //   +0x00 char                        loaded
 //   +0x04 std::vector<LearnValue>     record_list
-//   +0x24 int                         field_24 = -1
+//   +0x24 int                         field_0x24 = -1
 class LearnValues
 {
   public:
     char loaded;
-    char pad_01[3];
+    char pad_0x1[3];
     std::vector<LearnValue> record_list;
-    int field_24;
+    int field_0x24;
 
     LearnValues();
     ~LearnValues();
@@ -30,7 +30,7 @@ class LearnValues
     static bool HasSkill(LearnValues *self, int master_id, int skill_id);
     static LearnItemVal GetSkill(LearnValues *self, int master_id, int skill_id);
     static String BuildOpenData(LearnValues *self, int behavior_id);
-    static unsigned int GetRecordCount(LearnValues *self);
+    static unsigned int GetCount(LearnValues *self);
     static void AddSkill(LearnValues *self,
                          LearnValue *record,
                          int skill_id,

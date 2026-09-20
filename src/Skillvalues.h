@@ -40,9 +40,9 @@ struct SkillElement
 //   +0x0c int                        rid2
 //   +0x10 char                       loaded
 //   +0x14 TStringList *              string_list
-//   +0x18 void *                     field_18 = operator new(8)
+//   +0x18 void *                     field_0x18 = operator new(8)
 //   +0x1c std::vector<SkillValue>    record_list
-//   +0x3c int                        field_3c = -1
+//   +0x3c int                        field_0x3c = -1
 class SkillValues
 {
   public:
@@ -51,11 +51,11 @@ class SkillValues
     int rid1;
     int rid2;
     char loaded;
-    char pad_11[3];
+    char pad_0x11[3];
     TStringList *string_list;
-    void *field_18;
+    void *field_0x18;
     std::vector<SkillValue> record_list;
-    int field_3c;
+    int field_0x3c;
 
     SkillValues();
     ~SkillValues();

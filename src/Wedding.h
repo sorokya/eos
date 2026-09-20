@@ -18,10 +18,10 @@ struct Wedding
     int priest_line;     // +0x04
     int player1_id;      // +0x08
     String player1_name; // +0x0c
-    char field_10;       // +0x10
+    char field_0x10;     // +0x10
     int player2_id;      // +0x14
     String player2_name; // +0x18
-    char field_1c;       // +0x1c
+    char field_0x1c;     // +0x1c
     int step;            // +0x20
     int countdown;       // +0x24
 

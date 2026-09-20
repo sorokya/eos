@@ -20,14 +20,14 @@ class MySQLthread : public TThread
     TSession *session;   // +0x30
     TDatabase *database; // +0x34
     TQuery *query;       // +0x38
-    int field_3c;        // +0x3c
+    int field_0x3c;      // +0x3c
     mySQLtask *task;     // +0x40
     mySQLbuffer *queue;  // +0x44
 
-    __fastcall MySQLthread(TSession *session,
-                           TDatabase *database,
-                           TQuery *query,
-                           mySQLbuffer *queue,
+    __fastcall MySQLthread(TSession *session_,
+                           TDatabase *database_,
+                           TQuery *query_,
+                           mySQLbuffer *queue_,
                            bool CreateSuspended);
 
     virtual void __fastcall Execute();

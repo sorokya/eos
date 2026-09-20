@@ -7,8 +7,8 @@
 
 NpcValues::NpcValues()
 {
-    field_18 = operator new(8);
-    field_3c = -1;
+    field_0x18 = operator new(8);
+    field_0x3c = -1;
     loaded = 0;
     drops_loaded = 0;
     talk_loaded = 0;

@@ -79,7 +79,7 @@ class Settings
     int high_game_master_flood_rate;
     char account_lock;
     char access_lock;
-    char pad_66[2];
+    char pad_0x66[2];
     int max_kills;
     char server_status;
     char memory_map;
@@ -87,11 +87,11 @@ class Settings
     char sql_smart;
     char db_shutdown;
     char mm_timer;
-    char pad_72[2];
+    char pad_0x72[2];
     int refresh_time;
     char world_communication;
     char chat_log;
-    char pad_7a[2];
+    char pad_0x7a[2];
     int group_max;
     int group_balance;
     int popup_style;

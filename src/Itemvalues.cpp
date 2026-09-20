@@ -8,8 +8,8 @@
 
 ItemValues::ItemValues()
 {
-    field_18 = operator new(8);
-    field_3c = -1;
+    field_0x18 = operator new(8);
+    field_0x3c = -1;
     loaded = 0;
     rid_1 = -1;
     rid_2 = -1;
@@ -217,36 +217,36 @@ void ItemValues::AddItem(ItemValues *self,
     value->weight = weight;
     value->element = element;
     value->element_damage = element_damage;
-    self->values.insert(self->values.end(), value);
+    self->record_list.insert(self->record_list.end(), value);
 }
 
 void ItemValues::Clear(ItemValues *self)
 {
-    std::vector<ItemValue *>::iterator it = self->values.begin();
-    while (it != self->values.end())
+    std::vector<ItemValue *>::iterator it = self->record_list.begin();
+    while (it != self->record_list.end())
     {
         ItemValue *value = *it;
-        it = self->values.erase(it);
+        it = self->record_list.erase(it);
         delete value;
     }
-    self->field_3c = -1;
+    self->field_0x3c = -1;
 }
 
-ItemValue **ItemValues::GetRecordSlot(std::vector<ItemValue *> *values, int index)
+ItemValue **ItemValues::GetRecordSlot(std::vector<ItemValue *> *record_list, int index)
 {
-    return values->begin() + index;
+    return record_list->begin() + index;
 }
 
 ItemValue *ItemValues::GetByIndex(ItemValues *self, int index)
 {
-    if (index < 0 || (unsigned)index > self->values.size() - 1)
+    if (index < 0 || (unsigned)index > self->record_list.size() - 1)
         index = 0;
-    return *GetRecordSlot(&self->values, index);
+    return *GetRecordSlot(&self->record_list, index);
 }
 
 int ItemValues::GetCount(ItemValues *self)
 {
-    return self->values.size();
+    return self->record_list.size();
 }
 
 int ItemValues::Eif_GetSpec1ForTypes(ItemValues *self, int item_id)
@@ -256,11 +256,13 @@ int ItemValues::Eif_GetSpec1ForTypes(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            if ((*GetRecordSlot(&self->values, item_id - 1))->type >= ItemType_Weapon)
+            if ((*GetRecordSlot(&self->record_list, item_id - 1))->type >=
+                ItemType_Weapon)
             {
-                if ((*GetRecordSlot(&self->values, item_id - 1))->type <= ItemType_Bracer)
+                if ((*GetRecordSlot(&self->record_list, item_id - 1))->type <=
+                    ItemType_Bracer)
                 {
-                    result = (*GetRecordSlot(&self->values, item_id - 1))->spec1;
+                    result = (*GetRecordSlot(&self->record_list, item_id - 1))->spec1;
                     if (result < 0)
                         result = 0;
                 }
@@ -279,11 +281,13 @@ ItemElement ItemValues::Eif_GetElement(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            if ((*GetRecordSlot(&self->values, item_id - 1))->type == ItemType_Weapon)
+            if ((*GetRecordSlot(&self->record_list, item_id - 1))->type ==
+                ItemType_Weapon)
             {
-                result.element = (*GetRecordSlot(&self->values, item_id - 1))->element;
+                result.element =
+                    (*GetRecordSlot(&self->record_list, item_id - 1))->element;
                 result.element_damage =
-                    (*GetRecordSlot(&self->values, item_id - 1))->element_damage;
+                    (*GetRecordSlot(&self->record_list, item_id - 1))->element_damage;
             }
         }
     }
@@ -299,10 +303,11 @@ ItemSpecXY ItemValues::Eif_GetSpecXY(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            if ((*GetRecordSlot(&self->values, item_id - 1))->type == ItemType_Teleport)
+            if ((*GetRecordSlot(&self->record_list, item_id - 1))->type ==
+                ItemType_Teleport)
             {
-                result.spec2 = (*GetRecordSlot(&self->values, item_id - 1))->spec2;
-                result.spec3 = (*GetRecordSlot(&self->values, item_id - 1))->spec3;
+                result.spec2 = (*GetRecordSlot(&self->record_list, item_id - 1))->spec2;
+                result.spec3 = (*GetRecordSlot(&self->record_list, item_id - 1))->spec3;
             }
         }
     }
@@ -316,7 +321,7 @@ int ItemValues::Eif_GetSpec1(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            result = (*GetRecordSlot(&self->values, item_id - 1))->spec1;
+            result = (*GetRecordSlot(&self->record_list, item_id - 1))->spec1;
             if (result < 0)
                 result = 0;
         }
@@ -331,9 +336,10 @@ int ItemValues::Eif_GetScrollMap(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            if ((*GetRecordSlot(&self->values, item_id - 1))->type == ItemType_Teleport)
+            if ((*GetRecordSlot(&self->record_list, item_id - 1))->type ==
+                ItemType_Teleport)
             {
-                result = (*GetRecordSlot(&self->values, item_id - 1))->spec1;
+                result = (*GetRecordSlot(&self->record_list, item_id - 1))->spec1;
                 if (result < 0)
                     result = 0;
             }
@@ -349,9 +355,9 @@ int ItemValues::Eif_GetGender(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            if ((*GetRecordSlot(&self->values, item_id - 1))->type == ItemType_Armor)
+            if ((*GetRecordSlot(&self->record_list, item_id - 1))->type == ItemType_Armor)
             {
-                result = (*GetRecordSlot(&self->values, item_id - 1))->spec2;
+                result = (*GetRecordSlot(&self->record_list, item_id - 1))->spec2;
                 if (result < 0)
                     result = 0;
             }
@@ -367,7 +373,7 @@ int ItemValues::Eif_GetType(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            result = (*GetRecordSlot(&self->values, item_id - 1))->type;
+            result = (*GetRecordSlot(&self->record_list, item_id - 1))->type;
             if (result < 0)
                 result = ItemType_General;
         }
@@ -380,7 +386,7 @@ int ItemValues::Eif_GetSubtype(ItemValues *self, int item_id)
     if (item_id > 0)
     {
         if (item_id < GetCount(self))
-            return (*GetRecordSlot(&self->values, item_id - 1))->subtype;
+            return (*GetRecordSlot(&self->record_list, item_id - 1))->subtype;
     }
     return ItemSubtype_None;
 }
@@ -392,7 +398,7 @@ int ItemValues::Eif_GetLevelRequirement(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            result = (*GetRecordSlot(&self->values, item_id - 1))->level_requirement;
+            result = (*GetRecordSlot(&self->record_list, item_id - 1))->level_requirement;
             if (result < 0)
                 result = 0;
         }
@@ -407,7 +413,7 @@ int ItemValues::Eif_GetSpecial(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            result = (*GetRecordSlot(&self->values, item_id - 1))->special;
+            result = (*GetRecordSlot(&self->record_list, item_id - 1))->special;
             if (result < 0)
                 result = ItemSpecial_Normal;
         }
@@ -422,7 +428,7 @@ int ItemValues::Eif_GetWeight(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            result = (*GetRecordSlot(&self->values, item_id - 1))->weight;
+            result = (*GetRecordSlot(&self->record_list, item_id - 1))->weight;
             if (result < 0)
                 result = 0;
         }
@@ -437,7 +443,7 @@ int ItemValues::Eif_GetHP(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            result = (*GetRecordSlot(&self->values, item_id - 1))->hp;
+            result = (*GetRecordSlot(&self->record_list, item_id - 1))->hp;
             if (result < 0)
                 result = 0;
         }
@@ -452,7 +458,7 @@ int ItemValues::Eif_GetTP(ItemValues *self, int item_id)
     {
         if (item_id < GetCount(self))
         {
-            result = (*GetRecordSlot(&self->values, item_id - 1))->tp;
+            result = (*GetRecordSlot(&self->record_list, item_id - 1))->tp;
             if (result < 0)
                 result = 0;
         }

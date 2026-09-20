@@ -26,7 +26,7 @@ mySQLbuffer::mySQLbuffer()
 {
     thread = new TCriticalSection;
     last_player_id = -1;
-    field_28 = -1;
+    field_0x28 = -1;
 }
 
 mySQLbuffer::~mySQLbuffer()
@@ -36,7 +36,7 @@ mySQLbuffer::~mySQLbuffer()
 
 void mySQLbuffer::EnqueueTask(mySQLtask *task)
 {
-    if (task->player_id == last_player_id && task->query_id == field_2c &&
+    if (task->player_id == last_player_id && task->query_id == field_0x2c &&
         task->query_id != 1)
         return;
 
@@ -60,7 +60,7 @@ bool mySQLbuffer::HasPendingTask(int player_id)
             return true;
     }
 
-    if (field_28 == player_id && field_2c == 1)
+    if (field_0x28 == player_id && field_0x2c == 1)
         return true;
 
     return false;

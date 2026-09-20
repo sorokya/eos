@@ -9,19 +9,11 @@
 #include "Npcvalues.h"
 #include "Settings.h"
 #include "Protocol.h"
+#include "Packets.h"
 
 #pragma package(smart_init)
 
-// Cross-unit (Packets) helpers. Their definitions live in the Packets unit; the
-// controllers declare the same prototypes.
-int Mapcontrol_GetCount(Mapcontrol *map_control);
-MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
-
-// Cross-unit helpers owned by other units (Jukeboxcontrol, Mapcontrol).
-void FUN_004aa4e4(JukeBoxController *jukebox_control, int map_id);
-bool FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id);
-void *Map_NpcIter_End(void *npc_list);
-MapContainer *MapVector_End(Mapcontrol *map_control);
+bool Mapcontrol_ParseMapFile(Mapcontrol *map_control, MapContainer *map, int map_id);
 
 typedef std::vector<ChestItem *> GroundItemPtrVector;
 
@@ -941,7 +933,7 @@ String Mapcontrol::Mapcontrol_AppendEncoded(Mapcontrol *map_control,
     return encoded_str;
 }
 
-char FUN_0047c3a4(int map_control, int map_id)
+char Mapcontrol_TryTakeQuestCooldown(int map_control, int map_id)
 {
     if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
     {
@@ -956,7 +948,7 @@ char FUN_0047c3a4(int map_control, int map_id)
     return 0;
 }
 
-char FUN_0047c3f0(int map_control, int map_id)
+char Mapcontrol_GetCanScroll(int map_control, int map_id)
 {
     char result = 0;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
@@ -964,7 +956,7 @@ char FUN_0047c3f0(int map_control, int map_id)
     return result;
 }
 
-MapCoord FUN_0047c428(int map_control, int map_id)
+MapCoord Mapcontrol_GetRelogCoords(int map_control, int map_id)
 {
     MapCoord coords;
     coords.x = 0;
@@ -985,7 +977,8 @@ MapCoord FUN_0047c428(int map_control, int map_id)
     return coords;
 }
 
-unsigned int FUN_0047c634(int map_control, int map_id, unsigned int npc_index)
+unsigned int
+Mapcontrol_GetNpcIdByIndex(int map_control, int map_id, unsigned int npc_index)
 {
     unsigned int result = 0xffffffff;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
@@ -1007,7 +1000,8 @@ unsigned int FUN_0047c634(int map_control, int map_id, unsigned int npc_index)
     return result;
 }
 
-MapCoord FUN_0047c6c0(int map_control, int map_id, unsigned int npc_index)
+MapCoord
+Mapcontrol_GetNpcCoordsByIndex(int map_control, int map_id, unsigned int npc_index)
 {
     MapCoord coords;
     coords.x = -1;
@@ -1032,7 +1026,7 @@ MapCoord FUN_0047c6c0(int map_control, int map_id, unsigned int npc_index)
     return coords;
 }
 
-char FUN_0047c890(int map_control, int map_id, int x, int y)
+char Mapcontrol_IsDropTileClear(int map_control, int map_id, int x, int y)
 {
     char result = 1;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
@@ -1086,7 +1080,8 @@ char FUN_0047c890(int map_control, int map_id, int x, int y)
     return result;
 }
 
-unsigned int FUN_0047c27c(int map_control, int map_id, unsigned int x, unsigned int y)
+unsigned int
+Mapcontrol_GetTileSpecValueAt(int map_control, int map_id, unsigned int x, unsigned int y)
 {
     unsigned int result = 0xffffffff;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
@@ -1121,7 +1116,7 @@ unsigned int FUN_0047c27c(int map_control, int map_id, unsigned int x, unsigned 
     return result;
 }
 
-int FUN_00486e64(int map_control, int map_id, MapCoord coords)
+int Mapcontrol_GetChestKeyAt(int map_control, int map_id, MapCoord coords)
 {
     int result = 0;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
@@ -1144,7 +1139,10 @@ int FUN_00486e64(int map_control, int map_id, MapCoord coords)
     return result;
 }
 
-int FUN_0047cd28(int map_control, int map_id, unsigned int x, unsigned int y)
+int Mapcontrol_CountBlockedNeighbors(int map_control,
+                                     int map_id,
+                                     unsigned int x,
+                                     unsigned int y)
 {
     int result = 0;
     if (Mapcontrol::Map_IsWalkableNPC((Mapcontrol *)map_control, map_id, x - 1, y, 1) ==
@@ -1176,7 +1174,7 @@ MapObject Map_GetTileSpecObject(Mapcontrol *map_control, int map_id, int x, int 
     return *spec_iter;
 }
 
-bool FUN_004879b0(int map_control, int map_id, int x, int y, int player_id)
+bool Mapcontrol_CanDropItemAt(int map_control, int map_id, int x, int y, int player_id)
 {
     if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
     {
@@ -1215,7 +1213,8 @@ bool FUN_004879b0(int map_control, int map_id, int x, int y, int player_id)
     return 1;
 }
 
-GroundItemInfo FUN_00487ac0(int map_control, int map_id, int index, int player_id)
+GroundItemInfo
+Mapcontrol_TakeGroundItemInfo(int map_control, int map_id, int index, int player_id)
 {
     GroundItemInfo result;
     result.x = -1;
@@ -1259,7 +1258,8 @@ GroundItemInfo FUN_00487ac0(int map_control, int map_id, int index, int player_i
     return result;
 }
 
-String FUN_0047badc(Mapcontrol *map_control, int map_id, MapCoord coords)
+String
+Mapcontrol_BuildChestItemsString(Mapcontrol *map_control, int map_id, MapCoord coords)
 {
     String result = "N";
     std::vector<MapChest>::iterator chest_iter;
@@ -1297,7 +1297,7 @@ String FUN_0047badc(Mapcontrol *map_control, int map_id, MapCoord coords)
     return result;
 }
 
-void FUN_00481e0c(int map_control, int map_id)
+void Mapcontrol_ResetMap(int map_control, int map_id)
 {
     for (int i = 0; i < (int)Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1)
                             ->chest_list.size();
@@ -1331,7 +1331,7 @@ void FUN_00481e0c(int map_control, int map_id)
             0, Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id)->buf.Length());
 }
 
-void FUN_004876c0(int map_control, int map_id, int index)
+void Mapcontrol_RemoveGroundItem(int map_control, int map_id, int index)
 {
     if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
     {
@@ -1360,14 +1360,14 @@ void FUN_004876c0(int map_control, int map_id, int index)
     }
 }
 
-char FUN_004827c8(int map_control, int map_id)
+char Mapcontrol_ReloadMap(int map_control, int map_id)
 {
     char result = 0;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount((Mapcontrol *)map_control))
     {
-        FUN_00481e0c(map_control, map_id);
-        FUN_004aa4e4((*MAINFORM)->jukebox_control, map_id);
-        result = (char)FUN_00482834(
+        Mapcontrol_ResetMap(map_control, map_id);
+        JukeBoxController_RemoveMap((*MAINFORM)->jukebox_control, map_id);
+        result = (char)Mapcontrol_ParseMapFile(
             (Mapcontrol *)map_control,
             Mapcontrol_GetByIndex((Mapcontrol *)map_control, map_id - 1),
             map_id);
@@ -1417,7 +1417,7 @@ String Map_ReadRawFile(Mapcontrol *map_control, int map_id)
 
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
-bool FUN_00482834(Mapcontrol *map_control, MapContainer *map, int map_id)
+bool Mapcontrol_ParseMapFile(Mapcontrol *map_control, MapContainer *map, int map_id)
 {
     String map_buf;
     String local_c;

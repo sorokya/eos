@@ -23,7 +23,7 @@ struct Npc
     unsigned short x;                       // +0x04
     unsigned short y;                       // +0x06
     short direction;                        // +0x08
-    short pad_0a;                           // +0x0a
+    short pad_0xa;                          // +0x0a
     int min_damage;                         // +0x0c
     int max_damage;                         // +0x10
     int armor;                              // +0x14
@@ -33,7 +33,7 @@ struct Npc
     int max_hp;                             // +0x24
     int hp_regen;                           // +0x28
     short nHp_pct;                          // +0x2c
-    short pad_2e;                           // +0x2e
+    short pad_0x2e;                         // +0x2e
     int element_weakness;                   // +0x30
     short pad_34;                           // +0x34
     short element_weakness_damage_table[6]; // +0x36

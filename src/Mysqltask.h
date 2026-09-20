@@ -36,16 +36,16 @@ class mySQLtask
 //   +0x00 TCriticalSection *        thread
 //   +0x04 std::vector<mySQLtask *>  job_queue  (32 bytes, +0x04..+0x24)
 //   +0x24 int                       last_player_id
-//   +0x28 int                       field_28
-//   +0x2c int                       field_2c
+//   +0x28 int                       field_0x28
+//   +0x2c int                       field_0x2c
 class mySQLbuffer
 {
   public:
     TCriticalSection *thread;           // +0x00
     std::vector<mySQLtask *> job_queue; // +0x04
     int last_player_id;                 // +0x24
-    int field_28;                       // +0x28
-    int field_2c;                       // +0x2c
+    int field_0x28;                     // +0x28
+    int field_0x2c;                     // +0x2c
 
     mySQLbuffer();
     ~mySQLbuffer();

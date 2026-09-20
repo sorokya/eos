@@ -16,7 +16,7 @@
 //   +0x00 FileCache *    file_cache
 //   +0x04 TTimeStamp     last_query_time
 //   +0x0c TTimeStamp     connected_time
-//   +0x14 int            field_14
+//   +0x14 int            field_0x14
 //   +0x18 int            query_error_count
 //   +0x1c int            exec_error_count
 //   +0x20 mySQLbuffer *  thread_queue
@@ -27,7 +27,7 @@ class Mysqlcontrols
     FileCache *file_cache;      // +0x00
     TTimeStamp last_query_time; // +0x04
     TTimeStamp connected_time;  // +0x0c
-    int field_14;               // +0x14
+    int field_0x14;             // +0x14
     int query_error_count;      // +0x18
     int exec_error_count;       // +0x1c
     mySQLbuffer *thread_queue;  // +0x20

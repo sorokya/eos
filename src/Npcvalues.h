@@ -48,9 +48,9 @@ struct NpcDropInfo
 //   +0x11 char                      drops_loaded
 //   +0x12 char                      talk_loaded
 //   +0x14 TStringList *             string_list (each loaded ENF blob)
-//   +0x18 void *                    field_18 = operator new(8)
+//   +0x18 void *                    field_0x18 = operator new(8)
 //   +0x1c std::vector<NpcValue>     record_list
-//   +0x3c int                       field_3c = -1
+//   +0x3c int                       field_0x3c = -1
 class NpcValues
 {
   public:
@@ -61,11 +61,11 @@ class NpcValues
     char loaded;
     char drops_loaded;
     char talk_loaded;
-    char pad_13;
+    char pad_0x13;
     TStringList *string_list;
-    void *field_18;
+    void *field_0x18;
     std::vector<NpcValue> record_list;
-    int field_3c;
+    int field_0x3c;
 
     NpcValues();
     ~NpcValues();
@@ -90,7 +90,7 @@ class NpcValues
                        short race,
                        short boss,
                        short child,
-                       short type,
+                       short npc_type,
                        short behavior_id,
                        int hp,
                        short tp,

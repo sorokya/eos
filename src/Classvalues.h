@@ -10,9 +10,9 @@
 //   +0x00 int                       file_id
 //   +0x10 char                      loaded
 //   +0x14 TStringList *             string_list
-//   +0x18 void *                    field_18 = operator new(8)
-//   +0x1c std::vector<ClassValue>   values
-//   +0x3c int                       field_3c = -1
+//   +0x18 void *                    field_0x18 = operator new(8)
+//   +0x1c std::vector<ClassValue>   record_list
+//   +0x3c int                       field_0x3c = -1
 // The offsets 4 and 8 are unnamed padding pending evidence.
 class ClassValues
 {
@@ -22,18 +22,18 @@ class ClassValues
     int rid_1;
     int rid_2;
     char loaded;
-    char pad_11[3];
+    char pad_0x11[3];
     TStringList *string_list;
-    void *field_18;
-    std::vector<ClassValue> values;
-    int field_3c;
+    void *field_0x18;
+    std::vector<ClassValue> record_list;
+    int field_0x3c;
 
     ClassValues();
     ~ClassValues();
 
     static void LoadClasses(ClassValues *self);
     int DecodeInt(String value);
-    int size();
+    int GetCount();
 
     static ClassValue GetByIndex(ClassValues *self, int index);
     static bool ClassMatches(ClassValues *self, int class_id, int class_requirement);

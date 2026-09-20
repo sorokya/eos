@@ -7,7 +7,7 @@
 
 ShopValues::ShopValues()
 {
-    field_24 = -1;
+    field_0x24 = -1;
     loaded = 0;
     LoadShops(this);
 }
@@ -133,10 +133,10 @@ void ShopValues::Clear(ShopValues *self)
         it->crafts.clear();
         it++;
     }
-    if ((unsigned int)GetRecordCount(self) >= 1)
+    if ((unsigned int)GetCount(self) >= 1)
     {
         self->record_list.clear();
-        self->field_24 = -1;
+        self->field_0x24 = -1;
     }
 }
 
@@ -314,7 +314,7 @@ int ShopValues::GetSellPrice(ShopValues *self, int shop_id, int item_id, int amo
     return result;
 }
 
-int ShopValues::GetRecordCount(ShopValues *self)
+int ShopValues::GetCount(ShopValues *self)
 {
     return self->record_list.size();
 }

@@ -111,17 +111,17 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
         text.SetLength(file_size);
         delete[] file_buf;
 
-        self->field_38 = 0;
-        self->field_39 = 0;
-        self->field_3a = 0;
-        self->field_40 = 0;
-        self->field_41 = 0;
-        self->field_42 = 0;
-        self->field_51 = 0;
-        self->field_52 = 0;
-        self->field_3c = 0;
-        self->field_44 = 0;
-        self->field_4c = 0;
+        self->field_0x38 = 0;
+        self->field_0x39 = 0;
+        self->field_0x3a = 0;
+        self->field_0x40 = 0;
+        self->field_0x41 = 0;
+        self->field_0x42 = 0;
+        self->field_0x51 = 0;
+        self->field_0x52 = 0;
+        self->field_0x3c = 0;
+        self->field_0x44 = 0;
+        self->field_0x4c = 0;
 
         int pos = 1;
         bool in_quote = false;
@@ -280,152 +280,154 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
         }
     }
 
-    quest->state_count = self->field_3c;
+    quest->state_count = self->field_0x3c;
     quest->loaded = 1;
     return true;
 }
 
 void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
 {
-    if (self->field_3a != 0)
+    if (self->field_0x3a != 0)
     {
-        if (self->field_44 > 0)
+        if (self->field_0x44 > 0)
         {
             if (token == ")")
             {
-                self->field_44 = 0;
-                self->field_48 = 0;
+                self->field_0x44 = 0;
+                self->field_0x48 = 0;
                 return;
             }
-            if (self->field_48 != 0)
+            if (self->field_0x48 != 0)
             {
                 for (int i = 0; i < 4; i++)
                 {
-                    if (self->field_30->data[i] == "")
+                    if (self->field_0x30->data[i] == "")
                     {
-                        self->field_30->data[i] = token;
-                        self->field_30->args[i] = ParseInt(self, token);
+                        self->field_0x30->data[i] = token;
+                        self->field_0x30->args[i] = ParseInt(self, token);
                         return;
                     }
                 }
             }
             if (token == "(")
             {
-                self->field_30 = new QuestAction(self->field_44);
-                self->field_2c->actions.insert(self->field_2c->actions.end(),
-                                               self->field_30);
-                self->field_48 = 1;
+                self->field_0x30 = new QuestAction(self->field_0x44);
+                self->field_0x2c->actions.insert(self->field_0x2c->actions.end(),
+                                                 self->field_0x30);
+                self->field_0x48 = 1;
                 return;
             }
         }
 
-        if (self->field_52 != 0)
+        if (self->field_0x52 != 0)
         {
-            if (self->field_51 != 0)
+            if (self->field_0x51 != 0)
             {
-                self->field_34->name = token;
-                self->field_51 = 1;
-                self->field_52 = 0;
+                self->field_0x34->name = token;
+                self->field_0x51 = 1;
+                self->field_0x52 = 0;
                 return;
             }
             if (token == "goto")
             {
-                self->field_51 = 1;
+                self->field_0x51 = 1;
                 return;
             }
-            self->field_52 = 0;
+            self->field_0x52 = 0;
         }
 
-        if (self->field_4c > 0)
+        if (self->field_0x4c > 0)
         {
             if (token == ")")
             {
-                self->field_4c = 0;
-                self->field_50 = 0;
-                self->field_52 = 1;
+                self->field_0x4c = 0;
+                self->field_0x50 = 0;
+                self->field_0x52 = 1;
                 return;
             }
-            if (self->field_50 != 0)
+            if (self->field_0x50 != 0)
             {
                 for (int i = 0; i < 4; i++)
                 {
-                    if (self->field_34->data[i] == "")
+                    if (self->field_0x34->data[i] == "")
                     {
-                        self->field_34->data[i] = token;
-                        self->field_34->args[i] = ParseInt(self, token);
+                        self->field_0x34->data[i] = token;
+                        self->field_0x34->args[i] = ParseInt(self, token);
                         return;
                     }
                 }
             }
             if (token == "(")
             {
-                if (self->field_2c->fast_dispatch_condition_type == 0 &&
-                    (self->field_4c == 3 || self->field_4c == 8 || self->field_4c == 9 ||
-                     self->field_4c == 10 || self->field_4c == 11))
+                if (self->field_0x2c->fast_dispatch_condition_type == 0 &&
+                    (self->field_0x4c == 3 || self->field_0x4c == 8 ||
+                     self->field_0x4c == 9 || self->field_0x4c == 10 ||
+                     self->field_0x4c == 11))
                 {
-                    self->field_2c->fast_dispatch_condition_type = self->field_4c;
-                    self->field_2c->fast_dispatch_rule_index =
-                        self->field_2c->rules.size();
+                    self->field_0x2c->fast_dispatch_condition_type = self->field_0x4c;
+                    self->field_0x2c->fast_dispatch_rule_index =
+                        self->field_0x2c->rules.size();
                 }
-                self->field_34 = new QuestRule(self->field_4c);
-                self->field_2c->rules.insert(self->field_2c->rules.end(), self->field_34);
-                self->field_50 = 1;
-                self->field_51 = 0;
-                self->field_52 = 0;
+                self->field_0x34 = new QuestRule(self->field_0x4c);
+                self->field_0x2c->rules.insert(self->field_0x2c->rules.end(),
+                                               self->field_0x34);
+                self->field_0x50 = 1;
+                self->field_0x51 = 0;
+                self->field_0x52 = 0;
                 return;
             }
         }
 
         if (AnsiLowerCase(token) == "desc")
         {
-            self->field_42 = 1;
+            self->field_0x42 = 1;
             return;
         }
-        if (self->field_42 != 0)
+        if (self->field_0x42 != 0)
         {
-            self->field_2c->description = token;
-            self->field_42 = 0;
+            self->field_0x2c->description = token;
+            self->field_0x42 = 0;
             return;
         }
 
         if (GetActionType(self, token) > 0)
         {
-            self->field_44 = GetActionType(self, token);
-            self->field_48 = 0;
+            self->field_0x44 = GetActionType(self, token);
+            self->field_0x48 = 0;
             return;
         }
 
         if (GetConditionType(self, token) > 0)
         {
-            self->field_4c = GetConditionType(self, token);
-            self->field_50 = 0;
+            self->field_0x4c = GetConditionType(self, token);
+            self->field_0x50 = 0;
             return;
         }
     }
 
     if (AnsiLowerCase(token) == "questname")
     {
-        self->field_40 = 1;
+        self->field_0x40 = 1;
         return;
     }
     if (AnsiLowerCase(token) == "version")
     {
-        self->field_41 = 1;
+        self->field_0x41 = 1;
         return;
     }
     if (AnsiLowerCase(token) == "state")
     {
-        self->field_38 = 1;
-        self->field_39 = 1;
+        self->field_0x38 = 1;
+        self->field_0x39 = 1;
         return;
     }
 
-    if (self->field_40 != 0)
+    if (self->field_0x40 != 0)
     {
         quest->name = token;
-        self->field_40 = 0;
+        self->field_0x40 = 0;
     }
-    if (self->field_41 != 0)
+    if (self->field_0x41 != 0)
     {
         try
         {
@@ -434,34 +436,34 @@ void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
         catch (...)
         {
         }
-        self->field_41 = 0;
+        self->field_0x41 = 0;
     }
-    if (self->field_39 != 0)
+    if (self->field_0x39 != 0)
     {
-        self->field_2c = new QuestState(self->field_3c, token);
-        self->field_3c++;
-        self->field_39 = 0;
+        self->field_0x2c = new QuestState(self->field_0x3c, token);
+        self->field_0x3c++;
+        self->field_0x39 = 0;
     }
 
     if (token == "{")
     {
-        if (self->field_38 != 0)
+        if (self->field_0x38 != 0)
         {
-            self->field_38 = 0;
-            self->field_3a = 1;
+            self->field_0x38 = 0;
+            self->field_0x3a = 1;
             return;
         }
-        self->field_38 = 0;
-        self->field_3a = 0;
+        self->field_0x38 = 0;
+        self->field_0x3a = 0;
         return;
     }
     if (token == "}")
     {
-        if (self->field_3a != 0)
+        if (self->field_0x3a != 0)
         {
-            quest->states.insert(quest->states.end(), self->field_2c);
-            self->field_42 = 0;
-            self->field_3a = 0;
+            quest->states.insert(quest->states.end(), self->field_0x2c);
+            self->field_0x42 = 0;
+            self->field_0x3a = 0;
         }
         return;
     }

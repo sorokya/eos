@@ -35,15 +35,15 @@ class FileCache
 {
   public:
     char dirty;
-    char pad_01[3];
+    char pad_0x1[3];
     int accounts_count;
     int characters_count;
     int guilds_count;
     std::vector<FilecacheEntry *> pending_player_writes;
     std::vector<FilecacheEntryB *> pending_guild_writes;
     TStringList *string_list;
-    String field_54;
-    int field_58;
+    String field_0x54;
+    int field_0x58;
 
     FileCache();
     ~FileCache();
@@ -55,6 +55,6 @@ class FileCache
     static void UpdatePlayerCache(FileCache *self, char *record);
 };
 
-void Database_FlushCache(FileCache *cache);
+void Database_FlushCache(FileCache *self);
 
 #endif

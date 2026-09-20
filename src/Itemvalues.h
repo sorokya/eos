@@ -45,9 +45,9 @@ struct ItemSpecXY
 //   +0x0c int                         rid_2
 //   +0x10 char                        loaded
 //   +0x14 TStringList *               string_list
-//   +0x18 void *                      field_18 = operator new(8)
-//   +0x1c std::vector<ItemValue *>    values
-//   +0x3c int                         field_3c = -1
+//   +0x18 void *                      field_0x18 = operator new(8)
+//   +0x1c std::vector<ItemValue *>    record_list
+//   +0x3c int                         field_0x3c = -1
 class ItemValues
 {
   public:
@@ -56,11 +56,11 @@ class ItemValues
     int rid_1;
     int rid_2;
     char loaded;
-    char pad_11[3];
+    char pad_0x11[3];
     TStringList *string_list;
-    void *field_18;
-    std::vector<ItemValue *> values;
-    int field_3c;
+    void *field_0x18;
+    std::vector<ItemValue *> record_list;
+    int field_0x3c;
 
     ItemValues();
     ~ItemValues();
@@ -71,7 +71,7 @@ class ItemValues
     static void Clear(ItemValues *self);
     static int GetCount(ItemValues *self);
     static ItemValue *GetByIndex(ItemValues *self, int index);
-    static ItemValue **GetRecordSlot(std::vector<ItemValue *> *values, int index);
+    static ItemValue **GetRecordSlot(std::vector<ItemValue *> *record_list, int index);
     static void AddItem(ItemValues *self,
                         int id,
                         String name,
@@ -113,7 +113,7 @@ class ItemValues
                         short element,
                         short element_damage,
                         short weight,
-                        short unused,
+                        short weapon_target_area,
                         short size);
 
     static int Eif_GetType(ItemValues *self, int item_id);

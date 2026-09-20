@@ -25,4 +25,6 @@ class JukeBoxController
     static bool TryPlayTrack(JukeBoxController *self, int map_id, String track);
 };
 
+void JukeBoxController_RemoveMap(JukeBoxController *self, int map_id);
+
 #endif

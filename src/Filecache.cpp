@@ -29,7 +29,7 @@ FileCache::FileCache()
     accounts_count = 0;
     characters_count = 0;
     guilds_count = 0;
-    field_58 = 0;
+    field_0x58 = 0;
     string_list = new TStringList;
 }
 
@@ -49,11 +49,11 @@ void FileCache::CheckCacheFile(FileCache *self)
 
 String FileCache::NextToken(FileCache *self)
 {
-    int pos = self->field_54.Pos(";");
+    int pos = self->field_0x54.Pos(";");
     if (pos < 1)
-        return self->field_54;
-    String result = self->field_54.SubString(1, pos - 1);
-    self->field_54.Delete(1, pos);
+        return self->field_0x54;
+    String result = self->field_0x54.SubString(1, pos - 1);
+    self->field_0x54.Delete(1, pos);
     return result;
 }
 
@@ -69,7 +69,7 @@ void FileCache::LoadPlayerCache(FileCache *self)
     }
     for (int i = 0; i < self->string_list->Count; i++)
     {
-        self->field_54 = self->string_list->Strings[i];
+        self->field_0x54 = self->string_list->Strings[i];
         FilecacheEntry *entry = new FilecacheEntry;
         entry->privilege = StrToInt(NextToken(self));
         entry->name = NextToken(self);
@@ -93,7 +93,7 @@ void FileCache::LoadGuildCache(FileCache *self)
     }
     for (int i = 0; i < self->string_list->Count; i++)
     {
-        self->field_54 = self->string_list->Strings[i];
+        self->field_0x54 = self->string_list->Strings[i];
         FilecacheEntryB *entry = new FilecacheEntryB;
         entry->ident_guild = NextToken(self);
         entry->guild = NextToken(self);
@@ -105,7 +105,7 @@ void FileCache::LoadGuildCache(FileCache *self)
 
 void FileCache::UpdatePlayerCache(FileCache *self, char *record)
 {
-    if (self->field_58 < *(int *)(record + 0xc0) && *(int *)(record + 0x98) == 0)
+    if (self->field_0x58 < *(int *)(record + 0xc0) && *(int *)(record + 0x98) == 0)
     {
         std::vector<FilecacheEntry *>::iterator it;
         FilecacheEntry *last = 0;
@@ -148,18 +148,18 @@ void FileCache::UpdatePlayerCache(FileCache *self, char *record)
                     min_experience = (*it)->experience;
             }
         }
-        self->field_58 = min_experience;
+        self->field_0x58 = min_experience;
     }
 }
 
-void Database_FlushCache(FileCache *cache)
+void Database_FlushCache(FileCache *self)
 {
-    cache->string_list->Clear();
-    if (cache->pending_player_writes.size() > 99)
+    self->string_list->Clear();
+    if (self->pending_player_writes.size() > 99)
     {
         for (std::vector<FilecacheEntry *>::iterator it =
-                 cache->pending_player_writes.begin();
-             it != cache->pending_player_writes.end();
+                 self->pending_player_writes.begin();
+             it != self->pending_player_writes.end();
              it++)
         {
             String line = IntToStr((*it)->privilege) + ";";
@@ -168,25 +168,25 @@ void Database_FlushCache(FileCache *cache)
             line = line + IntToStr((*it)->level) + ";";
             line = line + IntToStr((*it)->experience) + ";";
             line = line + IntToStr((*it)->gender) + ";";
-            cache->string_list->Add(line);
+            self->string_list->Add(line);
         }
-        cache->string_list->SaveToFile("./cache/players.chk");
+        self->string_list->SaveToFile("./cache/players.chk");
     }
-    cache->string_list->Clear();
-    if (cache->pending_guild_writes.size() > 99)
+    self->string_list->Clear();
+    if (self->pending_guild_writes.size() > 99)
     {
         for (std::vector<FilecacheEntryB *>::iterator it =
-                 cache->pending_guild_writes.begin();
-             it != cache->pending_guild_writes.end();
+                 self->pending_guild_writes.begin();
+             it != self->pending_guild_writes.end();
              it++)
         {
             String line = (*it)->ident_guild + ";";
             line = line + (*it)->guild + ";";
             line = line + IntToStr((*it)->exptotal) + ";";
             line = line + IntToStr((*it)->members) + ";";
-            cache->string_list->Add(line);
+            self->string_list->Add(line);
         }
-        cache->string_list->SaveToFile("./cache/guilds.chk");
+        self->string_list->SaveToFile("./cache/guilds.chk");
     }
     FILE *fp = fopen("./cache/cacheok.chk", "wb");
     fclose(fp);

@@ -8,39 +8,39 @@
 // Recovered from the reference (MsgBoardController unit, 0x4ab128..0x4ae180).
 // Object layout pinned by the constructor (0x4ab15c) and the board reader
 // (0x4ad190):
-//   +0x000 int                       field_0
-//   +0x004 int                       field_4
+//   +0x000 int                       field_0x0
+//   +0x004 int                       field_0x4
 //   +0x008 std::vector<MsgBoard>     boards[8]      inline fixed array
 //   +0x108 String                    misc_text
-//   +0x10c int                       field_10c
-//   +0x110 int                       field_110
-//   +0x114 char                      field_114
-//   +0x118 char *                    field_118 = operator new(8), encode buffer
+//   +0x10c int                       field_0x10c
+//   +0x110 int                       field_0x110
+//   +0x114 char                      field_0x114
+//   +0x118 char *                    field_0x118 = operator new(8), encode buffer
 //   +0x11c char                      aBoard_enabled[8]
 //   +0x124 String                    aBoard_names[8]
-//   +0x144 int                       field_144[32]
-//   +0x1c4 int                       field_1c4[32]
-//   +0x244 int                       field_244[32]
-//   +0x2c4 int                       field_2c4[32]
+//   +0x144 int                       field_0x144[32]
+//   +0x1c4 int                       field_0x1c4[32]
+//   +0x244 int                       field_0x244[32]
+//   +0x2c4 int                       field_0x2c4[32]
 //   +0x344 String                    aExtra_strings[32]
 // sizeof = 0x3c4.
 class MsgBoardController
 {
   public:
-    int field_0;
-    int field_4;
+    int field_0x0;
+    int field_0x4;
     std::vector<MsgBoard> boards[8];
     String misc_text;
-    int field_10c;
-    int field_110;
-    char field_114;
-    char *field_118;
+    int field_0x10c;
+    int field_0x110;
+    char field_0x114;
+    char *field_0x118;
     char aBoard_enabled[8];
     String aBoard_names[8];
-    int field_144[32];
-    int field_1c4[32];
-    int field_244[32];
-    int field_2c4[32];
+    int field_0x144[32];
+    int field_0x1c4[32];
+    int field_0x244[32];
+    int field_0x2c4[32];
     String aExtra_strings[32];
 
     MsgBoardController();

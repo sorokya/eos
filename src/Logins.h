@@ -11,7 +11,7 @@ class Logins
     Mysqlcontrols *mysql_controls; // +0x00
     TList *login_list;             // +0x04
     TList *reserved_names;         // +0x08
-    String field_c;                // +0x0c
+    String field_0xc;              // +0x0c
 
     struct ReservedName
     {

@@ -9,14 +9,14 @@
 // the element extent runs to 0x24 / the element type is InnValue:
 //   +0x00 char                       loaded
 //   +0x04 std::vector<InnValue>      record_list
-//   +0x24 int                        field_24 = -1
+//   +0x24 int                        field_0x24 = -1
 class InnValues
 {
   public:
     char loaded;
-    char pad_1[3];
+    char pad_0x1[3];
     std::vector<InnValue> record_list;
-    int field_24;
+    int field_0x24;
 
     InnValues();
     ~InnValues();

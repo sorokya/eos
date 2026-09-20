@@ -13,8 +13,8 @@
 // observed size of 8 bytes.
 struct WeaponmapEntry
 {
-    int field_0;
-    int field_4;
+    int field_0x0;
+    int field_0x4;
 
     WeaponmapEntry();
     ~WeaponmapEntry();

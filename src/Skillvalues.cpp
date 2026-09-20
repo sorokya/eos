@@ -183,8 +183,8 @@ void SkillValues::AddRecord(SkillValues *self,
 
 SkillValues::SkillValues()
 {
-    field_18 = operator new(8);
-    field_3c = -1;
+    field_0x18 = operator new(8);
+    field_0x3c = -1;
     loaded = 0;
     file_id = 0;
     string_list = new TStringList;

@@ -14,6 +14,9 @@ class Server;
 class Players;
 
 String Character_BuildSaveQuery(Players *players, Player *player, int flag);
+int RandRange(int max);
+Player **Players_Iter_Begin(Players *players);
+Player **Players_Iter_End(Players *players);
 
 // Player manager. Layout recovered from the reference (Players unit,
 // 0x407948..0x410de4): a std::vector<Player *> at +0, the 100000-entry
@@ -28,7 +31,7 @@ class Players
     Settings *settings;            // +0x61aa0
     Mysqlcontrols *mysql_controls; // +0x61aa4
     char dirty;                    // +0x61aa8
-    char pad_61aa9[3];             // +0x61aa9
+    char pad_0x61aa9[3];           // +0x61aa9
     int idle_timeout;              // +0x61aac
     int stat_total;                // +0x61ab0
 

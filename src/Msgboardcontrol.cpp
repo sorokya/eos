@@ -7,9 +7,9 @@
 
 MsgBoardController::MsgBoardController()
 {
-    field_118 = (char *)operator new(8);
-    field_0 = 0x18;
-    field_4 = 0;
+    field_0x118 = (char *)operator new(8);
+    field_0x0 = 0x18;
+    field_0x4 = 0;
     for (int i = 0; i < 8; i++)
     {
         boards[i].clear();
@@ -45,7 +45,7 @@ MsgBoardController::AppendEncoded(MsgBoardController *self, unsigned int value, 
                 quotient = d;
                 rem = value % 0xfd;
                 c = rem + 1;
-                self->field_118[i] = c;
+                self->field_0x118[i] = c;
                 value = quotient;
                 if (quotient < 1)
                     flag = false;
@@ -55,7 +55,7 @@ MsgBoardController::AppendEncoded(MsgBoardController *self, unsigned int value, 
             else
             {
                 char pad = 0xfe;
-                self->field_118[i] = pad;
+                self->field_0x118[i] = pad;
             }
         }
     }
@@ -63,7 +63,7 @@ MsgBoardController::AppendEncoded(MsgBoardController *self, unsigned int value, 
     {
         width = 0;
     }
-    String result(self->field_118, width);
+    String result(self->field_0x118, width);
     return result;
 }
 
@@ -122,18 +122,18 @@ void MsgBoardController::AddPost(MsgBoardController *self,
 {
     if (board >= 1 && board <= 8)
     {
-        self->field_4++;
-        if (self->field_4 > 40000)
-            self->field_4 = 0;
-        MsgBoard post(self->field_4, poster, subject, message);
+        self->field_0x4++;
+        if (self->field_0x4 > 40000)
+            self->field_0x4 = 0;
+        MsgBoard post(self->field_0x4, poster, subject, message);
         board--;
         if (flag == 0)
             self->boards[board].insert(self->boards[board].begin(), post);
         else
             self->boards[board].insert(self->boards[board].end(), post);
         self->aBoard_enabled[board] = 1;
-        if (self->boards[board].size() > (unsigned)(self->field_0 + 4))
-            SetPostLimit(&self->boards[board], self->field_0 + 4);
+        if (self->boards[board].size() > (unsigned)(self->field_0x0 + 4))
+            SetPostLimit(&self->boards[board], self->field_0x0 + 4);
     }
 }
 
@@ -170,7 +170,7 @@ String MsgBoardController::GetPost(MsgBoardController *self, int board, int post
         std::vector<MsgBoard>::iterator it;
         int count = 0;
         for (it = self->boards[board].begin();
-             it != self->boards[board].end() && count < self->field_0;
+             it != self->boards[board].end() && count < self->field_0x0;
              it++)
         {
             if (it->id == post_id)
@@ -189,15 +189,15 @@ void MsgBoardController::BuildBoardName(MsgBoardController *self, int board)
     if (board >= 1 && board <= 8)
     {
         int count = self->boards[board - 1].size();
-        if (count > self->field_0)
-            count = self->field_0;
+        if (count > self->field_0x0)
+            count = self->field_0x0;
         String result = AppendEncoded(self, board, 1);
         result.Insert(AppendEncoded(self, count, 1), result.Length() + 1);
         board--;
         std::vector<MsgBoard>::iterator it;
         int i = 0;
         for (it = self->boards[board].begin();
-             it != self->boards[board].end() && i < self->field_0;
+             it != self->boards[board].end() && i < self->field_0x0;
              i++, it++)
         {
             result.Insert(AppendEncoded(self, it->id, 2), result.Length() + 1);
@@ -258,9 +258,9 @@ void MsgBoardController::LoadBoard(MsgBoardController *self, int board, String d
                 int a = DecodeNumber(self, ReadToken(self));
                 int b = DecodeNumber(self, ReadToken(self));
                 int c = DecodeNumber(self, ReadToken(self));
-                self->field_144[i] = a;
-                self->field_1c4[i] = b;
-                self->field_244[i] = c;
+                self->field_0x144[i] = a;
+                self->field_0x1c4[i] = b;
+                self->field_0x244[i] = c;
                 total = total + a + b + c;
             }
             String text = ReadRest(self);
@@ -268,12 +268,12 @@ void MsgBoardController::LoadBoard(MsgBoardController *self, int board, String d
             {
                 for (int j = 0; j < count && j < 0x20; j++)
                 {
-                    String poster = text.SubString(1, self->field_144[j]);
-                    text.Delete(1, self->field_144[j]);
-                    String subject = text.SubString(1, self->field_1c4[j]);
-                    text.Delete(1, self->field_1c4[j]);
-                    String message = text.SubString(1, self->field_244[j]);
-                    text.Delete(1, self->field_244[j]);
+                    String poster = text.SubString(1, self->field_0x144[j]);
+                    text.Delete(1, self->field_0x144[j]);
+                    String subject = text.SubString(1, self->field_0x1c4[j]);
+                    text.Delete(1, self->field_0x1c4[j]);
+                    String message = text.SubString(1, self->field_0x244[j]);
+                    text.Delete(1, self->field_0x244[j]);
                     AddPost(self, board + 1, poster, subject, message, 1);
                 }
             }
@@ -285,10 +285,10 @@ void MsgBoardController::SetDecodeSource(MsgBoardController *self,
                                          String data,
                                          char delimiter)
 {
-    self->field_10c = 1;
+    self->field_0x10c = 1;
     self->misc_text = data;
-    self->field_110 = data.Length();
-    self->field_114 = delimiter;
+    self->field_0x110 = data.Length();
+    self->field_0x114 = delimiter;
 }
 
 String MsgBoardController::ReadToken(MsgBoardController *self)
@@ -296,20 +296,21 @@ String MsgBoardController::ReadToken(MsgBoardController *self)
     String result = "";
     try
     {
-        if (self->field_110 >= 1)
+        if (self->field_0x110 >= 1)
         {
-            while (self->field_10c <= self->field_110)
+            while (self->field_0x10c <= self->field_0x110)
             {
-                if (self->misc_text[self->field_10c] != self->field_114)
+                if (self->misc_text[self->field_0x10c] != self->field_0x114)
                 {
-                    result.Insert(self->misc_text[self->field_10c], result.Length() + 1);
+                    result.Insert(self->misc_text[self->field_0x10c],
+                                  result.Length() + 1);
                 }
                 else
                 {
-                    self->field_10c++;
+                    self->field_0x10c++;
                     break;
                 }
-                self->field_10c++;
+                self->field_0x10c++;
             }
         }
     }
@@ -325,12 +326,12 @@ String MsgBoardController::ReadRest(MsgBoardController *self)
     String result = "";
     try
     {
-        if (self->field_110 >= 1)
+        if (self->field_0x110 >= 1)
         {
-            while (self->field_10c <= self->field_110)
+            while (self->field_0x10c <= self->field_0x110)
             {
-                result.Insert(self->misc_text[self->field_10c], result.Length() + 1);
-                self->field_10c++;
+                result.Insert(self->misc_text[self->field_0x10c], result.Length() + 1);
+                self->field_0x10c++;
             }
         }
     }
@@ -401,13 +402,13 @@ bool MsgBoardController::LoadBoards(MsgBoardController *self)
         }
         for (int i = 0; i < 8; i++)
         {
-            self->field_2c4[i] = DecodeNumber(self, path.SubString(1, 4));
+            self->field_0x2c4[i] = DecodeNumber(self, path.SubString(1, 4));
             path.Delete(1, 4);
         }
         for (int i = 0; i < 8; i++)
         {
-            self->aExtra_strings[i] = path.SubString(1, self->field_2c4[i]);
-            path.Delete(1, self->field_2c4[i]);
+            self->aExtra_strings[i] = path.SubString(1, self->field_0x2c4[i]);
+            path.Delete(1, self->field_0x2c4[i]);
         }
         for (int i = 0; i < 8; i++)
         {

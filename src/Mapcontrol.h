@@ -152,7 +152,33 @@ class Mapcontrol
         Mapcontrol *map_control, int map_id, int x, int y, char ignore_spec_block);
 };
 
-int FUN_00486e64(int map_control, int map_id, MapCoord coords);
-String FUN_0047badc(Mapcontrol *map_control, int map_id, MapCoord coords);
+int Mapcontrol_GetChestKeyAt(int map_control, int map_id, MapCoord coords);
+String
+Mapcontrol_BuildChestItemsString(Mapcontrol *map_control, int map_id, MapCoord coords);
+char Mapcontrol_TryTakeQuestCooldown(int map_control, int map_id);
+char Mapcontrol_GetCanScroll(int map_control, int map_id);
+MapCoord Mapcontrol_GetRelogCoords(int map_control, int map_id);
+unsigned int
+Mapcontrol_GetNpcIdByIndex(int map_control, int map_id, unsigned int npc_index);
+MapCoord
+Mapcontrol_GetNpcCoordsByIndex(int map_control, int map_id, unsigned int npc_index);
+char Mapcontrol_IsDropTileClear(int map_control, int map_id, int x, int y);
+unsigned int Mapcontrol_GetTileSpecValueAt(int map_control,
+                                           int map_id,
+                                           unsigned int x,
+                                           unsigned int y);
+int Mapcontrol_CountBlockedNeighbors(int map_control,
+                                     int map_id,
+                                     unsigned int x,
+                                     unsigned int y);
+bool Mapcontrol_CanDropItemAt(int map_control, int map_id, int x, int y, int player_id);
+GroundItemInfo
+Mapcontrol_TakeGroundItemInfo(int map_control, int map_id, int index, int player_id);
+void Mapcontrol_RemoveGroundItem(int map_control, int map_id, int index);
+char Mapcontrol_ReloadMap(int map_control, int map_id);
+void Mapcontrol_AddArenaSpawn(
+    Mapcontrol *map_control, int map_id, int from_x, int from_y, int to_x, int to_y);
+String Map_ReadRawFile(Mapcontrol *map_control, int map_id);
+MapObject Map_GetTileSpecObject(Mapcontrol *map_control, int map_id, int x, int y);
 
 #endif

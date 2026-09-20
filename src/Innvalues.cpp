@@ -7,7 +7,7 @@
 
 InnValues::InnValues()
 {
-    field_24 = -1;
+    field_0x24 = -1;
     loaded = 0;
     LoadInns(this);
 }
@@ -170,7 +170,7 @@ void InnValues::Clear(InnValues *self)
     if (self->GetCount() >= 1)
     {
         self->record_list.clear();
-        self->field_24 = -1;
+        self->field_0x24 = -1;
     }
 }
 

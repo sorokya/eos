@@ -7,7 +7,7 @@
 
 LearnValues::LearnValues()
 {
-    field_24 = -1;
+    field_0x24 = -1;
     loaded = 0;
     Pub_LoadSkillMasters(this);
 }
@@ -128,10 +128,10 @@ void LearnValues::Clear(LearnValues *self)
         it->skills.clear();
         it++;
     }
-    if (GetRecordCount(self) >= 1)
+    if (GetCount(self) >= 1)
     {
         self->record_list.clear();
-        self->field_24 = -1;
+        self->field_0x24 = -1;
     }
 }
 
@@ -246,7 +246,7 @@ String LearnValues::BuildOpenData(LearnValues *self, int behavior_id)
     return data;
 }
 
-unsigned int LearnValues::GetRecordCount(LearnValues *self)
+unsigned int LearnValues::GetCount(LearnValues *self)
 {
     return self->record_list.size();
 }

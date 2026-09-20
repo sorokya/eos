@@ -57,7 +57,7 @@ void ClassValues::LoadClasses(ClassValues *self)
                 {
                     int namelen = self->DecodeInt(data.SubString(1, 1));
                     AddClass(self,
-                             self->size() + 1,
+                             self->GetCount() + 1,
                              self->DecodeInt(data.SubString(namelen + 2, 1)),
                              data.SubString(2, namelen),
                              self->DecodeInt(data.SubString(namelen + 0x3, 1)),
@@ -86,9 +86,9 @@ void ClassValues::LoadClasses(ClassValues *self)
 
 ClassValue ClassValues::GetByIndex(ClassValues *self, int index)
 {
-    if (index < 0 || (unsigned)index > self->values.size() - 1)
+    if (index < 0 || (unsigned)index > self->record_list.size() - 1)
         index = 0;
-    return self->values[index];
+    return self->record_list[index];
 }
 
 void ClassValues::AddClass(ClassValues *self,
@@ -113,22 +113,22 @@ void ClassValues::AddClass(ClassValues *self,
     v.agi = agi;
     v.con = con;
     v.cha = cha;
-    self->values.insert(self->values.end(), v);
+    self->record_list.insert(self->record_list.end(), v);
 }
 
 ClassValues::ClassValues()
 {
-    field_18 = operator new(8);
-    field_3c = -1;
+    field_0x18 = operator new(8);
+    field_0x3c = -1;
     loaded = 0;
     file_id = 0;
     string_list = new TStringList;
     LoadClasses(this);
 }
 
-int ClassValues::size()
+int ClassValues::GetCount()
 {
-    return values.size();
+    return record_list.size();
 }
 
 int ClassValues::DecodeInt(String value)
@@ -172,7 +172,7 @@ bool ClassValues::ClassMatches(ClassValues *self, int class_id, int class_requir
     {
         if (class_id == class_requirement)
             return true;
-        class_id = self->values[class_id - 1].parent_type;
+        class_id = self->record_list[class_id - 1].parent_type;
     }
     return false;
 }

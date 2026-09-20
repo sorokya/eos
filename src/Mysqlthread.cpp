@@ -39,15 +39,15 @@ void __fastcall MySQLthread::Execute()
         {
             std::vector<mySQLtask *>::iterator it = queue->job_queue.begin();
             job = *it;
-            queue->field_2c = job->query_id;
+            queue->field_0x2c = job->query_id;
             queue->last_player_id = job->player_id;
-            queue->field_28 = job->expected_query_id;
+            queue->field_0x28 = job->expected_query_id;
             queue->job_queue.erase(it);
         }
         else
         {
             queue->last_player_id = -1;
-            queue->field_28 = -1;
+            queue->field_0x28 = -1;
         }
 
         queue->thread->Release();
