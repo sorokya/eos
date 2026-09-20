@@ -5706,13 +5706,6 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             name = Mysqlcontrols::Mysql_SanitizeString(server->mysql_controls, name, 0);
             tag_upper =
                 Mysqlcontrols::Mysql_SanitizeString(server->mysql_controls, tag_upper, 1);
-            if (tag_upper == "GM" || tag_upper == "HGM" || tag_upper == "GOD" ||
-                tag_upper == "ADM" || tag_upper == "SUK" || tag_upper == "SUX" ||
-                tag_upper == "ASS" || tag_upper == "FUK" || tag_upper == "BRA" ||
-                tag_upper == "FUC" || tag_upper == "SEX" || tag_upper == "CUM" ||
-                tag_upper == "HOE" || tag_upper == "TIT" || tag_upper == "HO" ||
-                tag_upper == "FU" || tag_upper == "KKK" || tag_upper == "XXX")
-                return true;
             if (tag_upper.Length() < 2 || tag_upper.Length() > 3)
                 return true;
             if (name.Length() < 4 || name.Length() > 0x18)
@@ -5721,6 +5714,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             player->guild_inviter_id = -1;
             if (player->guild_tag.Length() > 1)
+                return true;
+            if (tag_upper == "GM" || tag_upper == "HGM" || tag_upper == "GOD" ||
+                tag_upper == "ADM" || tag_upper == "SUK" || tag_upper == "SUX" ||
+                tag_upper == "ASS" || tag_upper == "FUK" || tag_upper == "BRA" ||
+                tag_upper == "FUC" || tag_upper == "SEX" || tag_upper == "CUM" ||
+                tag_upper == "HOE" || tag_upper == "TIT" || tag_upper == "HO" ||
+                tag_upper == "FU" || tag_upper == "KKK" || tag_upper == "XXX")
                 return true;
             if (!CharName_CheckUnique(server, name))
                 return true;
