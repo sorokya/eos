@@ -1038,6 +1038,25 @@ Tracked so they are not mistaken for done:
     `EO_EncodeNumber` `0x470b9c`, `EO_DecodeNumber` `0x470de8`,
     `SkillValues::GetCastTime` `0x4a5268`; `Now`/`DateTimeToTimeStamp` are the
     library `0x520500`/`0x51ff7c`.
+- `Packets`: `Player_HandlePacket` (`0x41794c`) — **measure against the true end.**
+  `analysis/target/functions.tsv` ends the row at `0x0044ef54`, but the body
+  continues to `0x44f58b`; the next real function is the folded EH thunk at
+  `0x44f58c`. Comparing against the stored end truncates the tail and reports a
+  positional cascade, not real errors. Use
+  `compare_asm.py build/Packets.asm Player_HandlePacket
+  '@@Player_HandlePacket$qp6Serverp6Player17System@AnsiString' 0x41794c 0x44f58c
+  --frame-wild --strict-operands`. True-range state: 52,584 ref instructions,
+  prologue frame `-0xffc` on both sides (true local frame `-0x1f48`), aligned
+  prefix 9,511. The EH cleanup table is now **structurally identical** to the
+  reference (1,372 entries, 16,472 B, zero `prev`/`flags`/`extra` differences):
+  the Guild `PacketAction_Accept` branch passes its concatenation directly to
+  `Client_SendEncoded` (no named `msg`), and `PacketAction_Request`'s
+  `tag[1]`/`name[1]` comparison uses two named `String` locals. Residual: our
+  function is 21 instructions longer overall, all in code layout (shared
+  return-cleanup blocks the reference tail-merges and we do not), not in the
+  scopes; per-case `compare_case.py` counts are exact for Accept (260/260),
+  Request (933/933), Take (276/276), Create-prefix (395/395) and the tail
+  (1292/1292).
 
 ### Not reachable from source — do not spend sessions on these
 

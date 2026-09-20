@@ -5800,15 +5800,21 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->guild_inviter_id = inviter_id;
             if (invites == 9)
             {
-                String msg = EO_EncodeNumber(server, GuildReply_CreateAddConfirm, 2) +
-                             player->name;
                 Client_SendEncoded(
-                    server, inviter, PacketAction_Reply, PacketFamily_Guild, msg);
+                    server,
+                    inviter,
+                    PacketAction_Reply,
+                    PacketFamily_Guild,
+                    EO_EncodeNumber(server, GuildReply_CreateAddConfirm, 2) +
+                        player->name);
                 return true;
             }
-            String msg = EO_EncodeNumber(server, GuildReply_CreateAdd, 2) + player->name;
-            Client_SendEncoded(
-                server, inviter, PacketAction_Reply, PacketFamily_Guild, msg);
+            Client_SendEncoded(server,
+                               inviter,
+                               PacketAction_Reply,
+                               PacketFamily_Guild,
+                               EO_EncodeNumber(server, GuildReply_CreateAdd, 2) +
+                                   player->name);
             return true;
         }
         if (action == PacketAction_Request)
@@ -5856,7 +5862,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, GuildReply_NotApproved, 2));
                 return true;
             }
-            if (tag.SubString(1, 1).LowerCase() != name.SubString(1, 1).LowerCase())
+            String tag_first = tag[1];
+            String name_first = name[1];
+            if (tag_first.LowerCase() != name_first.LowerCase())
             {
                 Client_SendEncoded(server,
                                    player,
