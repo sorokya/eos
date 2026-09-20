@@ -1958,8 +1958,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             String s = PacketReader_GetBreakString(server);
                             if (s != "EOF" && s.Length() > 0)
                             {
-                                int item_id = s.ToInt();
-                                int amount = PacketReader_GetBreakString(server).ToInt();
+                                int item_id = StrToInt(s);
+                                int amount =
+                                    StrToInt(PacketReader_GetBreakString(server));
                                 PlayerInventory inv(item_id);
                                 inv.amount = amount;
                                 player->bank.insert(player->bank.end(), inv);
@@ -1986,8 +1987,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             String s = PacketReader_GetBreakString(server);
                             if (s != "EOF" && s.Length() > 0)
                             {
-                                int item_id = s.ToInt();
-                                int amount = PacketReader_GetBreakString(server).ToInt();
+                                int item_id = StrToInt(s);
+                                int amount =
+                                    StrToInt(PacketReader_GetBreakString(server));
                                 if (amount < 0)
                                     continue;
                                 if (item_id == 1 && amount > 0x1e8480)
@@ -2022,8 +2024,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             String s = PacketReader_GetBreakString(server);
                             if (s != "EOF" && s.Length() > 0)
                             {
-                                int skill_id = s.ToInt();
-                                int level = PacketReader_GetBreakString(server).ToInt();
+                                int skill_id = StrToInt(s);
+                                int level = StrToInt(PacketReader_GetBreakString(server));
                                 PlayerSkill skill(skill_id);
                                 skill.level = level;
                                 player->spells.insert(player->spells.end(), skill);
@@ -2050,31 +2052,25 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             String s = PacketReader_GetBreakString(server);
                             if (s != "EOF" && s.Length() > 0)
                             {
-                                int quest_id = s.ToInt();
+                                int quest_id = StrToInt(s);
                                 int state_index =
-                                    PacketReader_GetBreakString(server).ToInt();
-                                int version = PacketReader_GetBreakString(server).ToInt();
-                                if (version >= 0 &&
-                                    Questengine::GetQuestVersion(server->quest_engine,
+                                    StrToInt(PacketReader_GetBreakString(server));
+                                int version =
+                                    StrToInt(PacketReader_GetBreakString(server));
+                                if (Questengine::GetQuestVersion(server->quest_engine,
                                                                  quest_id) == version)
                                 {
-                                    PlayerQuest quest(
-                                        quest_id, (short)state_index, (short)version);
-                                    quest.counters[0] =
-                                        (short)PacketReader_GetBreakString(server)
-                                            .ToInt();
-                                    quest.counters[1] =
-                                        (short)PacketReader_GetBreakString(server)
-                                            .ToInt();
-                                    quest.counters[2] =
-                                        (short)PacketReader_GetBreakString(server)
-                                            .ToInt();
-                                    quest.counters[3] =
-                                        (short)PacketReader_GetBreakString(server)
-                                            .ToInt();
-                                    quest.counters[4] =
-                                        (short)PacketReader_GetBreakString(server)
-                                            .ToInt();
+                                    PlayerQuest quest(quest_id, state_index, version);
+                                    quest.counters[0] = (short)StrToInt(
+                                        PacketReader_GetBreakString(server));
+                                    quest.counters[1] = (short)StrToInt(
+                                        PacketReader_GetBreakString(server));
+                                    quest.counters[2] = (short)StrToInt(
+                                        PacketReader_GetBreakString(server));
+                                    quest.counters[3] = (short)StrToInt(
+                                        PacketReader_GetBreakString(server));
+                                    quest.counters[4] = (short)StrToInt(
+                                        PacketReader_GetBreakString(server));
                                     player->quest_trackers.insert(
                                         player->quest_trackers.end(), quest);
                                     Player_ApplyQuestActions(
@@ -2103,7 +2099,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             String s = PacketReader_GetBreakString(server);
                             if (s != "EOF" && s.Length() > 0)
                             {
-                                int quest_id = s.ToInt();
+                                int quest_id = StrToInt(s);
                                 PlayerQuest quest(quest_id, 0, 0);
                                 player->quest_history.insert(player->quest_history.end(),
                                                              quest);
