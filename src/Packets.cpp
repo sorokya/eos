@@ -11560,11 +11560,64 @@ String Server_BuildInitBanReply(Server *server)
     out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
     return out;
 }
-// STUB(0x00462374, 1339 bytes) FUN_00462374 - ref: undefined4 FUN_00462374(int param_1,
-// int param_2)
-int FUN_00462374_Stub(int a0, int a1)
+int FUN_00470598(int a0, int value);
+bool FUN_00462374(Server *server, Player *player, String data)
 {
-    return 0;
+    if (data.Length() > 8 && data.Length() < 0x2a)
+    {
+        if (EO_DecodeByte(server, data[1]) == 0xff &&
+            EO_DecodeByte(server, data[2]) == 0xff)
+        {
+            if (data.Length() > 10)
+            {
+                int hdid_len = EO_DecodeNumber(server, data[10]);
+                player->hdid = data.SubString(11, data.Length() - 10);
+                if (player->hdid.Length() != hdid_len)
+                {
+                    Sock_Send(player->socket,
+                              *(char **)&Server_BuildInitBanReply(server));
+                    return false;
+                }
+                if (Banned::IsBanned(server->banned, player->remote_ip, player->hdid))
+                {
+                    Sock_Send(player->socket,
+                              *(char **)&Server_BuildInitBanReply(server));
+                    return false;
+                }
+            }
+            int session =
+                FUN_00470598((int)server, EO_DecodeNumber(server, data.SubString(3, 3)));
+            int patch = EO_DecodeNumber(server, data[6]);
+            int minor = EO_DecodeNumber(server, data[7]);
+            int major = EO_DecodeNumber(server, data[8]);
+            int magic = EO_DecodeNumber(server, data[9]);
+            if (patch >= server->version_patch && minor >= server->version_minor &&
+                major >= server->version_major && magic == 0x70)
+            {
+                if (patch < 10)
+                {
+                    if ((*MAINFORM)->server->Socket->ActiveConnections >
+                        Settings::GetMaxConnections(server->settings))
+                        player->remove_timer = 7;
+                    else
+                        player->remove_timer = -1;
+                    player->field_0x34 = session;
+                    player->initialized = true;
+                    Sock_Send(player->socket,
+                              *(char **)&Server_BuildInitOkReply(server, player));
+                    return true;
+                }
+            }
+            else
+            {
+                Sock_Send(player->socket,
+                          *(char **)&Server_BuildInitVersionReply(server));
+                return false;
+            }
+        }
+    }
+    Logins::AddLogin(server->logins, player->remote_ip);
+    return false;
 }
 // STUB(0x00464030, 1286 bytes) Client_SendEncoded - ref: undefined
 // Client_SendEncoded(Server * server, Player * player, PacketAction action, PacketFamily
