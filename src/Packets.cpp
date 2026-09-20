@@ -5610,7 +5610,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (player->session_token != session_id)
                 return true;
             PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
-            String t = PacketReader_GetBreakString(server);
+            PacketReader_GetBreakString(server);
             String guild = Mysqlcontrols::Db_SanitizeString(
                 server->mysql_controls, PacketReader_GetBreakString(server));
             String recruiter = Mysqlcontrols::Db_SanitizeString(
@@ -5694,10 +5694,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (session_id < 0x493e0 || session_id > 0x61a80)
                 return true;
             PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
-            String t = PacketReader_GetBreakString(server);
-            String tag = Mysqlcontrols::Db_SanitizeString(
-                server->mysql_controls, PacketReader_GetBreakString(server));
-            String tag_upper = tag.UpperCase();
+            PacketReader_GetBreakString(server);
+            String tag_upper =
+                Mysqlcontrols::Db_SanitizeString(server->mysql_controls,
+                                                 PacketReader_GetBreakString(server))
+                    .UpperCase();
             String name = Mysqlcontrols::Db_SanitizeString(
                 server->mysql_controls, PacketReader_GetBreakString(server));
             String description = Mysqlcontrols::Db_SanitizeString(
@@ -5723,7 +5724,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (!CharName_CheckUnique(server, name))
                 return true;
-            if (tag_upper.SubString(1, 1).LowerCase() != name.SubString(1, 1).LowerCase())
+            if (String(tag_upper[1]).LowerCase() != String(name[1]).LowerCase())
                 return true;
             if (tag_upper[1] == ' ' || tag_upper[2] == ' ')
                 return true;
@@ -5820,7 +5821,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (session_id < 0x493e0 || session_id > 0x61a80)
                 return true;
             PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
-            String t = PacketReader_GetBreakString(server);
+            PacketReader_GetBreakString(server);
             String tag = Mysqlcontrols::Db_SanitizeString(
                 server->mysql_controls, PacketReader_GetBreakString(server));
             String name = Mysqlcontrols::Db_SanitizeString(
