@@ -812,20 +812,16 @@ Tracked so they are not mistaken for done:
   (`Npc **iter;` declared bare, `for (iter = …)` inside the `try`) removed the
   spurious loop-entry arm.) `Server_BuildOnlineNames` stays at **13 mismatched** (the
   `try`/`catch` form made it worse, 45, and was reverted).
-  `EO_Decode_Deinterleave` is drafted at **118 mismatched (221/281), frame now
-  exact (`-0x164`, delta 0), aligned prefix 117/221** — the
-  reference builds a `std::stack<char>` + a `std::queue<char>` (`0x472810`, RTTI
-  `queue<char,deque<char,allocator<char> > >`), frame `-356` (now exact) and
-  indices 0-100 exact. The residual is the drain/merge boundary: the reference
-  emits the drain's bottom test (`je body`) then a redundant `empty()` followed by
-  an unconditional `jmp` over the merge; the winning form is a
-  **bare discarded `pending.empty();`** statement before the merge (not an `if`),
-  which reproduces the redundant call with no extra branch; the merge body then
-  needs `char c = woven.front();`, `unsigned char v = woven.front();` **and**
-  `int value = v;` (three separate locals — the reference re-calls `queue.front()`
-  for the modulo and keeps the zero-extended int). Residual: the value read differs
-  at index 117 (`ref mov dl,[ebp-350]` vs `our mov dl,[eax]`), then the drain/merge
-  tail at 164;
+  `EO_Decode_Deinterleave` is **byte-exact (238/238)** — RTTI `0x472853`
+  (`queue<char,deque<char,allocator<char> > >`) confirmed the third container as a
+  `std::queue<char>` and frame is exact (`-0x164`, delta 0). The residual was the
+  merge body: the reference reads the `front()` value once into `c`, calls
+  `woven.pop()` immediately, and computes `v`/`value` from `c` (not a second
+  `front()`), *and* the source carries a **second post-loop drain** of the stack
+  into `packet_buffer`. Both were needed before the whole `238/238` aligned and the
+  function scored byte-exact. (Historical: it sat at 118 mismatched (221/281) with
+  the drain/merge boundary as the residual, and the frame/band item was the
+  missing post-loop drain.)
   `Walk_Execute`, `Attack_Execute`, `Spell_Execute`, the reply builders, and
   `Player_HandlePacket` (deferred: one 226 KB function).
 - `Mapcontrol` `FUN_00482834` (`0x482834`) and `Mapcontrol_LoadMap` (`0x484e28`)
@@ -910,16 +906,18 @@ Tracked so they are not mistaken for done:
   woven.back(); woven.pop_back(); }`), then
   `String data(server->packet_buffer, len); return data;`. Its stored byte count
   is short — the real end is `0x4711fd`.
-- `EO_Decode_Deinterleave` (`0x472414`, 870 B) — NOT YET WRITTEN. Same container
-  set (a stack, two deques, and a third container via `0x472810`), scope word
-  `[ebp-0x138]`. Args: `[ebp+0xc]` = `Server` (writes `packet_buffer` at `+0x44`),
-  `[ebp+0x10]` = the divisor (guarded `<= 0` early-out), `[ebp+0x14]`/`[ebp+0x18]`
-  = begin/end. Decoded so far: a `bool toggle = 1` loop alternating bytes into a
-  deque vs the stack, a drain into the deque, then the inverse-dickwinding merge
-  (for each `c = deque.front()`: if `(unsigned char)c % multiple == 0` push to the
-  stack, else drain the stack into `server->packet_buffer[len++]` and emit `c`).
-  The by-value-vs-`void` return and the third container's type are still
-  unproven, which is why it was not drafted.
+- Packets `EO_Decode_Deinterleave` (`0x472414`) — **CONVERGED (238/238)**. Listed
+  for the facts it pinned. Same container set as `EO_Encode_Interleave`: a
+  `std::stack<char>` (`0x471318`), two `deque<char,allocator<char> >` bases
+  (`0x471388`, RTTI `0x4713f4`) and a `std::queue<char>` (`0x472810`, RTTI
+  `0x472853` `queue<char,deque<char,allocator<char> > >`); scope word
+  `[ebp-0x138]`. Three merge-body shapes mattered: the `front()` value is read
+  once (`char c = woven.front(); woven.pop();` immediately, then
+  `unsigned char v = c; int value = v;` — the second read is the local `c`, **not**
+  a second `front()` call), and the source has **two** drains of the stack into
+  `packet_buffer`: the one inside the non-divisible `else` and a second one after
+  the merge loop (flushing the trailing divisible bytes). The stored byte count is
+  short — the real end is `0x472790` (the tsv `end` `0x47277a` is mid-instruction).
 - `MysqlCallback_Dispatch` (`0x450618`, 36,735 B) — reconnaissance map. 15
   top-level cases for query kinds `0x40,0x42,0x44,0x45,0x47,0x48,0x49,0x4b,0x4d,
   0x4e,0x4f,0x50,0x51,0x52,0x53`, reached by a linear `if` chain (no jump table);

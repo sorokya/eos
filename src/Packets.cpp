@@ -13727,7 +13727,8 @@ String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *e
             while (!woven.empty())
             {
                 char c = woven.front();
-                unsigned char v = woven.front();
+                woven.pop();
+                unsigned char v = c;
                 int value = v;
                 if (value % multiple == 0)
                     pending.push(c);
@@ -13740,7 +13741,11 @@ String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *e
                     }
                     server->packet_buffer[len++] = c;
                 }
-                woven.pop();
+            }
+            while (!pending.empty())
+            {
+                server->packet_buffer[len++] = pending.top();
+                pending.pop();
             }
         }
         catch (...)
