@@ -222,7 +222,7 @@ String Serial::DecodeString(Serial *s, String src)
 void Serial::Validate(Serial *s)
 {
     bool stage1_passed = false;
-    s->valid = 0;
+    s->valid = false;
     int acc5 = 400;
     int acc4 = 0x19a;
     int acc3 = 0x19d;
@@ -297,7 +297,7 @@ void Serial::Validate(Serial *s)
             String u2 = s->unlock_code.SubString(9, 3);
             String u3 = s->unlock_code.SubString(0xd, 3);
             if (c1 == u1 && c2 == u2 && c3 == u3)
-                s->valid = 1;
+                s->valid = true;
         }
     }
 }

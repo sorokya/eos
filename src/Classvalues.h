@@ -1,5 +1,5 @@
-#ifndef ClassValuesH
-#define ClassValuesH
+#ifndef ClassvaluesH
+#define ClassvaluesH
 
 #include <vector>
 #include "Classvalue.h"

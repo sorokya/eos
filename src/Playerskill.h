@@ -1,5 +1,5 @@
-#ifndef PlayerSkillH
-#define PlayerSkillH
+#ifndef PlayerskillH
+#define PlayerskillH
 
 #include <Classes.hpp>
 

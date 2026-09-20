@@ -7,7 +7,7 @@
 
 int RandRange(int max);
 
-// The two-int result returned by Enf_GetType: {npc_type, behavior_id}. The
+// The two-int result returned by NpcValues::GetType: {npc_type, behavior_id}. The
 // reference calls an empty user constructor on the local at entry (the folded
 // EH-frame-only constructor at 0x44f58c) before storing -1 in both fields, then
 // returns it in the caller's return slot; the same shape the Itemvalues pair

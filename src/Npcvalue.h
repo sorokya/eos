@@ -11,7 +11,7 @@
 // the destructor destroys the talk vector, the drop vector then `name`. The
 // element size of std::vector<NpcValue> is 0x7c, matching this layout; every
 // offset is pinned by the parsers (Pub_LoadNpcs/AddNpc 0x4a5654/0x4a6f68) and
-// the accessors (Enf_GetExp/MaxHp/Type 0x4a8be4/0x4a8c34/0x4a8c88) and the
+// the accessors (NpcValues::GetExp/GetMaxHp/GetType 0x4a8be4/0x4a8c34/0x4a8c88) and the
 // implicit copy constructor (0x4a7528). Fields widen the on-disk EnfRecord
 // (eo-protocol): each decoded char/short/three is stored as its machine width
 // in memory. The class name is the RTTI type name ("NpcValue").

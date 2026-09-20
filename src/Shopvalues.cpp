@@ -430,7 +430,7 @@ int ShopValues::DecodeNumber(String value)
         {
             char c = value_copy[byte_index];
             unsigned char ch = c;
-            if (ch == 0xFE || ch == 0)
+            if (ch == 0xfe || ch == 0)
                 break;
             int n = ch;
             n = n - 1;

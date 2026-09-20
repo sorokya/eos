@@ -190,7 +190,7 @@ int InnValues::DecodeNumber(String value)
         {
             char c = value_copy[byte_index];
             unsigned char ch = c;
-            if (ch == 0xFE)
+            if (ch == 0xfe)
                 break;
             int n = ch;
             n = n - 1;

@@ -1,5 +1,5 @@
-#ifndef ClassValueH
-#define ClassValueH
+#ifndef ClassvalueH
+#define ClassvalueH
 
 #include <Classes.hpp>
 

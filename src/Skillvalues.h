@@ -1,5 +1,5 @@
-#ifndef SkillValuesH
-#define SkillValuesH
+#ifndef SkillvaluesH
+#define SkillvaluesH
 
 #include <vector>
 #include "Skillvalue.h"

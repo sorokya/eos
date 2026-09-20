@@ -1,5 +1,5 @@
-#ifndef PlayerInventoryH
-#define PlayerInventoryH
+#ifndef PlayerinventoryH
+#define PlayerinventoryH
 
 #include <Classes.hpp>
 

@@ -242,6 +242,7 @@ enum InitReply
 {
     InitReply_OutOfDate = 1,
     InitReply_Ok = 2,
+    InitReply_Banned = 3,
     InitReply_WarpMap = 4,
     InitReply_FileEmf = 5,
     InitReply_FileEif = 6,
@@ -330,6 +331,8 @@ enum InnUnsubscribeReply
 enum CharacterReply
 {
     CharacterReply_Exists = 1,
+    CharacterReply_Full = 2,
+    CharacterReply_Full3 = 3,
     CharacterReply_NotApproved = 4,
     CharacterReply_Ok = 5,
     CharacterReply_Deleted = 6
@@ -356,7 +359,9 @@ enum LoginReply
     LoginReply_WrongUser = 1,
     LoginReply_WrongUserPassword = 2,
     LoginReply_Ok = 3,
-    LoginReply_LoggedIn = 5
+    LoginReply_Banned = 4,
+    LoginReply_LoggedIn = 5,
+    LoginReply_Busy = 6
 };
 
 enum DialogEntryType
@@ -371,6 +376,13 @@ enum QuestRequirementIcon
     QuestRequirementIcon_Talk = 5,
     QuestRequirementIcon_Kill = 8,
     QuestRequirementIcon_Step = 10
+};
+
+enum WarpEffect
+{
+    WarpEffect_None = 0,
+    WarpEffect_Scroll = 1,
+    WarpEffect_Admin = 2
 };
 
 enum WarpType
@@ -613,5 +625,15 @@ enum SkillTargetType
     SkillTargetType_Reserved2 = 2,
     SkillTargetType_Group = 3
 };
+
+// Endless Online number codec: base 253, "no value" and field-separator bytes.
+#define EO_NUM_MAX 0xfd
+#define EO_NUM_MAX_2 0xfa09
+#define EO_NUM_MAX_3 0xf71ae5
+#define EO_NUM_EMPTY 0xfe
+#define EO_BREAK_BYTE 0xff
+
+#define SECONDS_PER_DAY 0x15180
+#define MS_PER_SECOND 1000
 
 #endif

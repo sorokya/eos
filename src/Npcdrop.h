@@ -1,5 +1,5 @@
-#ifndef NpcDropItemH
-#define NpcDropItemH
+#ifndef NpcdropH
+#define NpcdropH
 
 #include <Classes.hpp>
 

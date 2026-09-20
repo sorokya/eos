@@ -12,7 +12,7 @@
 // the destructor destroys crafts, trades then name and deletes. The vectors are
 // std::vector<ShopItemVal> and std::vector<ShopCraftVal> per the RTTI. Offsets
 // 8/0xa/0xc hold the ShopRecord header fields min_level/max_level/
-// class_requirement, each stored as a short by Pub_LoadShops (0x4b1b11,
+// class_requirement, each stored as a short by ShopValues::LoadShops (0x4b1b11,
 // 0x4b1b66, 0x4b1bbb); the two bytes at 0xe are compiler padding, not copied
 // by the reference's copy helpers.
 struct ShopValue
