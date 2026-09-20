@@ -2120,9 +2120,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             std::vector<PlayerInventory>::iterator iter;
             for (iter = player->bank.begin(); iter != player->bank.end(); iter++)
             {
-                out.Insert(EO_EncodeNumber(server, (*iter).item_id, 2),
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, (*iter).amount, 3),
+                out.Insert(EO_EncodeNumber(server, iter->amount, 3),
                            out.Length() + 1);
             }
             Client_SendEncoded(
@@ -2141,22 +2141,27 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             coords.y = EO_DecodeNumber(server, data.SubString(2, 1));
             int item_id = EO_DecodeNumber(server, data.SubString(3, 2));
             int amount = EO_DecodeNumber(server, data.SubString(5, 3));
-            if (amount > 0xc8 || item_id < 2)
+            if ((unsigned int)amount > 0xc8 || item_id < 2)
                 return true;
             if (player->bank.size() > 0x3c)
             {
-                String out = EO_EncodeNumber(server, player->locker_bank, 1);
-                Client_SendEncoded(
-                    server, player, PacketAction_Spec, PacketFamily_Locker, out);
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Spec,
+                                   PacketFamily_Locker,
+                                   EO_EncodeNumber(server, player->locker_bank, 1));
                 return true;
             }
             if (player->bank.size() > player->locker_bank * 5 + 0x18)
             {
                 if (!Players::Player_HasBankItem(server->players, player, item_id))
                 {
-                    String out = EO_EncodeNumber(server, player->locker_bank, 1);
                     Client_SendEncoded(
-                        server, player, PacketAction_Spec, PacketFamily_Locker, out);
+                        server,
+                        player,
+                        PacketAction_Spec,
+                        PacketFamily_Locker,
+                        EO_EncodeNumber(server, player->locker_bank, 1));
                     return true;
                 }
             }
@@ -2169,9 +2174,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (!Players::Player_RemoveItem(server->players, player, item_id, amount))
             {
-                String out = EO_EncodeNumber(server, item_id, 2);
-                Client_SendEncoded(
-                    server, player, PacketAction_Agree, PacketFamily_Item, out);
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Agree,
+                                   PacketFamily_Item,
+                                   EO_EncodeNumber(server, item_id, 2));
                 return true;
             }
             player->weight_current -=
@@ -2195,9 +2202,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             std::vector<PlayerInventory>::iterator iter;
             for (iter = player->bank.begin(); iter != player->bank.end(); iter++)
             {
-                out.Insert(EO_EncodeNumber(server, (*iter).item_id, 2),
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, (*iter).amount, 3),
+                out.Insert(EO_EncodeNumber(server, iter->amount, 3),
                            out.Length() + 1);
             }
             Client_SendEncoded(
@@ -2221,13 +2228,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                              coords.x,
                              coords.y) != 0xf)
                 return true;
-            String out = EO_EncodeNumber(server, 1, 2);
+            String out = data.SubString(1, 2);
             std::vector<PlayerInventory>::iterator iter;
             for (iter = player->bank.begin(); iter != player->bank.end(); iter++)
             {
-                out.Insert(EO_EncodeNumber(server, (*iter).item_id, 2),
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, (*iter).amount, 3),
+                out.Insert(EO_EncodeNumber(server, iter->amount, 3),
                            out.Length() + 1);
             }
             Client_SendEncoded(
