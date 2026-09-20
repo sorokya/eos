@@ -5724,7 +5724,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (!CharName_CheckUnique(server, name))
                 return true;
-            if (String(tag_upper[1]).LowerCase() != String(name[1]).LowerCase())
+            String tag_first = tag_upper[1];
+            String name_first = name[1];
+            if (tag_first.LowerCase() != name_first.LowerCase())
                 return true;
             if (tag_upper[1] == ' ' || tag_upper[2] == ' ')
                 return true;
