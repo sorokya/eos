@@ -348,6 +348,91 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             return true;
         }
+        if (action == PacketAction_Remove)
+        {
+            if (!player->account_logged_in)
+                return false;
+            if (data.Length() < 4)
+                return false;
+            if (EO_DecodeNumber(server, data.SubString(1, 2)) != player->session_id)
+                return false;
+            player->session_id = RandRange(0xc350) + 0x2710;
+            int character_id = EO_DecodeNumber(server, data.SubString(3, 4));
+            Mysqlcontrols::Mysql_ExecDirect(
+                server->mysql_controls,
+                player->field_0xc,
+                "DELETE FROM endl_characters WHERE ident = " + IntToStr(character_id) +
+                    " AND ident_account = " + IntToStr(player->field_0xc));
+            server->mysql_controls->file_cache->characters_count--;
+            if (player->character_slot_0 != NULL &&
+                player->character_slot_0->character_id == character_id)
+            {
+                Player *removed = player->character_slot_0;
+                player->character_slot_0 = player->character_slot_1;
+                player->character_slot_1 = player->character_slot_2;
+                player->character_slot_2 = NULL;
+                delete removed;
+            }
+            if (player->character_slot_1 != NULL &&
+                player->character_slot_1->character_id == character_id)
+            {
+                Player *removed = player->character_slot_1;
+                player->character_slot_1 = player->character_slot_2;
+                player->character_slot_2 = NULL;
+                delete removed;
+            }
+            if (player->character_slot_2 != NULL &&
+                player->character_slot_2->character_id == character_id)
+            {
+                Player *removed = player->character_slot_2;
+                player->character_slot_2 = NULL;
+                delete removed;
+            }
+            int count = 0;
+            if (player->character_slot_0 != NULL)
+                count = 1;
+            if (player->character_slot_1 != NULL)
+                count = 2;
+            String reply = EO_EncodeNumber(server, 6, 2);
+            reply.Insert(EO_EncodeNumber(server, count, 1), reply.Length() + 1);
+            reply.Insert(EO_GetBreakByte(server, 0xff), reply.Length() + 1);
+            for (int i = 0; i < 2; i++)
+            {
+                Player *character = player->character_slots[i];
+                if (character == NULL)
+                    continue;
+                reply.Insert(character->name, reply.Length() + 1);
+                reply.Insert(EO_GetBreakByte(server, 0xff), reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, character->character_id, 4),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, character->level, 1),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, character->gender, 1),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, character->hair_style, 1),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, character->hair_color, 1),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, character->skin, 1),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, character->admin_level, 1),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, character->boots_graphic_id, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, character->armor_graphic_id, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, character->hat_graphic_id, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, character->shield_graphic_id, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_EncodeNumber(server, character->weapon_graphic_id, 2),
+                             reply.Length() + 1);
+                reply.Insert(EO_GetBreakByte(server, 0xff), reply.Length() + 1);
+            }
+            Client_SendEncoded(
+                server, player, PacketAction_Reply, PacketFamily_Character, reply);
+            return true;
+        }
         if (action == PacketAction_Request)
         {
             if (!player->account_logged_in)
@@ -371,6 +456,67 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, player->session_id, 2) + "OK");
                 return true;
             }
+        }
+        if (action == PacketAction_Create)
+        {
+            if (!player->account_logged_in)
+                return false;
+            if (data.Length() < 0xa)
+                return false;
+            if (EO_DecodeNumber(server, data.SubString(1, 2)) != player->session_id)
+                return false;
+            if (player->account_create_cooldown > 4)
+                return true;
+            player->account_create_cooldown = 6;
+            int gender = EO_DecodeNumber(server, data.SubString(3, 2));
+            int hair_style = EO_DecodeNumber(server, data.SubString(5, 2));
+            int hair_color = EO_DecodeNumber(server, data.SubString(7, 2));
+            int skin = EO_DecodeNumber(server, data.SubString(9, 2));
+            String name = Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls,
+                PacketReader_GetBreakStringAt(
+                    server, 2, data, EO_GetBreakByte(server, 0xff)));
+            if (Players::CharName_Validate(server->players, player, name))
+                return false;
+            if (name.Length() > 0xc)
+                return false;
+            if (gender < 0 || gender > 1 || hair_style < 1 || hair_style > 0x14 ||
+                hair_color < 0 || hair_color > 9 || skin < 0 || skin > 3 ||
+                name.Length() < 4)
+                return false;
+            if (player->character_slot_0 != NULL && player->character_slot_1 != NULL &&
+                player->character_slot_2 != NULL)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Character,
+                                   EO_EncodeNumber(server, 2, 2) + "NO");
+                return true;
+            }
+            if (!CharName_CheckUnique(server, name))
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Character,
+                                   EO_EncodeNumber(server, 4, 2) + "NO");
+                return true;
+            }
+            if (!Mysqlcontrols::IsAlphabeticText(server->mysql_controls, name))
+            {
+                Banned::AddBan(
+                    server->banned, player->remote_ip, player->hdid, (bool)0, 0x3840);
+                return false;
+            }
+            Mysqlcontrols::Mysql_SubmitQuery(
+                server->mysql_controls,
+                0x45,
+                player->player_id,
+                player->query_id,
+                data,
+                "SELECT ident FROM endl_characters WHERE name = '" + name + "' LIMIT 1");
+            return true;
         }
     }
     if (family == PacketFamily_Range && action == PacketAction_Request)
