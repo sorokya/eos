@@ -31,6 +31,7 @@
 #include "Weddings.h"
 #include "Jukeboxcontrol.h"
 #include "Msgboardcontrol.h"
+#include "Newscontrol.h"
 #include "Protocol.h"
 
 #pragma package(smart_init)
@@ -38,6 +39,7 @@
 Player **Players_Iter_Begin(Players *players);
 int RandRange(int range);
 MapCoord FUN_0047c428(int map_control, int map_id);
+int FUN_0047cd28(int map_control, int map_id, unsigned int x, unsigned int y);
 void Server_BroadcastToParty(Server *server,
                              Player *player,
                              unsigned char action,
@@ -526,6 +528,699 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 "SELECT ident FROM endl_characters WHERE name = '" + name + "' LIMIT 1");
             return true;
         }
+    }
+    if (family == PacketFamily_Welcome)
+    {
+        if (action == PacketAction_Request)
+        {
+            if (!player->account_logged_in)
+                return false;
+            if (player->logged_in)
+                return false;
+            if (data.Length() != 4)
+                return false;
+            if (Players::Players_GetIdleTimeout(server->players) >
+                Settings::GetMaxPlayers(server->settings))
+            {
+                if (!server->logins->ConnectionLog_CheckIP(
+                        player->socket->RemoteAddress))
+                {
+                    Client_SendEncoded(server,
+                                       player,
+                                       PacketAction_Reply,
+                                       PacketFamily_Welcome,
+                                       EO_EncodeNumber(server, 3, 2) + "NO");
+                    return true;
+                }
+            }
+            int selected_id = EO_DecodeNumber(server, data.SubString(1, 4));
+            String out = EO_EncodeNumber(server, 1, 2);
+            out.Insert(EO_EncodeNumber(server, player->session_id, 2), out.Length() + 1);
+            out.Insert(data.SubString(1, 4), out.Length() + 1);
+            for (int i = 0; i < 3; i++)
+            {
+                if (player->character_slots[i] == NULL)
+                    continue;
+                Player *slot = player->character_slots[i];
+                if (slot->map_id < 1 ||
+                    (unsigned int)Mapcontrol_GetCount(server->map_control) <=
+                        (unsigned int)slot->map_id)
+                    return false;
+                if (slot->character_id != selected_id)
+                    continue;
+                if (!FUN_0047cd28(
+                        (int)server->map_control, slot->map_id, slot->x, slot->y))
+                {
+                    slot->map_id = Settings::GetRescueMap(server->settings);
+                    slot->x = Settings::GetRescueX(server->settings);
+                    slot->y = Settings::GetRescueY(server->settings);
+                }
+                out.Insert(EO_EncodeNumber(server, slot->map_id, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server,
+                                           (unsigned short)Mapcontrol_GetByIndex(
+                                               server->map_control, slot->map_id - 1)
+                                               ->rid1,
+                                           2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server,
+                                           (unsigned short)Mapcontrol_GetByIndex(
+                                               server->map_control, slot->map_id - 1)
+                                               ->rid2,
+                                           2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server,
+                                           (unsigned short)Mapcontrol_GetByIndex(
+                                               server->map_control, slot->map_id - 1)
+                                               ->filesize,
+                                           3),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server,
+                                           (*MAINFORM)->item_values->rid_1, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server,
+                                           (*MAINFORM)->item_values->rid_2, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server,
+                                           (*MAINFORM)->item_values->num_items, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->npc_values->rid1, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->npc_values->rid2, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->npc_values->count, 2),
+                           out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, (*MAINFORM)->skill_values->rid1, 2),
+                    out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, (*MAINFORM)->skill_values->rid2, 2),
+                    out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, (*MAINFORM)->skill_values->num_skills, 2),
+                    out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, (*MAINFORM)->class_values->rid_1, 2),
+                    out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, (*MAINFORM)->class_values->rid_2, 2),
+                    out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, (*MAINFORM)->class_values->num_classes, 2),
+                    out.Length() + 1);
+                out.Insert(slot->name, out.Length() + 1);
+                out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                out.Insert(slot->title, out.Length() + 1);
+                out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                out.Insert(slot->guild_name, out.Length() + 1);
+                out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                out.Insert(slot->guild_rank_name, out.Length() + 1);
+                out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->class_id, 1), out.Length() + 1);
+                String guild_tag = slot->guild_tag;
+                if (guild_tag.Length() == 2)
+                    guild_tag = guild_tag + " ";
+                if (guild_tag.Length() == 1)
+                    guild_tag = guild_tag + "  ";
+                if (guild_tag.Length() == 0)
+                    guild_tag = guild_tag + "   ";
+                out.Insert(guild_tag, out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->admin_level, 1),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->level, 1), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->experience, 4),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->usage, 4), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->hp, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->max_hp, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->tp, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->max_tp, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->max_sp, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->stat_points, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->skill_points, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->karma + 0x3e8, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->min_damage, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->max_damage, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->accuracy, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->evasion, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->armor, 2), out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->adj_strength, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->adj_wisdom, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->adj_intelligence, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->adj_agility, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->adj_constitution, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->adj_charisma, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->boots_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->gloves_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->accessory_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->armor_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->belt_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->necklace_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->hat_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->shield_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->weapon_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->ring1_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->ring2_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->armlet1_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->armlet2_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->bracer1_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->bracer2_item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, slot->guild_rank_id, 1),
+                           out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, Settings::GetJailMap(server->settings), 2),
+                    out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, Settings::GetRescueMap(server->settings), 2),
+                    out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, Settings::GetRescueX(server->settings), 1),
+                    out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, Settings::GetRescueY(server->settings), 1),
+                    out.Length() + 1);
+                out.Insert(EO_EncodeNumber(
+                               server,
+                               Settings::GetSpyAndLightGuideFloodRate(server->settings),
+                               2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(
+                               server, Settings::GetGuardianFloodRate(server->settings), 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(
+                               server, Settings::GetGameMasterFloodRate(server->settings), 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(
+                               server,
+                               Settings::GetHighGameMasterFloodRate(server->settings),
+                               2),
+                           out.Length() + 1);
+                if (Settings::GetStartMap(server->settings) == slot->map_id)
+                    out.Insert(EO_EncodeNumber(server, 0xfa, 1), out.Length() + 1);
+                else
+                    out.Insert(EO_EncodeNumber(server, 0, 1), out.Length() + 1);
+                out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+                Client_SendEncoded(
+                    server, player, PacketAction_Reply, PacketFamily_Welcome, out);
+                return true;
+            }
+            return false;
+        }
+        if (action == PacketAction_Msg)
+        {
+            if (!player->account_logged_in)
+                return false;
+            if (player->logged_in)
+                return false;
+            if (data.Length() != 7)
+                return false;
+            if (EO_DecodeNumber(server, data.SubString(1, 3)) != player->session_id)
+            {
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Reply,
+                                   PacketFamily_Welcome,
+                                   EO_EncodeNumber(server, 3, 2) + "NO");
+                return true;
+            }
+            int selected_id = EO_DecodeNumber(server, data.SubString(4, 4));
+            bool found = false;
+            for (int i = 0; i < 3; i++)
+            {
+                if (player->character_slots[i] == NULL)
+                    continue;
+                Player *slot = player->character_slots[i];
+                if (slot->character_id != selected_id)
+                    continue;
+                found = true;
+                player->character_id = slot->character_id;
+                player->class_id = slot->class_id;
+                player->guild_rank_id = slot->guild_rank_id;
+                player->account_id = slot->account_id;
+                player->name = slot->name;
+                player->partner_name = Mysqlcontrols::Mysql_SanitizeString(
+                    server->mysql_controls, slot->partner_name, false);
+                player->guild_tag = Mysqlcontrols::Mysql_SanitizeString(
+                    server->mysql_controls, slot->guild_tag, true);
+                player->title = Mysqlcontrols::Mysql_SanitizeString(
+                    server->mysql_controls, slot->title, false);
+                player->guild_name = Mysqlcontrols::Mysql_SanitizeString(
+                    server->mysql_controls, slot->guild_name, false);
+                player->guild_rank_name = Mysqlcontrols::Mysql_SanitizeString(
+                    server->mysql_controls, slot->guild_rank_name, false);
+                player->experience = slot->experience;
+                player->level = slot->level;
+                player->signup = slot->signup;
+                player->gender = slot->gender;
+                player->hair_style = slot->hair_style;
+                player->hair_color = slot->hair_color;
+                player->skin = slot->skin;
+                player->map_id = slot->map_id;
+                player->x = slot->x;
+                player->y = slot->y;
+                player->direction = slot->direction;
+                player->base_hp = slot->base_hp;
+                player->max_hp = slot->max_hp;
+                player->hp = slot->hp;
+                player->base_tp = slot->base_tp;
+                player->max_tp = slot->max_tp;
+                player->tp = slot->tp;
+                player->base_sp = slot->base_sp;
+                player->max_sp = slot->max_sp;
+                player->usage = slot->usage;
+                player->money_bank = slot->money_bank;
+                player->locker_bank = slot->locker_bank;
+                player->stat_points = slot->stat_points;
+                player->skill_points = slot->skill_points;
+                player->karma = slot->karma;
+                player->base_strength = slot->base_strength;
+                player->base_wisdom = slot->base_wisdom;
+                player->base_intelligence = slot->base_intelligence;
+                player->base_agility = slot->base_agility;
+                player->base_constitution = slot->base_constitution;
+                player->base_charisma = slot->base_charisma;
+                player->adj_strength = slot->adj_strength;
+                player->adj_wisdom = slot->adj_wisdom;
+                player->adj_intelligence = slot->adj_intelligence;
+                player->adj_agility = slot->adj_agility;
+                player->adj_constitution = slot->adj_constitution;
+                player->adj_charisma = slot->adj_charisma;
+                player->boots_graphic_id = slot->boots_graphic_id;
+                player->boots_item_id = slot->boots_item_id;
+                player->accessory_graphic_id = slot->accessory_graphic_id;
+                player->accessory_item_id = slot->accessory_item_id;
+                player->gloves_graphic_id = slot->gloves_graphic_id;
+                player->gloves_item_id = slot->gloves_item_id;
+                player->armor_graphic_id = slot->armor_graphic_id;
+                player->armor_item_id = slot->armor_item_id;
+                player->belt_graphic_id = slot->belt_graphic_id;
+                player->belt_item_id = slot->belt_item_id;
+                player->necklace_graphic_id = slot->necklace_graphic_id;
+                player->necklace_item_id = slot->necklace_item_id;
+                player->hat_graphic_id = slot->hat_graphic_id;
+                player->hat_item_id = slot->hat_item_id;
+                player->shield_graphic_id = slot->shield_graphic_id;
+                player->shield_item_id = slot->shield_item_id;
+                player->weapon_graphic_id = slot->weapon_graphic_id;
+                player->weapon_item_id = slot->weapon_item_id;
+                player->ring1_graphic_id = slot->ring1_graphic_id;
+                player->ring1_item_id = slot->ring1_item_id;
+                player->ring2_graphic_id = slot->ring2_graphic_id;
+                player->ring2_item_id = slot->ring2_item_id;
+                player->armlet1_graphic_id = slot->armlet1_graphic_id;
+                player->armlet1_item_id = slot->armlet1_item_id;
+                player->armlet2_graphic_id = slot->armlet2_graphic_id;
+                player->armlet2_item_id = slot->armlet2_item_id;
+                player->bracer1_graphic_id = slot->bracer1_graphic_id;
+                player->bracer1_item_id = slot->bracer1_item_id;
+                player->bracer2_graphic_id = slot->bracer2_graphic_id;
+                player->bracer2_item_id = slot->bracer2_item_id;
+                player->on_chair = slot->on_chair;
+                player->admin_level = slot->admin_level;
+                player->weight_current = slot->weight_current;
+                player->home_id = slot->home_id;
+                for (int j = 0; j < 7; j++)
+                    player->element_resistances[j] = slot->element_resistances[j];
+                player->class_min_damage = slot->class_min_damage;
+                player->class_max_damage = slot->class_max_damage;
+                player->class_accuracy = slot->class_accuracy;
+                player->class_evasion = slot->class_evasion;
+                player->class_armor = slot->class_armor;
+                player->min_damage = slot->min_damage;
+                player->max_damage = slot->max_damage;
+                player->accuracy = slot->accuracy;
+                player->evasion = slot->evasion;
+                player->armor = slot->armor;
+                player->equip_bonus_hp = slot->equip_bonus_hp;
+                player->equip_bonus_tp = slot->equip_bonus_tp;
+                player->equip_strength_bonus = slot->equip_strength_bonus;
+                player->equip_wisdom_bonus = slot->equip_wisdom_bonus;
+                player->equip_intelligence_bonus = slot->equip_intelligence_bonus;
+                player->equip_agility_bonus = slot->equip_agility_bonus;
+                player->equip_constitution_bonus = slot->equip_constitution_bonus;
+                player->equip_charisma_bonus = slot->equip_charisma_bonus;
+                player->target_map = slot->map_id;
+                player->target_x = (short)slot->x;
+                player->target_y = (short)slot->y;
+                player->on_chair = slot->on_chair;
+                player->sitting = slot->sitting;
+                player->inventory.clear();
+                player->trade_items.clear();
+                player->bank.clear();
+                player->action_queue.clear();
+                *(TTimeStamp *)&player->walk_tick = DateTimeToTimeStamp(Now());
+                player->quest_trackers.clear();
+                player->quest_history.clear();
+                int field_0x19b4 = player->money_bank;
+                if (slot->invblob2 != "EOF" && slot->invblob2.Length() > 3)
+                {
+                    PacketReader_Init(server, slot->invblob2, ':');
+                    bool done = false;
+                    while (!done)
+                    {
+                        try
+                        {
+                            String s = PacketReader_GetBreakString(server);
+                            if (s != "EOF" && s.Length() > 0)
+                            {
+                                int item_id = s.ToInt();
+                                int amount =
+                                    PacketReader_GetBreakString(server).ToInt();
+                                PlayerInventory inv(item_id);
+                                inv.amount = amount;
+                                player->bank.insert(player->bank.end(), inv);
+                            }
+                            else
+                            {
+                                done = true;
+                            }
+                        }
+                        catch (...)
+                        {
+                            done = true;
+                        }
+                    }
+                }
+                if (slot->invblob1 != "EOF" && slot->invblob1.Length() > 3)
+                {
+                    PacketReader_Init(server, slot->invblob1, ':');
+                    bool done = false;
+                    while (!done)
+                    {
+                        try
+                        {
+                            String s = PacketReader_GetBreakString(server);
+                            if (s != "EOF" && s.Length() > 0)
+                            {
+                                int item_id = s.ToInt();
+                                int amount =
+                                    PacketReader_GetBreakString(server).ToInt();
+                                if (amount < 0)
+                                    continue;
+                                if (item_id == 1 && amount > 0x1e8480)
+                                    amount = 0x1e8480;
+                                player->weight_current =
+                                    ItemValues::Eif_GetWeight(
+                                        (*MAINFORM)->item_values, item_id) *
+                                    amount;
+                                PlayerInventory inv(item_id);
+                                inv.amount = amount;
+                                player->inventory.insert(player->inventory.end(), inv);
+                            }
+                            else
+                            {
+                                done = true;
+                            }
+                        }
+                        catch (...)
+                        {
+                            done = true;
+                        }
+                    }
+                }
+                if (slot->skillblob != "EOF" && slot->skillblob.Length() > 3)
+                {
+                    PacketReader_Init(server, slot->skillblob, ':');
+                    bool done = false;
+                    while (!done)
+                    {
+                        try
+                        {
+                            String s = PacketReader_GetBreakString(server);
+                            if (s != "EOF" && s.Length() > 0)
+                            {
+                                int skill_id = s.ToInt();
+                                int level =
+                                    PacketReader_GetBreakString(server).ToInt();
+                                PlayerSkill skill(skill_id);
+                                skill.level = level;
+                                player->spells.insert(player->spells.end(), skill);
+                            }
+                            else
+                            {
+                                done = true;
+                            }
+                        }
+                        catch (...)
+                        {
+                            done = true;
+                        }
+                    }
+                }
+                if (slot->quest_cache != "EOF" && slot->quest_cache.Length() > 3)
+                {
+                    PacketReader_Init(server, slot->quest_cache, ':');
+                    bool done = false;
+                    while (!done)
+                    {
+                        try
+                        {
+                            String s = PacketReader_GetBreakString(server);
+                            if (s != "EOF" && s.Length() > 0)
+                            {
+                                int quest_id = s.ToInt();
+                                int state_index =
+                                    PacketReader_GetBreakString(server).ToInt();
+                                int version =
+                                    PacketReader_GetBreakString(server).ToInt();
+                                if (version >= 0 &&
+                                    Questengine::GetQuestVersion(server->quest_engine,
+                                                                 quest_id) == version)
+                                {
+                                    PlayerQuest quest(
+                                        quest_id, (short)state_index, (short)version);
+                                    quest.counters[0] =
+                                        (short)PacketReader_GetBreakString(server)
+                                            .ToInt();
+                                    quest.counters[1] =
+                                        (short)PacketReader_GetBreakString(server)
+                                            .ToInt();
+                                    quest.counters[2] =
+                                        (short)PacketReader_GetBreakString(server)
+                                            .ToInt();
+                                    quest.counters[3] =
+                                        (short)PacketReader_GetBreakString(server)
+                                            .ToInt();
+                                    quest.counters[4] =
+                                        (short)PacketReader_GetBreakString(server)
+                                            .ToInt();
+                                    player->quest_trackers.insert(
+                                        player->quest_trackers.end(), quest);
+                                    Player_ApplyQuestActions(server, player, &quest, false);
+                                }
+                            }
+                            else
+                            {
+                                done = true;
+                            }
+                        }
+                        catch (...)
+                        {
+                            done = true;
+                        }
+                    }
+                }
+                if (slot->quest_blob != "EOF" && slot->quest_blob.Length() > 3)
+                {
+                    PacketReader_Init(server, slot->quest_blob, ':');
+                    bool done = false;
+                    while (!done)
+                    {
+                        try
+                        {
+                            String s = PacketReader_GetBreakString(server);
+                            if (s != "EOF" && s.Length() > 0)
+                            {
+                                int quest_id = s.ToInt();
+                                PlayerQuest quest(quest_id, 0, 0);
+                                player->quest_history.insert(
+                                    player->quest_history.end(), quest);
+                            }
+                            else
+                            {
+                                done = true;
+                            }
+                        }
+                        catch (...)
+                        {
+                            done = true;
+                        }
+                    }
+                }
+                player->weight_max = player->adj_strength + 0x46;
+                if (player->weight_max > 0xfa)
+                    player->weight_max = 0xfa;
+                break;
+            }
+            if (!found)
+            {
+                Banned::AddBan(
+                    server->banned, player->remote_ip, player->hdid, (bool)0, 0x3840);
+                return false;
+            }
+            if (player->map_id == 0)
+                return false;
+            if (!Mysqlcontrols::IsAlphabeticText(server->mysql_controls, player->name) &&
+                player->name != "vult-r")
+                return false;
+            player->map_has_quakes =
+                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                    ->has_quakes;
+            player->map_has_hp_drain =
+                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                    ->has_hp_drain;
+            player->map_has_tp_drain =
+                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                    ->has_tp_drain;
+            player->map_has_spikes =
+                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)->has_spikes;
+            Mapcontrol::Mapcontrol_inc_player_count(server->map_control, player->map_id);
+            String out = EO_EncodeNumber(server, 2, 2);
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+            out.Insert(Settings::GetJoinMessage(server->settings), out.Length() + 1);
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+            for (int n = 0; n < 8; n++)
+            {
+                out.Insert(Newscontrol::Get((*MAINFORM)->news_control, n),
+                           out.Length() + 1);
+                out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+            }
+            int weight_current = player->weight_current;
+            int weight_max = player->weight_max;
+            if (weight_current > 0xfa)
+                weight_current = 0xfa;
+            if (weight_max > 0xfa)
+                weight_max = 0xfa;
+            out.Insert(EO_EncodeNumber(server, weight_current, 1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
+            std::vector<PlayerInventory>::iterator iter;
+            for (iter = player->inventory.begin(); iter != player->inventory.end();
+                 iter++)
+            {
+                out.Insert(EO_EncodeNumber(server, iter->item_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter->amount, 4),
+                           out.Length() + 1);
+            }
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+            std::vector<PlayerSkill>::iterator iter2;
+            for (iter2 = player->spells.begin(); iter2 != player->spells.end(); iter2++)
+            {
+                out.Insert(EO_EncodeNumber(server, iter2->skill_id, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, iter2->level, 2), out.Length() + 1);
+            }
+            out.Insert(EO_GetBreakByte(server, 0xff), out.Length() + 1);
+            out.Insert(Refresh_BuildReply(server, player), out.Length() + 1);
+            Client_SendEncoded(
+                server, player, PacketAction_Reply, PacketFamily_Welcome, out);
+            out = String(EO_GetBreakByte(server, 0xff));
+            out.Insert(Player_SerializeAvatar(server, player, -1), out.Length() + 1);
+            out.Insert(EO_EncodeNumber(server, 1, 1), out.Length() + 1);
+            Server_BroadcastNearby(
+                server, player, PacketAction_Agree, PacketFamily_Players, out);
+            player->logged_in = 1;
+            player->session_id = RandRange(0xc350) + 0x2710;
+            Mysqlcontrols::Mysql_ExecDirect(
+                server->mysql_controls,
+                player->field_0xc,
+                "UPDATE endl_characters SET online = 1 WHERE ident = " +
+                    IntToStr(player->character_id));
+            Players::Players_UpdatePeakOnline(server->players);
+            return true;
+        }
+        if (action == PacketAction_Agree)
+        {
+            if (data.Length() < 3)
+                return false;
+            if (EO_DecodeNumber(server, data.SubString(2, 2)) != player->session_id)
+                return false;
+            int code = EO_DecodeNumber(server, String(data[1]));
+            if (code == 1)
+            {
+                Client_SendRaw(
+                    server,
+                    player,
+                    Map_ReadRawFile(
+                        server->map_control,
+                        EO_DecodeNumber(server, data.SubString(4, 2))),
+                    5);
+            }
+            if (code == 2)
+            {
+                int index = EO_DecodeNumber(server, data.SubString(4, 1));
+                if (index > 0 &&
+                    (*MAINFORM)->item_values->string_list->Count >= index)
+                    Client_SendRaw(
+                        server,
+                        player,
+                        EO_EncodeNumber(server, index, 1) +
+                            (*MAINFORM)->item_values->string_list->Strings[index - 1],
+                        6);
+            }
+            if (code == 3)
+            {
+                int index = EO_DecodeNumber(server, data.SubString(4, 1));
+                if (index > 0 && (*MAINFORM)->npc_values->string_list->Count >= index)
+                    Client_SendRaw(
+                        server,
+                        player,
+                        EO_EncodeNumber(server, index, 1) +
+                            (*MAINFORM)->npc_values->string_list->Strings[index - 1],
+                        7);
+            }
+            if (code == 4)
+            {
+                int index = EO_DecodeNumber(server, data.SubString(4, 1));
+                if (index > 0 &&
+                    (*MAINFORM)->skill_values->string_list->Count >= index)
+                    Client_SendRaw(
+                        server,
+                        player,
+                        EO_EncodeNumber(server, index, 1) +
+                            (*MAINFORM)->skill_values->string_list->Strings[index - 1],
+                        8);
+            }
+            if (code == 5)
+            {
+                int index = EO_DecodeNumber(server, data.SubString(4, 1));
+                if (index > 0 &&
+                    (*MAINFORM)->class_values->string_list->Count >= index)
+                    Client_SendRaw(
+                        server,
+                        player,
+                        EO_EncodeNumber(server, index, 1) +
+                            (*MAINFORM)->class_values->string_list->Strings[index - 1],
+                        0xc);
+            }
+        }
+        return true;
     }
     if (family == PacketFamily_Range && action == PacketAction_Request)
     {
