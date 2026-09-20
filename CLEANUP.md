@@ -17,6 +17,11 @@ has since gone partly stale. What is applied and what remains:
 | `d186973` | §1.5 (explicit-receiver naming: `Serial`, `Filecache`), §1.9 (`field_0xNN`/`pad_0xNN` unified across the non-cluster headers), §1.11 (`values`→`record_list`, `GetCount` in the `*values` units), §1.12 (no drift found in those units) |
 | `325ea7b` | cluster (`Packets`/`Players`/`Mapcontrol`/`Mainform`/`Jukeboxcontrol`/`Npccontrol`/`Map.h`/`Player.h`/`Settings.h`/`Npc.h`): §2.1/§2.2 (`Account_DecodePassword`/`Account_EncodePassword`, `Server_BuildInit*Reply`; the rest were already named), §5.3/§5.4/§5.5 prototype hygiene, §1.7 (`PlayerCommand` `family`/`action`), §1.8 (`Player::account_ident`, `Players_IsAccountIdentOnline`), §1.9, §1.6/§2.3 (`Server *self`, `Mapcontrol *map_control`) |
 | `835f401` | §3.x so far: §3.1 (reply codes), §3.2 (action/family pairs + guild replies), §3.3 (`WarpEffect`), §3.4 (`Direction`), §3.5 (`AdminLevel`), §3.6 (`SitAction`), §3.7, §3.8 (`Emote`/`Gender`) — the remainder of §3.x in *other* units' call sites is still open |
+| `748b886` | §4.1/§4.2 (EO number bases, time constants), §4.4 (`PARTY_MAX_MEMBERS`), §4.8 (`MAP_QUEST_COOLDOWN`, `MAP_GROUND_ITEM_MAX`, `SOCKET_HANDLE_MAX`), §3.9 (`Protocol.h` includes) across the non-`Packets` units |
+| `6e8a00f` | §4.1–§4.8 remainder in `Packets.cpp`: EO bases, `MS_PER_SECOND`/`SECONDS_PER_DAY`, §4.3 timing, §4.4 party loops, §4.5 `BYTES_PER_KB`, §4.6 char limits, §4.7 session bases, §4.8 ban/jail |
+| `241b7fd` | §1.1 (`Map_*`/`Itemchest_*`/`Pub_*` → `Mapcontrol_*`, `IncPlayerCount`/`DecPlayerCount`), §1.3 (`Pub_` prefix removal), §1.5 (`*self` in `Mapcontrol`, `Players`, `Npccontrol`) |
+| `d6a85c3` | §1.2 (every unit's codec → `<Owner>::EncodeNumber`/`DecodeNumber`; `ClassValues::DecodeInt` → `DecodeNumber`), §1.11 remainder (`num_records`, `rid_1`/`rid_2`), §1.12 remainder (`flags`, `repeat`, `data`) |
+| `e2803f9` | §1.4 (`Eif_Get*` → bare `Get*`, 63 call sites), §1.1 leftover (`Mapcontrol_GetTileSpec`), and the PLAN.md records for the dead/stub/unresolved symbols |
 
 Each was gated on a full rebuild with no `Error E[0-9]+`, `make verify` 496/496 and
 `make track` 1790/1801; nothing regressed.
@@ -27,13 +32,17 @@ duplicate `int,int` overload does not exist; `Server_Shutdown` already calls the
 `unsigned char,unsigned char` form. Verify each remaining item against the tree before
 acting on it.
 
-*Not applied* — the cross-file cluster `src/Packets.*`, `src/Players.*`, `src/Mapcontrol.*`,
-`src/Mainform.*`, `src/Jukeboxcontrol.*`, `src/Npccontrol.*`, `src/Map.h`, `src/Player.h`,
-`src/Settings.h`, `src/Npc.h`: the rest of §2.1/§2.2, §5.3–§5.5 (remainder), §1.7, §1.8,
-§1.9 there, §1.6/§2.3 (parameter types), §3.x (literals → enums) and §4.x (literals →
-defines); plus the remaining §1.5/§1.11/§1.12 pockets elsewhere. §1.6/§1.7/§1.8/§3.x/§4.x
-are pure renames or literal substitutions and are byte-neutral by construction, but a
-rename must be applied atomically across every call site or the tree stops compiling.
+*Not applied (deliberate or out of scope):* the points `CLEANUP.md` itself marks as
+**do not attempt** — renaming RTTI-pinned classes (§0.1), renaming unit files, and
+converting members between the static-with-`self` and non-static forms (§1.11) — plus a
+small set deliberately left as literal because a name would be wrong or an overload hazard:
+the Jukebox reply `1` and Message Pong `2` (no spec enum), the `direction > 3` bound checks,
+the `gender == 0/1` comparisons, the `253.0` double divisor (§4.1's warning), the `0x3ff`
+traffic guards (`BYTES_PER_KB - 1` is a different token sequence), the reference quirk
+`0x67` divisor (§4.5), `Doorcontrol`'s door-tile numbers (they do not match the
+`MapTileSpec` names), and the `// STUB(...)` block at the end of `Packets.cpp`/`Players.cpp`.
+`FUN_0044f73c`/`FUN_0044f710` and `FUN_00462374` remain because no definition exists to
+name from.
 
 *Verification hazard found while applying this:* `scripts/build_asm.sh` is **incremental**
 (mtime-based), so a broken `src/` can be masked by a stale `build/*.asm`; a rename that is
