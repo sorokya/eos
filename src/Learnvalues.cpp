@@ -10,14 +10,14 @@ LearnValues::LearnValues()
 {
     field_0x24 = -1;
     loaded = 0;
-    Pub_LoadSkillMasters(this);
+    LoadSkillMasters(this);
 }
 
 LearnValues::~LearnValues()
 {
 }
 
-void LearnValues::Pub_LoadSkillMasters(LearnValues *self)
+void LearnValues::LoadSkillMasters(LearnValues *self)
 {
     if (self->loaded == 0)
     {
@@ -43,37 +43,34 @@ void LearnValues::Pub_LoadSkillMasters(LearnValues *self)
             data.Delete(1, 3);
             do
             {
-                int id = Pub_DecodeNumber_Learn(self, data.SubString(1, 2));
-                int namelen = Pub_DecodeNumber_Learn(self, data.SubString(3, 1));
+                int id = DecodeNumber(self, data.SubString(1, 2));
+                int namelen = DecodeNumber(self, data.SubString(3, 1));
                 LearnValue record(id);
                 record.name += data.SubString(4, namelen);
-                record.min_level =
-                    Pub_DecodeNumber_Learn(self, data.SubString(namelen + 4, 1));
-                record.max_level =
-                    Pub_DecodeNumber_Learn(self, data.SubString(namelen + 5, 1));
+                record.min_level = DecodeNumber(self, data.SubString(namelen + 4, 1));
+                record.max_level = DecodeNumber(self, data.SubString(namelen + 5, 1));
                 record.class_requirement =
-                    Pub_DecodeNumber_Learn(self, data.SubString(namelen + 6, 1));
-                int skill_count =
-                    Pub_DecodeNumber_Learn(self, data.SubString(namelen + 7, 2));
+                    DecodeNumber(self, data.SubString(namelen + 6, 1));
+                int skill_count = DecodeNumber(self, data.SubString(namelen + 7, 2));
                 data.Delete(1, namelen + 8);
                 for (int j = 0; j < skill_count; j++)
                 {
                     AddSkill(self,
                              &record,
-                             Pub_DecodeNumber_Learn(self, data.SubString(1, 2)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(3, 1)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(4, 1)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(5, 4)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(9, 2)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(0xb, 2)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(0xd, 2)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(0xf, 2)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(0x11, 2)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(0x13, 2)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(0x15, 2)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(0x17, 2)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(0x19, 2)),
-                             Pub_DecodeNumber_Learn(self, data.SubString(0x1b, 2)));
+                             DecodeNumber(self, data.SubString(1, 2)),
+                             DecodeNumber(self, data.SubString(3, 1)),
+                             DecodeNumber(self, data.SubString(4, 1)),
+                             DecodeNumber(self, data.SubString(5, 4)),
+                             DecodeNumber(self, data.SubString(9, 2)),
+                             DecodeNumber(self, data.SubString(0xb, 2)),
+                             DecodeNumber(self, data.SubString(0xd, 2)),
+                             DecodeNumber(self, data.SubString(0xf, 2)),
+                             DecodeNumber(self, data.SubString(0x11, 2)),
+                             DecodeNumber(self, data.SubString(0x13, 2)),
+                             DecodeNumber(self, data.SubString(0x15, 2)),
+                             DecodeNumber(self, data.SubString(0x17, 2)),
+                             DecodeNumber(self, data.SubString(0x19, 2)),
+                             DecodeNumber(self, data.SubString(0x1b, 2)));
                     data.Delete(1, 0x1c);
                 }
                 self->record_list.insert(self->record_list.end(), record);
@@ -191,59 +188,46 @@ String LearnValues::BuildOpenData(LearnValues *self, int behavior_id)
     {
         if (it->id == behavior_id)
         {
-            data += Pub_EncodeNumber_Learn(self, it->id, 2);
+            data += EncodeNumber(self, it->id, 2);
             data.Insert(it->name, data.Length() + 1);
             data.Insert((char)-1, data.Length() + 1);
             if (it->skills.size() > 0)
                 for (skill_iter = it->skills.begin(); skill_iter != it->skills.end();
                      skill_iter++)
                 {
-                    data.Insert(Pub_EncodeNumber_Learn(self, skill_iter->id, 2),
+                    data.Insert(EncodeNumber(self, skill_iter->id, 2), data.Length() + 1);
+                    data.Insert(EncodeNumber(self, skill_iter->level_requirement, 1),
                                 data.Length() + 1);
-                    data.Insert(
-                        Pub_EncodeNumber_Learn(self, skill_iter->level_requirement, 1),
-                        data.Length() + 1);
-                    data.Insert(
-                        Pub_EncodeNumber_Learn(self, skill_iter->class_requirement, 1),
-                        data.Length() + 1);
-                    data.Insert(Pub_EncodeNumber_Learn(self, skill_iter->price, 4),
+                    data.Insert(EncodeNumber(self, skill_iter->class_requirement, 1),
                                 data.Length() + 1);
-                    data.Insert(
-                        Pub_EncodeNumber_Learn(self, skill_iter->skill_requirement_1, 2),
-                        data.Length() + 1);
-                    data.Insert(
-                        Pub_EncodeNumber_Learn(self, skill_iter->skill_requirement_2, 2),
-                        data.Length() + 1);
-                    data.Insert(
-                        Pub_EncodeNumber_Learn(self, skill_iter->skill_requirement_3, 2),
-                        data.Length() + 1);
-                    data.Insert(
-                        Pub_EncodeNumber_Learn(self, skill_iter->skill_requirement_4, 2),
-                        data.Length() + 1);
-                    data.Insert(
-                        Pub_EncodeNumber_Learn(self, skill_iter->str_requirement, 2),
-                        data.Length() + 1);
-                    data.Insert(
-                        Pub_EncodeNumber_Learn(self, skill_iter->int_requirement, 2),
-                        data.Length() + 1);
-                    data.Insert(
-                        Pub_EncodeNumber_Learn(self, skill_iter->wis_requirement, 2),
-                        data.Length() + 1);
-                    data.Insert(
-                        Pub_EncodeNumber_Learn(self, skill_iter->agi_requirement, 2),
-                        data.Length() + 1);
-                    data.Insert(
-                        Pub_EncodeNumber_Learn(self, skill_iter->con_requirement, 2),
-                        data.Length() + 1);
-                    data.Insert(
-                        Pub_EncodeNumber_Learn(self, skill_iter->cha_requirement, 2),
-                        data.Length() + 1);
+                    data.Insert(EncodeNumber(self, skill_iter->price, 4),
+                                data.Length() + 1);
+                    data.Insert(EncodeNumber(self, skill_iter->skill_requirement_1, 2),
+                                data.Length() + 1);
+                    data.Insert(EncodeNumber(self, skill_iter->skill_requirement_2, 2),
+                                data.Length() + 1);
+                    data.Insert(EncodeNumber(self, skill_iter->skill_requirement_3, 2),
+                                data.Length() + 1);
+                    data.Insert(EncodeNumber(self, skill_iter->skill_requirement_4, 2),
+                                data.Length() + 1);
+                    data.Insert(EncodeNumber(self, skill_iter->str_requirement, 2),
+                                data.Length() + 1);
+                    data.Insert(EncodeNumber(self, skill_iter->int_requirement, 2),
+                                data.Length() + 1);
+                    data.Insert(EncodeNumber(self, skill_iter->wis_requirement, 2),
+                                data.Length() + 1);
+                    data.Insert(EncodeNumber(self, skill_iter->agi_requirement, 2),
+                                data.Length() + 1);
+                    data.Insert(EncodeNumber(self, skill_iter->con_requirement, 2),
+                                data.Length() + 1);
+                    data.Insert(EncodeNumber(self, skill_iter->cha_requirement, 2),
+                                data.Length() + 1);
                 }
         }
         it++;
     }
     if (data == "")
-        data += Pub_EncodeNumber_Learn(self, 0, 2);
+        data += EncodeNumber(self, 0, 2);
     return data;
 }
 
@@ -252,8 +236,7 @@ unsigned int LearnValues::GetCount(LearnValues *self)
     return self->record_list.size();
 }
 
-String
-LearnValues::Pub_EncodeNumber_Learn(LearnValues *self, unsigned int value, int width)
+String LearnValues::EncodeNumber(LearnValues *self, unsigned int value, int width)
 {
     unsigned int n = value;
     String result = "";
@@ -287,7 +270,7 @@ LearnValues::Pub_EncodeNumber_Learn(LearnValues *self, unsigned int value, int w
     return result;
 }
 
-int LearnValues::Pub_DecodeNumber_Learn(LearnValues *self, String value)
+int LearnValues::DecodeNumber(LearnValues *self, String value)
 {
     String value_copy = value;
     int result = 0;

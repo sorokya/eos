@@ -284,7 +284,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             coords.x++;
                         if (player->direction == Direction_Down)
                             coords.y++;
-                        if (!Mapcontrol::Map_IsTileClear(
+                        if (!Mapcontrol::Mapcontrol_IsTileClear(
                                 server->map_control, player->map_id, coords.x, coords.y))
                         {
                             coords.x = player->x;
@@ -349,10 +349,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 coords.x++;
                             if (target->direction == Direction_Down)
                                 coords.y++;
-                            if (!Mapcontrol::Map_IsTileClear(server->map_control,
-                                                             target->map_id,
-                                                             coords.x,
-                                                             coords.y))
+                            if (!Mapcontrol::Mapcontrol_IsTileClear(server->map_control,
+                                                                    target->map_id,
+                                                                    coords.x,
+                                                                    coords.y))
                             {
                                 coords.x = target->x;
                                 coords.y = target->y;
@@ -384,17 +384,18 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 coords.y += coords.y / 2;
                             if (coords.y <= target->y)
                                 coords.y = coords.y / 2;
-                            if (!Mapcontrol::Map_IsTileClear(server->map_control,
-                                                             target->map_id,
-                                                             coords.x,
-                                                             coords.y))
+                            if (!Mapcontrol::Mapcontrol_IsTileClear(server->map_control,
+                                                                    target->map_id,
+                                                                    coords.x,
+                                                                    coords.y))
                             {
                                 coords.x = 2;
                                 coords.y = 2;
-                                if (!Mapcontrol::Map_IsTileClear(server->map_control,
-                                                                 target->map_id,
-                                                                 coords.x,
-                                                                 coords.y))
+                                if (!Mapcontrol::Mapcontrol_IsTileClear(
+                                        server->map_control,
+                                        target->map_id,
+                                        coords.x,
+                                        coords.y))
                                     return true;
                             }
                             Player_Warp(server,
@@ -999,11 +1000,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         if (Mapcontrol_ReloadMap(server->map_control, player->map_id))
                         {
                             Server_SyncMapHazardFlags(server, player->map_id);
-                            Talk_PlayerWhisper(
-                                server,
-                                player->map_id,
-                                Map_ReadRawFile(server->map_control, player->map_id),
-                                10);
+                            Talk_PlayerWhisper(server,
+                                               player->map_id,
+                                               Mapcontrol_ReadRawFile(server->map_control,
+                                                                      player->map_id),
+                                               10);
                         }
                     }
                     if (command == "guilds")
@@ -2246,7 +2247,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->map_has_spikes =
                 Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                     ->has_spikes;
-            Mapcontrol::Mapcontrol_inc_player_count(server->map_control, player->map_id);
+            Mapcontrol::Mapcontrol_IncPlayerCount(server->map_control, player->map_id);
             String out = EO_EncodeNumber(server, 2, 2);
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             out.Insert(Settings::GetJoinMessage(server->settings), out.Length() + 1);
@@ -2310,8 +2311,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 Client_SendRaw(
                     server,
                     player,
-                    Map_ReadRawFile(server->map_control,
-                                    EO_DecodeNumber(server, data.SubString(4, 2))),
+                    Mapcontrol_ReadRawFile(server->map_control,
+                                           EO_DecodeNumber(server, data.SubString(4, 2))),
                     5);
             }
             if (code == 2)
@@ -2637,8 +2638,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         {
             String encoded = EO_EncodeNumber(server, coord.x, 1);
             encoded.Insert(EO_EncodeNumber(server, coord.y, 2), encoded.Length() + 1);
-            int warp =
-                Mapcontrol::Map_GetWarpDoorAt(server->map_control, player->map_id, coord);
+            int warp = Mapcontrol::Mapcontrol_GetWarpDoorAt(
+                server->map_control, player->map_id, coord);
             if (warp > 0)
             {
                 if (Players::Player_HasKeyItem(server->players, player, warp))
@@ -3169,8 +3170,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 player->map_has_hp_drain = false;
                 player->map_has_tp_drain = false;
                 player->map_has_spikes = false;
-                Mapcontrol::Mapcontrol_dec_player_count(server->map_control,
-                                                        player->map_id);
+                Mapcontrol::Mapcontrol_DecPlayerCount(server->map_control,
+                                                      player->map_id);
             }
             player->map_switch_pending = true;
             player->target_map = player->map_id;
@@ -3186,7 +3187,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->session_token = -1;
             player->field_0x8c = "";
             Client_SendRaw(
-                server, player, Map_ReadRawFile(server->map_control, read_map), 4);
+                server, player, Mapcontrol_ReadRawFile(server->map_control, read_map), 4);
             return true;
         }
         if (action == PacketAction_Accept)
@@ -3228,8 +3229,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     PacketFamily_Avatar,
                     EO_EncodeNumber(server, player->player_id, 2) +
                         EO_EncodeNumber(server, player->warp_state, 1));
-                Mapcontrol::Mapcontrol_dec_player_count(server->map_control,
-                                                        player->map_id);
+                Mapcontrol::Mapcontrol_DecPlayerCount(server->map_control,
+                                                      player->map_id);
             }
             int saved_state = player->warp_state;
             player->map_id = player->warp_map;
@@ -3263,7 +3264,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->map_has_spikes =
                 Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                     ->has_spikes;
-            Mapcontrol::Mapcontrol_inc_player_count(server->map_control, player->map_id);
+            Mapcontrol::Mapcontrol_IncPlayerCount(server->map_control, player->map_id);
             String out = EO_GetBreakByte(server, EO_BREAK_BYTE);
             out.Insert(Player_SerializeAvatar(server, player, saved_state),
                        out.Length() + 1);
@@ -7424,8 +7425,8 @@ bool Chair_Execute(Server *server, Player *player, int action, String *data)
                 Mapcontrol::Map_GetTileSpec(server->map_control, player->map_id, x, y);
             if (spec >= 0 && spec <= 6)
             {
-                MapObject tile =
-                    Map_GetTileSpecObject(server->map_control, player->map_id, x, y);
+                MapObject tile = Mapcontrol_GetTileSpecObject(
+                    server->map_control, player->map_id, x, y);
                 String out = EO_EncodeNumber(server, player->player_id, 2);
                 out.Insert(EO_EncodeNumber(server, x, 1), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, y, 1), out.Length() + 1);
@@ -7689,7 +7690,7 @@ void Player_Warp(Server *server,
             player->map_has_hp_drain = false;
             player->map_has_tp_drain = false;
             player->map_has_spikes = false;
-            Mapcontrol::Mapcontrol_dec_player_count(server->map_control, player->map_id);
+            Mapcontrol::Mapcontrol_DecPlayerCount(server->map_control, player->map_id);
         }
         player->map_id = 0;
         player->x = 0;
@@ -7766,21 +7767,23 @@ void Player_FireQuestTriggers(Server *server, Player *player, int state_index, i
 
 bool Player_CheckIdleWarp(Server *server, Player *player, int x, int y)
 {
-    if (Mapcontrol::Map_IsTileWalkable(server->map_control, player->map_id, x, y))
+    if (Mapcontrol::Mapcontrol_IsTileWalkable(server->map_control, player->map_id, x, y))
     {
         MapCoord coords;
         coords.x = x;
         coords.y = y;
-        if (Mapcontrol::Map_GetWarpDoorAt(server->map_control, player->map_id, coords) <
-            2)
+        if (Mapcontrol::Mapcontrol_GetWarpDoorAt(
+                server->map_control, player->map_id, coords) < 2)
         {
             MapCoord dest;
-            int target_map =
-                Mapcontrol::Map_GetWarpMap(server->map_control, player->map_id, x, y);
-            int level_req = Mapcontrol::Map_GetWarpLevelReq(
+            int target_map = Mapcontrol::Mapcontrol_GetWarpMap(
                 server->map_control, player->map_id, x, y);
-            dest.x = Mapcontrol::Map_GetWarpX(server->map_control, player->map_id, x, y);
-            dest.y = Mapcontrol::Map_GetWarpY(server->map_control, player->map_id, x, y);
+            int level_req = Mapcontrol::Mapcontrol_GetWarpLevelReq(
+                server->map_control, player->map_id, x, y);
+            dest.x = Mapcontrol::Mapcontrol_GetWarpX(
+                server->map_control, player->map_id, x, y);
+            dest.y = Mapcontrol::Mapcontrol_GetWarpY(
+                server->map_control, player->map_id, x, y);
             if (player->level < level_req)
                 return false;
             player->flush_queue = 1;
@@ -9889,7 +9892,7 @@ void Server_RemovePlayer(Server *server, TCustomWinSocket *socket)
                 player->on_chair = false;
                 player->sitting = false;
             }
-            Mapcontrol::Mapcontrol_dec_player_count(server->map_control, player->map_id);
+            Mapcontrol::Mapcontrol_DecPlayerCount(server->map_control, player->map_id);
         }
         if (player->map_switch_pending)
         {
@@ -12412,7 +12415,7 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
         target_x = player->x + 1;
         target_y = player->y;
     }
-    if (Mapcontrol::Map_IsOccupied(
+    if (Mapcontrol::Mapcontrol_IsOccupied(
             server->map_control, player->map_id, target_x, target_y) &&
         action == PacketAction_Player)
         return true;
@@ -12452,7 +12455,7 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
             }
         }
     }
-    int walkable = Mapcontrol::Map_IsWalkableNPC(
+    int walkable = Mapcontrol::Mapcontrol_IsWalkableNPC(
         server->map_control, player->map_id, target_x, target_y, 1);
     if (walkable == 0 || (walkable == 1 && action == PacketAction_Admin))
     {
@@ -12511,13 +12514,13 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
     }
     if (walkable == 2)
     {
-        int target_map = Mapcontrol::Map_GetWarpMap(
+        int target_map = Mapcontrol::Mapcontrol_GetWarpMap(
             server->map_control, player->map_id, target_x, target_y);
-        int level_req = Mapcontrol::Map_GetWarpLevelReq(
+        int level_req = Mapcontrol::Mapcontrol_GetWarpLevelReq(
             server->map_control, player->map_id, target_x, target_y);
-        int warp_x = Mapcontrol::Map_GetWarpX(
+        int warp_x = Mapcontrol::Mapcontrol_GetWarpX(
             server->map_control, player->map_id, target_x, target_y);
-        int warp_y = Mapcontrol::Map_GetWarpY(
+        int warp_y = Mapcontrol::Mapcontrol_GetWarpY(
             server->map_control, player->map_id, target_x, target_y);
         if (player->level < level_req)
             return true;

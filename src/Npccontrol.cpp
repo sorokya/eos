@@ -103,10 +103,10 @@ void NpcController::Npc_Wander(
     {
         if (npc->y < map_h)
         {
-            if (Mapcontrol::Map_IsWalkableNPC(
+            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
                     self->map_control, map_id, npc->x, npc->y + 1, 0) == 0)
             {
-                if (!Mapcontrol::Map_IsOccupied(
+                if (!Mapcontrol::Mapcontrol_IsOccupied(
                         self->map_control, map_id, npc->x, npc->y + 1))
                 {
                     if (!Npc_DoMove(self, map_id, npc->x, npc->y + 1))
@@ -124,10 +124,10 @@ void NpcController::Npc_Wander(
     {
         if (npc->x >= 1)
         {
-            if (Mapcontrol::Map_IsWalkableNPC(
+            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
                     self->map_control, map_id, npc->x - 1, npc->y, 0) == 0)
             {
-                if (!Mapcontrol::Map_IsOccupied(
+                if (!Mapcontrol::Mapcontrol_IsOccupied(
                         self->map_control, map_id, npc->x - 1, npc->y))
                 {
                     if (!Npc_DoMove(self, map_id, npc->x - 1, npc->y))
@@ -145,10 +145,10 @@ void NpcController::Npc_Wander(
     {
         if (npc->y >= 1)
         {
-            if (Mapcontrol::Map_IsWalkableNPC(
+            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
                     self->map_control, map_id, npc->x, npc->y - 1, 0) == 0)
             {
-                if (!Mapcontrol::Map_IsOccupied(
+                if (!Mapcontrol::Mapcontrol_IsOccupied(
                         self->map_control, map_id, npc->x, npc->y - 1))
                 {
                     if (!Npc_DoMove(self, map_id, npc->x, npc->y - 1))
@@ -164,10 +164,10 @@ void NpcController::Npc_Wander(
     }
     else if (npc->nAttack_dir == Direction_Right && npc->x < map_w)
     {
-        if (Mapcontrol::Map_IsWalkableNPC(
+        if (Mapcontrol::Mapcontrol_IsWalkableNPC(
                 self->map_control, map_id, npc->x + 1, npc->y, 0) == 0)
         {
-            if (!Mapcontrol::Map_IsOccupied(
+            if (!Mapcontrol::Mapcontrol_IsOccupied(
                     self->map_control, map_id, npc->x + 1, npc->y))
             {
                 if (!Npc_DoMove(self, map_id, npc->x + 1, npc->y))
@@ -205,7 +205,7 @@ int NpcController::Npc_ValidateMove(NpcController *self, int map_id, int x, int 
 }
 
 String
-NpcController::Packet_AppendEncoded(NpcController *context, unsigned int value, int width)
+NpcController::Packet_AppendEncoded(NpcController *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -221,7 +221,7 @@ NpcController::Packet_AppendEncoded(NpcController *context, unsigned int value, 
                 quotient = d;
                 rem = value % EO_NUM_MAX;
                 c = rem + 1;
-                ((char *)context->encode_scratch)[i] = c;
+                ((char *)self->encode_scratch)[i] = c;
                 value = quotient;
                 if (quotient < 1)
                     flag = false;
@@ -231,7 +231,7 @@ NpcController::Packet_AppendEncoded(NpcController *context, unsigned int value, 
             else
             {
                 char pad = EO_NUM_EMPTY;
-                ((char *)context->encode_scratch)[i] = pad;
+                ((char *)self->encode_scratch)[i] = pad;
             }
         }
     }
@@ -239,7 +239,7 @@ NpcController::Packet_AppendEncoded(NpcController *context, unsigned int value, 
     {
         width = 0;
     }
-    String encoded((char *)context->encode_scratch, width);
+    String encoded((char *)self->encode_scratch, width);
     return encoded;
 }
 
@@ -466,10 +466,11 @@ void NpcController::Npc_ChaseTarget(
                 continue;
             if (npc->x == npc->nStuck_pos && npc->y + 1 == *(int *)&npc->pad_0x90)
                 continue;
-            if (Mapcontrol::Map_IsWalkableNPC(
+            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
                     mc->map_control, map_id, npc->x, npc->y + 1, 0) != 0)
                 continue;
-            if (Mapcontrol::Map_IsOccupied(mc->map_control, map_id, npc->x, npc->y + 1))
+            if (Mapcontrol::Mapcontrol_IsOccupied(
+                    mc->map_control, map_id, npc->x, npc->y + 1))
                 continue;
             int player_id = Npc_ValidateMove(mc, map_id, npc->x, npc->y + 1);
             if (player_id > 0)
@@ -495,10 +496,11 @@ void NpcController::Npc_ChaseTarget(
                 continue;
             if (npc->x - 1 == npc->nStuck_pos && npc->y == *(int *)&npc->pad_0x90)
                 continue;
-            if (Mapcontrol::Map_IsWalkableNPC(
+            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
                     mc->map_control, map_id, npc->x - 1, npc->y, 0) != 0)
                 continue;
-            if (Mapcontrol::Map_IsOccupied(mc->map_control, map_id, npc->x - 1, npc->y))
+            if (Mapcontrol::Mapcontrol_IsOccupied(
+                    mc->map_control, map_id, npc->x - 1, npc->y))
                 continue;
             int player_id = Npc_ValidateMove(mc, map_id, npc->x - 1, npc->y);
             if (player_id > 0)
@@ -524,10 +526,11 @@ void NpcController::Npc_ChaseTarget(
                 continue;
             if (npc->x == npc->nStuck_pos && npc->y - 1 == *(int *)&npc->pad_0x90)
                 continue;
-            if (Mapcontrol::Map_IsWalkableNPC(
+            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
                     mc->map_control, map_id, npc->x, npc->y - 1, 0) != 0)
                 continue;
-            if (Mapcontrol::Map_IsOccupied(mc->map_control, map_id, npc->x, npc->y - 1))
+            if (Mapcontrol::Mapcontrol_IsOccupied(
+                    mc->map_control, map_id, npc->x, npc->y - 1))
                 continue;
             int player_id = Npc_ValidateMove(mc, map_id, npc->x, npc->y - 1);
             if (player_id > 0)
@@ -553,10 +556,11 @@ void NpcController::Npc_ChaseTarget(
                 continue;
             if (npc->x + 1 == npc->nStuck_pos && npc->y == *(int *)&npc->pad_0x90)
                 continue;
-            if (Mapcontrol::Map_IsWalkableNPC(
+            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
                     mc->map_control, map_id, npc->x + 1, npc->y, 0) != 0)
                 continue;
-            if (Mapcontrol::Map_IsOccupied(mc->map_control, map_id, npc->x + 1, npc->y))
+            if (Mapcontrol::Mapcontrol_IsOccupied(
+                    mc->map_control, map_id, npc->x + 1, npc->y))
                 continue;
             int player_id = Npc_ValidateMove(mc, map_id, npc->x + 1, npc->y);
             if (player_id > 0)
@@ -614,7 +618,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                             sx = RandRange(5) + (*npc)->wSpawn_x - 2;
                             sy = RandRange(5) + (*npc)->wSpawn_y - 2;
                         }
-                        if (!Mapcontrol::Map_IsTileClear(
+                        if (!Mapcontrol::Mapcontrol_IsTileClear(
                                 npc_control->map_control, map->rid, sx, sy))
                         {
                             (*npc)->spawn_time = (*npc)->spawn_time + 1;

@@ -71,20 +71,20 @@ class Mapcontrol
     Mapcontrol(Settings *settings);
     ~Mapcontrol();
 
-    static void Mapcontrol_LoadMaps(Mapcontrol *map_control);
-    static bool Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id);
-    static void Mapcontrol_inc_player_count(Mapcontrol *map_control, int map_id);
-    static void Mapcontrol_dec_player_count(Mapcontrol *map_control, int map_id);
-    static void Mapcontrol_SetArenaBlock(Mapcontrol *map_control, int map_id, int block);
-    static void Mapcontrol_SetTileBits(
-        Mapcontrol *map_control, MapContainer *map, int x, int y, int code);
+    static void Mapcontrol_LoadMaps(Mapcontrol *self);
+    static bool Mapcontrol_LoadMap(Mapcontrol *self, int map_id);
+    static void Mapcontrol_IncPlayerCount(Mapcontrol *self, int map_id);
+    static void Mapcontrol_DecPlayerCount(Mapcontrol *self, int map_id);
+    static void Mapcontrol_SetArenaBlock(Mapcontrol *self, int map_id, int block);
+    static void
+    Mapcontrol_SetTileBits(Mapcontrol *self, MapContainer *map, int x, int y, int code);
     static int
-    Mapcontrol_CountNpcsChasingPlayer(Mapcontrol *map_control, int map_id, int player_id);
-    static bool Mapcontrol_AggroChildNpcs(Mapcontrol *map_control, int map_id);
-    static bool Mapcontrol_KillChildNpcs(Mapcontrol *map_control, int map_id);
-    static void Mapcontrol_AddTileSpec(
-        Mapcontrol *map_control, MapContainer *map, int x, int y, int spec);
-    static void Mapcontrol_AddWarp(Mapcontrol *map_control,
+    Mapcontrol_CountNpcsChasingPlayer(Mapcontrol *self, int map_id, int player_id);
+    static bool Mapcontrol_AggroChildNpcs(Mapcontrol *self, int map_id);
+    static bool Mapcontrol_KillChildNpcs(Mapcontrol *self, int map_id);
+    static void
+    Mapcontrol_AddTileSpec(Mapcontrol *self, MapContainer *map, int x, int y, int spec);
+    static void Mapcontrol_AddWarp(Mapcontrol *self,
                                    MapContainer *map,
                                    int x,
                                    int y,
@@ -92,24 +92,19 @@ class Mapcontrol
                                    int level,
                                    int dest_x,
                                    int dest_y);
-    static void Mapcontrol_AddLockKey(Mapcontrol *map_control,
-                                      MapContainer *map,
-                                      unsigned int x,
-                                      unsigned int y,
-                                      int key_id);
-    static void Mapcontrol_GetOrCreateChest(Mapcontrol *map_control,
+    static void Mapcontrol_AddLockKey(
+        Mapcontrol *self, MapContainer *map, unsigned int x, unsigned int y, int key_id);
+    static void Mapcontrol_GetOrCreateChest(Mapcontrol *self,
                                             MapContainer *map,
                                             unsigned int x,
                                             unsigned int y);
-    static unsigned char Mapcontrol_ToggleDoor(Mapcontrol *map_control,
-                                               int map_id,
-                                               unsigned int x,
-                                               unsigned int y);
-    static MapItem *Itemchest_GetSlot(std::vector<MapItem> *slot_list, int slot);
-    static int Map_GetWarpDoorAt(Mapcontrol *map_control, int map_id, MapCoord coords);
+    static unsigned char
+    Mapcontrol_ToggleDoor(Mapcontrol *self, int map_id, unsigned int x, unsigned int y);
+    static MapItem *Mapcontrol_GetSlot(std::vector<MapItem> *slot_list, int slot);
+    static int Mapcontrol_GetWarpDoorAt(Mapcontrol *self, int map_id, MapCoord coords);
     static int
-    Mapcontrol_GetChestSlotCount(Mapcontrol *map_control, int map_id, MapCoord coords);
-    static void Mapcontrol_AddChestSpawn(Mapcontrol *map_control,
+    Mapcontrol_GetChestSlotCount(Mapcontrol *self, int map_id, MapCoord coords);
+    static void Mapcontrol_AddChestSpawn(Mapcontrol *self,
                                          MapContainer *map,
                                          unsigned int x,
                                          unsigned int y,
@@ -119,12 +114,10 @@ class Mapcontrol
                                          int spawn_time,
                                          int amount);
     static void Mapcontrol_AddChestItem(
-        Mapcontrol *map_control, int map_id, MapCoord coords, int item_id, int amount);
-    static ItemStack Mapcontrol_TakeChestItem(Mapcontrol *map_control,
-                                              int map_id,
-                                              MapCoord coords,
-                                              int item_id);
-    static int Mapcontrol_AddGroundItem(Mapcontrol *map_control,
+        Mapcontrol *self, int map_id, MapCoord coords, int item_id, int amount);
+    static ItemStack
+    Mapcontrol_TakeChestItem(Mapcontrol *self, int map_id, MapCoord coords, int item_id);
+    static int Mapcontrol_AddGroundItem(Mapcontrol *self,
                                         int map_id,
                                         unsigned int item_id,
                                         int x,
@@ -132,57 +125,51 @@ class Mapcontrol
                                         unsigned int amount,
                                         int owner_player_id,
                                         unsigned short protect_ticks);
-    static void Mapcontrol_PurgeGroundItemsInRange(Mapcontrol *map_control,
+    static void Mapcontrol_PurgeGroundItemsInRange(Mapcontrol *self,
                                                    int map_id,
                                                    int range_low,
                                                    int range_high);
-    static int Pub_DecodeNumber_Map(Mapcontrol *map_control, String value);
+    static int Mapcontrol_DecodeNumber(Mapcontrol *self, String value);
     static String
-    Mapcontrol_AppendEncoded(Mapcontrol *map_control, unsigned int value, int width);
-    static int Map_GetWarpMap(Mapcontrol *map_control, int map_id, int x, int y);
-    static int Map_GetWarpLevelReq(Mapcontrol *map_control, int map_id, int x, int y);
-    static int Map_GetWarpX(Mapcontrol *map_control, int map_id, int x, int y);
-    static int Map_GetWarpY(Mapcontrol *map_control, int map_id, int x, int y);
-    static unsigned int
-    Map_GetTileSpec(Mapcontrol *map_control, int map_id, int x, int y);
-    static bool Map_IsOccupied(Mapcontrol *map_control, int map_id, int x, int y);
-    static bool Map_IsTileClear(Mapcontrol *map_control, int map_id, int x, int y);
-    static bool Map_IsTileWalkable(Mapcontrol *map_control, int map_id, int x, int y);
-    static int Map_IsWalkableNPC(
-        Mapcontrol *map_control, int map_id, int x, int y, char ignore_spec_block);
+    Mapcontrol_AppendEncoded(Mapcontrol *self, unsigned int value, int width);
+    static int Mapcontrol_GetWarpMap(Mapcontrol *self, int map_id, int x, int y);
+    static int Mapcontrol_GetWarpLevelReq(Mapcontrol *self, int map_id, int x, int y);
+    static int Mapcontrol_GetWarpX(Mapcontrol *self, int map_id, int x, int y);
+    static int Mapcontrol_GetWarpY(Mapcontrol *self, int map_id, int x, int y);
+    static unsigned int Map_GetTileSpec(Mapcontrol *self, int map_id, int x, int y);
+    static bool Mapcontrol_IsOccupied(Mapcontrol *self, int map_id, int x, int y);
+    static bool Mapcontrol_IsTileClear(Mapcontrol *self, int map_id, int x, int y);
+    static bool Mapcontrol_IsTileWalkable(Mapcontrol *self, int map_id, int x, int y);
+    static int Mapcontrol_IsWalkableNPC(
+        Mapcontrol *self, int map_id, int x, int y, char ignore_spec_block);
 };
 
-int Mapcontrol_GetChestKeyAt(Mapcontrol *map_control, int map_id, MapCoord coords);
-String
-Mapcontrol_BuildChestItemsString(Mapcontrol *map_control, int map_id, MapCoord coords);
-char Mapcontrol_TryTakeQuestCooldown(Mapcontrol *map_control, int map_id);
-char Mapcontrol_GetCanScroll(Mapcontrol *map_control, int map_id);
-MapCoord Mapcontrol_GetRelogCoords(Mapcontrol *map_control, int map_id);
+int Mapcontrol_GetChestKeyAt(Mapcontrol *self, int map_id, MapCoord coords);
+String Mapcontrol_BuildChestItemsString(Mapcontrol *self, int map_id, MapCoord coords);
+char Mapcontrol_TryTakeQuestCooldown(Mapcontrol *self, int map_id);
+char Mapcontrol_GetCanScroll(Mapcontrol *self, int map_id);
+MapCoord Mapcontrol_GetRelogCoords(Mapcontrol *self, int map_id);
 unsigned int
-Mapcontrol_GetNpcIdByIndex(Mapcontrol *map_control, int map_id, unsigned int npc_index);
-MapCoord Mapcontrol_GetNpcCoordsByIndex(Mapcontrol *map_control,
-                                        int map_id,
-                                        unsigned int npc_index);
-char Mapcontrol_IsDropTileClear(Mapcontrol *map_control, int map_id, int x, int y);
-unsigned int Mapcontrol_GetTileSpecValueAt(Mapcontrol *map_control,
+Mapcontrol_GetNpcIdByIndex(Mapcontrol *self, int map_id, unsigned int npc_index);
+MapCoord
+Mapcontrol_GetNpcCoordsByIndex(Mapcontrol *self, int map_id, unsigned int npc_index);
+char Mapcontrol_IsDropTileClear(Mapcontrol *self, int map_id, int x, int y);
+unsigned int Mapcontrol_GetTileSpecValueAt(Mapcontrol *self,
                                            int map_id,
                                            unsigned int x,
                                            unsigned int y);
-int Mapcontrol_CountBlockedNeighbors(Mapcontrol *map_control,
+int Mapcontrol_CountBlockedNeighbors(Mapcontrol *self,
                                      int map_id,
                                      unsigned int x,
                                      unsigned int y);
-bool Mapcontrol_CanDropItemAt(
-    Mapcontrol *map_control, int map_id, int x, int y, int player_id);
-GroundItemInfo Mapcontrol_TakeGroundItemInfo(Mapcontrol *map_control,
-                                             int map_id,
-                                             int index,
-                                             int player_id);
-void Mapcontrol_RemoveGroundItem(Mapcontrol *map_control, int map_id, int index);
-char Mapcontrol_ReloadMap(Mapcontrol *map_control, int map_id);
+bool Mapcontrol_CanDropItemAt(Mapcontrol *self, int map_id, int x, int y, int player_id);
+GroundItemInfo
+Mapcontrol_TakeGroundItemInfo(Mapcontrol *self, int map_id, int index, int player_id);
+void Mapcontrol_RemoveGroundItem(Mapcontrol *self, int map_id, int index);
+char Mapcontrol_ReloadMap(Mapcontrol *self, int map_id);
 void Mapcontrol_AddArenaSpawn(
-    Mapcontrol *map_control, int map_id, int from_x, int from_y, int to_x, int to_y);
-String Map_ReadRawFile(Mapcontrol *map_control, int map_id);
-MapObject Map_GetTileSpecObject(Mapcontrol *map_control, int map_id, int x, int y);
+    Mapcontrol *self, int map_id, int from_x, int from_y, int to_x, int to_y);
+String Mapcontrol_ReadRawFile(Mapcontrol *self, int map_id);
+MapObject Mapcontrol_GetTileSpecObject(Mapcontrol *self, int map_id, int x, int y);
 
 #endif

@@ -25,7 +25,7 @@ class LearnValues
     LearnValues();
     ~LearnValues();
 
-    static void Pub_LoadSkillMasters(LearnValues *self);
+    static void LoadSkillMasters(LearnValues *self);
     static void Clear(LearnValues *self);
     static bool HasSkill(LearnValues *self, int master_id, int skill_id);
     static LearnItemVal GetSkill(LearnValues *self, int master_id, int skill_id);
@@ -47,9 +47,8 @@ class LearnValues
                          int agi_requirement,
                          int con_requirement,
                          int cha_requirement);
-    static String
-    Pub_EncodeNumber_Learn(LearnValues *self, unsigned int value, int width);
-    static int Pub_DecodeNumber_Learn(LearnValues *self, String value);
+    static String EncodeNumber(LearnValues *self, unsigned int value, int width);
+    static int DecodeNumber(LearnValues *self, String value);
 };
 
 #endif

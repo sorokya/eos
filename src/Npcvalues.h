@@ -72,9 +72,9 @@ class NpcValues
 
     int DecodeNumber(String value);
 
-    static void Pub_LoadNpcs(NpcValues *self);
-    static void Pub_LoadDrops(NpcValues *self);
-    static void Pub_LoadTalk(NpcValues *self);
+    static void LoadNpcs(NpcValues *self);
+    static void LoadDrops(NpcValues *self);
+    static void LoadTalk(NpcValues *self);
     static void AddDrop(NpcValues *self,
                         int npc_id,
                         int item_id,

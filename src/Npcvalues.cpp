@@ -15,16 +15,16 @@ NpcValues::NpcValues()
     talk_loaded = 0;
     file_id = 0;
     string_list = new TStringList;
-    Pub_LoadNpcs(this);
-    Pub_LoadDrops(this);
-    Pub_LoadTalk(this);
+    LoadNpcs(this);
+    LoadDrops(this);
+    LoadTalk(this);
 }
 
 NpcValues::~NpcValues()
 {
 }
 
-void NpcValues::Pub_LoadNpcs(NpcValues *self)
+void NpcValues::LoadNpcs(NpcValues *self)
 {
     if (self->loaded == 0)
     {
@@ -110,7 +110,7 @@ void NpcValues::Pub_LoadNpcs(NpcValues *self)
     }
 }
 
-void NpcValues::Pub_LoadDrops(NpcValues *self)
+void NpcValues::LoadDrops(NpcValues *self)
 {
     if (self->drops_loaded == 0)
     {
@@ -160,7 +160,7 @@ void NpcValues::Pub_LoadDrops(NpcValues *self)
     }
 }
 
-void NpcValues::Pub_LoadTalk(NpcValues *self)
+void NpcValues::LoadTalk(NpcValues *self)
 {
     if (self->talk_loaded == 0)
     {

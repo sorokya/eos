@@ -19,7 +19,7 @@
 #define MAP_QUEST_COOLDOWN 10
 #define MAP_GROUND_ITEM_MAX 9
 
-bool Mapcontrol_ParseMapFile(Mapcontrol *map_control, MapContainer *map, int map_id);
+bool Mapcontrol_ParseMapFile(Mapcontrol *self, MapContainer *map, int map_id);
 
 typedef std::vector<ChestItem *> GroundItemPtrVector;
 
@@ -42,19 +42,17 @@ Mapcontrol::~Mapcontrol()
 {
 }
 
-int Mapcontrol::Map_GetWarpMap(Mapcontrol *map_control, int map_id, int x, int y)
+int Mapcontrol::Mapcontrol_GetWarpMap(Mapcontrol *self, int map_id, int x, int y)
 {
     int result = 0;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        int tile_offset =
-            Mapcontrol_GetByIndex(map_control, map_id - 1)->width * 2 * y + x * 2;
-        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_bits[tile_offset])
+        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
         {
             for (std::vector<MapWarp>::iterator warp_iter =
-                     Mapcontrol_GetByIndex(map_control, map_id - 1)->warp_list.begin();
-                 warp_iter !=
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->warp_list.end();
+                     Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
+                 warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
                  warp_iter++)
             {
                 if (warp_iter->from_x == x && warp_iter->from_y == y)
@@ -68,14 +66,14 @@ int Mapcontrol::Map_GetWarpMap(Mapcontrol *map_control, int map_id, int x, int y
     return result;
 }
 
-int Mapcontrol::Map_GetWarpLevelReq(Mapcontrol *map_control, int map_id, int x, int y)
+int Mapcontrol::Mapcontrol_GetWarpLevelReq(Mapcontrol *self, int map_id, int x, int y)
 {
     int result = 1000;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<MapWarp>::iterator warp_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->warp_list.begin();
-             warp_iter != Mapcontrol_GetByIndex(map_control, map_id - 1)->warp_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
+             warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
              warp_iter++)
         {
             if (warp_iter->from_x == x && warp_iter->from_y == y)
@@ -88,14 +86,14 @@ int Mapcontrol::Map_GetWarpLevelReq(Mapcontrol *map_control, int map_id, int x, 
     return result;
 }
 
-int Mapcontrol::Map_GetWarpX(Mapcontrol *map_control, int map_id, int x, int y)
+int Mapcontrol::Mapcontrol_GetWarpX(Mapcontrol *self, int map_id, int x, int y)
 {
     int result = 1000;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<MapWarp>::iterator warp_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->warp_list.begin();
-             warp_iter != Mapcontrol_GetByIndex(map_control, map_id - 1)->warp_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
+             warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
              warp_iter++)
         {
             if (warp_iter->from_x == x && warp_iter->from_y == y)
@@ -108,14 +106,14 @@ int Mapcontrol::Map_GetWarpX(Mapcontrol *map_control, int map_id, int x, int y)
     return result;
 }
 
-int Mapcontrol::Map_GetWarpY(Mapcontrol *map_control, int map_id, int x, int y)
+int Mapcontrol::Mapcontrol_GetWarpY(Mapcontrol *self, int map_id, int x, int y)
 {
     int result = 1000;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<MapWarp>::iterator warp_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->warp_list.begin();
-             warp_iter != Mapcontrol_GetByIndex(map_control, map_id - 1)->warp_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
+             warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
              warp_iter++)
         {
             if (warp_iter->from_x == x && warp_iter->from_y == y)
@@ -128,13 +126,12 @@ int Mapcontrol::Map_GetWarpY(Mapcontrol *map_control, int map_id, int x, int y)
     return result;
 }
 
-unsigned int
-Mapcontrol::Map_GetTileSpec(Mapcontrol *map_control, int map_id, int x, int y)
+unsigned int Mapcontrol::Map_GetTileSpec(Mapcontrol *self, int map_id, int x, int y)
 {
     unsigned int result = 0xffffffff;
     for (std::vector<MapObject>::iterator spec_iter =
-             Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.begin();
-         spec_iter != Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.end();
+             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
+         spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
          spec_iter++)
     {
         if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
@@ -146,14 +143,14 @@ Mapcontrol::Map_GetTileSpec(Mapcontrol *map_control, int map_id, int x, int y)
     return result;
 }
 
-bool Mapcontrol::Map_IsOccupied(Mapcontrol *map_control, int map_id, int x, int y)
+bool Mapcontrol::Mapcontrol_IsOccupied(Mapcontrol *self, int map_id, int x, int y)
 {
     bool result = false;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
+             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
              npc_iter++)
         {
             if ((*npc_iter)->x == x && (*npc_iter)->y == y && (*npc_iter)->alive != false)
@@ -166,27 +163,23 @@ bool Mapcontrol::Map_IsOccupied(Mapcontrol *map_control, int map_id, int x, int 
     return result;
 }
 
-bool Mapcontrol::Map_IsTileClear(Mapcontrol *map_control, int map_id, int x, int y)
+bool Mapcontrol::Mapcontrol_IsTileClear(Mapcontrol *self, int map_id, int x, int y)
 {
     bool result = true;
-    if (map_id > 0 && Mapcontrol_GetCount(map_control) >= map_id)
+    if (map_id > 0 && Mapcontrol_GetCount(self) >= map_id)
     {
-        int tile_offset =
-            Mapcontrol_GetByIndex(map_control, map_id - 1)->width * 2 * y + x * 2;
-        if (x >= 0 && y >= 0 &&
-            x < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->width &&
-            y < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->height)
+        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
+        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
+            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
         {
-            if (Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_bits[tile_offset])
+            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
             {
-                if (!Mapcontrol_GetByIndex(map_control, map_id - 1)
-                         ->tile_bits[tile_offset + 1])
+                if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
                     result = false;
             }
             else
             {
-                if (Mapcontrol_GetByIndex(map_control, map_id - 1)
-                        ->tile_bits[tile_offset + 1])
+                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
                     result = false;
             }
         }
@@ -198,31 +191,27 @@ bool Mapcontrol::Map_IsTileClear(Mapcontrol *map_control, int map_id, int x, int
     return result;
 }
 
-bool Mapcontrol::Map_IsTileWalkable(Mapcontrol *map_control, int map_id, int x, int y)
+bool Mapcontrol::Mapcontrol_IsTileWalkable(Mapcontrol *self, int map_id, int x, int y)
 {
     bool result = false;
-    if (map_id > 0 && Mapcontrol_GetCount(map_control) >= map_id)
+    if (map_id > 0 && Mapcontrol_GetCount(self) >= map_id)
     {
-        int tile_offset =
-            Mapcontrol_GetByIndex(map_control, map_id - 1)->width * 2 * y + x * 2;
-        if (x >= 0 && y >= 0 &&
-            x < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->width &&
-            y < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->height)
+        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
+        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
+            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
         {
-            if (Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_bits[tile_offset])
+            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
             {
-                if (Mapcontrol_GetByIndex(map_control, map_id - 1)
-                        ->tile_bits[tile_offset + 1])
+                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
                 {
                     result = true;
                 }
                 else
                 {
                     for (std::vector<MapObject>::iterator spec_iter =
-                             Mapcontrol_GetByIndex(map_control, map_id - 1)
-                                 ->tile_specs.begin();
+                             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
                          spec_iter !=
-                         Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.end();
+                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
                          spec_iter++)
                     {
                         if ((unsigned short)spec_iter->x == x &&
@@ -243,22 +232,19 @@ bool Mapcontrol::Map_IsTileWalkable(Mapcontrol *map_control, int map_id, int x, 
     return result;
 }
 
-int Mapcontrol::Map_IsWalkableNPC(
-    Mapcontrol *map_control, int map_id, int x, int y, char ignore_spec_block)
+int Mapcontrol::Mapcontrol_IsWalkableNPC(
+    Mapcontrol *self, int map_id, int x, int y, char ignore_spec_block)
 {
     int result = 1;
-    if (map_id > 0 && Mapcontrol_GetCount(map_control) >= map_id)
+    if (map_id > 0 && Mapcontrol_GetCount(self) >= map_id)
     {
-        int tile_offset =
-            Mapcontrol_GetByIndex(map_control, map_id - 1)->width * 2 * y + x * 2;
-        if (x >= 0 && y >= 0 &&
-            x < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->width &&
-            y < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->height)
+        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
+        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
+            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
         {
-            if (Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_bits[tile_offset])
+            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
             {
-                if (Mapcontrol_GetByIndex(map_control, map_id - 1)
-                        ->tile_bits[tile_offset + 1])
+                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
                 {
                     result = 2;
                 }
@@ -266,10 +252,9 @@ int Mapcontrol::Map_IsWalkableNPC(
                 {
                     result = 1;
                     for (std::vector<MapObject>::iterator spec_iter =
-                             Mapcontrol_GetByIndex(map_control, map_id - 1)
-                                 ->tile_specs.begin();
+                             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
                          spec_iter !=
-                         Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.end();
+                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
                          spec_iter++)
                     {
                         if ((unsigned short)spec_iter->x == x &&
@@ -291,8 +276,7 @@ int Mapcontrol::Map_IsWalkableNPC(
             }
             else
             {
-                if (Mapcontrol_GetByIndex(map_control, map_id - 1)
-                        ->tile_bits[tile_offset + 1])
+                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
                     result = 1;
                 else
                     result = 0;
@@ -302,48 +286,47 @@ int Mapcontrol::Map_IsWalkableNPC(
     return result;
 }
 
-void Mapcontrol::Mapcontrol_inc_player_count(Mapcontrol *map_control, int map_id)
+void Mapcontrol::Mapcontrol_IncPlayerCount(Mapcontrol *self, int map_id)
 {
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        Mapcontrol_GetByIndex(map_control, map_id - 1)->player_count++;
-        Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_act_ticks = 0xca;
+        Mapcontrol_GetByIndex(self, map_id - 1)->player_count++;
+        Mapcontrol_GetByIndex(self, map_id - 1)->npc_act_ticks = 0xca;
     }
 }
 
-void Mapcontrol::Mapcontrol_dec_player_count(Mapcontrol *map_control, int map_id)
+void Mapcontrol::Mapcontrol_DecPlayerCount(Mapcontrol *self, int map_id)
 {
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->player_count > 0)
-            Mapcontrol_GetByIndex(map_control, map_id - 1)->player_count--;
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->player_count > 0)
+            Mapcontrol_GetByIndex(self, map_id - 1)->player_count--;
     }
 }
 
-void Mapcontrol::Mapcontrol_SetArenaBlock(Mapcontrol *map_control, int map_id, int block)
+void Mapcontrol::Mapcontrol_SetArenaBlock(Mapcontrol *self, int map_id, int block)
 {
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
-        Mapcontrol_GetByIndex(map_control, map_id - 1)->arena_block = block;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
+        Mapcontrol_GetByIndex(self, map_id - 1)->arena_block = block;
 }
 
 void Mapcontrol_AddArenaSpawn(
-    Mapcontrol *map_control, int map_id, int from_x, int from_y, int to_x, int to_y)
+    Mapcontrol *self, int map_id, int from_x, int from_y, int to_x, int to_y)
 {
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        Mapcontrol_GetByIndex(map_control, map_id - 1)->arena_enabled = 1;
-        Mapcontrol_GetByIndex(map_control, map_id - 1)->arena_block = 4;
-        Mapcontrol_GetByIndex(map_control, map_id - 1)->arena_ticks = RandRange(0x3c);
+        Mapcontrol_GetByIndex(self, map_id - 1)->arena_enabled = 1;
+        Mapcontrol_GetByIndex(self, map_id - 1)->arena_block = 4;
+        Mapcontrol_GetByIndex(self, map_id - 1)->arena_ticks = RandRange(0x3c);
         MapWarp value(from_x, from_y, map_id, 0, to_x, to_y);
-        Mapcontrol_GetByIndex(map_control, map_id - 1)
+        Mapcontrol_GetByIndex(self, map_id - 1)
             ->arena_spawn_list.insert(
-                Mapcontrol_GetByIndex(map_control, map_id - 1)->arena_spawn_list.end(),
-                value);
+                Mapcontrol_GetByIndex(self, map_id - 1)->arena_spawn_list.end(), value);
     }
 }
 
 void Mapcontrol::Mapcontrol_SetTileBits(
-    Mapcontrol *map_control, MapContainer *map, int x, int y, int code)
+    Mapcontrol *self, MapContainer *map, int x, int y, int code)
 {
     int tile_offset = x * 2 + map->width * 2 * y;
     if (code == 0)
@@ -368,16 +351,16 @@ void Mapcontrol::Mapcontrol_SetTileBits(
     }
 }
 
-int Mapcontrol::Mapcontrol_CountNpcsChasingPlayer(Mapcontrol *map_control,
+int Mapcontrol::Mapcontrol_CountNpcsChasingPlayer(Mapcontrol *self,
                                                   int map_id,
                                                   int player_id)
 {
     int chase_count = 0;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
+             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
              npc_iter++)
         {
             if ((*npc_iter)->chase_target_id == player_id)
@@ -387,15 +370,15 @@ int Mapcontrol::Mapcontrol_CountNpcsChasingPlayer(Mapcontrol *map_control,
     return chase_count;
 }
 
-bool Mapcontrol::Mapcontrol_AggroChildNpcs(Mapcontrol *map_control, int map_id)
+bool Mapcontrol::Mapcontrol_AggroChildNpcs(Mapcontrol *self, int map_id)
 {
     bool found_child = false;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         TDateTime now = Now();
         for (std::vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
+             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
              npc_iter++)
         {
             if ((unsigned short)(*npc_iter)->child > 0)
@@ -408,16 +391,16 @@ bool Mapcontrol::Mapcontrol_AggroChildNpcs(Mapcontrol *map_control, int map_id)
     return found_child;
 }
 
-bool Mapcontrol::Mapcontrol_KillChildNpcs(Mapcontrol *map_control, int map_id)
+bool Mapcontrol::Mapcontrol_KillChildNpcs(Mapcontrol *self, int map_id)
 {
     bool found_child = false;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        Mapcontrol_GetByIndex(map_control, map_id - 1)->boss_alive = false;
+        Mapcontrol_GetByIndex(self, map_id - 1)->boss_alive = false;
         TDateTime now = Now();
         for (std::vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
+             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
              npc_iter++)
         {
             if ((unsigned short)(*npc_iter)->child > 0)
@@ -433,13 +416,13 @@ bool Mapcontrol::Mapcontrol_KillChildNpcs(Mapcontrol *map_control, int map_id)
 }
 
 void Mapcontrol::Mapcontrol_AddTileSpec(
-    Mapcontrol *map_control, MapContainer *map, int x, int y, int spec)
+    Mapcontrol *self, MapContainer *map, int x, int y, int spec)
 {
     MapObject value(x, y, spec);
     map->tile_specs.insert(map->tile_specs.end(), value);
 }
 
-void Mapcontrol::Mapcontrol_AddWarp(Mapcontrol *map_control,
+void Mapcontrol::Mapcontrol_AddWarp(Mapcontrol *self,
                                     MapContainer *map,
                                     int x,
                                     int y,
@@ -452,11 +435,8 @@ void Mapcontrol::Mapcontrol_AddWarp(Mapcontrol *map_control,
     map->warp_list.insert(map->warp_list.end(), value);
 }
 
-void Mapcontrol::Mapcontrol_AddLockKey(Mapcontrol *map_control,
-                                       MapContainer *map,
-                                       unsigned int x,
-                                       unsigned int y,
-                                       int key_id)
+void Mapcontrol::Mapcontrol_AddLockKey(
+    Mapcontrol *self, MapContainer *map, unsigned int x, unsigned int y, int key_id)
 {
     bool found = false;
     for (std::vector<MapObject>::iterator lock_iter = map->legacy_door_key_list.begin();
@@ -477,7 +457,7 @@ void Mapcontrol::Mapcontrol_AddLockKey(Mapcontrol *map_control,
     }
 }
 
-void Mapcontrol::Mapcontrol_GetOrCreateChest(Mapcontrol *map_control,
+void Mapcontrol::Mapcontrol_GetOrCreateChest(Mapcontrol *self,
                                              MapContainer *map,
                                              unsigned int x,
                                              unsigned int y)
@@ -500,18 +480,17 @@ void Mapcontrol::Mapcontrol_GetOrCreateChest(Mapcontrol *map_control,
     }
 }
 
-unsigned char Mapcontrol::Mapcontrol_ToggleDoor(Mapcontrol *map_control,
+unsigned char Mapcontrol::Mapcontrol_ToggleDoor(Mapcontrol *self,
                                                 int map_id,
                                                 unsigned int x,
                                                 unsigned int y)
 {
     unsigned char result = 0;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<MapObject>::iterator spec_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.begin();
-             spec_iter !=
-             Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
+             spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
              spec_iter++)
         {
             if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
@@ -526,14 +505,14 @@ unsigned char Mapcontrol::Mapcontrol_ToggleDoor(Mapcontrol *map_control,
                 if ((unsigned short)spec_iter->value == MapTileSpec_ChairAll)
                 {
                     result = 1;
-                    Mapcontrol_GetByIndex(map_control, map_id - 1)->has_open_doors = 1;
+                    Mapcontrol_GetByIndex(self, map_id - 1)->has_open_doors = 1;
                     spec_iter->value = MapTileSpec_Chest;
                     spec_iter->ticks = 2;
                 }
                 if ((unsigned short)spec_iter->value == MapTileSpec_Reserved10)
                 {
                     result = 1;
-                    Mapcontrol_GetByIndex(map_control, map_id - 1)->has_open_doors = 1;
+                    Mapcontrol_GetByIndex(self, map_id - 1)->has_open_doors = 1;
                     spec_iter->value = MapTileSpec_Reserved11;
                     spec_iter->ticks = 2;
                 }
@@ -544,16 +523,15 @@ unsigned char Mapcontrol::Mapcontrol_ToggleDoor(Mapcontrol *map_control,
     return result;
 }
 
-int Mapcontrol::Map_GetWarpDoorAt(Mapcontrol *map_control, int map_id, MapCoord coords)
+int Mapcontrol::Mapcontrol_GetWarpDoorAt(Mapcontrol *self, int map_id, MapCoord coords)
 {
     int result = 0;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<MapObject>::iterator door_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)
-                     ->legacy_door_key_list.begin();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.begin();
              door_iter !=
-             Mapcontrol_GetByIndex(map_control, map_id - 1)->legacy_door_key_list.end();
+             Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.end();
              door_iter++)
         {
             if ((unsigned short)door_iter->x == coords.x &&
@@ -567,17 +545,16 @@ int Mapcontrol::Map_GetWarpDoorAt(Mapcontrol *map_control, int map_id, MapCoord 
     return result;
 }
 
-int Mapcontrol::Mapcontrol_GetChestSlotCount(Mapcontrol *map_control,
+int Mapcontrol::Mapcontrol_GetChestSlotCount(Mapcontrol *self,
                                              int map_id,
                                              MapCoord coords)
 {
     int result = -1;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<MapChest>::iterator chest_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.begin();
-             chest_iter !=
-             Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
+             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
              chest_iter++)
         {
             if ((unsigned short)chest_iter->x == coords.x &&
@@ -591,7 +568,7 @@ int Mapcontrol::Mapcontrol_GetChestSlotCount(Mapcontrol *map_control,
     return result;
 }
 
-void Mapcontrol::Mapcontrol_AddChestSpawn(Mapcontrol *map_control,
+void Mapcontrol::Mapcontrol_AddChestSpawn(Mapcontrol *self,
                                           MapContainer *map,
                                           unsigned int x,
                                           unsigned int y,
@@ -626,25 +603,27 @@ void Mapcontrol::Mapcontrol_AddChestSpawn(Mapcontrol *map_control,
             }
             else
             {
-                if (Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id1 > 0)
+                if (Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id1 > 0)
                 {
-                    if (Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id2 > 0)
+                    if (Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id2 > 0)
                     {
-                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id3 =
+                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id3 =
                             item_id;
-                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_amount3 = amount;
+                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_amount3 =
+                            amount;
                     }
                     else
                     {
-                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id2 =
+                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id2 =
                             item_id;
-                        Itemchest_GetSlot(&chest_iter->slots, slot)->alt_amount2 = amount;
+                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_amount2 =
+                            amount;
                     }
                 }
                 else
                 {
-                    Itemchest_GetSlot(&chest_iter->slots, slot)->alt_item_id1 = item_id;
-                    Itemchest_GetSlot(&chest_iter->slots, slot)->alt_amount1 = amount;
+                    Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id1 = item_id;
+                    Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_amount1 = amount;
                 }
             }
             break;
@@ -671,14 +650,13 @@ void Mapcontrol::Mapcontrol_AddChestSpawn(Mapcontrol *map_control,
 }
 
 void Mapcontrol::Mapcontrol_AddChestItem(
-    Mapcontrol *map_control, int map_id, MapCoord coords, int item_id, int amount)
+    Mapcontrol *self, int map_id, MapCoord coords, int item_id, int amount)
 {
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<MapChest>::iterator chest_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.begin();
-             chest_iter !=
-             Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
+             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
              chest_iter++)
         {
             if ((unsigned short)chest_iter->x == coords.x &&
@@ -720,7 +698,7 @@ void Mapcontrol::Mapcontrol_AddChestItem(
     }
 }
 
-ItemStack Mapcontrol::Mapcontrol_TakeChestItem(Mapcontrol *map_control,
+ItemStack Mapcontrol::Mapcontrol_TakeChestItem(Mapcontrol *self,
                                                int map_id,
                                                MapCoord coords,
                                                int item_id)
@@ -728,12 +706,11 @@ ItemStack Mapcontrol::Mapcontrol_TakeChestItem(Mapcontrol *map_control,
     ItemStack result;
     result.id = -1;
     result.amount = -1;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<MapChest>::iterator chest_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.begin();
-             chest_iter !=
-             Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
+             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
              chest_iter++)
         {
             if ((unsigned short)chest_iter->x == coords.x &&
@@ -771,7 +748,7 @@ ItemStack Mapcontrol::Mapcontrol_TakeChestItem(Mapcontrol *map_control,
     return result;
 }
 
-int Mapcontrol::Mapcontrol_AddGroundItem(Mapcontrol *map_control,
+int Mapcontrol::Mapcontrol_AddGroundItem(Mapcontrol *self,
                                          int map_id,
                                          unsigned int item_id,
                                          int x,
@@ -781,12 +758,12 @@ int Mapcontrol::Mapcontrol_AddGroundItem(Mapcontrol *map_control,
                                          unsigned short protect_ticks)
 {
     int item_index = -1;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control) && x >= 0 && y >= 0 &&
-        x < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->width &&
-        y < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->height)
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self) && x >= 0 && y >= 0 &&
+        x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
+        y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
     {
         ChestItem *item = new ChestItem();
-        item->index = Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id;
+        item->index = Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id;
         item->item_id = item_id;
         item->x = x;
         item->y = y;
@@ -794,42 +771,38 @@ int Mapcontrol::Mapcontrol_AddGroundItem(Mapcontrol *map_control,
         item->drop_time = DateTimeToTimeStamp(Now());
         item->owner_player_id = owner_player_id;
         item->protect_ticks = protect_ticks;
-        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id == 15000)
-            Mapcontrol_PurgeGroundItemsInRange(map_control, map_id, 15000, 30000);
-        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id == 30000)
-            Mapcontrol_PurgeGroundItemsInRange(map_control, map_id, 30000, 45000);
-        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id == 45000)
-            Mapcontrol_PurgeGroundItemsInRange(map_control, map_id, 45000, 60000);
-        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id == 60000)
-            Mapcontrol_PurgeGroundItemsInRange(map_control, map_id, 0, 15000);
-        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id >= 60000)
-            Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id = 0;
-        ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
-             ->ground_items)
-            ->insert(
-                ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
-                     ->ground_items)
-                    ->end(),
-                item);
-        item_index = Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id;
-        Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id =
-            Mapcontrol_GetByIndex(map_control, map_id - 1)->next_ground_item_id + 1;
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 15000)
+            Mapcontrol_PurgeGroundItemsInRange(self, map_id, 15000, 30000);
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 30000)
+            Mapcontrol_PurgeGroundItemsInRange(self, map_id, 30000, 45000);
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 45000)
+            Mapcontrol_PurgeGroundItemsInRange(self, map_id, 45000, 60000);
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 60000)
+            Mapcontrol_PurgeGroundItemsInRange(self, map_id, 0, 15000);
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id >= 60000)
+            Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id = 0;
+        ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
+            ->insert(((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+                          ->ground_items)
+                         ->end(),
+                     item);
+        item_index = Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id;
+        Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id =
+            Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id + 1;
     }
     return item_index;
 }
 
-void Mapcontrol::Mapcontrol_PurgeGroundItemsInRange(Mapcontrol *map_control,
+void Mapcontrol::Mapcontrol_PurgeGroundItemsInRange(Mapcontrol *self,
                                                     int map_id,
                                                     int range_low,
                                                     int range_high)
 {
     GroundItemPtrVector::iterator cursor =
-        ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
-             ->ground_items)
+        ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
             ->begin();
     while (cursor !=
-           ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
-                ->ground_items)
+           ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
                ->end())
     {
         if ((*cursor)->index < range_low)
@@ -843,21 +816,20 @@ void Mapcontrol::Mapcontrol_PurgeGroundItemsInRange(Mapcontrol *map_control,
         else
         {
             ChestItem *item = *cursor;
-            cursor =
-                ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
-                     ->ground_items)
-                    ->erase(cursor);
+            cursor = ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+                          ->ground_items)
+                         ->erase(cursor);
             delete item;
         }
     }
 }
 
-MapItem *Mapcontrol::Itemchest_GetSlot(std::vector<MapItem> *slot_list, int slot)
+MapItem *Mapcontrol::Mapcontrol_GetSlot(std::vector<MapItem> *slot_list, int slot)
 {
     return slot_list->begin() + slot;
 }
 
-int Mapcontrol::Pub_DecodeNumber_Map(Mapcontrol *map_control, String value)
+int Mapcontrol::Mapcontrol_DecodeNumber(Mapcontrol *self, String value)
 {
     int result = 0;
     try
@@ -887,21 +859,20 @@ int Mapcontrol::Pub_DecodeNumber_Map(Mapcontrol *map_control, String value)
     return result;
 }
 
-void Mapcontrol::Mapcontrol_LoadMaps(Mapcontrol *map_control)
+void Mapcontrol::Mapcontrol_LoadMaps(Mapcontrol *self)
 {
-    for (int map_id = 1; map_id <= 0xfa00 && map_id <= map_control->max_maps; map_id++)
+    for (int map_id = 1; map_id <= 0xfa00 && map_id <= self->max_maps; map_id++)
     {
-        if (!Mapcontrol_LoadMap(map_control, map_id))
+        if (!Mapcontrol_LoadMap(self, map_id))
         {
             MapContainer value(map_id, 0, 0);
-            map_control->maps.insert(map_control->maps.end(), value);
+            self->maps.insert(self->maps.end(), value);
         }
     }
 }
 
-String Mapcontrol::Mapcontrol_AppendEncoded(Mapcontrol *map_control,
-                                            unsigned int value,
-                                            int width)
+String
+Mapcontrol::Mapcontrol_AppendEncoded(Mapcontrol *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -917,7 +888,7 @@ String Mapcontrol::Mapcontrol_AppendEncoded(Mapcontrol *map_control,
                 quotient = d;
                 rem = value % EO_NUM_MAX;
                 c = rem + 1;
-                ((char *)map_control->encode_scratch)[i] = c;
+                ((char *)self->encode_scratch)[i] = c;
                 value = quotient;
                 if (quotient < 1)
                     flag = false;
@@ -927,7 +898,7 @@ String Mapcontrol::Mapcontrol_AppendEncoded(Mapcontrol *map_control,
             else
             {
                 char pad = EO_NUM_EMPTY;
-                ((char *)map_control->encode_scratch)[i] = pad;
+                ((char *)self->encode_scratch)[i] = pad;
             }
         }
     }
@@ -935,43 +906,42 @@ String Mapcontrol::Mapcontrol_AppendEncoded(Mapcontrol *map_control,
     {
         width = 0;
     }
-    String encoded_str((char *)map_control->encode_scratch, width);
+    String encoded_str((char *)self->encode_scratch, width);
     return encoded_str;
 }
 
-char Mapcontrol_TryTakeQuestCooldown(Mapcontrol *map_control, int map_id)
+char Mapcontrol_TryTakeQuestCooldown(Mapcontrol *self, int map_id)
 {
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->quest_cooldown < 1)
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->quest_cooldown < 1)
         {
-            Mapcontrol_GetByIndex(map_control, map_id - 1)->quest_cooldown =
-                MAP_QUEST_COOLDOWN;
+            Mapcontrol_GetByIndex(self, map_id - 1)->quest_cooldown = MAP_QUEST_COOLDOWN;
             return 1;
         }
     }
     return 0;
 }
 
-char Mapcontrol_GetCanScroll(Mapcontrol *map_control, int map_id)
+char Mapcontrol_GetCanScroll(Mapcontrol *self, int map_id)
 {
     char result = 0;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
-        result = Mapcontrol_GetByIndex(map_control, map_id - 1)->can_scroll;
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
+        result = Mapcontrol_GetByIndex(self, map_id - 1)->can_scroll;
     return result;
 }
 
-MapCoord Mapcontrol_GetRelogCoords(Mapcontrol *map_control, int map_id)
+MapCoord Mapcontrol_GetRelogCoords(Mapcontrol *self, int map_id)
 {
     MapCoord coords;
     coords.x = 0;
     coords.y = 0;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        coords.x = Mapcontrol_GetByIndex(map_control, map_id - 1)->relog_x;
-        coords.y = Mapcontrol_GetByIndex(map_control, map_id - 1)->relog_y;
-        if (coords.x >= (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->width ||
-            coords.y >= (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->height)
+        coords.x = Mapcontrol_GetByIndex(self, map_id - 1)->relog_x;
+        coords.y = Mapcontrol_GetByIndex(self, map_id - 1)->relog_y;
+        if (coords.x >= (int)Mapcontrol_GetByIndex(self, map_id - 1)->width ||
+            coords.y >= (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
         {
             coords.x = 0;
             coords.y = 0;
@@ -981,14 +951,14 @@ MapCoord Mapcontrol_GetRelogCoords(Mapcontrol *map_control, int map_id)
 }
 
 unsigned int
-Mapcontrol_GetNpcIdByIndex(Mapcontrol *map_control, int map_id, unsigned int npc_index)
+Mapcontrol_GetNpcIdByIndex(Mapcontrol *self, int map_id, unsigned int npc_index)
 {
     unsigned int result = 0xffffffff;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
+             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
              npc_iter++)
         {
             if ((*npc_iter)->index == npc_index)
@@ -1001,18 +971,17 @@ Mapcontrol_GetNpcIdByIndex(Mapcontrol *map_control, int map_id, unsigned int npc
     return result;
 }
 
-MapCoord Mapcontrol_GetNpcCoordsByIndex(Mapcontrol *map_control,
-                                        int map_id,
-                                        unsigned int npc_index)
+MapCoord
+Mapcontrol_GetNpcCoordsByIndex(Mapcontrol *self, int map_id, unsigned int npc_index)
 {
     MapCoord coords;
     coords.x = -1;
     coords.y = -1;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
+             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
              npc_iter++)
         {
             if ((*npc_iter)->index == npc_index)
@@ -1026,28 +995,24 @@ MapCoord Mapcontrol_GetNpcCoordsByIndex(Mapcontrol *map_control,
     return coords;
 }
 
-char Mapcontrol_IsDropTileClear(Mapcontrol *map_control, int map_id, int x, int y)
+char Mapcontrol_IsDropTileClear(Mapcontrol *self, int map_id, int x, int y)
 {
     char result = 1;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        int tile_offset =
-            Mapcontrol_GetByIndex(map_control, map_id - 1)->width * 2 * y + x * 2;
-        if (x >= 0 && y >= 0 &&
-            x < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->width &&
-            y < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->height)
+        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
+        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
+            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
         {
-            if (Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_bits[tile_offset])
+            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
             {
-                if (!Mapcontrol_GetByIndex(map_control, map_id - 1)
-                         ->tile_bits[tile_offset + 1])
+                if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
                 {
                     result = 0;
                     for (std::vector<MapObject>::iterator spec_iter =
-                             Mapcontrol_GetByIndex(map_control, map_id - 1)
-                                 ->tile_specs.begin();
+                             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
                          spec_iter !=
-                         Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.end();
+                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
                          spec_iter++)
                     {
                         if ((unsigned short)spec_iter->x == x &&
@@ -1063,8 +1028,7 @@ char Mapcontrol_IsDropTileClear(Mapcontrol *map_control, int map_id, int x, int 
             }
             else
             {
-                if (Mapcontrol_GetByIndex(map_control, map_id - 1)
-                        ->tile_bits[tile_offset + 1])
+                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
                     result = 0;
             }
         }
@@ -1076,26 +1040,23 @@ char Mapcontrol_IsDropTileClear(Mapcontrol *map_control, int map_id, int x, int 
     return result;
 }
 
-unsigned int Mapcontrol_GetTileSpecValueAt(Mapcontrol *map_control,
+unsigned int Mapcontrol_GetTileSpecValueAt(Mapcontrol *self,
                                            int map_id,
                                            unsigned int x,
                                            unsigned int y)
 {
     unsigned int result = 0xffffffff;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        int tile_offset =
-            Mapcontrol_GetByIndex(map_control, map_id - 1)->width * 2 * y + x * 2;
-        if (Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_bits[tile_offset])
+        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
         {
-            if (!Mapcontrol_GetByIndex(map_control, map_id - 1)
-                     ->tile_bits[tile_offset + 1])
+            if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
             {
                 for (std::vector<MapObject>::iterator spec_iter =
-                         Mapcontrol_GetByIndex(map_control, map_id - 1)
-                             ->tile_specs.begin();
+                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
                      spec_iter !=
-                     Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.end();
+                     Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
                      spec_iter++)
                 {
                     if ((unsigned short)spec_iter->x == x &&
@@ -1111,15 +1072,14 @@ unsigned int Mapcontrol_GetTileSpecValueAt(Mapcontrol *map_control,
     return result;
 }
 
-int Mapcontrol_GetChestKeyAt(Mapcontrol *map_control, int map_id, MapCoord coords)
+int Mapcontrol_GetChestKeyAt(Mapcontrol *self, int map_id, MapCoord coords)
 {
     int result = 0;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (std::vector<MapChest>::iterator chest_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.begin();
-             chest_iter !=
-             Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.end();
+                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
+             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
              chest_iter++)
         {
             if ((unsigned short)chest_iter->x == coords.x &&
@@ -1133,29 +1093,29 @@ int Mapcontrol_GetChestKeyAt(Mapcontrol *map_control, int map_id, MapCoord coord
     return result;
 }
 
-int Mapcontrol_CountBlockedNeighbors(Mapcontrol *map_control,
+int Mapcontrol_CountBlockedNeighbors(Mapcontrol *self,
                                      int map_id,
                                      unsigned int x,
                                      unsigned int y)
 {
     int result = 0;
-    if (Mapcontrol::Map_IsWalkableNPC(map_control, map_id, x - 1, y, 1) == 0)
+    if (Mapcontrol::Mapcontrol_IsWalkableNPC(self, map_id, x - 1, y, 1) == 0)
         result = result + 1;
-    if (Mapcontrol::Map_IsWalkableNPC(map_control, map_id, x, y - 1, 1) == 0)
+    if (Mapcontrol::Mapcontrol_IsWalkableNPC(self, map_id, x, y - 1, 1) == 0)
         result = result + 1;
-    if (Mapcontrol::Map_IsWalkableNPC(map_control, map_id, x + 1, y, 1) == 0)
+    if (Mapcontrol::Mapcontrol_IsWalkableNPC(self, map_id, x + 1, y, 1) == 0)
         result = result + 1;
-    if (Mapcontrol::Map_IsWalkableNPC(map_control, map_id, x, y + 1, 1) == 0)
+    if (Mapcontrol::Mapcontrol_IsWalkableNPC(self, map_id, x, y + 1, 1) == 0)
         result = result + 1;
     return result;
 }
 
-MapObject Map_GetTileSpecObject(Mapcontrol *map_control, int map_id, int x, int y)
+MapObject Mapcontrol_GetTileSpecObject(Mapcontrol *self, int map_id, int x, int y)
 {
     map_id <= 0 ? (map_id == 1) : 0;
     std::vector<MapObject>::iterator spec_iter =
-        Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.begin();
-    while (spec_iter != Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.end())
+        Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
+    while (spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end())
     {
         if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
             break;
@@ -1164,20 +1124,18 @@ MapObject Map_GetTileSpecObject(Mapcontrol *map_control, int map_id, int x, int 
     return *spec_iter;
 }
 
-bool Mapcontrol_CanDropItemAt(
-    Mapcontrol *map_control, int map_id, int x, int y, int player_id)
+bool Mapcontrol_CanDropItemAt(Mapcontrol *self, int map_id, int x, int y, int player_id)
 {
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         int count = 0;
         for (GroundItemPtrVector::iterator cursor =
-                 ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
+                 ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
                       ->ground_items)
                      ->begin();
-             cursor !=
-             ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
-                  ->ground_items)
-                 ->end();
+             cursor != ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+                            ->ground_items)
+                           ->end();
              cursor++)
         {
             if ((*cursor)->x == x && (*cursor)->y == y)
@@ -1203,24 +1161,21 @@ bool Mapcontrol_CanDropItemAt(
     return 1;
 }
 
-GroundItemInfo Mapcontrol_TakeGroundItemInfo(Mapcontrol *map_control,
-                                             int map_id,
-                                             int index,
-                                             int player_id)
+GroundItemInfo
+Mapcontrol_TakeGroundItemInfo(Mapcontrol *self, int map_id, int index, int player_id)
 {
     GroundItemInfo result;
     result.x = -1;
     result.y = -1;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (GroundItemPtrVector::iterator cursor =
-                 ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
+                 ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
                       ->ground_items)
                      ->begin();
-             cursor !=
-             ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
-                  ->ground_items)
-                 ->end();
+             cursor != ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+                            ->ground_items)
+                           ->end();
              cursor++)
         {
             if ((*cursor)->index == index)
@@ -1249,18 +1204,15 @@ GroundItemInfo Mapcontrol_TakeGroundItemInfo(Mapcontrol *map_control,
     return result;
 }
 
-String
-Mapcontrol_BuildChestItemsString(Mapcontrol *map_control, int map_id, MapCoord coords)
+String Mapcontrol_BuildChestItemsString(Mapcontrol *self, int map_id, MapCoord coords)
 {
     String result = "N";
     std::vector<MapChest>::iterator chest_iter;
     std::vector<MapItem>::iterator item_iter;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (chest_iter =
-                 Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.begin();
-             chest_iter !=
-             Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.end();
+        for (chest_iter = Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
+             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
              chest_iter++)
         {
             if ((unsigned short)chest_iter->x == coords.x &&
@@ -1274,10 +1226,10 @@ Mapcontrol_BuildChestItemsString(Mapcontrol *map_control, int map_id, MapCoord c
                     if (item_iter->item_present != false)
                     {
                         result.Insert(Mapcontrol::Mapcontrol_AppendEncoded(
-                                          map_control, item_iter->item_id, 2),
+                                          self, item_iter->item_id, 2),
                                       result.Length() + 1);
                         result.Insert(Mapcontrol::Mapcontrol_AppendEncoded(
-                                          map_control, item_iter->amount, 3),
+                                          self, item_iter->amount, 3),
                                       result.Length() + 1);
                     }
                 }
@@ -1288,52 +1240,49 @@ Mapcontrol_BuildChestItemsString(Mapcontrol *map_control, int map_id, MapCoord c
     return result;
 }
 
-void Mapcontrol_ResetMap(Mapcontrol *map_control, int map_id)
+void Mapcontrol_ResetMap(Mapcontrol *self, int map_id)
 {
-    for (int i = 0;
-         i < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.size();
+    for (int i = 0; i < (int)Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.size();
          i++)
     {
-        Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list[i].slots.clear();
+        Mapcontrol_GetByIndex(self, map_id - 1)->chest_list[i].slots.clear();
     }
-    for (int i = 0;
-         i < (int)Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_bits.size();
+    for (int i = 0; i < (int)Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits.size();
          i++)
     {
-        Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_bits[i] = false;
+        Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[i] = false;
     }
-    Mapcontrol_GetByIndex(map_control, map_id - 1)->tile_specs.clear();
-    Mapcontrol_GetByIndex(map_control, map_id - 1)->chest_list.clear();
-    Mapcontrol_GetByIndex(map_control, map_id - 1)->warp_list.clear();
-    ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)->ground_items)
+    Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.clear();
+    Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.clear();
+    Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.clear();
+    ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
         ->clear();
-    Mapcontrol_GetByIndex(map_control, map_id - 1)->npc_list.clear();
-    Mapcontrol_GetByIndex(map_control, map_id - 1)->legacy_door_key_list.clear();
-    Mapcontrol_GetByIndex(map_control, map_id - 1)->boss_alive = false;
-    Mapcontrol_GetByIndex(map_control, map_id - 1)->width = 0;
-    Mapcontrol_GetByIndex(map_control, map_id - 1)->height = 0;
-    Mapcontrol_GetByIndex(map_control, map_id - 1)
-        ->buf.Delete(0, Mapcontrol_GetByIndex(map_control, map_id)->buf.Length());
+    Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.clear();
+    Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.clear();
+    Mapcontrol_GetByIndex(self, map_id - 1)->boss_alive = false;
+    Mapcontrol_GetByIndex(self, map_id - 1)->width = 0;
+    Mapcontrol_GetByIndex(self, map_id - 1)->height = 0;
+    Mapcontrol_GetByIndex(self, map_id - 1)
+        ->buf.Delete(0, Mapcontrol_GetByIndex(self, map_id)->buf.Length());
 }
 
-void Mapcontrol_RemoveGroundItem(Mapcontrol *map_control, int map_id, int index)
+void Mapcontrol_RemoveGroundItem(Mapcontrol *self, int map_id, int index)
 {
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (GroundItemPtrVector::iterator cursor =
-                 ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
+                 ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
                       ->ground_items)
                      ->begin();
-             cursor !=
-             ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
-                  ->ground_items)
-                 ->end();
+             cursor != ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+                            ->ground_items)
+                           ->end();
              cursor++)
         {
             if ((*cursor)->index == index)
             {
                 ChestItem *item = *cursor;
-                ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(map_control, map_id - 1)
+                ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
                      ->ground_items)
                     ->erase(cursor);
                 delete item;
@@ -1343,23 +1292,23 @@ void Mapcontrol_RemoveGroundItem(Mapcontrol *map_control, int map_id, int index)
     }
 }
 
-char Mapcontrol_ReloadMap(Mapcontrol *map_control, int map_id)
+char Mapcontrol_ReloadMap(Mapcontrol *self, int map_id)
 {
     char result = 0;
-    if (map_id > 0 && map_id <= Mapcontrol_GetCount(map_control))
+    if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        Mapcontrol_ResetMap(map_control, map_id);
+        Mapcontrol_ResetMap(self, map_id);
         JukeBoxController_RemoveMap((*MAINFORM)->jukebox_control, map_id);
         result = (char)Mapcontrol_ParseMapFile(
-            map_control, Mapcontrol_GetByIndex(map_control, map_id - 1), map_id);
+            self, Mapcontrol_GetByIndex(self, map_id - 1), map_id);
     }
     return result;
 }
 
-String Map_ReadRawFile(Mapcontrol *map_control, int map_id)
+String Mapcontrol_ReadRawFile(Mapcontrol *self, int map_id)
 {
     String result;
-    if (Mapcontrol_GetByIndex(map_control, map_id - 1)->buf == "")
+    if (Mapcontrol_GetByIndex(self, map_id - 1)->buf == "")
     {
         String file_name;
         int file_handle;
@@ -1391,14 +1340,14 @@ String Map_ReadRawFile(Mapcontrol *map_control, int map_id)
     }
     else
     {
-        result = Mapcontrol_GetByIndex(map_control, map_id - 1)->buf;
+        result = Mapcontrol_GetByIndex(self, map_id - 1)->buf;
     }
     return result;
 }
 
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
-bool Mapcontrol_ParseMapFile(Mapcontrol *map_control, MapContainer *map, int map_id)
+bool Mapcontrol_ParseMapFile(Mapcontrol *self, MapContainer *map, int map_id)
 {
     String map_buf;
     String local_c;
@@ -1431,21 +1380,19 @@ bool Mapcontrol_ParseMapFile(Mapcontrol *map_control, MapContainer *map, int map
             return 0;
         map->rid = map_id;
         map->width =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x26, 1)) + 1;
+            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x26, 1)) + 1;
         map->height =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x27, 1)) + 1;
-        map->rid1 =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(4, 2));
-        map->rid2 =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(6, 2));
+            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x27, 1)) + 1;
+        map->rid1 = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(4, 2));
+        map->rid2 = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 2));
         map->map_type =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x20, 1));
+            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x20, 1));
         map->timed_effect =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x21, 1));
+            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x21, 1));
         map->relog_x =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2c, 1));
+            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x2c, 1));
         map->relog_y =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2d, 1));
+            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x2d, 1));
         map->has_hp_drain = false;
         map->has_tp_drain = false;
         map->has_quakes = false;
@@ -1458,11 +1405,10 @@ bool Mapcontrol_ParseMapFile(Mapcontrol *map_control, MapContainer *map, int map
             map->has_quakes = true;
         if (map->tile_bits.size() != map->width * map->height * 2)
             map->tile_bits.resize(map->width * map->height * 2, 0);
-        if (Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2b, 1)) ==
-            0)
+        if (Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x2b, 1)) == 0)
             map->can_scroll = 1;
         map->filesize = size;
-        if (map_control->start_map == map_id || map_control->memory_map != 0)
+        if (self->start_map == map_id || self->memory_map != 0)
         {
             map->buf_copied = true;
             map->buf = map_buf;
@@ -1470,32 +1416,26 @@ bool Mapcontrol_ParseMapFile(Mapcontrol *map_control, MapContainer *map, int map
         else
             map->buf_copied = false;
         map_buf.Delete(1, 0x2e);
-        count = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
             int npc_count =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(8, 1));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(8, 1));
             for (int j = 0; j < npc_count; j++)
             {
                 int index = map->npc_list.size() + 1;
-                Npc *npc =
-                    new Npc(index,
-                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(3, 2)),
-                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(1, 1)),
-                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(2, 1)),
-                            0,
-                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(5, 1)),
-                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(6, 2)));
-                NpcValue npc_value =
-                    NpcValues::GetNpc((*MAINFORM)->npc_values,
-                                      Mapcontrol::Pub_DecodeNumber_Map(
-                                          map_control, map_buf.SubString(3, 2)));
+                Npc *npc = new Npc(
+                    index,
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2)),
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1)),
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1)),
+                    0,
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(5, 1)),
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 2)));
+                NpcValue npc_value = NpcValues::GetNpc(
+                    (*MAINFORM)->npc_values,
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2)));
                 if (npc_value.npc_type == 2)
                 {
                     npc->aggressive = true;
@@ -1520,38 +1460,38 @@ bool Mapcontrol_ParseMapFile(Mapcontrol *map_control, MapContainer *map, int map
             }
             map_buf.Delete(1, 8);
         }
-        count = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
             unsigned int key_x =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
             unsigned int key_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
             int key_id =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(3, 2));
-            Mapcontrol::Mapcontrol_AddLockKey(map_control, map, key_x, key_y, key_id);
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2));
+            Mapcontrol::Mapcontrol_AddLockKey(self, map, key_x, key_y, key_id);
             map_buf.Delete(1, 4);
         }
-        count = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
             unsigned int chest_x =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
             unsigned int chest_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
             int chest_key =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(3, 2));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2));
             int chest_slot =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(5, 1));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(5, 1));
             int chest_item =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(6, 2));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 2));
             int chest_time =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(8, 2));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(8, 2));
             int chest_amount =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0xa, 3));
-            Mapcontrol::Mapcontrol_AddChestSpawn(map_control,
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0xa, 3));
+            Mapcontrol::Mapcontrol_AddChestSpawn(self,
                                                  map,
                                                  chest_x,
                                                  chest_y,
@@ -1562,99 +1502,82 @@ bool Mapcontrol_ParseMapFile(Mapcontrol *map_control, MapContainer *map, int map
                                                  chest_amount);
             map_buf.Delete(1, 12);
         }
-        count = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            tile_x =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
-            tile_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
+            tile_x = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+            tile_y = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
-                spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                        map_buf.SubString(1, 1));
-                int code = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                            map_buf.SubString(2, 1));
+                spec = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+                int code =
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
                 if (code == 0 || code == 0x12)
-                    Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 1);
+                    Mapcontrol::Mapcontrol_SetTileBits(self, map, spec, tile_x, 1);
                 if (code > 0 && code <= 0x11)
                 {
-                    Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 2);
-                    Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, map, spec, tile_x, code - 1);
+                    Mapcontrol::Mapcontrol_SetTileBits(self, map, spec, tile_x, 2);
+                    Mapcontrol::Mapcontrol_AddTileSpec(self, map, spec, tile_x, code - 1);
                 }
                 if (code == 0x13 || code == 0x1d)
                 {
-                    Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 2);
-                    Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, map, spec, tile_x, 0x10);
+                    Mapcontrol::Mapcontrol_SetTileBits(self, map, spec, tile_x, 2);
+                    Mapcontrol::Mapcontrol_AddTileSpec(self, map, spec, tile_x, 0x10);
                 }
                 if (code > 0x13 && code <= 0x1b)
                 {
-                    Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 2);
-                    Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, map, spec, tile_x, code - 1);
+                    Mapcontrol::Mapcontrol_SetTileBits(self, map, spec, tile_x, 2);
+                    Mapcontrol::Mapcontrol_AddTileSpec(self, map, spec, tile_x, code - 1);
                 }
                 if (code == 0x1c)
                 {
-                    Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 2);
-                    Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, map, spec, tile_x, code - 1);
+                    Mapcontrol::Mapcontrol_SetTileBits(self, map, spec, tile_x, 2);
+                    Mapcontrol::Mapcontrol_AddTileSpec(self, map, spec, tile_x, code - 1);
                     JukeBoxController::Add((*MAINFORM)->jukebox_control, map_id);
                 }
                 if (code == 9)
-                    Mapcontrol::Mapcontrol_GetOrCreateChest(
-                        map_control, map, spec, tile_x);
+                    Mapcontrol::Mapcontrol_GetOrCreateChest(self, map, spec, tile_x);
                 if (code == 0x20)
-                    Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, map, spec, tile_x, code - 1);
+                    Mapcontrol::Mapcontrol_AddTileSpec(self, map, spec, tile_x, code - 1);
                 if (code > 0x21 && code < 0x25)
                 {
-                    Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, map, spec, tile_x, code - 1);
+                    Mapcontrol::Mapcontrol_AddTileSpec(self, map, spec, tile_x, code - 1);
                     map->has_spikes = 1;
                 }
                 map_buf.Delete(1, 2);
             }
         }
-        count = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            tile_x =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
-            tile_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
+            tile_x = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+            tile_y = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
-                spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                        map_buf.SubString(1, 1));
-                int lock_key = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                                map_buf.SubString(7, 2));
-                Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 3);
-                Mapcontrol::Mapcontrol_AddWarp(map_control,
-                                               map,
-                                               spec,
-                                               tile_x,
-                                               Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(2, 2)),
-                                               Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(6, 1)),
-                                               Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(4, 1)),
-                                               Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(5, 1)));
+                spec = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+                int lock_key =
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(7, 2));
+                Mapcontrol::Mapcontrol_SetTileBits(self, map, spec, tile_x, 3);
+                Mapcontrol::Mapcontrol_AddWarp(
+                    self,
+                    map,
+                    spec,
+                    tile_x,
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 2)),
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 1)),
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(4, 1)),
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(5, 1)));
                 if (lock_key > 0)
                 {
-                    Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, map, spec, tile_x, 0xa);
-                    Mapcontrol::Mapcontrol_SetTileBits(map_control, map, spec, tile_x, 2);
+                    Mapcontrol::Mapcontrol_AddTileSpec(self, map, spec, tile_x, 0xa);
+                    Mapcontrol::Mapcontrol_SetTileBits(self, map, spec, tile_x, 2);
                     if (lock_key > 1)
                         Mapcontrol::Mapcontrol_AddLockKey(
-                            map_control, map, spec, tile_x, lock_key);
+                            self, map, spec, tile_x, lock_key);
                 }
                 map_buf.Delete(1, 8);
             }
@@ -1667,7 +1590,7 @@ bool Mapcontrol_ParseMapFile(Mapcontrol *map_control, MapContainer *map, int map
     }
     return 1;
 }
-bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
+bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *self, int map_id)
 {
     String map_buf;
     String local_c;
@@ -1700,19 +1623,18 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             return false;
         MapContainer map(
             map_id,
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x26, 1)) + 1,
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x27, 1)) +
-                1);
-        map.rid1 = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(4, 2));
-        map.rid2 = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(6, 2));
+            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x26, 1)) + 1,
+            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x27, 1)) + 1);
+        map.rid1 = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(4, 2));
+        map.rid2 = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 2));
         map.map_type =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x20, 1));
+            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x20, 1));
         map.timed_effect =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x21, 1));
+            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x21, 1));
         map.relog_x =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2c, 1));
+            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x2c, 1));
         map.relog_y =
-            Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2d, 1));
+            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x2d, 1));
         map.has_hp_drain = false;
         map.has_tp_drain = false;
         map.has_quakes = false;
@@ -1723,11 +1645,10 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             map.has_tp_drain = true;
         if (map.timed_effect > 2 && map.timed_effect < 7)
             map.has_quakes = true;
-        if (Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0x2b, 1)) ==
-            0)
+        if (Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x2b, 1)) == 0)
             map.can_scroll = 1;
         map.filesize = size;
-        if (map_control->start_map == map_id || map_control->memory_map != 0)
+        if (self->start_map == map_id || self->memory_map != 0)
         {
             map.buf_copied = true;
             map.buf = map_buf;
@@ -1735,32 +1656,26 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
         else
             map.buf_copied = false;
         map_buf.Delete(1, 0x2e);
-        count = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
             int npc_count =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(8, 1));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(8, 1));
             for (int j = 0; j < npc_count; j++)
             {
                 int index = map.npc_list.size() + 1;
-                Npc *npc =
-                    new Npc(index,
-                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(3, 2)),
-                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(1, 1)),
-                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(2, 1)),
-                            0,
-                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(5, 1)),
-                            Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                             map_buf.SubString(6, 2)));
-                NpcValue npc_value =
-                    NpcValues::GetNpc((*MAINFORM)->npc_values,
-                                      Mapcontrol::Pub_DecodeNumber_Map(
-                                          map_control, map_buf.SubString(3, 2)));
+                Npc *npc = new Npc(
+                    index,
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2)),
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1)),
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1)),
+                    0,
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(5, 1)),
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 2)));
+                NpcValue npc_value = NpcValues::GetNpc(
+                    (*MAINFORM)->npc_values,
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2)));
                 if (npc_value.npc_type == 2)
                 {
                     npc->aggressive = true;
@@ -1785,38 +1700,38 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
             }
             map_buf.Delete(1, 8);
         }
-        count = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
             unsigned int key_x =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
             unsigned int key_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
             int key_id =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(3, 2));
-            Mapcontrol::Mapcontrol_AddLockKey(map_control, &map, key_x, key_y, key_id);
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2));
+            Mapcontrol::Mapcontrol_AddLockKey(self, &map, key_x, key_y, key_id);
             map_buf.Delete(1, 4);
         }
-        count = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
             unsigned int chest_x =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
             unsigned int chest_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
             int chest_key =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(3, 2));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2));
             int chest_slot =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(5, 1));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(5, 1));
             int chest_item =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(6, 2));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 2));
             int chest_time =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(8, 2));
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(8, 2));
             int chest_amount =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(0xa, 3));
-            Mapcontrol::Mapcontrol_AddChestSpawn(map_control,
+                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0xa, 3));
+            Mapcontrol::Mapcontrol_AddChestSpawn(self,
                                                  &map,
                                                  chest_x,
                                                  chest_y,
@@ -1827,110 +1742,92 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *map_control, int map_id)
                                                  chest_amount);
             map_buf.Delete(1, 12);
         }
-        count = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            tile_x =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
-            tile_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
+            tile_x = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+            tile_y = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
-                spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                        map_buf.SubString(1, 1));
-                int code = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                            map_buf.SubString(2, 1));
+                spec = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+                int code =
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
                 if (code == 0 || code == 0x12)
-                    Mapcontrol::Mapcontrol_SetTileBits(
-                        map_control, &map, spec, tile_x, 1);
+                    Mapcontrol::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 1);
                 if (code > 0 && code <= 0x11)
                 {
-                    Mapcontrol::Mapcontrol_SetTileBits(
-                        map_control, &map, spec, tile_x, 2);
+                    Mapcontrol::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 2);
                     Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, &map, spec, tile_x, code - 1);
+                        self, &map, spec, tile_x, code - 1);
                 }
                 if (code == 0x13 || code == 0x1d)
                 {
-                    Mapcontrol::Mapcontrol_SetTileBits(
-                        map_control, &map, spec, tile_x, 2);
-                    Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, &map, spec, tile_x, 0x10);
+                    Mapcontrol::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 2);
+                    Mapcontrol::Mapcontrol_AddTileSpec(self, &map, spec, tile_x, 0x10);
                 }
                 if (code > 0x13 && code <= 0x1b)
                 {
-                    Mapcontrol::Mapcontrol_SetTileBits(
-                        map_control, &map, spec, tile_x, 2);
+                    Mapcontrol::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 2);
                     Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, &map, spec, tile_x, code - 1);
+                        self, &map, spec, tile_x, code - 1);
                 }
                 if (code == 0x1c)
                 {
-                    Mapcontrol::Mapcontrol_SetTileBits(
-                        map_control, &map, spec, tile_x, 2);
+                    Mapcontrol::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 2);
                     Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, &map, spec, tile_x, code - 1);
+                        self, &map, spec, tile_x, code - 1);
                     JukeBoxController::Add((*MAINFORM)->jukebox_control, map_id);
                 }
                 if (code == 9)
-                    Mapcontrol::Mapcontrol_GetOrCreateChest(
-                        map_control, &map, spec, tile_x);
+                    Mapcontrol::Mapcontrol_GetOrCreateChest(self, &map, spec, tile_x);
                 if (code == 0x20)
                     Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, &map, spec, tile_x, code - 1);
+                        self, &map, spec, tile_x, code - 1);
                 if (code > 0x21 && code < 0x25)
                 {
                     Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, &map, spec, tile_x, code - 1);
+                        self, &map, spec, tile_x, code - 1);
                     map.has_spikes = 1;
                 }
                 map_buf.Delete(1, 2);
             }
         }
-        count = Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
+        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            tile_x =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(1, 1));
-            tile_y =
-                Mapcontrol::Pub_DecodeNumber_Map(map_control, map_buf.SubString(2, 1));
+            tile_x = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+            tile_y = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
-                spec = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                        map_buf.SubString(1, 1));
-                int lock_key = Mapcontrol::Pub_DecodeNumber_Map(map_control,
-                                                                map_buf.SubString(7, 2));
-                Mapcontrol::Mapcontrol_SetTileBits(map_control, &map, spec, tile_x, 3);
-                Mapcontrol::Mapcontrol_AddWarp(map_control,
-                                               &map,
-                                               spec,
-                                               tile_x,
-                                               Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(2, 2)),
-                                               Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(6, 1)),
-                                               Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(4, 1)),
-                                               Mapcontrol::Pub_DecodeNumber_Map(
-                                                   map_control, map_buf.SubString(5, 1)));
+                spec = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+                int lock_key =
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(7, 2));
+                Mapcontrol::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 3);
+                Mapcontrol::Mapcontrol_AddWarp(
+                    self,
+                    &map,
+                    spec,
+                    tile_x,
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 2)),
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 1)),
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(4, 1)),
+                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(5, 1)));
                 if (lock_key > 0)
                 {
-                    Mapcontrol::Mapcontrol_AddTileSpec(
-                        map_control, &map, spec, tile_x, 0xa);
-                    Mapcontrol::Mapcontrol_SetTileBits(
-                        map_control, &map, spec, tile_x, 2);
+                    Mapcontrol::Mapcontrol_AddTileSpec(self, &map, spec, tile_x, 0xa);
+                    Mapcontrol::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 2);
                     if (lock_key > 1)
                         Mapcontrol::Mapcontrol_AddLockKey(
-                            map_control, &map, spec, tile_x, lock_key);
+                            self, &map, spec, tile_x, lock_key);
                 }
                 map_buf.Delete(1, 8);
             }
         }
-        map_control->maps.insert(MapVector_End(map_control), map);
+        self->maps.insert(MapVector_End(self), map);
     }
     catch (...)
     {

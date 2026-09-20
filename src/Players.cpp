@@ -202,7 +202,7 @@ void Players::Player_RegenHpTp(Players *self, Player *player)
         player->tp = player->max_tp;
 }
 
-void Players::Player_LevelUp(Players *players, Player *player)
+void Players::Player_LevelUp(Players *self, Player *player)
 {
     player->level = player->level + 1;
     player->stat_points = player->stat_points + 3;
@@ -225,25 +225,25 @@ void Players::Player_LevelUp(Players *players, Player *player)
     Player::CalculateHP_TP_SP(player);
 }
 
-int Players::Player_TryLevelUp(Players *players, Player *player)
+int Players::Player_TryLevelUp(Players *self, Player *player)
 {
     int new_level = 0;
     while ((int)player->experience >= Gamecontrol::Exp_RequiredForLevel(
                                           (*MAINFORM)->game_control, player->level + 1))
     {
-        Player_LevelUp(players, player);
+        Player_LevelUp(self, player);
         new_level = player->level;
     }
     return new_level;
 }
 
-void Players::Party_AddNewMember(Players *players,
+void Players::Party_AddNewMember(Players *self,
                                  Player *existing_member,
                                  Player *new_member)
 {
     for (int i = 0; i < PARTY_MAX_MEMBERS; i++)
     {
-        Player *player = Players_GetById(players, existing_member->party_ids[i]);
+        Player *player = Players_GetById(self, existing_member->party_ids[i]);
         if (player != 0)
             Player::AddPartyMember(player, new_member->player_id);
     }
@@ -254,7 +254,7 @@ void Players::Party_AddNewMember(Players *players,
         Player::AddPartyMember(new_member, existing_member->party_ids[i]);
 }
 
-void Players::Player_LeaveParty(Players *players, Player *player)
+void Players::Player_LeaveParty(Players *self, Player *player)
 {
     bool disband = false;
     player->in_party = false;
@@ -264,7 +264,7 @@ void Players::Player_LeaveParty(Players *players, Player *player)
     {
         if (player->party_ids[i] != player->player_id)
         {
-            Player *member = Players_GetById(players, player->party_ids[i]);
+            Player *member = Players_GetById(self, player->party_ids[i]);
             if (member != 0)
             {
                 if (disband)
@@ -342,15 +342,15 @@ bool Players::Player_RemoveItem(Players *self, Player *player, int item_id, int 
     return false;
 }
 
-bool Players::CharName_Validate(Players *players, Player *player, String name)
+bool Players::CharName_Validate(Players *self, Player *player, String name)
 {
     Player **iter;
     if (player->null_string != "")
     {
         return true;
     }
-    iter = players->players.begin();
-    while (iter != players->players.end())
+    iter = self->players.begin();
+    while (iter != self->players.end())
     {
         if (name == (*iter)->null_string)
             return true;
@@ -907,7 +907,7 @@ void Players::Players_Tick(Players *self)
     }
 }
 
-String Character_BuildSaveQuery(Players *players, Player *player, int flags)
+String Character_BuildSaveQuery(Players *self, Player *player, int flags)
 {
     if (player->logged_in == false)
         return "";
@@ -1039,7 +1039,7 @@ String Character_BuildSaveQuery(Players *players, Player *player, int flags)
     q.Insert(",mp_now = " + IntToStr(player->tp), q.Length() + 1);
     q.Insert(",sp_max = " + IntToStr(player->base_sp), q.Length() + 1);
     if (player->base_stats_dirty != false ||
-        Settings::GetSqlSmart(players->settings) == false)
+        Settings::GetSqlSmart(self->settings) == false)
     {
         q.Insert(",stat_strenght = " + IntToStr(player->base_strength), q.Length() + 1);
         q.Insert(",stat_wisdom = " + IntToStr(player->base_wisdom), q.Length() + 1);
@@ -1058,7 +1058,7 @@ String Character_BuildSaveQuery(Players *players, Player *player, int flags)
     q.Insert(",locker_bank = " + IntToStr(player->locker_bank), q.Length() + 1);
     q.Insert(",alignment_good = " + IntToStr(player->karma), q.Length() + 1);
     if (player->equipment_dirty != false ||
-        Settings::GetSqlSmart(players->settings) == false)
+        Settings::GetSqlSmart(self->settings) == false)
     {
         q.Insert(",eq_boots = " + IntToStr(player->boots_item_id), q.Length() + 1);
         q.Insert(",eq_pants = " + IntToStr(player->accessory_item_id), q.Length() + 1);
@@ -1078,13 +1078,13 @@ String Character_BuildSaveQuery(Players *players, Player *player, int flags)
         player->equipment_dirty = 0;
     }
     if (player->inventory_dirty != false ||
-        Settings::GetSqlSmart(players->settings) == false)
+        Settings::GetSqlSmart(self->settings) == false)
     {
         q.Insert(",invblob = '" + invblob + "'", q.Length() + 1);
         q.Insert(",invblob2 = '" + invblob2 + "'", q.Length() + 1);
         player->inventory_dirty = 0;
     }
-    if (player->bank_dirty != false || Settings::GetSqlSmart(players->settings) == false)
+    if (player->bank_dirty != false || Settings::GetSqlSmart(self->settings) == false)
     {
         q.Insert(",invblob3 = '" + bankblob + "'", q.Length() + 1);
         q.Insert(",invblob4 = '" + bankblob2 + "'", q.Length() + 1);
@@ -1104,7 +1104,7 @@ String Character_BuildSaveQuery(Players *players, Player *player, int flags)
     q.Insert(",online = " + IntToStr(flags), q.Length() + 1);
     q.Insert(" WHERE ident = " + IntToStr(player->character_id), q.Length() + 1);
     q.Insert(" AND ident_account = " + IntToStr(player->account_id), q.Length() + 1);
-    FileCache::UpdatePlayerCache(players->mysql_controls->file_cache, (char *)player);
+    FileCache::UpdatePlayerCache(self->mysql_controls->file_cache, (char *)player);
     return q;
 }
 

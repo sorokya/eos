@@ -17,10 +17,10 @@ class Mysqlcontrols;
 class Server;
 class Players;
 
-String Character_BuildSaveQuery(Players *players, Player *player, int flag);
+String Character_BuildSaveQuery(Players *self, Player *player, int flag);
 int RandRange(int max);
-Player **Players_Iter_Begin(Players *players);
-Player **Players_Iter_End(Players *players);
+Player **Players_Iter_Begin(Players *self);
+Player **Players_Iter_End(Players *self);
 
 // Player manager. Layout recovered from the reference (Players unit,
 // 0x407948..0x410de4): a std::vector<Player *> at +0, the 100000-entry
@@ -59,8 +59,8 @@ class Players
     static Player *Players_GetById(Players *self, int player_id);
     static Player *Players_FindByName(Players *self, String name);
     static Player *Players_GetByMapTile(Players *self, int map_id, int x, int y);
-    static int Player_TryLevelUp(Players *players, Player *player);
-    static void Player_LevelUp(Players *players, Player *player);
+    static int Player_TryLevelUp(Players *self, Player *player);
+    static void Player_LevelUp(Players *self, Player *player);
     static int Players_GetActiveCount(Players *self);
     static int Players_GetIdleTimeout(Players *self);
     static int Players_GetStatTotal(Players *self);

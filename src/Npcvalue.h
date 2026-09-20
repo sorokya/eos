@@ -10,7 +10,7 @@
 // (offsets 0x3c/0x5c), stores the npc id at offset 0 and clears both vectors;
 // the destructor destroys the talk vector, the drop vector then `name`. The
 // element size of std::vector<NpcValue> is 0x7c, matching this layout; every
-// offset is pinned by the parsers (Pub_LoadNpcs/AddNpc 0x4a5654/0x4a6f68) and
+// offset is pinned by the parsers (LoadNpcs/AddNpc 0x4a5654/0x4a6f68) and
 // the accessors (NpcValues::GetExp/GetMaxHp/GetType 0x4a8be4/0x4a8c34/0x4a8c88) and the
 // implicit copy constructor (0x4a7528). Fields widen the on-disk EnfRecord
 // (eo-protocol): each decoded char/short/three is stored as its machine width
