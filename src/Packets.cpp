@@ -2966,7 +2966,6 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             false);
                 return true;
             }
-            return true;
         }
         if (action == PacketAction_Drop)
         {
@@ -4885,11 +4884,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (target->trade_accepted != 0)
             {
-                if (target->read_len != player->player_id)
-                    return true;
-                Banned::AddBan(
-                    server->banned, player->remote_ip, player->hdid, false, 0x3840);
-                return false;
+                if (target->read_len == player->player_id)
+                {
+                    Banned::AddBan(
+                        server->banned, player->remote_ip, player->hdid, false, 0x3840);
+                    return false;
+                }
+                return true;
             }
             player->read_len = target_id;
             player->trade_accepted = 0;
@@ -5452,7 +5453,6 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, GuildReply_RanksUpdated, 2));
                 return true;
             }
-            return true;
         }
         if (action == PacketAction_Take)
         {
@@ -5477,15 +5477,16 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (info_type == GuildInfoType_Description)
             {
-                if (player->guild_rank_id == 1)
-                    Mysqlcontrols::Mysql_SubmitQuery(
-                        server->mysql_controls,
-                        0x4a,
-                        player->player_id,
-                        player->query_id,
-                        data,
-                        "SELECT description FROM endl_guilds WHERE tag = '" +
-                            player->guild_tag + "' LIMIT 1");
+                if (player->guild_rank_id != 1)
+                    return true;
+                Mysqlcontrols::Mysql_SubmitQuery(
+                    server->mysql_controls,
+                    0x4a,
+                    player->player_id,
+                    player->query_id,
+                    data,
+                    "SELECT description FROM endl_guilds WHERE tag = '" +
+                        player->guild_tag + "' LIMIT 1");
                 return true;
             }
             if (info_type == GuildInfoType_Ranks)
@@ -5511,7 +5512,6 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     data,
                     "SELECT money FROM endl_guilds WHERE tag = '" + player->guild_tag +
                         "' LIMIT 1");
-                return true;
             }
             return true;
         }
@@ -5795,26 +5795,27 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (inviter->map_id != player->map_id)
                 return true;
             int invites = Players::Players_CountGuildInvites(server->players, inviter);
-            if (invites >= 0xa)
-                return true;
-            player->guild_inviter_id = inviter_id;
-            if (invites == 9)
+            if (invites < 0xa)
             {
-                Client_SendEncoded(
-                    server,
-                    inviter,
-                    PacketAction_Reply,
-                    PacketFamily_Guild,
-                    EO_EncodeNumber(server, GuildReply_CreateAddConfirm, 2) +
-                        player->name);
-                return true;
+                player->guild_inviter_id = inviter_id;
+                if (invites == 9)
+                {
+                    Client_SendEncoded(
+                        server,
+                        inviter,
+                        PacketAction_Reply,
+                        PacketFamily_Guild,
+                        EO_EncodeNumber(server, GuildReply_CreateAddConfirm, 2) +
+                            player->name);
+                    return true;
+                }
+                Client_SendEncoded(server,
+                                   inviter,
+                                   PacketAction_Reply,
+                                   PacketFamily_Guild,
+                                   EO_EncodeNumber(server, GuildReply_CreateAdd, 2) +
+                                       player->name);
             }
-            Client_SendEncoded(server,
-                               inviter,
-                               PacketAction_Reply,
-                               PacketFamily_Guild,
-                               EO_EncodeNumber(server, GuildReply_CreateAdd, 2) +
-                                   player->name);
             return true;
         }
         if (action == PacketAction_Request)
