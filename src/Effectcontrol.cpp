@@ -34,7 +34,7 @@ EffectController::~EffectController()
 }
 
 String
-EffectController::AppendEncoded(EffectController *self, unsigned int value, int width)
+EffectController::EncodeNumber(EffectController *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -92,8 +92,8 @@ void EffectController::Tick(EffectController *self)
             {
                 if (self->aState_countdown[idx] < 1)
                 {
-                    String pkt = AppendEncoded(self, 1, 1);
-                    pkt.Insert(AppendEncoded(self, self->aState_extra[idx], 1),
+                    String pkt = EncodeNumber(self, 1, 1);
+                    pkt.Insert(EncodeNumber(self, self->aState_extra[idx], 1),
                                pkt.Length() + 1);
                     Client_SendEncoded(self->server,
                                        *player_iter,
@@ -127,21 +127,21 @@ void EffectController::Tick(EffectController *self)
                 }
                 Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
                     ->hp_drain_others.Insert(
-                        AppendEncoded(self, (*player_iter)->player_id, 2),
+                        EncodeNumber(self, (*player_iter)->player_id, 2),
                         Mapcontrol_GetByIndex(self->map_control,
                                               (*player_iter)->map_id - 1)
                                 ->hp_drain_others.Length() +
                             1);
                 Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
                     ->hp_drain_others.Insert(
-                        AppendEncoded(self, Player::HpPercent(*player_iter), 1),
+                        EncodeNumber(self, Player::HpPercent(*player_iter), 1),
                         Mapcontrol_GetByIndex(self->map_control,
                                               (*player_iter)->map_id - 1)
                                 ->hp_drain_others.Length() +
                             1);
                 Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
                     ->hp_drain_others.Insert(
-                        AppendEncoded(self, hp_regen, 2),
+                        EncodeNumber(self, hp_regen, 2),
                         Mapcontrol_GetByIndex(self->map_control,
                                               (*player_iter)->map_id - 1)
                                 ->hp_drain_others.Length() +
@@ -155,10 +155,10 @@ void EffectController::Tick(EffectController *self)
                 if ((*player_iter)->tp <= tp_regen)
                     tp_regen = (*player_iter)->tp - 1;
                 (*player_iter)->tp -= tp_regen;
-                String pkt = AppendEncoded(self, 1, 1);
-                pkt.Insert(AppendEncoded(self, tp_regen, 2), pkt.Length() + 1);
-                pkt.Insert(AppendEncoded(self, (*player_iter)->tp, 2), pkt.Length() + 1);
-                pkt.Insert(AppendEncoded(self, (*player_iter)->max_tp, 2),
+                String pkt = EncodeNumber(self, 1, 1);
+                pkt.Insert(EncodeNumber(self, tp_regen, 2), pkt.Length() + 1);
+                pkt.Insert(EncodeNumber(self, (*player_iter)->tp, 2), pkt.Length() + 1);
+                pkt.Insert(EncodeNumber(self, (*player_iter)->max_tp, 2),
                            pkt.Length() + 1);
                 Client_SendEncoded(self->server,
                                    *player_iter,
@@ -190,22 +190,22 @@ void EffectController::Tick(EffectController *self)
                         (*player_iter)->hp = 0;
                         died = 1;
                     }
-                    String pkt = AppendEncoded(self, 2, 1);
-                    pkt.Insert(AppendEncoded(self, dmg, 2), pkt.Length() + 1);
-                    pkt.Insert(AppendEncoded(self, (*player_iter)->hp, 2),
+                    String pkt = EncodeNumber(self, 2, 1);
+                    pkt.Insert(EncodeNumber(self, dmg, 2), pkt.Length() + 1);
+                    pkt.Insert(EncodeNumber(self, (*player_iter)->hp, 2),
                                pkt.Length() + 1);
-                    pkt.Insert(AppendEncoded(self, (*player_iter)->max_hp, 2),
+                    pkt.Insert(EncodeNumber(self, (*player_iter)->max_hp, 2),
                                pkt.Length() + 1);
                     Client_SendEncoded(self->server,
                                        *player_iter,
                                        PacketAction_Spec,
                                        PacketFamily_Effect,
                                        pkt);
-                    pkt += AppendEncoded(self, (*player_iter)->player_id, 2);
-                    pkt.Insert(AppendEncoded(self, Player::HpPercent(*player_iter), 1),
+                    pkt += EncodeNumber(self, (*player_iter)->player_id, 2);
+                    pkt.Insert(EncodeNumber(self, Player::HpPercent(*player_iter), 1),
                                pkt.Length() + 1);
-                    pkt.Insert(AppendEncoded(self, died, 1), pkt.Length() + 1);
-                    pkt.Insert(AppendEncoded(self, dmg, 2), pkt.Length() + 1);
+                    pkt.Insert(EncodeNumber(self, died, 1), pkt.Length() + 1);
+                    pkt.Insert(EncodeNumber(self, dmg, 2), pkt.Length() + 1);
                     Server_BroadcastNearby(self->server,
                                            *player_iter,
                                            PacketAction_Admin,
@@ -237,10 +237,10 @@ void EffectController::Tick(EffectController *self)
             {
                 Mapcontrol_GetByIndex(self->map_control, (*broadcast_iter)->map_id - 1)
                     ->hp_drain_others_sent = 1;
-                String pkt = AppendEncoded(self, (*broadcast_iter)->item_change_count, 2);
-                pkt.Insert(AppendEncoded(self, (*broadcast_iter)->hp, 2),
+                String pkt = EncodeNumber(self, (*broadcast_iter)->item_change_count, 2);
+                pkt.Insert(EncodeNumber(self, (*broadcast_iter)->hp, 2),
                            pkt.Length() + 1);
-                pkt.Insert(AppendEncoded(self, (*broadcast_iter)->max_hp, 2),
+                pkt.Insert(EncodeNumber(self, (*broadcast_iter)->max_hp, 2),
                            pkt.Length() + 1);
                 pkt.Insert(Mapcontrol_GetByIndex(self->map_control,
                                                  (*broadcast_iter)->map_id - 1)

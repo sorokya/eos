@@ -30,7 +30,7 @@ MsgBoardController::~MsgBoardController()
 }
 
 String
-MsgBoardController::AppendEncoded(MsgBoardController *self, unsigned int value, int width)
+MsgBoardController::EncodeNumber(MsgBoardController *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -176,7 +176,7 @@ String MsgBoardController::GetPost(MsgBoardController *self, int board, int post
         {
             if (it->id == post_id)
             {
-                result = AppendEncoded(self, it->id, 2);
+                result = EncodeNumber(self, it->id, 2);
                 result.Insert(it->message, result.Length() + 1);
                 break;
             }
@@ -192,8 +192,8 @@ void MsgBoardController::BuildBoardName(MsgBoardController *self, int board)
         int count = self->boards[board - 1].size();
         if (count > self->field_0x0)
             count = self->field_0x0;
-        String result = AppendEncoded(self, board, 1);
-        result.Insert(AppendEncoded(self, count, 1), result.Length() + 1);
+        String result = EncodeNumber(self, board, 1);
+        result.Insert(EncodeNumber(self, count, 1), result.Length() + 1);
         board--;
         std::vector<MsgBoard>::iterator it;
         int i = 0;
@@ -201,7 +201,7 @@ void MsgBoardController::BuildBoardName(MsgBoardController *self, int board)
              it != self->boards[board].end() && i < self->field_0x0;
              i++, it++)
         {
-            result.Insert(AppendEncoded(self, it->id, 2), result.Length() + 1);
+            result.Insert(EncodeNumber(self, it->id, 2), result.Length() + 1);
             result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
             result.Insert(it->poster, result.Length() + 1);
             result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
@@ -219,7 +219,7 @@ String MsgBoardController::BuildBoardData(MsgBoardController *self, int board)
     if (board >= 1 && board <= 8)
     {
         board--;
-        result = AppendEncoded(self, self->boards[board].size(), 2);
+        result = EncodeNumber(self, self->boards[board].size(), 2);
         result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
         std::vector<MsgBoard>::iterator it;
         for (it = self->boards[board].begin(); it != self->boards[board].end(); it++)
@@ -230,11 +230,11 @@ String MsgBoardController::BuildBoardData(MsgBoardController *self, int board)
             text.Insert(poster, text.Length() + 1);
             text.Insert(subject, text.Length() + 1);
             text.Insert(message, text.Length() + 1);
-            result.Insert(AppendEncoded(self, poster.Length(), 2), result.Length() + 1);
+            result.Insert(EncodeNumber(self, poster.Length(), 2), result.Length() + 1);
             result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
-            result.Insert(AppendEncoded(self, subject.Length(), 2), result.Length() + 1);
+            result.Insert(EncodeNumber(self, subject.Length(), 2), result.Length() + 1);
             result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
-            result.Insert(AppendEncoded(self, message.Length(), 2), result.Length() + 1);
+            result.Insert(EncodeNumber(self, message.Length(), 2), result.Length() + 1);
             result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
         }
         result.Insert(text, result.Length() + 1);
@@ -432,7 +432,7 @@ void MsgBoardController::SaveBoards(MsgBoardController *self)
     for (int i = 1; i <= 8; i++)
     {
         board_data = BuildBoardData(self, i);
-        lengths.Insert(AppendEncoded(self, board_data.Length(), 4), lengths.Length() + 1);
+        lengths.Insert(EncodeNumber(self, board_data.Length(), 4), lengths.Length() + 1);
         contents.Insert(board_data, contents.Length() + 1);
     }
     lengths.Insert(contents, lengths.Length() + 1);

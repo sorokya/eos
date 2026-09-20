@@ -18,7 +18,7 @@ class ClassValues
 {
   public:
     int file_id;
-    int num_classes;
+    int num_records;
     int rid_1;
     int rid_2;
     char loaded;
@@ -32,7 +32,7 @@ class ClassValues
     ~ClassValues();
 
     static void LoadClasses(ClassValues *self);
-    int DecodeInt(String value);
+    int DecodeNumber(String value);
     int GetCount();
 
     static ClassValue GetByIndex(ClassValues *self, int index);

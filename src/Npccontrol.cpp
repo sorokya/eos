@@ -204,8 +204,7 @@ int NpcController::Npc_ValidateMove(NpcController *self, int map_id, int x, int 
     return -1;
 }
 
-String
-NpcController::Packet_AppendEncoded(NpcController *self, unsigned int value, int width)
+String NpcController::EncodeNumber(NpcController *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -333,21 +332,20 @@ bool NpcController::Npc_AttackPlayer(NpcController *mc, Npc *npc, Player *player
     }
     int hp_percent = (player->hp * 100) / player->max_hp;
     player->stats_dirty = 1;
-    npc->attack_buffer = Packet_AppendEncoded(mc, npc->index, 1);
+    npc->attack_buffer = EncodeNumber(mc, npc->index, 1);
     if (player->hp > 0)
-        npc->attack_buffer.Insert(Packet_AppendEncoded(mc, 1, 1),
+        npc->attack_buffer.Insert(EncodeNumber(mc, 1, 1),
                                   npc->attack_buffer.Length() + 1);
     if (player->hp < 1)
-        npc->attack_buffer.Insert(Packet_AppendEncoded(mc, 2, 1),
+        npc->attack_buffer.Insert(EncodeNumber(mc, 2, 1),
                                   npc->attack_buffer.Length() + 1);
-    npc->attack_buffer.Insert(
-        Packet_AppendEncoded(mc, (unsigned short)npc->nAttack_dir, 1),
-        npc->attack_buffer.Length() + 1);
-    npc->attack_buffer.Insert(Packet_AppendEncoded(mc, player->player_id, 2),
+    npc->attack_buffer.Insert(EncodeNumber(mc, (unsigned short)npc->nAttack_dir, 1),
                               npc->attack_buffer.Length() + 1);
-    npc->attack_buffer.Insert(Packet_AppendEncoded(mc, damage, 3),
+    npc->attack_buffer.Insert(EncodeNumber(mc, player->player_id, 2),
                               npc->attack_buffer.Length() + 1);
-    npc->attack_buffer.Insert(Packet_AppendEncoded(mc, hp_percent, 1),
+    npc->attack_buffer.Insert(EncodeNumber(mc, damage, 3),
+                              npc->attack_buffer.Length() + 1);
+    npc->attack_buffer.Insert(EncodeNumber(mc, hp_percent, 1),
                               npc->attack_buffer.Length() + 1);
     if (player->hp == 0)
         return true;
@@ -665,18 +663,17 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                 (*npc)->wDrop_item_id = drop.item_id;
                                 (*npc)->wDrop_amount = drop.amount;
                                 (*npc)->pos_buffer =
-                                    Packet_AppendEncoded(npc_control, (*npc)->index, 1);
+                                    EncodeNumber(npc_control, (*npc)->index, 1);
                                 (*npc)->pos_buffer.Insert(
-                                    Packet_AppendEncoded(npc_control, (*npc)->x, 1),
+                                    EncodeNumber(npc_control, (*npc)->x, 1),
                                     (*npc)->pos_buffer.Length() + 1);
                                 (*npc)->pos_buffer.Insert(
-                                    Packet_AppendEncoded(npc_control, (*npc)->y, 1),
+                                    EncodeNumber(npc_control, (*npc)->y, 1),
                                     (*npc)->pos_buffer.Length() + 1);
                                 (*npc)->pos_buffer.Insert(
-                                    Packet_AppendEncoded(
-                                        npc_control,
-                                        (unsigned short)(*npc)->direction,
-                                        1),
+                                    EncodeNumber(npc_control,
+                                                 (unsigned short)(*npc)->direction,
+                                                 1),
                                     (*npc)->pos_buffer.Length() + 1);
                             }
                         }
@@ -723,9 +720,9 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                 map->npc_dirty = 1;
                                 (*npc)->talk_pending = 1;
                                 (*npc)->talk_buffer =
-                                    Packet_AppendEncoded(npc_control, (*npc)->index, 1);
+                                    EncodeNumber(npc_control, (*npc)->index, 1);
                                 (*npc)->talk_buffer.Insert(
-                                    Packet_AppendEncoded(npc_control, line.Length(), 1),
+                                    EncodeNumber(npc_control, line.Length(), 1),
                                     (*npc)->talk_buffer.Length() + 1);
                                 (*npc)->talk_buffer.Insert(
                                     line, (*npc)->talk_buffer.Length() + 1);
@@ -848,19 +845,18 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                 if ((*npc)->pos_pending != 0)
                                 {
                                     map->npc_dirty = 1;
-                                    (*npc)->pos_buffer = Packet_AppendEncoded(
-                                        npc_control, (*npc)->index, 1);
+                                    (*npc)->pos_buffer =
+                                        EncodeNumber(npc_control, (*npc)->index, 1);
                                     (*npc)->pos_buffer.Insert(
-                                        Packet_AppendEncoded(npc_control, (*npc)->x, 1),
+                                        EncodeNumber(npc_control, (*npc)->x, 1),
                                         (*npc)->pos_buffer.Length() + 1);
                                     (*npc)->pos_buffer.Insert(
-                                        Packet_AppendEncoded(npc_control, (*npc)->y, 1),
+                                        EncodeNumber(npc_control, (*npc)->y, 1),
                                         (*npc)->pos_buffer.Length() + 1);
                                     (*npc)->pos_buffer.Insert(
-                                        Packet_AppendEncoded(
-                                            npc_control,
-                                            (unsigned short)(*npc)->direction,
-                                            1),
+                                        EncodeNumber(npc_control,
+                                                     (unsigned short)(*npc)->direction,
+                                                     1),
                                         (*npc)->pos_buffer.Length() + 1);
                                 }
                                 continue;
@@ -890,19 +886,18 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                 if ((*npc)->pos_pending != 0)
                                 {
                                     map->npc_dirty = 1;
-                                    (*npc)->pos_buffer = Packet_AppendEncoded(
-                                        npc_control, (*npc)->index, 1);
+                                    (*npc)->pos_buffer =
+                                        EncodeNumber(npc_control, (*npc)->index, 1);
                                     (*npc)->pos_buffer.Insert(
-                                        Packet_AppendEncoded(npc_control, (*npc)->x, 1),
+                                        EncodeNumber(npc_control, (*npc)->x, 1),
                                         (*npc)->pos_buffer.Length() + 1);
                                     (*npc)->pos_buffer.Insert(
-                                        Packet_AppendEncoded(npc_control, (*npc)->y, 1),
+                                        EncodeNumber(npc_control, (*npc)->y, 1),
                                         (*npc)->pos_buffer.Length() + 1);
                                     (*npc)->pos_buffer.Insert(
-                                        Packet_AppendEncoded(
-                                            npc_control,
-                                            (unsigned short)(*npc)->direction,
-                                            1),
+                                        EncodeNumber(npc_control,
+                                                     (unsigned short)(*npc)->direction,
+                                                     1),
                                         (*npc)->pos_buffer.Length() + 1);
                                 }
                             }
@@ -973,17 +968,16 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                     data.Insert(String((char)-1), data.Length() + 1);
                     if ((*player)->stats_dirty != 0)
                     {
-                        data.Insert(Packet_AppendEncoded(npc_control, (*player)->hp, 2),
+                        data.Insert(EncodeNumber(npc_control, (*player)->hp, 2),
                                     data.Length() + 1);
-                        data.Insert(Packet_AppendEncoded(npc_control, (*player)->tp, 2),
+                        data.Insert(EncodeNumber(npc_control, (*player)->tp, 2),
                                     data.Length() + 1);
                         if ((*player)->in_party != false)
                         {
-                            String party_data = Packet_AppendEncoded(
-                                npc_control, (*player)->player_id, 2);
+                            String party_data =
+                                EncodeNumber(npc_control, (*player)->player_id, 2);
                             party_data.Insert(
-                                Packet_AppendEncoded(
-                                    npc_control, Player::HpPercent(*player), 1),
+                                EncodeNumber(npc_control, Player::HpPercent(*player), 1),
                                 party_data.Length() + 1);
                             Server_BroadcastToParty(npc_control->server,
                                                     *player,

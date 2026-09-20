@@ -60,11 +60,11 @@ void NpcValues::LoadNpcs(NpcValues *self)
                 self->string_list->Add(data);
                 if (file == 1)
                 {
-                    self->rid1 = self->DecodeNumber(data.SubString(4, 2));
-                    self->rid2 = self->DecodeNumber(data.SubString(6, 2));
+                    self->rid_1 = self->DecodeNumber(data.SubString(4, 2));
+                    self->rid_2 = self->DecodeNumber(data.SubString(6, 2));
                     int parsed = self->DecodeNumber(data.SubString(8, 2));
                     total = parsed;
-                    self->count = parsed;
+                    self->num_records = parsed;
                 }
                 data.Delete(1, 10);
                 for (int i = 0; count < total && i < 900; i++)

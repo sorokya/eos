@@ -109,8 +109,8 @@ void Client_SendEncoded(Server *server,
                         unsigned char family,
                         String data);
 bool Walk_Execute(Server *server, Player *player, int action, String *data);
-bool Attack_Execute(Server *server, Player *caster, int action, String *reader);
-bool Spell_Execute(Server *server, Player *caster, int action, String *packet_data);
+bool Attack_Execute(Server *server, Player *caster, int action, String *data);
+bool Spell_Execute(Server *server, Player *caster, int action, String *data);
 bool Face_Execute(Server *server, Player *player, int action, String *data);
 bool Chair_Execute(Server *server, Player *player, int action, String *data);
 bool Player_CheckIdleWarp(Server *server, Player *player, int x, int y);

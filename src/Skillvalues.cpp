@@ -46,12 +46,12 @@ void SkillValues::LoadSpells(SkillValues *self)
                 self->string_list->Add(data);
                 if (file == 1)
                 {
-                    self->rid1 = self->DecodeNumber(data.SubString(4, 2));
-                    self->rid2 = self->DecodeNumber(data.SubString(6, 2));
+                    self->rid_1 = self->DecodeNumber(data.SubString(4, 2));
+                    self->rid_2 = self->DecodeNumber(data.SubString(6, 2));
                     int parsed = self->DecodeNumber(data.SubString(8, 2));
                     int version = self->DecodeNumber(data.SubString(10, 1));
                     total = parsed;
-                    self->num_skills = parsed;
+                    self->num_records = parsed;
                 }
                 data.Delete(1, 10);
                 for (int j = 0; count < total && j < 900; j++)

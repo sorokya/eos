@@ -24,7 +24,7 @@ class ChestController
     ~ChestController();
 
     static void Tick(ChestController *self);
-    static String AppendEncoded(ChestController *self, unsigned int value, int width);
+    static String EncodeNumber(ChestController *self, unsigned int value, int width);
     static bool InRange(ChestController *self, int x, int y, int player_x, int player_y);
 };
 

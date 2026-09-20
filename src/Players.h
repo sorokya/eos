@@ -17,7 +17,7 @@ class Mysqlcontrols;
 class Server;
 class Players;
 
-String Character_BuildSaveQuery(Players *self, Player *player, int flag);
+String Character_BuildSaveQuery(Players *self, Player *player, int flags);
 int RandRange(int max);
 Player **Players_Iter_Begin(Players *self);
 Player **Players_Iter_End(Players *self);

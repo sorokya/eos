@@ -28,7 +28,7 @@ class EffectController
     ~EffectController();
 
     static void Tick(EffectController *self);
-    static String AppendEncoded(EffectController *self, unsigned int value, int width);
+    static String EncodeNumber(EffectController *self, unsigned int value, int width);
 };
 
 #endif

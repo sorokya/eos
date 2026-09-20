@@ -40,7 +40,7 @@ struct ItemSpecXY
 // (0x47826c); sizeof(std::vector<ItemValue*>) is 32 and the member extent runs
 // to 0x3c / the vector element type is ItemValue*:
 //   +0x00 int                         file_id
-//   +0x04 int                         num_items
+//   +0x04 int                         num_records
 //   +0x08 int                         rid_1
 //   +0x0c int                         rid_2
 //   +0x10 char                        loaded
@@ -52,7 +52,7 @@ class ItemValues
 {
   public:
     int file_id;
-    int num_items;
+    int num_records;
     int rid_1;
     int rid_2;
     char loaded;

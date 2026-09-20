@@ -35,9 +35,9 @@ struct SkillElement
 // (0x4a3018) and the parser/accessors: sizeof(std::vector<SkillValue>) is 32 and
 // sizeof(SkillValue) is 76, matching the reference's element size:
 //   +0x00 int                        file_id
-//   +0x04 int                        num_skills
-//   +0x08 int                        rid1
-//   +0x0c int                        rid2
+//   +0x04 int                        num_records
+//   +0x08 int                        rid_1
+//   +0x0c int                        rid_2
 //   +0x10 char                       loaded
 //   +0x14 TStringList *              string_list
 //   +0x18 void *                     field_0x18 = operator new(8)
@@ -47,9 +47,9 @@ class SkillValues
 {
   public:
     int file_id;
-    int num_skills;
-    int rid1;
-    int rid2;
+    int num_records;
+    int rid_1;
+    int rid_2;
     char loaded;
     char pad_0x11[3];
     TStringList *string_list;

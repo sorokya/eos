@@ -44,8 +44,7 @@ class NpcController
         NpcController *self, Npc *npc, Player *player, int map_id, int map_w, int map_h);
     static bool Npc_DoMove(NpcController *self, int map_id, int x, int y);
     static int Npc_ValidateMove(NpcController *self, int map_id, int x, int y);
-    static String
-    Packet_AppendEncoded(NpcController *self, unsigned int value, int width);
+    static String EncodeNumber(NpcController *self, unsigned int value, int width);
 };
 
 #endif

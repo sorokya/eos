@@ -30,7 +30,7 @@ class EventController
     ~EventController();
 
     static void Tick(EventController *self);
-    static String AppendEncoded(EventController *self, unsigned int value, int width);
+    static String EncodeNumber(EventController *self, unsigned int value, int width);
 };
 
 #endif

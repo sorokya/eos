@@ -96,9 +96,9 @@ void WeddingController::Confirm(WeddingController *self,
                     weight = player1->weight_current;
                     if (weight > 0xfa)
                         weight = 0xfa;
-                    String data = AppendEncoded(self, item, 2);
-                    data.Insert(AppendEncoded(self, 1, 3), data.Length() + 1);
-                    data.Insert(AppendEncoded(self, weight, 1), data.Length() + 1);
+                    String data = EncodeNumber(self, item, 2);
+                    data.Insert(EncodeNumber(self, 1, 3), data.Length() + 1);
+                    data.Insert(EncodeNumber(self, weight, 1), data.Length() + 1);
                     Client_SendEncoded(self->server,
                                        player1,
                                        PacketAction_Obtain,
@@ -111,9 +111,9 @@ void WeddingController::Confirm(WeddingController *self,
                     weight = player2->weight_current;
                     if (weight > 0xfa)
                         weight = 0xfa;
-                    data = AppendEncoded(self, item, 2);
-                    data.Insert(AppendEncoded(self, 1, 3), data.Length() + 1);
-                    data.Insert(AppendEncoded(self, weight, 1), data.Length() + 1);
+                    data = EncodeNumber(self, item, 2);
+                    data.Insert(EncodeNumber(self, 1, 3), data.Length() + 1);
+                    data.Insert(EncodeNumber(self, weight, 1), data.Length() + 1);
                     Client_SendEncoded(self->server,
                                        player2,
                                        PacketAction_Obtain,
@@ -147,7 +147,7 @@ void WeddingController::Tick(WeddingController *self)
                                           (*it)->map_id,
                                           PacketAction_Player,
                                           PacketFamily_Jukebox,
-                                          AppendEncoded(self, 0x28, 1));
+                                          EncodeNumber(self, 0x28, 1));
                 }
             }
             if ((*it)->step == 1)
@@ -192,7 +192,7 @@ void WeddingController::Tick(WeddingController *self)
                                            player,
                                            PacketAction_Reply,
                                            PacketFamily_Priest,
-                                           AppendEncoded(self, PriestReply_DoYou, 2));
+                                           EncodeNumber(self, PriestReply_DoYou, 2));
                     }
                 }
             }
@@ -204,7 +204,7 @@ void WeddingController::Tick(WeddingController *self)
                         Players::Players_GetById(self->players, (*it)->player1_id);
                     if (player != 0)
                     {
-                        String data = AppendEncoded(self, (*it)->player1_id, 2);
+                        String data = EncodeNumber(self, (*it)->player1_id, 2);
                         data.Insert("Yes, i do", data.Length() + 1);
                         Server_BroadcastToMap(self->server,
                                               (*it)->map_id,
@@ -234,7 +234,7 @@ void WeddingController::Tick(WeddingController *self)
                                            player,
                                            PacketAction_Reply,
                                            PacketFamily_Priest,
-                                           AppendEncoded(self, PriestReply_DoYou, 2));
+                                           EncodeNumber(self, PriestReply_DoYou, 2));
                     }
                 }
             }
@@ -246,7 +246,7 @@ void WeddingController::Tick(WeddingController *self)
                         Players::Players_GetById(self->players, (*it)->player2_id);
                     if (player != 0)
                     {
-                        String data = AppendEncoded(self, (*it)->player2_id, 2);
+                        String data = EncodeNumber(self, (*it)->player2_id, 2);
                         data.Insert("Yes, i do", data.Length() + 1);
                         Server_BroadcastToMap(self->server,
                                               (*it)->map_id,
@@ -274,11 +274,11 @@ void WeddingController::Tick(WeddingController *self)
                 }
                 if ((*it)->countdown == 7 && BothPresent(self, *it))
                 {
-                    String data = AppendEncoded(self, (*it)->player1_id, 2);
-                    data.Insert(AppendEncoded(self, 1, 3), data.Length() + 1);
-                    data.Insert(AppendEncoded(self, (*it)->player2_id, 2),
+                    String data = EncodeNumber(self, (*it)->player1_id, 2);
+                    data.Insert(EncodeNumber(self, 1, 3), data.Length() + 1);
+                    data.Insert(EncodeNumber(self, (*it)->player2_id, 2),
                                 data.Length() + 1);
-                    data.Insert(AppendEncoded(self, 1, 3), data.Length() + 1);
+                    data.Insert(EncodeNumber(self, 1, 3), data.Length() + 1);
                     Server_BroadcastToMap(self->server,
                                           (*it)->map_id,
                                           PacketAction_Player,
@@ -305,15 +305,12 @@ void WeddingController::Tick(WeddingController *self)
                         Players::Players_GetById(self->players, (*it)->player2_id);
                     if (player1 != 0 && player2 != 0)
                     {
-                        String data = AppendEncoded(self, player1->x, 1);
-                        data.Insert(AppendEncoded(self, player1->y, 1),
-                                    data.Length() + 1);
-                        data.Insert(AppendEncoded(self, 0xb, 2), data.Length() + 1);
-                        data.Insert(AppendEncoded(self, player2->x, 1),
-                                    data.Length() + 1);
-                        data.Insert(AppendEncoded(self, player2->y, 1),
-                                    data.Length() + 1);
-                        data.Insert(AppendEncoded(self, 0xb, 2), data.Length() + 1);
+                        String data = EncodeNumber(self, player1->x, 1);
+                        data.Insert(EncodeNumber(self, player1->y, 1), data.Length() + 1);
+                        data.Insert(EncodeNumber(self, 0xb, 2), data.Length() + 1);
+                        data.Insert(EncodeNumber(self, player2->x, 1), data.Length() + 1);
+                        data.Insert(EncodeNumber(self, player2->y, 1), data.Length() + 1);
+                        data.Insert(EncodeNumber(self, 0xb, 2), data.Length() + 1);
                         Server_BroadcastToMap(self->server,
                                               (*it)->map_id,
                                               PacketAction_Agree,
@@ -370,7 +367,7 @@ void WeddingController::BroadcastPriestLine(WeddingController *self,
                                             Wedding *record,
                                             String text)
 {
-    String data = AppendEncoded(self, record->priest_line, 2);
+    String data = EncodeNumber(self, record->priest_line, 2);
     data.Insert(text, data.Length() + 1);
     Server_BroadcastToMap(
         self->server, record->map_id, PacketAction_Dialog, PacketFamily_Npc, data);
@@ -388,7 +385,7 @@ bool WeddingController::BothPresent(WeddingController *self, Wedding *record)
 }
 
 String
-WeddingController::AppendEncoded(WeddingController *self, unsigned int value, int width)
+WeddingController::EncodeNumber(WeddingController *self, unsigned int value, int width)
 {
     int rem;
     char c;

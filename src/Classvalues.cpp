@@ -46,28 +46,28 @@ void ClassValues::LoadClasses(ClassValues *self)
                 self->string_list->Add(data);
                 if (file == 1)
                 {
-                    self->rid_1 = self->DecodeInt(data.SubString(4, 2));
-                    self->rid_2 = self->DecodeInt(data.SubString(6, 2));
-                    int parsed = self->DecodeInt(data.SubString(8, 2));
-                    int version = self->DecodeInt(data.SubString(10, 1));
+                    self->rid_1 = self->DecodeNumber(data.SubString(4, 2));
+                    self->rid_2 = self->DecodeNumber(data.SubString(6, 2));
+                    int parsed = self->DecodeNumber(data.SubString(8, 2));
+                    int version = self->DecodeNumber(data.SubString(10, 1));
                     total = parsed;
-                    self->num_classes = parsed;
+                    self->num_records = parsed;
                 }
                 data.Delete(1, 10);
                 for (int j = 0; count < total && j < 0xfa; j++)
                 {
-                    int namelen = self->DecodeInt(data.SubString(1, 1));
+                    int namelen = self->DecodeNumber(data.SubString(1, 1));
                     AddClass(self,
                              self->GetCount() + 1,
-                             self->DecodeInt(data.SubString(namelen + 2, 1)),
+                             self->DecodeNumber(data.SubString(namelen + 2, 1)),
                              data.SubString(2, namelen),
-                             self->DecodeInt(data.SubString(namelen + 0x3, 1)),
-                             self->DecodeInt(data.SubString(namelen + 0x4, 2)),
-                             self->DecodeInt(data.SubString(namelen + 0x6, 2)),
-                             self->DecodeInt(data.SubString(namelen + 0x8, 2)),
-                             self->DecodeInt(data.SubString(namelen + 0xa, 2)),
-                             self->DecodeInt(data.SubString(namelen + 0xc, 2)),
-                             self->DecodeInt(data.SubString(namelen + 0xe, 2)));
+                             self->DecodeNumber(data.SubString(namelen + 0x3, 1)),
+                             self->DecodeNumber(data.SubString(namelen + 0x4, 2)),
+                             self->DecodeNumber(data.SubString(namelen + 0x6, 2)),
+                             self->DecodeNumber(data.SubString(namelen + 0x8, 2)),
+                             self->DecodeNumber(data.SubString(namelen + 0xa, 2)),
+                             self->DecodeNumber(data.SubString(namelen + 0xc, 2)),
+                             self->DecodeNumber(data.SubString(namelen + 0xe, 2)));
                     count++;
                     data.Delete(1, namelen + 0xf);
                 }
@@ -132,7 +132,7 @@ int ClassValues::GetCount()
     return record_list.size();
 }
 
-int ClassValues::DecodeInt(String value)
+int ClassValues::DecodeNumber(String value)
 {
     String value_copy = value;
     int result = 0;

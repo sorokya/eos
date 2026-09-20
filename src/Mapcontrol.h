@@ -129,9 +129,8 @@ class Mapcontrol
                                                    int map_id,
                                                    int range_low,
                                                    int range_high);
-    static int Mapcontrol_DecodeNumber(Mapcontrol *self, String value);
-    static String
-    Mapcontrol_AppendEncoded(Mapcontrol *self, unsigned int value, int width);
+    static int DecodeNumber(Mapcontrol *self, String value);
+    static String EncodeNumber(Mapcontrol *self, unsigned int value, int width);
     static int Mapcontrol_GetWarpMap(Mapcontrol *self, int map_id, int x, int y);
     static int Mapcontrol_GetWarpLevelReq(Mapcontrol *self, int map_id, int x, int y);
     static int Mapcontrol_GetWarpX(Mapcontrol *self, int map_id, int x, int y);

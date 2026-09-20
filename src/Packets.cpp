@@ -92,7 +92,7 @@ String Paperdoll_BuildReply(Server *server, Player *player);
 void Player_ApplyQuestActions(Server *server,
                               Player *player,
                               PlayerQuest *tracker,
-                              bool flag);
+                              bool repeat);
 
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
@@ -1756,27 +1756,28 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 out.Insert(EO_EncodeNumber(server, (*MAINFORM)->item_values->rid_2, 2),
                            out.Length() + 1);
                 out.Insert(
-                    EO_EncodeNumber(server, (*MAINFORM)->item_values->num_items, 2),
+                    EO_EncodeNumber(server, (*MAINFORM)->item_values->num_records, 2),
                     out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->npc_values->rid1, 2),
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->npc_values->rid_1, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->npc_values->rid2, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->npc_values->count, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->skill_values->rid1, 2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->skill_values->rid2, 2),
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->npc_values->rid_2, 2),
                            out.Length() + 1);
                 out.Insert(
-                    EO_EncodeNumber(server, (*MAINFORM)->skill_values->num_skills, 2),
+                    EO_EncodeNumber(server, (*MAINFORM)->npc_values->num_records, 2),
+                    out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->skill_values->rid_1, 2),
+                           out.Length() + 1);
+                out.Insert(EO_EncodeNumber(server, (*MAINFORM)->skill_values->rid_2, 2),
+                           out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, (*MAINFORM)->skill_values->num_records, 2),
                     out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, (*MAINFORM)->class_values->rid_1, 2),
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, (*MAINFORM)->class_values->rid_2, 2),
                            out.Length() + 1);
                 out.Insert(
-                    EO_EncodeNumber(server, (*MAINFORM)->class_values->num_classes, 2),
+                    EO_EncodeNumber(server, (*MAINFORM)->class_values->num_records, 2),
                     out.Length() + 1);
                 out.Insert(slot->name, out.Length() + 1);
                 out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
@@ -11611,7 +11612,7 @@ void Client_SendEncoded(Server *server,
 }
 // STUB(0x00467980, 12223 bytes) Attack_Execute - ref: int Attack_Execute(Server * server,
 // Player * attacker, PacketAction action, AnsiString * packet_data)
-bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
+bool Attack_Execute(Server *server, Player *caster, int action, String *data)
 {
     *(TTimeStamp *)&caster->walk_tick = DateTimeToTimeStamp(Now());
     if (caster->map_id < 1)
@@ -11624,9 +11625,9 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
             return 0;
         if (caster->sitting || caster->on_chair)
             return 1;
-        if (reader->Length() < 4)
+        if (data->Length() < 4)
             return 0;
-        String tmp = reader->SubString(3, 2);
+        String tmp = data->SubString(3, 2);
         int attack_tick = EO_DecodeNumber(server, tmp);
         int elapsed = attack_tick - caster->last_client_walk_tick;
         if (elapsed < 0 && caster->last_client_walk_tick > WALK_DELAY_SANITY_MS)
@@ -11753,7 +11754,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
         if (offset_y < 0 || offset_x < 0)
         {
             String pkt = EO_EncodeNumber(server, caster->player_id, 2);
-            String chr = String(reader[1]);
+            String chr = String(data[1]);
             pkt = pkt + chr;
             Server_BroadcastNearby(
                 server, caster, PacketAction_Player, PacketFamily_Attack, pkt);
@@ -11765,7 +11766,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *reader)
 }
 // STUB(0x0046a9b0, 17449 bytes) Spell_Execute - ref: int Spell_Execute(Server * server,
 // Player * caster, int action, AnsiString * packet_data)
-bool Spell_Execute(Server *server, Player *caster, int action, String *packet_data)
+bool Spell_Execute(Server *server, Player *caster, int action, String *data)
 {
     *(TTimeStamp *)&caster->walk_tick = DateTimeToTimeStamp(Now());
     if (caster->map_id < 1)
@@ -11774,16 +11775,16 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
         return 1;
     if (action == 1)
     {
-        if (packet_data->Length() < 5)
+        if (data->Length() < 5)
             return 0;
-        caster->queued_spell_id = EO_DecodeNumber(server, packet_data->SubString(1, 2));
+        caster->queued_spell_id = EO_DecodeNumber(server, data->SubString(1, 2));
         if (!Players::Player_HasSpellId(server->players, caster, caster->queued_spell_id))
             return 0;
         int cast_time =
             SkillValues::GetCastTime((*MAINFORM)->skill_values, caster->queued_spell_id) *
             30;
         caster->expected_cast_timestamp =
-            EO_DecodeNumber(server, packet_data->SubString(3, 3)) + cast_time - 1;
+            EO_DecodeNumber(server, data->SubString(3, 3)) + cast_time - 1;
         String pkt = EO_EncodeNumber(server, caster->player_id, 2);
         pkt.Insert(EO_EncodeNumber(server, caster->queued_spell_id, 2), pkt.Length() + 1);
         Server_BroadcastNearby(
@@ -11796,9 +11797,9 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
             return 0;
         if (caster->sitting || caster->on_chair)
             return 1;
-        if (packet_data->Length() < 11)
+        if (data->Length() < 11)
             return 0;
-        int client_tick = EO_DecodeNumber(server, packet_data->SubString(2, 3));
+        int client_tick = EO_DecodeNumber(server, data->SubString(2, 3));
         int elapsed = client_tick - caster->last_client_walk_tick;
         if (elapsed < 0 && caster->last_client_walk_tick > WALK_DELAY_SANITY_MS)
             elapsed = 0x2c;
@@ -11824,10 +11825,10 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *packet_da
             if (Math_Abs(clock_drift - caster->sync_base_behind) > 0x320)
                 return 1;
         }
-        int spell_target = EO_DecodeNumber(server, (*packet_data)[1]);
-        int spell_id = EO_DecodeNumber(server, packet_data->SubString(5, 2));
-        int target_id = EO_DecodeNumber(server, packet_data->SubString(7, 2));
-        int cast_tick = EO_DecodeNumber(server, packet_data->SubString(9, 3));
+        int spell_target = EO_DecodeNumber(server, (*data)[1]);
+        int spell_id = EO_DecodeNumber(server, data->SubString(5, 2));
+        int target_id = EO_DecodeNumber(server, data->SubString(7, 2));
+        int cast_tick = EO_DecodeNumber(server, data->SubString(9, 3));
         int target_type = SkillValues::GetTargetType((*MAINFORM)->skill_values, spell_id);
         if (spell_id != caster->queued_spell_id)
             return 0;

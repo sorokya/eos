@@ -48,7 +48,7 @@ class MsgBoardController
 
     static bool LoadBoards(MsgBoardController *self);
     static void SaveBoards(MsgBoardController *self);
-    static String AppendEncoded(MsgBoardController *self, unsigned int value, int width);
+    static String EncodeNumber(MsgBoardController *self, unsigned int value, int width);
     static void ClearBoard(MsgBoardController *self, int board);
     static void DeletePost(MsgBoardController *self, int board, int post_id);
     static int CountPosts(MsgBoardController *self, int board, String author);

@@ -520,7 +520,7 @@ int Questengine::ParseInt(Questengine *self, String token)
     return StrToInt(token);
 }
 
-String Questengine::AppendEncoded(Questengine *self, unsigned int value, int width)
+String Questengine::EncodeNumber(Questengine *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -615,14 +615,14 @@ Questengine::GetActionData2(Questengine *self, int quest_id, int state_index, in
         {
             if ((*it)->action == 1)
             {
-                data.Insert(AppendEncoded(self, (*it)->action, 2), data.Length() + 1);
+                data.Insert(EncodeNumber(self, (*it)->action, 2), data.Length() + 1);
                 data.Insert((*it)->data[1], data.Length() + 1);
                 data.Insert((char)-1, data.Length() + 1);
             }
             if ((*it)->action == 2)
             {
-                data.Insert(AppendEncoded(self, (*it)->action, 2), data.Length() + 1);
-                data.Insert(AppendEncoded(self, (*it)->args[1], 2), data.Length() + 1);
+                data.Insert(EncodeNumber(self, (*it)->action, 2), data.Length() + 1);
+                data.Insert(EncodeNumber(self, (*it)->args[1], 2), data.Length() + 1);
                 data.Insert((*it)->data[2], data.Length() + 1);
                 data.Insert((char)-1, data.Length() + 1);
             }

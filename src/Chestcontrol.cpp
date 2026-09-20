@@ -124,9 +124,9 @@ void ChestController::Tick(ChestController *self)
                             {
                                 if (item_iter->item_present != 0)
                                 {
-                                    pkt.Insert(AppendEncoded(self, item_iter->item_id, 2),
+                                    pkt.Insert(EncodeNumber(self, item_iter->item_id, 2),
                                                pkt.Length() + 1);
-                                    pkt.Insert(AppendEncoded(self, item_iter->amount, 3),
+                                    pkt.Insert(EncodeNumber(self, item_iter->amount, 3),
                                                pkt.Length() + 1);
                                 }
                             }
@@ -146,8 +146,7 @@ void ChestController::Tick(ChestController *self)
     }
 }
 
-String
-ChestController::AppendEncoded(ChestController *self, unsigned int value, int width)
+String ChestController::EncodeNumber(ChestController *self, unsigned int value, int width)
 {
     int rem;
     char c;

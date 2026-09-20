@@ -27,8 +27,7 @@ EventController::~EventController()
 {
 }
 
-String
-EventController::AppendEncoded(EventController *self, unsigned int value, int width)
+String EventController::EncodeNumber(EventController *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -107,7 +106,7 @@ void EventController::Tick(EventController *self)
                                       map_iter->rid,
                                       PacketAction_Player,
                                       PacketFamily_Music,
-                                      AppendEncoded(self, 0x33, 1));
+                                      EncodeNumber(self, 0x33, 1));
             }
             if (map_iter->evac_countdown < 1)
             {
@@ -184,7 +183,7 @@ void EventController::Tick(EventController *self)
                                               map_iter->rid,
                                               PacketAction_Use,
                                               PacketFamily_Arena,
-                                              AppendEncoded(self, warped_count, 1));
+                                              EncodeNumber(self, warped_count, 1));
                     }
                 }
             }

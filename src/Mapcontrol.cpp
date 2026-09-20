@@ -829,7 +829,7 @@ MapItem *Mapcontrol::Mapcontrol_GetSlot(std::vector<MapItem> *slot_list, int slo
     return slot_list->begin() + slot;
 }
 
-int Mapcontrol::Mapcontrol_DecodeNumber(Mapcontrol *self, String value)
+int Mapcontrol::DecodeNumber(Mapcontrol *self, String value)
 {
     int result = 0;
     try
@@ -871,8 +871,7 @@ void Mapcontrol::Mapcontrol_LoadMaps(Mapcontrol *self)
     }
 }
 
-String
-Mapcontrol::Mapcontrol_AppendEncoded(Mapcontrol *self, unsigned int value, int width)
+String Mapcontrol::EncodeNumber(Mapcontrol *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -1225,12 +1224,12 @@ String Mapcontrol_BuildChestItemsString(Mapcontrol *self, int map_id, MapCoord c
                 {
                     if (item_iter->item_present != false)
                     {
-                        result.Insert(Mapcontrol::Mapcontrol_AppendEncoded(
-                                          self, item_iter->item_id, 2),
-                                      result.Length() + 1);
-                        result.Insert(Mapcontrol::Mapcontrol_AppendEncoded(
-                                          self, item_iter->amount, 3),
-                                      result.Length() + 1);
+                        result.Insert(
+                            Mapcontrol::EncodeNumber(self, item_iter->item_id, 2),
+                            result.Length() + 1);
+                        result.Insert(
+                            Mapcontrol::EncodeNumber(self, item_iter->amount, 3),
+                            result.Length() + 1);
                     }
                 }
                 break;
@@ -1379,20 +1378,14 @@ bool Mapcontrol_ParseMapFile(Mapcontrol *self, MapContainer *map, int map_id)
         if (map_buf[1] != 'E' || map_buf[2] != 'M' || map_buf[3] != 'F')
             return 0;
         map->rid = map_id;
-        map->width =
-            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x26, 1)) + 1;
-        map->height =
-            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x27, 1)) + 1;
-        map->rid1 = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(4, 2));
-        map->rid2 = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 2));
-        map->map_type =
-            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x20, 1));
-        map->timed_effect =
-            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x21, 1));
-        map->relog_x =
-            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x2c, 1));
-        map->relog_y =
-            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x2d, 1));
+        map->width = Mapcontrol::DecodeNumber(self, map_buf.SubString(0x26, 1)) + 1;
+        map->height = Mapcontrol::DecodeNumber(self, map_buf.SubString(0x27, 1)) + 1;
+        map->rid1 = Mapcontrol::DecodeNumber(self, map_buf.SubString(4, 2));
+        map->rid2 = Mapcontrol::DecodeNumber(self, map_buf.SubString(6, 2));
+        map->map_type = Mapcontrol::DecodeNumber(self, map_buf.SubString(0x20, 1));
+        map->timed_effect = Mapcontrol::DecodeNumber(self, map_buf.SubString(0x21, 1));
+        map->relog_x = Mapcontrol::DecodeNumber(self, map_buf.SubString(0x2c, 1));
+        map->relog_y = Mapcontrol::DecodeNumber(self, map_buf.SubString(0x2d, 1));
         map->has_hp_drain = false;
         map->has_tp_drain = false;
         map->has_quakes = false;
@@ -1405,7 +1398,7 @@ bool Mapcontrol_ParseMapFile(Mapcontrol *self, MapContainer *map, int map_id)
             map->has_quakes = true;
         if (map->tile_bits.size() != map->width * map->height * 2)
             map->tile_bits.resize(map->width * map->height * 2, 0);
-        if (Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x2b, 1)) == 0)
+        if (Mapcontrol::DecodeNumber(self, map_buf.SubString(0x2b, 1)) == 0)
             map->can_scroll = 1;
         map->filesize = size;
         if (self->start_map == map_id || self->memory_map != 0)
@@ -1416,26 +1409,25 @@ bool Mapcontrol_ParseMapFile(Mapcontrol *self, MapContainer *map, int map_id)
         else
             map->buf_copied = false;
         map_buf.Delete(1, 0x2e);
-        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+        count = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            int npc_count =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(8, 1));
+            int npc_count = Mapcontrol::DecodeNumber(self, map_buf.SubString(8, 1));
             for (int j = 0; j < npc_count; j++)
             {
                 int index = map->npc_list.size() + 1;
-                Npc *npc = new Npc(
-                    index,
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2)),
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1)),
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1)),
-                    0,
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(5, 1)),
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 2)));
+                Npc *npc =
+                    new Npc(index,
+                            Mapcontrol::DecodeNumber(self, map_buf.SubString(3, 2)),
+                            Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1)),
+                            Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 1)),
+                            0,
+                            Mapcontrol::DecodeNumber(self, map_buf.SubString(5, 1)),
+                            Mapcontrol::DecodeNumber(self, map_buf.SubString(6, 2)));
                 NpcValue npc_value = NpcValues::GetNpc(
                     (*MAINFORM)->npc_values,
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2)));
+                    Mapcontrol::DecodeNumber(self, map_buf.SubString(3, 2)));
                 if (npc_value.npc_type == 2)
                 {
                     npc->aggressive = true;
@@ -1460,37 +1452,29 @@ bool Mapcontrol_ParseMapFile(Mapcontrol *self, MapContainer *map, int map_id)
             }
             map_buf.Delete(1, 8);
         }
-        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+        count = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            unsigned int key_x =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
-            unsigned int key_y =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
-            int key_id =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2));
+            unsigned int key_x = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
+            unsigned int key_y = Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 1));
+            int key_id = Mapcontrol::DecodeNumber(self, map_buf.SubString(3, 2));
             Mapcontrol::Mapcontrol_AddLockKey(self, map, key_x, key_y, key_id);
             map_buf.Delete(1, 4);
         }
-        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+        count = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
             unsigned int chest_x =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+                Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
             unsigned int chest_y =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
-            int chest_key =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2));
-            int chest_slot =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(5, 1));
-            int chest_item =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 2));
-            int chest_time =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(8, 2));
-            int chest_amount =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0xa, 3));
+                Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 1));
+            int chest_key = Mapcontrol::DecodeNumber(self, map_buf.SubString(3, 2));
+            int chest_slot = Mapcontrol::DecodeNumber(self, map_buf.SubString(5, 1));
+            int chest_item = Mapcontrol::DecodeNumber(self, map_buf.SubString(6, 2));
+            int chest_time = Mapcontrol::DecodeNumber(self, map_buf.SubString(8, 2));
+            int chest_amount = Mapcontrol::DecodeNumber(self, map_buf.SubString(0xa, 3));
             Mapcontrol::Mapcontrol_AddChestSpawn(self,
                                                  map,
                                                  chest_x,
@@ -1502,18 +1486,17 @@ bool Mapcontrol_ParseMapFile(Mapcontrol *self, MapContainer *map, int map_id)
                                                  chest_amount);
             map_buf.Delete(1, 12);
         }
-        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+        count = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            tile_x = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
-            tile_y = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
+            tile_x = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
+            tile_y = Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
-                spec = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
-                int code =
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
+                spec = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
+                int code = Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 1));
                 if (code == 0 || code == 0x12)
                     Mapcontrol::Mapcontrol_SetTileBits(self, map, spec, tile_x, 1);
                 if (code > 0 && code <= 0x11)
@@ -1549,28 +1532,27 @@ bool Mapcontrol_ParseMapFile(Mapcontrol *self, MapContainer *map, int map_id)
                 map_buf.Delete(1, 2);
             }
         }
-        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+        count = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            tile_x = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
-            tile_y = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
+            tile_x = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
+            tile_y = Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
-                spec = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
-                int lock_key =
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(7, 2));
+                spec = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
+                int lock_key = Mapcontrol::DecodeNumber(self, map_buf.SubString(7, 2));
                 Mapcontrol::Mapcontrol_SetTileBits(self, map, spec, tile_x, 3);
                 Mapcontrol::Mapcontrol_AddWarp(
                     self,
                     map,
                     spec,
                     tile_x,
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 2)),
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 1)),
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(4, 1)),
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(5, 1)));
+                    Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 2)),
+                    Mapcontrol::DecodeNumber(self, map_buf.SubString(6, 1)),
+                    Mapcontrol::DecodeNumber(self, map_buf.SubString(4, 1)),
+                    Mapcontrol::DecodeNumber(self, map_buf.SubString(5, 1)));
                 if (lock_key > 0)
                 {
                     Mapcontrol::Mapcontrol_AddTileSpec(self, map, spec, tile_x, 0xa);
@@ -1621,20 +1603,15 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *self, int map_id)
         delete[] buf;
         if (map_buf[1] != 'E' || map_buf[2] != 'M' || map_buf[3] != 'F')
             return false;
-        MapContainer map(
-            map_id,
-            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x26, 1)) + 1,
-            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x27, 1)) + 1);
-        map.rid1 = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(4, 2));
-        map.rid2 = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 2));
-        map.map_type =
-            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x20, 1));
-        map.timed_effect =
-            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x21, 1));
-        map.relog_x =
-            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x2c, 1));
-        map.relog_y =
-            Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x2d, 1));
+        MapContainer map(map_id,
+                         Mapcontrol::DecodeNumber(self, map_buf.SubString(0x26, 1)) + 1,
+                         Mapcontrol::DecodeNumber(self, map_buf.SubString(0x27, 1)) + 1);
+        map.rid1 = Mapcontrol::DecodeNumber(self, map_buf.SubString(4, 2));
+        map.rid2 = Mapcontrol::DecodeNumber(self, map_buf.SubString(6, 2));
+        map.map_type = Mapcontrol::DecodeNumber(self, map_buf.SubString(0x20, 1));
+        map.timed_effect = Mapcontrol::DecodeNumber(self, map_buf.SubString(0x21, 1));
+        map.relog_x = Mapcontrol::DecodeNumber(self, map_buf.SubString(0x2c, 1));
+        map.relog_y = Mapcontrol::DecodeNumber(self, map_buf.SubString(0x2d, 1));
         map.has_hp_drain = false;
         map.has_tp_drain = false;
         map.has_quakes = false;
@@ -1645,7 +1622,7 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *self, int map_id)
             map.has_tp_drain = true;
         if (map.timed_effect > 2 && map.timed_effect < 7)
             map.has_quakes = true;
-        if (Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0x2b, 1)) == 0)
+        if (Mapcontrol::DecodeNumber(self, map_buf.SubString(0x2b, 1)) == 0)
             map.can_scroll = 1;
         map.filesize = size;
         if (self->start_map == map_id || self->memory_map != 0)
@@ -1656,26 +1633,25 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *self, int map_id)
         else
             map.buf_copied = false;
         map_buf.Delete(1, 0x2e);
-        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+        count = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            int npc_count =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(8, 1));
+            int npc_count = Mapcontrol::DecodeNumber(self, map_buf.SubString(8, 1));
             for (int j = 0; j < npc_count; j++)
             {
                 int index = map.npc_list.size() + 1;
-                Npc *npc = new Npc(
-                    index,
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2)),
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1)),
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1)),
-                    0,
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(5, 1)),
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 2)));
+                Npc *npc =
+                    new Npc(index,
+                            Mapcontrol::DecodeNumber(self, map_buf.SubString(3, 2)),
+                            Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1)),
+                            Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 1)),
+                            0,
+                            Mapcontrol::DecodeNumber(self, map_buf.SubString(5, 1)),
+                            Mapcontrol::DecodeNumber(self, map_buf.SubString(6, 2)));
                 NpcValue npc_value = NpcValues::GetNpc(
                     (*MAINFORM)->npc_values,
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2)));
+                    Mapcontrol::DecodeNumber(self, map_buf.SubString(3, 2)));
                 if (npc_value.npc_type == 2)
                 {
                     npc->aggressive = true;
@@ -1700,37 +1676,29 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *self, int map_id)
             }
             map_buf.Delete(1, 8);
         }
-        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+        count = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            unsigned int key_x =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
-            unsigned int key_y =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
-            int key_id =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2));
+            unsigned int key_x = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
+            unsigned int key_y = Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 1));
+            int key_id = Mapcontrol::DecodeNumber(self, map_buf.SubString(3, 2));
             Mapcontrol::Mapcontrol_AddLockKey(self, &map, key_x, key_y, key_id);
             map_buf.Delete(1, 4);
         }
-        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+        count = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
             unsigned int chest_x =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+                Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
             unsigned int chest_y =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
-            int chest_key =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(3, 2));
-            int chest_slot =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(5, 1));
-            int chest_item =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 2));
-            int chest_time =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(8, 2));
-            int chest_amount =
-                Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(0xa, 3));
+                Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 1));
+            int chest_key = Mapcontrol::DecodeNumber(self, map_buf.SubString(3, 2));
+            int chest_slot = Mapcontrol::DecodeNumber(self, map_buf.SubString(5, 1));
+            int chest_item = Mapcontrol::DecodeNumber(self, map_buf.SubString(6, 2));
+            int chest_time = Mapcontrol::DecodeNumber(self, map_buf.SubString(8, 2));
+            int chest_amount = Mapcontrol::DecodeNumber(self, map_buf.SubString(0xa, 3));
             Mapcontrol::Mapcontrol_AddChestSpawn(self,
                                                  &map,
                                                  chest_x,
@@ -1742,18 +1710,17 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *self, int map_id)
                                                  chest_amount);
             map_buf.Delete(1, 12);
         }
-        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+        count = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            tile_x = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
-            tile_y = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
+            tile_x = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
+            tile_y = Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
-                spec = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
-                int code =
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
+                spec = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
+                int code = Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 1));
                 if (code == 0 || code == 0x12)
                     Mapcontrol::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 1);
                 if (code > 0 && code <= 0x11)
@@ -1794,28 +1761,27 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *self, int map_id)
                 map_buf.Delete(1, 2);
             }
         }
-        count = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
+        count = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            tile_x = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
-            tile_y = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 1));
+            tile_x = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
+            tile_y = Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
             for (int k = 0; k < tile_y; k++)
             {
-                spec = Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(1, 1));
-                int lock_key =
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(7, 2));
+                spec = Mapcontrol::DecodeNumber(self, map_buf.SubString(1, 1));
+                int lock_key = Mapcontrol::DecodeNumber(self, map_buf.SubString(7, 2));
                 Mapcontrol::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 3);
                 Mapcontrol::Mapcontrol_AddWarp(
                     self,
                     &map,
                     spec,
                     tile_x,
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(2, 2)),
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(6, 1)),
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(4, 1)),
-                    Mapcontrol::Mapcontrol_DecodeNumber(self, map_buf.SubString(5, 1)));
+                    Mapcontrol::DecodeNumber(self, map_buf.SubString(2, 2)),
+                    Mapcontrol::DecodeNumber(self, map_buf.SubString(6, 1)),
+                    Mapcontrol::DecodeNumber(self, map_buf.SubString(4, 1)),
+                    Mapcontrol::DecodeNumber(self, map_buf.SubString(5, 1)));
                 if (lock_key > 0)
                 {
                     Mapcontrol::Mapcontrol_AddTileSpec(self, &map, spec, tile_x, 0xa);

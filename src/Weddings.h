@@ -40,7 +40,7 @@ class WeddingController
     static void
     BroadcastPriestLine(WeddingController *self, Wedding *record, String text);
     static bool BothPresent(WeddingController *self, Wedding *record);
-    static String AppendEncoded(WeddingController *self, unsigned int value, int width);
+    static String EncodeNumber(WeddingController *self, unsigned int value, int width);
 };
 
 #endif
