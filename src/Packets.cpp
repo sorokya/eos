@@ -3880,10 +3880,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (type_info.type != NpcType_Shop)
                 return true;
             player->session_token = type_info.behavior_id;
-            String open_data = ShopValues::BuildOpenData((*MAINFORM)->shop_values,
-                                                         type_info.behavior_id);
-            Client_SendEncoded(
-                server, player, PacketAction_Open, PacketFamily_Shop, open_data);
+            Client_SendEncoded(server,
+                               player,
+                               PacketAction_Open,
+                               PacketFamily_Shop,
+                               ShopValues::BuildOpenData((*MAINFORM)->shop_values,
+                                                         type_info.behavior_id));
             return true;
         }
     }
