@@ -795,8 +795,24 @@ their proofs above; no artificial `auto`-style catch-all is used.
 
 Tracked so they are not mistaken for done:
 
-- `Questengine::LoadQuest` / `ParseToken` — bcc local-slot/temp allocation.
-- `Weddings::Tick` — three dead `sete` blocks; markers match 57/57.
+- `Party_ShareExp` (`0x46690c`) — register-allocation floor. `compare_asm.py`
+  reports 293/293 instructions with 0 mismatched because it canonicalizes branch
+  targets; a capstone differential that additionally masks rel32 displacements
+  and searches each function inside its own module finds **seven pure register
+  swaps**: the reference keeps `player` in the *second* register (`ecx`/`edx`) at
+  `player->party_ids[i]`, `member->player_id == player->player_id` and
+  `member->experience += exp`, while we allocate the first. A self-contained
+  probe reproduces it exactly and shows the choice is a *global* effect of the
+  function's destructible-local set: a truncated probe with no `String` local
+  allocates the index to `edx` (the reference's register), and adding any
+  `String` local moves it to `ecx`. No spelling (`p[i]`, `*(p+i)`, `i[p]`,
+  `(p)[i]`, `p[0+i]`, `((int*)p)[i]`, a local `pid`), declaration order or scope
+  of `pkt`/`leveled`/`stats`/`i`/`j`, `unsigned exp`, `+=`, do-while loops, or
+  hoisting reaches the reference's exact `ecx=player, edx=i`.
+- `Questengine::ParseToken` and `Weddings::Tick` — **CONVERGED** in `a7efaf3`:
+  the former needs an early `return;` in the `token == "}"` body and no trailing
+  `return;`; the latter's `else` belongs to the inner `BothPresent` test, not the
+  outer `countdown == 0x12 && BothPresent(...)`.
 - Packets' `0x45ddf0`/`0x45ddfc`/`0x45de08`/`0x45de14` — eight byte-identical
   11-byte container accessors exist in the reference
   (`mov eax,[ebp+8]; mov eax,[eax+4|8]; ret`). We emit four named ones plus the
