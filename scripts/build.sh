@@ -27,12 +27,13 @@ mkdir -p build/obj
 {
   echo 'set -e'
   echo 'mkdir -p build/obj'
+  echo "wine \"\$B\\Bin\\bcc32.exe\" $CFLAGS -c -obuild/obj/Sysinit.obj src/Sysinit.cpp"
   for u in "${UNITS[@]}"; do
     echo "wine \"\$B\\Bin\\bcc32.exe\" $CFLAGS -c -obuild/obj/$u.obj src/$u.cpp"
   done
   echo "wine \"\$B\\Bin\\brcc32.exe\" -fo\"Z:\\work\\build\\GameServer.res\" res/GameServer.rc"
   echo 'L="-L$BZ\Lib -L$BZ\Lib\Obj -L$BZ\Lib\Debug -L$BZ\Lib\Release"'
-  OBJS="" 
+  OBJS=" \"Z:\\work\\build\\obj\\Sysinit.obj\"" 
   for u in "${UNITS[@]}"; do
     OBJS+=" \"Z:\\work\\build\\obj\\$u.obj\""
   done
