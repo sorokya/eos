@@ -993,25 +993,40 @@ Tracked so they are not mistaken for done:
     `EO_EncodeNumber` `0x470b9c`, `EO_DecodeNumber` `0x470de8`,
     `SkillValues::GetCastTime` `0x4a5268`; `Now`/`DateTimeToTimeStamp` are the
     library `0x520500`/`0x51ff7c`.
-- `Packets`: `Player_HandlePacket` (`0x41794c`) — **measure against the true end.**
+- `Packets`: `Player_HandlePacket` (`0x41794c`) — **byte-exact, converged.**
   `analysis/target/functions.tsv` ends the row at `0x0044ef54`, but the body
   continues to `0x44f58b`; the next real function is the folded EH thunk at
   `0x44f58c`. Comparing against the stored end truncates the tail and reports a
   positional cascade, not real errors. Use
   `compare_asm.py build/Packets.asm Player_HandlePacket
-  '@@Player_HandlePacket$qp6Serverp6Player17System@AnsiString' 0x41794c 0x44f58c
-  --frame-wild --strict-operands`. True-range state: 52,584 ref instructions,
-  prologue frame `-0xffc` on both sides (true local frame `-0x1f48`), aligned
-  prefix 9,511. The EH cleanup table is now **structurally identical** to the
-  reference (1,372 entries, 16,472 B, zero `prev`/`flags`/`extra` differences):
-  the Guild `PacketAction_Accept` branch passes its concatenation directly to
+  '@@Player_HandlePacket$qp6Serverp6Player17System@AnsiString' 0x41794c 0x44f58c`.
+  Final state: **52,584 ref / 52,584 our instructions, 0 mismatched**, prologue
+  frame `-0xffc` on both sides (true local frame `-0x1f48`), aligned prefix
+  **52,584**. The EH cleanup table is **structurally identical** to the reference
+  (1,372 entries, 16,472 B, zero `prev`/`flags`/`extra` differences): the Guild
+  `PacketAction_Accept` branch passes its concatenation directly to
   `Client_SendEncoded` (no named `msg`), and `PacketAction_Request`'s
-  `tag[1]`/`name[1]` comparison uses two named `String` locals. Residual: our
-  function is 21 instructions longer overall, all in code layout (shared
-  return-cleanup blocks the reference tail-merges and we do not), not in the
-  scopes; per-case `compare_case.py` counts are exact for Accept (260/260),
-  Request (933/933), Take (276/276), Create-prefix (395/395) and the tail
-  (1292/1292).
+  `tag[1]`/`name[1]` comparison uses two named `String` locals.
+
+  The last 17 hunks (aligned prefix 28,765, frame and stack map already exact)
+  were the five `weight_current` adjust sites: the `-=` at `L4009` and the four
+  trade-loop `player/target->weight_current = field ∓ GetWeight(...) * amount`
+  assignments at `L4810`/`L4814`/`L4832`/`L4836`. The reference emits an
+  extract-op-store sequence (`mov ecx,[edx+0x13c]; sub ecx,eax;
+  mov eax,[player]; mov [eax+0x13c],ecx`), not bcc's in-place
+  `sub [edx+0x13c],eax` fold. **The trigger is the product's type**: an
+  `int * int` product lets bcc's `ModifyAssign` peephole fold the statement,
+  while an **unsigned** product (`int - unsigned`) defeats it. Writing the
+  multiplier's second operand as `(unsigned int)` reproduces the reference at all
+  five sites (no frame or ECT change). Established with `tests/weight_probe.cpp`:
+  every signed spelling (compound `-=`, expanded `= field - ...`, parentheses,
+  reference alias, pointer/array/cast access, getter, swapped multiply order)
+  folds; only `unsigned int amount` produces the reference's load/op/reload/store.
+  Fixed this pass 17 hunks → 0 (prefix 28,765 → 52,584). `make verify` 496/496;
+  `make track` 1794/1801 rows, 649,213/668,128 bytes. The 105 residual
+  `--strict-operands` labels are a separate, pre-existing class (wrong direct
+  callees: `begin`/`end` swaps, wrong vector element types, and the folded-thunk
+  name alias) and do not affect the canonicalized row.
 
 ### Not reachable from source — do not spend sessions on these
 

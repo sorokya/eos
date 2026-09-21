@@ -4007,7 +4007,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             }
             player->weight_current -=
-                ItemValues::GetWeight((*MAINFORM)->item_values, item_id) * amount;
+                ItemValues::GetWeight((*MAINFORM)->item_values, item_id) *
+                (unsigned int)amount;
             if (player->weight_current < 0)
                 player->weight_current = 0;
             int add_weight_current = player->weight_current;
@@ -4810,11 +4811,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 player->weight_current =
                     player->weight_current -
                     ItemValues::GetWeight((*MAINFORM)->item_values, iter->item_id) *
-                        iter->amount;
+                        (unsigned int)iter->amount;
                 target->weight_current =
                     target->weight_current +
                     ItemValues::GetWeight((*MAINFORM)->item_values, iter->item_id) *
-                        iter->amount;
+                        (unsigned int)iter->amount;
                 if (player->weight_current < 0)
                     player->weight_current = 0;
             }
@@ -4832,11 +4833,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 target->weight_current =
                     target->weight_current -
                     ItemValues::GetWeight((*MAINFORM)->item_values, iter2->item_id) *
-                        iter2->amount;
+                        (unsigned int)iter2->amount;
                 player->weight_current =
                     player->weight_current +
                     ItemValues::GetWeight((*MAINFORM)->item_values, iter2->item_id) *
-                        iter2->amount;
+                        (unsigned int)iter2->amount;
                 if (player->weight_current < 0)
                     player->weight_current = 0;
             }

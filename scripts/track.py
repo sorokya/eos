@@ -425,16 +425,25 @@ def readme_block(rows):
     bdone = by["byte-exact"]
     bpct = (100.0 * bdone / btot) if btot else 0.0
     lib = sum(1 for r in rows if r["kind"] == "library")
+    php = next((r for r in rows if r["name"] == "Player_HandlePacket"), None)
+    if php is not None and php["status"] != "byte-exact":
+        php_note = (
+            f"Function counts overstate progress badly: `Player_HandlePacket` "
+            f"(228,416 bytes) is **33.9% of all application code** and is now being "
+            f"written (its reconnaissance proved it tractable — one `ret`, no "
+            f"internal call targets, 43 chunks), so it sits in `mismatched` and the "
+            f"byte figure is the honest one until it converges.")
+    else:
+        php_note = (
+            f"`Player_HandlePacket` (228,416 bytes, **33.9% of all application "
+            f"code**) is now byte-exact, which is why the byte figure has moved "
+            f"close to the function figure.")
     out = [READ_BEGIN, "",
            f"**{done}/{total} ({pct:.1f}%)** application functions byte-exact "
            f"({total} app + compiler COMDATs; {lib} library members excluded).",
            "",
            f"**{bdone:,}/{btot:,} ({bpct:.1f}%)** application BYTES byte-exact. "
-           f"Function counts overstate progress badly: `Player_HandlePacket` "
-           f"(228,416 bytes) is **33.9% of all application code** and is now being "
-           f"written (its reconnaissance proved it tractable — one `ret`, no "
-           f"internal call targets, 43 chunks), so it sits in `mismatched` and the "
-           f"byte figure is the honest one until it converges.",
+           + php_note,
            "", "```mermaid", "pie showData",
            "    title Application functions by status"]
     for k in ("byte-exact", "mismatched", "stubbed", "unimplemented",
