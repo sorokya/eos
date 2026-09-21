@@ -69,6 +69,15 @@ imports, exports, resource tree). No `pip` packages required.
   meaningful when the member has no internal insertion; treat low ratios on
   large units as an alignment artifact, not divergence. Requires
   `MAP=1 scripts/build.sh`.
+- **`objfuncs.py --tdump FILE [--ref GameServer.exe]`** — the per-function form
+  of `libcompare`: parse a `tdump` listing of one `.obj`, extract every `_TEXT`
+  segment's name and bytes (the 16-byte hex group is fixed width, so slice before
+  the ASCII column), wildcard relocation placeholders and rel32/absolute
+  operands, and locate each function in the reference `.text`. A function with no
+  home in the reference is one the unit emits and the reference does not. On
+  `Npcvalue` it reports found=87, absent=0: every emitted function exists in the
+  reference, so the unit's +216 B span delta is distributional (COMDAT
+  placement), not extra code. Diagnostic, not a gate.
 - **`compare_functions.py FUNCTIONS_TSV REF CANDIDATE [--mask-reloc] [--list N]`**
   — per-function byte comparison using the Ghidra inventory; masks base-relocation
   words when layouts are not yet identical.
