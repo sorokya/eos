@@ -296,9 +296,12 @@ make clean     # remove build/
   type is used), `library` (statically linked RTL/VCL/BDE, matched by a
   matching a library module of the linked build (`libmatch.py`; falls back to a
   reloc-masked signature over `ref/Borland5/Lib`), `stub` (a module
-  initializer boundary), or `merged` (the ret-less body half of a function
+  initializer boundary), `merged` (the ret-less body half of a function
   Ghidra split after its prologue; the head row's source function already
-  covers its bytes, so it is not a separate target). Run `MAP=1
+  covers its bytes, so it is not a separate target), or `comdat_cross` (a
+  compiler-emitted template COMDAT provably owned by a *different* translation
+  unit than the module range containing the row; excluded from the denominator
+  like `library`). Run `MAP=1
   scripts/build.sh` first for the exact classification; without it the fallback
   is used and the cache records which. `status` is `byte-exact` / `mismatched` /
   `unimplemented` / `deferred` / `n/a`, decided from the `build/<Unit>.asm`
@@ -314,6 +317,19 @@ make clean     # remove build/
   back to a global pool, but only when the canonical sequence has exactly one
   candidate there; otherwise the row is left unmatched and the ambiguity is
   reported (a wrong cross-unit match would hide real work).
+
+  A final **artifact pass** (`_classify_artifacts`) excludes compiler/RTL
+  rows that are not hand-written targets, each by a proof rather than an
+  address list: (1) an RTL **data-sentinel accessor** — a leaf
+  `mov eax,<data address>` getter whose data target is referenced only from
+  outside the unit inventory (Borland's `basic_string::__getNullRep` /
+  `__nullref`); (2) a **Borland-header local-static guard** — the
+  `cmp byte ptr [flag],0` / `inc byte ptr [flag]` idiom whose folded canonical
+  form matches a function the build emits from a file under the Borland
+  `Include/` tree; (3) a **cross-unit compiler COMDAT** — a row whose every
+  candidate is a `@@std@`/`@@__rwstd@` symbol, whose own unit emits no free
+  candidate, and which is reached only from already-reproduced code. See
+  PLAN.md "Tracker artifact exclusions" for the exact rows and proofs.
 
 ## Transcription aids
 

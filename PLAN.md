@@ -616,6 +616,75 @@ now a definition rather than a bare declaration), the unnamed broadcast helpers
 instantiated `std::vector<PlayerQuest>::erase` (`0x44f914`), which became
 byte-exact with it.
 
+## Tracker artifact exclusions (verified)
+
+`scripts/track.py`'s artifact pass (`_classify_artifacts`) removes compiler/RTL
+rows that look like work but have no hand-written source definition. Three
+proof-shaped rules, each verified against the reference bytes and the Borland
+sources under `ref/`. The pass runs last and only touches rows that are
+otherwise `stubbed`/`unimplemented`/`mismatched` with no matched source
+function, so no previously byte-exact row changes status. Row-level diff of
+`analysis/target/functions.tsv` (the pass changed exactly these five rows):
+
+| Address | Unit | Size | Before | After | Rule |
+| --- | --- | ---: | --- | --- | --- |
+| `0x00450110` | Packets | 10 B | app / stubbed | library / n/a | 1 |
+| `0x00471e54` | Packets | 78 B | app / stubbed | library / n/a | 2 |
+| `0x004a87a0` | Npcvalues | 36 B | app / unimplemented | comdat_cross / n/a | 3 |
+| `0x004a87c4` | Npcvalues | 91 B | app / unimplemented | comdat_cross / n/a | 3 |
+| `0x004a8820` | Npcvalues | 53 B | app / unimplemented | comdat_cross / n/a | 3 |
+
+Totals: `1795/1801 rows, 666,662/668,128 bytes` -> `1795/1796 rows,
+666,662/667,860 bytes`. The numerator is unchanged; the denominator loses the
+five rows and their 268 bytes. `make track` is deterministic (three consecutive
+runs produce identical TSVs) and `make verify` stays 496/496.
+
+**Rule 1 — RTL data-sentinel accessor (`library`).** The row is a leaf
+constant-address getter (`push ebp; mov ebp,esp; mov eax,<imm>; pop ebp; ret`)
+whose immediate is a base-relocated address in a data section and every
+reference to that data object lies outside the per-unit function inventory.
+`0x450110` returns `0x5857ac`, the zeroed `__nullref` sentinel. Its 28 other
+references are all at `0x542939..0x54b4ff` — the trailing library region, never
+an application row. The accessor is Borland's
+`std::basic_string<char>::__getNullRep()` (`ref/Borland5/Include/string.stl:751`;
+the static member is defined in
+`ref/Borland5/Source/RTL/source/stl/string/string.cpp:41`; the symbol
+`@std@%basic_string$c...@__getNullRep$qv` is in `cw32mt.lib`/`cp32mt.lib`). The
+reference's live copy is the *library* one (it carries a frame); our build also
+emits a frameless `__getNullRep` COMDAT in `Packets.asm` — a separate,
+unrelated emission that does not match this row.
+
+**Rule 2 — Borland-header local-static guard (`library`).** The row's body opens
+with the bcc32 function-local-`static` initialization guard
+(`cmp byte ptr [flag],0` / conditional jump / initialize / `inc byte ptr [flag]`),
+and its canonical form, with compiler-static (`$name`) operands folded to `ADDR`,
+equals a function our build emits from a file under the Borland `Include/` tree.
+`0x471e54` is `std::deque<char>::__buffer_size()`; the bcc32 listing records its
+provenance as `...\Borland\CBuilder5\Include\deque.cc`. The guard is emitted for
+the function's `static` local and has no standalone source definition.
+
+**Rule 3 — cross-unit compiler COMDAT (`comdat_cross`).** The row's canonical
+body has at least two candidate emitters across the tree, every one a
+`@@std@`/`@@__rwstd@` template symbol; the row's own unit emits no free
+candidate; and it is reached only from already-reproduced (`byte-exact`)
+functions or from other rows this rule already excluded. The three rows are
+`std::vector<NpcDropItem>::clear` (`0x4a87a0`), `::erase(first,last)`
+(`0x4a87c4`) and `std::copy<NpcDropItem*>` (`0x4a8820`), emitted by the
+**Npcvalue** unit (`src/Npcvalue.h:44` declares `std::vector<NpcDropItem> drops`;
+`src/Npcvalue.cpp:12-22` is `drops.clear(); talk_lines.clear();`) but placed by
+the linker inside the `Npcvalues` module range. The element type is proven from
+the reference call graph: the two callers of the clear are `NpcValue::NpcValue()`
+(`0x4a8f84`) and `NpcValue::NpcValue(int)` (`0x4a917c`), which push `this+0x3c`
+(the `drops` member) before calling, and the erase/copy are its callees.
+Npcvalue's corresponding copies are the `vector<NpcDropItem>` functions in its
+own range (`0x4a901c..0x4a95d1`). This exclusion is a bookkeeping decision: the
+bytes are produced automatically by the owning unit's template use, so a sound
+per-row attribution would mark the three rows byte-exact (`1798/1799`); under
+the tracker's rule that the numerator is not inflated by re-attributing
+cross-unit template bodies, they are excluded from the hand-written denominator
+instead. No sound *exclusion* of the RTL/header rows would be possible without
+their proofs above; no artificial `auto`-style catch-all is used.
+
 ## Known-unconverged functions
 
 Tracked so they are not mistaken for done:
@@ -1080,23 +1149,20 @@ They are recorded here so no future pass mistakes them for work:
 
 ## Progress measurement — read the BYTES, not the function count
 
-`make track` reports both, and the function count is the misleading one. As of the
-last run: **1676/1809 (92.6%) of application functions are byte-exact, but only
-314,530/670,020 (46.9%) of application BYTES are.** The gap is `Player_HandlePacket`
-— one deferred function of **226,824 bytes**, which is **33.9% of all application
-code and 64% of what remains**. The rest of the outstanding bytes are
-`stubbed` 74,877 (11.2%), `mismatched` 48,751 (7.3%) and `unimplemented` 5,038
-(0.8%). Any statement of progress that quotes only the function percentage is
-wrong by a factor of two; quote the byte figure.
+`make track` reports both. As of the artifact pass (above):
+**1795/1796 (99.9%) of application functions are byte-exact, and
+666,662/667,860 (99.8%) of application BYTES.** The single remaining
+non-byte-exact row is `Party_ShareExp` (1,198 bytes, `mismatched`, a proven bcc
+register-allocation floor; see below). Historical note: before
+`Player_HandlePacket` (228,416 B, 33.9% of all application code) converged the
+function percentage badly understated progress, so quote the byte figure.
 
-Consequence for planning: `Player_HandlePacket` is the single largest item in the
-project by an order of magnitude, and it is deliberately deferred. Before the
-final link can be attempted, that one function must be reconstructed — nothing
-else can compensate for a third of the application's bytes. The next tier is the
-volume in `Packets` (`MysqlCallback_Dispatch` 36,735 B, `Spell_Execute` 17,449 B,
-`Attack_Execute` 12,223 B, `Login_SendCharacterList` 9,419 B, `Walk_Execute`
-5,466 B, `Player_ApplyQuestActions` 5,458 B) plus the two parked Mapcontrol
-loaders (14,296 B combined, each one no-op re-arm mark from exact).
+Consequence for planning: with the artifact rows excluded, the only outstanding
+row is `Party_ShareExp`; the historical backlog (the deferred
+`Player_HandlePacket`, `MysqlCallback_Dispatch` 36,735 B, `Spell_Execute`
+17,449 B, `Attack_Execute` 12,223 B, `Login_SendCharacterList` 9,419 B,
+`Walk_Execute` 5,466 B, `Player_ApplyQuestActions` 5,458 B and the two parked
+Mapcontrol loaders, 14,296 B combined) is converged.
 
 ### `Player_HandlePacket` (`0x41794c`) — investigated, and tractable
 

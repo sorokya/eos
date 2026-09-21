@@ -17,6 +17,10 @@ and how far the reconstruction has got.
   merged   - the ret-less body half of a function Ghidra split after its
              prologue; the head row's source function already spans its bytes,
              so it is not a separate target
+  comdat_cross - a compiler-emitted template COMDAT whose function is emitted
+             by a different translation unit than the module range that
+             contains the row (proven by the reference call graph); excluded
+             from the hand-written denominator like `library`
 `app` (+ `comdat`) is the "to produce" denominator.
 
 `status` (for app/comdat rows) comes from the compiler's own `-S` listings in
@@ -161,13 +165,16 @@ def parse_rows(ca, ref_bin, rows, jobs):
 
     Per range, not one sweep over the image: a sweep desynchronises on data
     embedded in .text and decodes the wrong boundaries (the same trap
-    verify_units avoids).
+    verify_units avoids). The raw (address, instruction) pairs are kept as
+    well as the canonical form, so the artifact pass can read a direct `call`
+    target without a second objdump sweep.
     """
     work = [(r["_lo"], r["_hi"]) for r in rows]
     with ThreadPoolExecutor(max_workers=jobs) as ex:
-        out = list(ex.map(lambda se: ca.parse_ref(ref_bin, se[0], se[1])[0], work))
-    for r, ins in zip(rows, out):
+        out = list(ex.map(lambda se: ca._parse_ref(ref_bin, se[0], se[1]), work))
+    for r, (ins, _mk, raw) in zip(rows, out):
         r["_ins"] = ins
+        r["_raw"] = raw
 
 
 def range_forms(ins, list_canon, truncate):
@@ -187,8 +194,9 @@ def range_forms(ins, list_canon, truncate):
 
 
 def our_functions(ca, list_canon, asm_dir, units):
-    """unit -> {canonical tuple: name}, the raw name list per unit, and a
-    global {canonical tuple: [(unit, name), ...]} pool.
+    """unit -> {canonical tuple: name}, the raw name list per unit, a
+    global {canonical tuple: [(unit, name), ...]} pool, and per-function
+    provenance.
 
     bcc32 emits a header-defined function (a template instantiation) once per
     translation unit that uses it, and the reference may place the surviving
@@ -199,15 +207,26 @@ def our_functions(ca, list_canon, asm_dir, units):
     candidate there, because the same generic body is emitted for many element
     types (30 copies of `vector<T>::clear`, 7 of `copy<T*>`), and a wrong
     cross-unit match would hide real work.
+
+    `prov[(unit, name)]` is the `?debug T "..."` source file bcc32 recorded for
+    the function (the listing carries it beside every `proc`). A function whose
+    provenance is under the Borland `Include/` tree is RTL/STL header code, not
+    rewritten application source.
     """
     by_unit = defaultdict(dict)
     names = defaultdict(list)
     glob = defaultdict(list)
+    prov = {}
     for unit in sorted(units):
         path = os.path.join(asm_dir, unit + ".asm")
         if not os.path.exists(path):
             continue
         txt = open(path, encoding="latin1").read()
+        for m in re.finditer(r"(?ms)^(\S+)\s+proc\s+near(.*?)^\S+\s+endp", txt):
+            name, body = m.group(1), m.group(2)
+            d = re.search(r'\?debug\s+T\s+"([^"]+)"', body)
+            if d:
+                prov[(unit, name)] = d.group(1)
         for name in re.findall(r"(?m)^(\S+)\s+proc\s+near", txt):
             if "_Stub" in name:
                 continue          # placeholders from scripts/genstubs.py
@@ -218,7 +237,7 @@ def our_functions(ca, list_canon, asm_dir, units):
             key = tuple(list_canon(ins))
             by_unit[unit].setdefault(key, []).append(name)
             glob[key].append((unit, name))
-    return by_unit, names, glob
+    return by_unit, names, glob, prov
 
 
 def classify(rows, stub_addrs, pe, libs_dir, linked=None, map_path=None):
@@ -298,6 +317,172 @@ def _extend_library_runs(rows, run=0x1000):
                           for b in barriers)
             if near is not None and near <= run and not blocked:
                 r["kind"] = "library"
+
+
+def _fold_stat(form):
+    """Canonical form with bcc32's compiler-static operands (`$name`) folded to
+    `ADDR`.
+
+    bcc32 names a function-local static's storage `$name`; the reference
+    disassembles the same operand as a resolved numeric address, which `canon`
+    already turns into `ADDR`. Folding the symbol form makes the two compare.
+    """
+    return tuple(re.sub(r"\$[A-Za-z_][A-Za-z0-9_]*", "ADDR", x) for x in form)
+
+
+def _strip_frame(form):
+    """Drop the standard `push ebp`/`mov ebp,esp` prologue and `pop ebp`/`ret`
+    epilogue, leaving the body instructions."""
+    f = list(form)
+    if f[:2] == ["push ebp", "mov ebp,esp"]:
+        f = f[2:]
+    if f[-2:] == ["pop ebp", "ret"]:
+        f = f[:-2]
+    return f
+
+
+def _is_compiler_template(sym):
+    return sym.startswith("@@std@") or sym.startswith("@@__rwstd@")
+
+
+def _classify_artifacts(rows, pe, vu, by_unit, glob_pool, prov, used):
+    """Exclude compiler/RTL-generated rows that are not hand-written targets.
+
+    Three rules, each resting on a proof rather than an address list:
+
+    * **RTL data-sentinel accessor** (`library`). A row whose body is exactly
+      `mov eax,<data address>` and nothing else -- a leaf constant-address
+      getter -- where the loaded address is a base-relocated slot in a data
+      section and *every* other reference to that data object lies outside the
+      per-unit function inventory (i.e. in library code). The Borland RTL's
+      `basic_string::__getNullRep` (`ref/Borland5/Include/string.stl:751`,
+      static member defined in
+      `ref/Borland5/Source/RTL/source/stl/string/string.cpp:41`) is exactly this
+      shape: it returns `&__nullref`, a sentinel referenced only from the
+      trailing RTL region. `Packets` `FUN_00450110` is that accessor.
+
+    * **Borland-header local-static guard** (`library`). A row whose body opens
+      with the bcc32 function-local-`static` initialisation guard
+      (`cmp byte ptr [flag],0` / conditional jump / ... / `inc byte ptr [flag]`)
+      and whose canonical form (compiler-static operands folded) matches a
+      function our build emits from a file under the Borland `Include/` tree.
+      The compiler emits the guard for a `static` local; the row has no
+      standalone source definition. `Packets` `FUN_00471e54` is the guard inside
+      `std::deque<char>::__buffer_size()` (`Include/deque.cc`).
+
+    * **Cross-unit compiler COMDAT** (`comdat_cross`). A row whose body is a
+      generic template instantiation -- every candidate that emits it across
+      the tree is a `@@std@`/`@@__rwstd@` symbol -- whose own unit emits no free
+      candidate, and which is reached only from functions already reproduced
+      (`byte-exact`) or from other rows excluded by this rule. This is the
+      `Npcvalue` unit's `vector<NpcDropItem>::clear`/`::erase` and
+      `std::copy<NpcDropItem*>`, which the reference placed inside the
+      `Npcvalues` module range; the owning unit's own copies are counted under
+      `Npcvalue`. The call-graph restriction is what makes the match sound where
+      the bare canonical sequence is shared by many element types.
+    """
+    ranges = sorted((r["start"], r["end"]) for r in rows)
+
+    def in_inventory(va):
+        import bisect
+        i = bisect.bisect_right([s for s, _e in ranges], va) - 1
+        return i >= 0 and ranges[i][0] <= va < ranges[i][1]
+
+    data_spans = []
+    for s in pe.sections:
+        if s.name in (".data", ".rdata", ".bss", ".tls"):
+            lo = unitmap.IMAGE_BASE + s.virtual_address
+            data_spans.append((lo, lo + s.virtual_size))
+
+    def in_data(va):
+        return any(lo <= va < hi for lo, hi in data_spans)
+
+    refs_by_target = defaultdict(list)
+    for rva, _t in pe.relocations():
+        off = unitmap._va_to_off(pe, rva + unitmap.IMAGE_BASE)
+        if off is None or off + 4 > len(pe.data):
+            continue
+        target = int.from_bytes(pe.data[off:off + 4], "little")
+        refs_by_target[target].append(rva + unitmap.IMAGE_BASE)
+
+    caller_map = defaultdict(list)
+    for r in rows:
+        for _a, ins in r.get("_raw", ()):
+            m = re.match(r"call\s+0x([0-9a-f]+)", ins)
+            if m:
+                caller_map[int(m.group(1), 16)].append(r)
+
+    folded_pool = defaultdict(list)
+    for unit, d in by_unit.items():
+        for form, names in d.items():
+            ff = _fold_stat(form)
+            for n in names:
+                folded_pool[ff].append((unit, n, prov.get((unit, n), "")))
+
+    unmatched = [r for r in rows if r["kind"] == "app"
+                 and not r.get("source_name")
+                 and r["status"] in ("unimplemented", "stubbed", "mismatched")]
+
+    def exclude(r, kind):
+        r["kind"], r["status"], r["source_name"] = kind, "n/a", ""
+
+    for r in unmatched:
+        form = tuple(vu.canon(r["_ins"]))
+
+        # Rule 1: RTL data-sentinel accessor.
+        if _strip_frame(form) == ["mov eax,ADDR"]:
+            target = None
+            for _a, ins in r.get("_raw", ()):
+                m = re.match(r"mov\s+eax,\s*0x([0-9a-f]+)$", ins)
+                if m:
+                    target = int(m.group(1), 16)
+            if (target is not None and in_data(target)
+                    and refs_by_target.get(target)):
+                outside = [v for v in refs_by_target[target]
+                           if not (r["start"] <= v < r["end"])]
+                if outside and all(not in_inventory(v) for v in outside):
+                    exclude(r, "library")
+                    continue
+
+        # Rule 2: Borland-header local-static guard.
+        if (form[:2] == ("push ebp", "mov ebp,esp") and form[2:3]
+                and form[2].startswith("add esp,") and form[3:4] == ("cmp[ADDR],0",)
+                and form[4:5] and form[4].startswith("j")
+                and any(x.startswith("inc[") for x in form)):
+            for _unit, name, path in folded_pool.get(_fold_stat(form), ()):
+                if _is_compiler_template(name) and "Include" in path:
+                    exclude(r, "library")
+                    break
+            if r["kind"] != "app":
+                continue
+
+    # Rule 3: cross-unit compiler COMDAT (fixed point so a cluster classifies in
+    # call order).
+    classified = set()
+    changed = True
+    while changed:
+        changed = False
+        for r in unmatched:
+            if id(r) in classified or r["kind"] != "app":
+                continue
+            form = tuple(vu.canon(r["_ins"]))
+            cands = glob_pool.get(form, ())
+            if len(cands) < 2 or not all(
+                    _is_compiler_template(n) for _u, n in cands):
+                continue
+            if any((r["unit"], n) not in used
+                   for n in by_unit.get(r["unit"], {}).get(form, ())):
+                continue          # the containing unit emits it: ordinary work
+            callers = caller_map.get(r["start"], ())
+            if not callers:
+                continue
+            if all(c["status"] == "byte-exact" or id(c) in classified
+                   for c in callers):
+                classified.add(id(r))
+                changed = True
+    for r in unmatched:
+        if id(r) in classified:
+            exclude(r, "comdat_cross")
 
 
 def _masked(addr, sig, relocs, blob):
@@ -400,6 +585,7 @@ def summary(rows):
              f"compiler COMDATs      : {com}",
              f"library members       : {sum(1 for r in rows if r['kind']=='library')}",
              f"module stubs          : {sum(1 for r in rows if r['kind']=='stub')}",
+             f"cross-unit COMDATs    : {sum(1 for r in rows if r['kind']=='comdat_cross')}",
              f"byte-exact            : {done}/{total} ({pct:.1f}% of app+comdat)",
              f"byte-exact BYTES      : {bdone}/{btot} ({bpct:.1f}% of app+comdat bytes)"]
     for k in ("mismatched", "stubbed", "unimplemented", "deferred"):
@@ -512,7 +698,8 @@ def main() -> int:
     else:
         refresh_cached_kinds(rows, kinds)
 
-    by_unit, names, glob_pool = our_functions(ca, vu.canon, args.asm_dir, units)
+    by_unit, names, glob_pool, prov = our_functions(
+        ca, vu.canon, args.asm_dir, units)
     groups = defaultdict(list)
     for r in rows:
         groups[r["unit"]].append(r)
@@ -652,6 +839,12 @@ def main() -> int:
     for r in rows:
         if r["status"] == "byte-exact":
             r["kind"] = "app" if r["kind"] != "comdat" else "comdat"
+
+    # Compiler/RTL-generated rows that are not hand-written targets (RTL
+    # sentinel accessors, Borland-header local-static guards, cross-unit
+    # template COMDATs). Run last: it needs every status settled so the
+    # call-graph proof can see which callers are reproduced.
+    _classify_artifacts(rows, pe, vu, by_unit, glob_pool, prov, used)
 
     # Cross-unit fallback refusals: a row whose function another unit emits but
     # whose canonical sequence is not globally unique is left unmatched and
