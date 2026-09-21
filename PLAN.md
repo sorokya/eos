@@ -531,6 +531,17 @@ reference's `0x6200`, so a post-link byte copy (`scripts/inject_rsrc.py`,
 geometry-gated) cannot apply until the rest of the image matches. The byte-copy
 step is the planned mechanism once `.text`/`.data` are exact.
 
+**The `vcldb50` member extraction trades one ordering for another.** Listing
+`vcldb50`'s members as explicit objects (to fix the `Skillvalue`/`Npcvalue`
+package-init order) also changes when its `.res` is merged: the differing resource
+payloads go from 17 (with the `.lib` inline) to 25, because the RT_STRING blocks
+are renumbered again and several `RT_GROUP_CURSOR` entries shift. The merge order
+is driven by the order the `.res` files are processed, which we do not control,
+and neither arrangement matches the reference (its strings are RTL-first and its
+block sizes differ by ~568 B total). Since `.rsrc` content is copied from the
+reference by the planned injection step anyway, only its *size* matters for
+geometry — and that is short in both arrangements.
+
 ### Phase 4 — Whole-image fidelity and reproducibility
 
 Goal: the acceptance criterion, reproducibly.
