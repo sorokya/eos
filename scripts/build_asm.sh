@@ -21,9 +21,11 @@ FORCE="${FORCE:-0}"
 
 mkdir -p build
 
-# Unit list: the main unit first, then the units in link order.
-{ echo GUI; tail -n +2 "$UNITS_TSV" | cut -f2 | grep -v '^GUI$'; } \
-  | sort -u > build/asm_units.txt
+# Unit list: the units in link order (the main unit Mainform comes first in
+# units.tsv). `units.py` appends a spurious `GUI` row derived from the `_GUI`
+# data export; there is no GUI unit - the export table has
+# `@@Mainform@Initialize` and WinMain lives in the Mainform unit - so skip it.
+tail -n +2 "$UNITS_TSV" | cut -f2 | grep -v '^GUI$' | sort -u > build/asm_units.txt
 
 # Newest header mtime: any unit older than this needs rebuilding.
 newest_hdr=$(find src -name '*.h' -printf '%T@\n' 2>/dev/null | sort -rn | head -1 || true)

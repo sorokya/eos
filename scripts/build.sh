@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Build the reconstructed application.
 #
-# Compiles every unit in src/ (main unit GUI first, then the units in
-# analysis/target/units.tsv link order) and links them into
-# build/GameServer.exe, then applies the deterministic timestamp step.
+# Compiles every unit in src/ (in analysis/target/units.tsv link order, the
+# main unit Mainform first) and links them into build/GameServer.exe, then
+# applies the deterministic timestamp step.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -30,20 +30,19 @@ mkdir -p build/obj
 {
   echo 'set -e'
   echo 'mkdir -p build/obj'
-  echo "wine \"\$B\\Bin\\bcc32.exe\" $CFLAGS -c -obuild/obj/GUI.obj src/GUI.cpp"
   for u in "${UNITS[@]}"; do
     echo "wine \"\$B\\Bin\\bcc32.exe\" $CFLAGS -c -obuild/obj/$u.obj src/$u.cpp"
   done
   echo "wine \"\$B\\Bin\\brcc32.exe\" -fo\"Z:\\work\\build\\GameServer.res\" res/GameServer.rc"
   echo 'L="-L$BZ\Lib -L$BZ\Lib\Obj -L$BZ\Lib\Debug -L$BZ\Lib\Release"'
-  OBJS='"Z:\work\build\obj\GUI.obj"'
+  OBJS="" 
   for u in "${UNITS[@]}"; do
     OBJS+=" \"Z:\\work\\build\\obj\\$u.obj\""
   done
   echo "wine \"\$B\\Bin\\ilink32.exe\" $LINKFLAGS \$L \"\$BZ\\Lib\\c0w32.obj\" $OBJS, \"Z:\\work\\build\\GameServer.exe\", $MAPARG, $VLIB, , \"Z:\\work\\build\\GameServer.res\""
 } > build/build_inner.sh
 
-echo "building ${#UNITS[@]} units + GUI ..."
+echo "building ${#UNITS[@]} units ..."
 scripts/borland.sh 'bash build/build_inner.sh'
 
 [ -f "$OUT" ] || { echo "link produced no $OUT" >&2; exit 1; }

@@ -34,6 +34,24 @@
 
 #pragma package(smart_init)
 
+TGUI *GUI;
+
+#pragma argsused
+WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+{
+    try
+    {
+        Application->Initialize();
+        Application->CreateForm(__classid(TGUI), MAINFORM);
+        Application->Run();
+    }
+    catch (Exception &exception)
+    {
+        Application->ShowException(&exception);
+    }
+    return 0;
+}
+
 String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code)
 {
     if (key_base.Length() < 1 || display_code.Length() < 1 || unlock_code.Length() < 1)
