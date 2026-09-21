@@ -495,13 +495,17 @@ is the read-only Ghidra function inventory.
   RVAs by up to ~600 KB.
 - **Package order is not always command-line order.** `#pragma
   package(smart_init)` units can be reordered by `ilink32` according to package
-  initialization order: `Skillvalue`/`Npcvalue` come out in the opposite order
+  initialization order: `Skillvalue`/`Npcvalue` came out in the opposite order
   from the reference, **invariant both to the command line and to swapping the
-  two units**. The trigger was bisected to listing `vcldb50.lib` inline (any
+  two units**. The trigger was bisected to *scanning* `vcldb50.lib` inline (any
   position inverts the pair; the VCL block alone does not; all libraries inline at
   one point does not), so it is an initialization tie-break sensitive to the
-  library distribution and the exact module set, not a source dependency (neither
-  object references the other). Confirm layout against a build with
+  library distribution, not a source dependency (neither object references the
+  other). **Resolved** by extracting `vcldb50`'s four needed members (`DbLogDlg`,
+  `DBCommon`, `DbConsts`, `Db`) with `tlib` and listing them as explicit objects
+  instead of the `.lib` (see `scripts/build.sh`); unreferenced COMDATs are dropped
+  exactly as when the `.lib` is pulled, so the block is byte-identical and the
+  export order matches the reference. Confirm layout against a build with
   `MAP=1 scripts/build.sh` and `scripts/unitmap.py --map` or
   `scripts/layoutdiff.py` (reference `modules.tsv` vs the link map, per-module
   delta and order inversions).

@@ -126,18 +126,19 @@ strings and vtables correctly once the source matches.
   after the comma, as the build did until now, pushes every library member to the
   end and shifts the post-`Itemground` unit RVAs by up to ~600 KB; the inline
   placement in `scripts/build.sh` brings every export RVA within ~4 KB of the
-  reference. Two residuals remain: `Skillvalue`/`Npcvalue` come out in the wrong
-  order, and the second library block is ~2 KB too large. The inversion was
-  bisected to the inline `vcldb50.lib`: listing it inline at *any* position
-  inverts the pair, while the VCL block alone does not, and the order is
-  invariant both to the command line and to swapping the two units (which have no
-  reference to each other). All libraries inline at one point keeps the correct
-  order, so the tie-break is sensitive to the library distribution. The reference
-  links `vcldb50` inline at the same point and does *not* invert, so this is an
-  `ilink32` initialization-ordering artifact of the exact module set, not a
-  source dependency. Units within a contiguous run are otherwise contiguous and a
-  unit's `code_span` is its real code size, confirmed on `Serial`: our linked
-  `SERIAL.OBJ` is `0x1A94` bytes against a reference span of `0x1AF0`.
+  reference. The `Skillvalue`/`Npcvalue` inversion was bisected to *scanning*
+  `vcldb50.lib` inline: any position inverts the pair, the VCL block alone does
+  not, and the order is invariant both to the command line and to swapping the
+  two units (which have no reference to each other). **Resolved** by extracting
+  `vcldb50`'s four needed members (`DbLogDlg`, `DBCommon`, `DbConsts`, `Db`) with
+  `tlib` and listing them as explicit objects instead of the `.lib`;
+  unreferenced COMDATs are dropped exactly as when the `.lib` is pulled, so the
+  block is byte-identical (109,236 B vs the reference's 109,228) and the export
+  order now matches 133/133. The remaining residuals are the `.text` +0x200 and
+  the second library block being ~2 KB too large. Units within a contiguous run
+  are otherwise contiguous and a unit's `code_span` is its real code size,
+  confirmed on `Serial`: our linked `SERIAL.OBJ` is `0x1A94` bytes against a
+  reference span of `0x1AF0`.
   **The `.text` is a further 512 B larger than the reference** (raw `0x159800`
   vs `0x159600`). The breakdown: ~460 B of extra compiler-emitted STL helper
   COMDATs kept in the vector-heavy application units — canonical diffing a unit
@@ -146,8 +147,7 @@ strings and vtables correctly once the source matches.
   `Itemvalues`/`Skillvalues` +104 each, while `Npcvalues` −80 and `Mainform`
   −36) — plus ~56 B in the `vcldb50` block, partly offset by a smaller `cp32mt`
   tail. The likely cause is the set/order of library members from which the STL
-  helpers are resolved, which is also the prime suspect for the `Npcvalue`
-  ordering tie-break above; reconcile the module set before chasing individual
+  helpers are resolved; reconcile the module set before chasing individual
   units.
   **Caveat:** every linked module
   emits a refcount-guarded initializer stub, but `units.py` sees only modules

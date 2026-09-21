@@ -45,9 +45,17 @@ CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od -tWM -k}"
 # after all units.  Putting the VCL libraries after the comma instead pushes
 # every library member to the end and shifts the post-Itemground unit RVAs by
 # up to ~600 KB.
-LIB_DB='"Z:\borland\Lib\Debug\vcldb50.lib"'
+#
+# vcldb50 is not listed as a .lib, though: scanning it inline perturbs the
+# linker's package(smart_init) ordering (Skillvalue/Npcvalue come out inverted,
+# invariant to the command line). Its four needed members -- DbLogDlg,
+# DBCommon, DbConsts, Db -- are extracted with tlib and listed as explicit
+# objects instead; unreferenced COMDATs are dropped exactly as when the .lib is
+# pulled, so the block is byte-identical, and vcldb50.lib stays in the tail to
+# resolve anything remaining.
 LIB_VCL='"Z:\borland\Lib\Debug\vcl50.lib" "Z:\borland\Lib\Debug\vclbde50.lib" "Z:\borland\Lib\Debug\vcle50.lib"'
-VLIB="${VLIB:-import32.lib cp32mt.lib}"
+LIB_DB_OBJS='"Z:\work\build\res\vcldb\DbLogDlg.OBJ" "Z:\work\build\res\vcldb\DBCommon.OBJ" "Z:\work\build\res\vcldb\DbConsts.OBJ" "Z:\work\build\res\vcldb\Db.OBJ"'
+VLIB="${VLIB:-vcldb50.lib import32.lib cp32mt.lib}"
 LINKFLAGS="${LINKFLAGS:--Tpe -aa -c -Gn -j -v}"
 MAPARG=""
 
@@ -67,18 +75,19 @@ fi
 
 {
   echo 'set -e'
-  echo 'mkdir -p build/obj'
+  echo 'mkdir -p build/obj build/res/vcldb'
   if [ -z "${LINK_ONLY:-}" ]; then
   for u in "${UNITS[@]}"; do
     echo "wine \"\$B\\Bin\\bcc32.exe\" $CFLAGS -c -obuild/obj/$u.obj src/$u.cpp"
   done
   fi
+  echo '( cd build/res/vcldb && for m in DbLogDlg DBCommon DbConsts Db; do wine "$BZ\\Bin\\tlib.exe" "$BZ\\Lib\\Debug\\vcldb50.lib" "*$m" >/dev/null 2>&1; done )'
   echo "L=\"${LPATH:--L\$BZ\\Lib -L\$BZ\\Lib\\Obj -L\$BZ\\Lib\\Debug -L\$BZ\\Lib\\Release}\""
 
   OBJS="${HEADOBJ-" \"Z:\\borland\\Lib\\Obj\\sysinit.obj\""}" 
   for u in "${UNITS[@]}"; do
     if [ "$u" = "Itemchest" ]; then
-      OBJS+=" $LIB_DB"
+      OBJS+=" $LIB_DB_OBJS"
     fi
     if [ "$u" = "Banned" ]; then
       OBJS+=" $LIB_VCL"
