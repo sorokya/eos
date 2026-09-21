@@ -70,7 +70,7 @@ mkdir -p build/obj
 # by `make extract`; brcc32 is no longer used. Generate it on first build.
 if [ ! -f build/GameServer.res ]; then
   echo "extracting resources from $REF (make extract) ..."
-  python3 scripts/extract_res.py "$REF" -o build/GameServer.res
+  python3 scripts/extract_res.py "$REF" -o build/GameServer.res --only "TGUI,MAINICON,3:1"
 fi
 
 {

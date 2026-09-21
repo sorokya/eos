@@ -40,10 +40,12 @@ analyze:
 	$(PYTHON) scripts/extract_target.py $(REF) -o analysis/target
 	$(PYTHON) scripts/units.py $(REF)
 
-# Reconstruct the linked resource (.res) and the payloads from the reference
-# image's embedded .rsrc. Derived artifacts; not committed.
+# Reconstruct the application-owned resources (the ones the app's own .res
+# supplied) from the reference image's embedded .rsrc. The VCL/BDE resources are
+# linked from the toolchain, not extracted: including them here only creates
+# duplicates the linker resolves in favour of the library. Derived; not committed.
 extract:
-	$(PYTHON) scripts/extract_res.py $(REF) -o build/GameServer.res --dump build/res
+	$(PYTHON) scripts/extract_res.py $(REF) -o build/GameServer.res --only "TGUI,MAINICON,3:1" --dump build/res
 
 # Central per-function status sheet (analysis/target/functions.tsv) and the
 # generated README status block. Depends on --units output, so run `make unitmap`

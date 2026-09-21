@@ -79,11 +79,29 @@ def main() -> int:
                     help="also write each payload (and a .rc) to this directory")
     ap.add_argument("--types", default="",
                     help="comma-separated RT_* type ids to include (default all)")
+    ap.add_argument("--only", default="",
+                    help="restrict to resources by name or type:id, e.g. "
+                         "'TGUI,DVCLAL,MAINICON,3:1'")
     args = ap.parse_args()
 
     pe = PE.from_file(args.pe)
-    want = {int(t) for t in args.types.split(",") if t} if args.types else None
-    resources = [r for r in pe.resources if want is None or r.type_id in want]
+    resources = pe.resources
+    if args.types:
+        want = {int(t) for t in args.types.split(",") if t}
+        resources = [r for r in resources if r.type_id in want]
+    if args.only:
+        sel = [s for s in args.only.split(",") if s]
+
+        def chosen(r):
+            for s in sel:
+                if ":" in s:
+                    t, i = s.split(":", 1)
+                    if r.type_id == int(t) and r.id == int(i):
+                        return True
+                elif r.name == s:
+                    return True
+            return False
+        resources = [r for r in resources if chosen(r)]
     resources.sort(key=lambda r: (r.type_id,
                                   r.id if r.id is not None else 0,
                                   r.lang))
