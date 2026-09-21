@@ -203,7 +203,7 @@ the linked object set. The `-L` directories mirror the paths in `ilink32.cfg`;
 
 ### Compiler flags
 
-Four flags are required for byte fidelity, all passed by `scripts/build.sh`
+Five flags are required for byte fidelity, all passed by `scripts/build.sh`
 and `make unit`/`unit-asm` (`CFLAGS`):
 
 - **`-D__CODEGUARD__`** (CodeGuard compile-time checks). Without it bcc32 inlines
@@ -227,6 +227,15 @@ and `make unit`/`unit-asm` (`CFLAGS`):
   (`cp32mt.lib`); without
   `__MT__` stdcomp.h picks the single-threaded layouts and any unit using
   iostreams (e.g. `Msgboardcontrol::SaveBoards`) diverges.
+
+- **`-k`** (standard stack frames). bcc32's effective default here is `-k-`: a
+  function with no parameters and no locals gets no `push ebp / mov ebp,esp`.
+  The reference has the frame in exactly those functions, so it was built with
+  `-k`. Only such functions are affected, which is why the flag is nearly
+  invisible -- across the whole project it changes just two linked functions
+  (`Packets`' `srand(time(0))` helper at `0x470584` and the
+  `std::basic_string::__getNullRep` COMDAT at `0x450110`, +4 bytes each), and
+  both go from mismatched to byte-exact with it.
 
 Codegen otherwise matches the reference (`__cdecl` members, RTTI on).
 

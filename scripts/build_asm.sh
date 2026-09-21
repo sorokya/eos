@@ -16,7 +16,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 UNITS_TSV="${UNITS_TSV:-analysis/target/units.tsv}"
-CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od -tWM}"
+CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od -tWM -k}"
 FORCE="${FORCE:-0}"
 
 mkdir -p build

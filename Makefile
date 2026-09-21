@@ -9,8 +9,9 @@ REF       ?= GameServer.exe
 
 # The reference was compiled with CodeGuard compile-time checks
 # (__CODEGUARD__), source-level debug info (-v, which also disables C++ inline
-# expansion), and no optimization (-Od). Keep this in sync with scripts/build.sh.
-CFLAGS    ?= -D__CODEGUARD__ -v -Od -tWM
+# expansion), no optimization (-Od), the multithreaded RTL target (-tWM) and
+# standard stack frames (-k). Keep this in sync with scripts/build.sh.
+CFLAGS    ?= -D__CODEGUARD__ -v -Od -tWM -k
 
 # Parallel compile jobs for `make verify` (empty = the container's CPU count).
 JOBS      ?=

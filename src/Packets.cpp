@@ -9483,9 +9483,11 @@ void Server_Shutdown(Server *server)
     server->shutting_down = 1;
 }
 
+void FUN_00470584();
+
 void Connection_Ping(Server *server)
 {
-    Randomize();
+    FUN_00470584();
     bool found = false;
     int value = 0;
     while (!found)
@@ -10294,7 +10296,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         Mysqlcontrols::Mysql_ExecDirect_FromCallback(
             server->mysql_controls,
             player->account_ident,
-            "UPDATE endl_accounts SET lastvisit = '" + String(now) +
+            "UPDATE endl_accounts SET lastvisit = '" + now.DateString() +
                 "' WHERE ident = " + IntToStr(ident));
         Mysqlcontrols::Mysql_SubmitQuery_FromCallback(
             server->mysql_controls,
@@ -10344,7 +10346,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         sql = sql + IntToStr((unsigned int)player->account_ident) + ",";
         sql = sql + "'0',1,'";
         sql = sql + name + "',";
-        sql = sql + "'" + String(now) + "',";
+        sql = sql + "'" + now.DateString() + "',";
         sql = sql + IntToStr(gender) + ",";
         sql = sql + IntToStr(hair_modal) + ",";
         sql = sql + IntToStr(hair_color) + ",";
@@ -10440,8 +10442,8 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         sql = sql + "'" + realname + "',";
         sql = sql + "'" + location + "',";
         sql = sql + "'" + email + "',";
-        sql = sql + "'" + String(now) + "',";
-        sql = sql + "'" + String(now) + "',";
+        sql = sql + "'" + now.DateString() + "',";
+        sql = sql + "'" + now.DateString() + "',";
         sql = sql + "'" + serial_c + "',";
         sql = sql + "'" + serial_h + "',";
         sql = sql + "'" + player->socket->RemoteAddress + "',";
@@ -10934,7 +10936,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         sql = sql + "'" + name + "',";
         sql = sql + "'" + description + "',";
         sql = sql + "10000,";
-        sql = sql + "'" + String(now) + "',";
+        sql = sql + "'" + now.DateString() + "',";
         sql = sql + "'Leader',";
         sql = sql + "'Recruiter')";
         Mysqlcontrols::Mysql_ExecDirect_FromCallback(server->mysql_controls, 0, sql);
@@ -13263,7 +13265,7 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
     }
     return true;
 }
-void FUN_00470584(int)
+void FUN_00470584()
 {
     srand(time(0));
 }

@@ -12,7 +12,7 @@ cd "$REPO_ROOT"
 UNITS_TSV="${UNITS_TSV:-analysis/target/units.tsv}"
 OUT="${OUT:-build/GameServer.exe}"
 MAP="${MAP:-}"
-CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od -tWM}"
+CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od -tWM -k}"
 # A VCL application must link the *package* RTL (cp32mt.lib), not cw32mt.lib:
 # cw32mt.lib carries the stubbed-out crtlst_[iel].c versions of
 # ___CRTL_VCL_Init / ___CRTL_VCL_Exit / ___CRTL_VCLLIB_Linkage, while
