@@ -115,6 +115,8 @@ def main():
         raise SystemExit('no wildcard-free anchor long enough to search')
     runs.sort(reverse=True)
     print(f'{len(runs)} anchor candidates, longest {runs[0][0]} bytes at +{runs[0][1]}')
+    for alen, aoff in runs[:6]:
+        print(f'   +{aoff:#04x} len {alen}: {pat[aoff:aoff+alen].hex()}')
 
     files = []
     for root in args.roots:

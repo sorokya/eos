@@ -43,6 +43,7 @@ def canon(line):
     if not m:
         return None
     mnem, ops = m.group(3), m.group(4)
+    ops = re.sub(r'#.*$', '', ops)          # drop objdump's "# imm = ..." notes
     ops = ADDR_RE.sub('ADDR', ops)
     ops = re.sub(r'<[^>]*>', '', ops).strip()
     ops = re.sub(r'\s+', ' ', ops)
