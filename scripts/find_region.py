@@ -106,8 +106,13 @@ def main():
             j = i
             while j < len(mask) and mask[j]:
                 j += 1
-            if j - i >= args.min_anchor:
-                runs.append((j - i, i))
+            # Also offer sub-runs starting a little further in: the linked
+            # region may begin with linker padding (90/cc) or any single byte
+            # the object stores differently, and an anchor that includes it
+            # would never be found.
+            for skip in range(0, 4):
+                if j - (i + skip) >= args.min_anchor:
+                    runs.append((j - (i + skip), i + skip))
             i = j
         else:
             i += 1
@@ -150,14 +155,16 @@ def main():
                     p = j - aoff + d
                     if p < 0 or p + len(pat) > len(b):
                         continue
-                    ok = sum(1 for k in range(len(pat)) if not mask[k] or b[p + k] == pat[k])
-                    if ok > best.get(f, (0, 0, 0))[0]:
-                        best[f] = (ok, p, d)
+                    ok = sum(1 for k in range(len(pat)) if mask[k] and b[p + k] == pat[k])
+                    frac = ok / total if total else 0
+                    if frac > best.get(f, (0, 0, 0, 0))[3]:
+                        best[f] = (ok, p, d, frac)
     if not best:
         print('  no anchor hit anywhere')
         return
-    for f, (ok, p, d) in sorted(best.items(), key=lambda kv: -kv[1][0])[:8]:
-        print(f'  {ok:4d}/{total} unmasked bytes match   {f}  (region at +{p}, slide {d:+d})')
+    ranked = sorted(best.items(), key=lambda kv: -kv[1][3])
+    for f, (ok, p, d, frac) in ranked[:8]:
+        print(f'  {ok:4d}/{total} unmasked bytes match ({frac:5.1%})   {f}  (region at +{p}, slide {d:+d})')
 
 
 if __name__ == '__main__':

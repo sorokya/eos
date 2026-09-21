@@ -295,6 +295,13 @@ documented build, not a manual fix-up.
   bytes match the Borland libs) or `unknown`; `--units --functions --modules`
   turns the reference unit table into per-unit function inventories, excluding
   library/unknown module ranges.
+
+  **Always regenerate the map and the exe together.** The map describes one
+  particular link; any later relink (with or without `MAP`) changes
+  `build/GameServer.exe` while leaving `build/GameServer_map.map` behind, and
+  mixing a stale map with a fresh exe silently produces wrong attributions —
+  e.g. "this unit is only 56 bytes" when it is not. `MAP=1 scripts/build.sh`
+  emits both from the same link for exactly this reason.
 - `scripts/compare_pe.py` — whole-file/header/section comparison, plus
   `--struct` for imports, exports and relocations.
 - `scripts/compare_functions.py` — per-function byte scoring against the Ghidra
