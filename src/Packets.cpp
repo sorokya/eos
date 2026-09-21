@@ -7350,6 +7350,16 @@ void *GroundItemPtrVector_Begin(void *list)
     return *(void **)((char *)list + 0x04);
 }
 
+Player **Players_Iter_Begin(Players *self)
+{
+    return *(Player ***)((char *)self + 0x04);
+}
+
+Player **Players_Iter_End(Players *self)
+{
+    return *(Player ***)((char *)self + 0x08);
+}
+
 void *PtrVector_GetEnd(void *list)
 {
     return *(void **)((char *)list + 0x08);
@@ -7371,8 +7381,6 @@ bool Login_CheckConnectionThreshold(Server *server)
         return true;
     return false;
 }
-
-int __fastcall Sock_Send(void *sock, char *data);
 
 void Client_SendRaw(Server *server, Player *client, String data, int break_byte)
 {
@@ -7399,7 +7407,7 @@ void Client_SendRaw(Server *server, Player *client, String data, int break_byte)
     built.Insert(EO_GetBreakByte(server, break_byte), built.Length() + 1);
     built.Insert(data, built.Length() + 1);
     built.Insert(EO_EncodeNumber(server, built.Length(), 2), 1);
-    Sock_Send(client->socket, *(char **)&built);
+    client->socket->SendText(built);
 }
 
 bool Face_Execute(Server *server, Player *player, int action, String *data)
@@ -9425,7 +9433,7 @@ void Talk_PlayerWhisper(Server *server, int map_id, String message, int break_by
             out.Insert(EO_GetBreakByte(server, break_byte), out.Length() + 1);
             out.Insert(message, out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
-            Sock_Send((*player_iter)->socket, *(char **)&out);
+            (*player_iter)->socket->SendText(out);
         }
     }
 }
@@ -11594,14 +11602,12 @@ bool FUN_00462374(Server *server, Player *player, String data)
                 player->hdid = data.SubString(11, data.Length() - 10);
                 if (player->hdid.Length() != hdid_len)
                 {
-                    Sock_Send(player->socket,
-                              *(char **)&Server_BuildInitBanReply(server));
+                    player->socket->SendText(Server_BuildInitBanReply(server));
                     return false;
                 }
                 if (Banned::IsBanned(server->banned, player->remote_ip, player->hdid))
                 {
-                    Sock_Send(player->socket,
-                              *(char **)&Server_BuildInitBanReply(server));
+                    player->socket->SendText(Server_BuildInitBanReply(server));
                     return false;
                 }
             }
@@ -11623,15 +11629,13 @@ bool FUN_00462374(Server *server, Player *player, String data)
                         player->remove_timer = -1;
                     player->field_0x34 = session;
                     player->initialized = true;
-                    Sock_Send(player->socket,
-                              *(char **)&Server_BuildInitOkReply(server, player));
+                    player->socket->SendText(Server_BuildInitOkReply(server, player));
                     return true;
                 }
             }
             else
             {
-                Sock_Send(player->socket,
-                          *(char **)&Server_BuildInitVersionReply(server));
+                player->socket->SendText(Server_BuildInitVersionReply(server));
                 return false;
             }
         }
@@ -11685,7 +11689,7 @@ void Client_SendEncoded(Server *server,
         }
         out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
         Server_AddSentBytes(server, out.Length());
-        Sock_Send(player->socket, *(char **)&out);
+        player->socket->SendText(out);
     }
 }
 // STUB(0x00467980, 12223 bytes) Attack_Execute - ref: int Attack_Execute(Server * server,

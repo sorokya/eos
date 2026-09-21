@@ -34,7 +34,53 @@
 
 #pragma package(smart_init)
 
-String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code);
+String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code)
+{
+    if (key_base.Length() < 1 || display_code.Length() < 1 || unlock_code.Length() < 1)
+        return "";
+    String result = "";
+    String part = "";
+    int sum = 0xd;
+    bool again = true;
+    do
+    {
+        for (int i = 1; i <= key_base.Length(); i++)
+            sum += (unsigned char)key_base[i];
+        for (int i = 1; i <= display_code.Length(); i++)
+            sum += (unsigned char)display_code[i];
+        for (int i = 1; i <= unlock_code.Length(); i++)
+            sum += (unsigned char)unlock_code[i];
+        sum += 2;
+        if (key_base.Length() == 0 && display_code.Length() == 0)
+            again = false;
+        if (key_base.Length() > 0)
+            key_base.Delete(1, 1);
+        if (display_code.Length() > 0)
+            display_code.Delete(1, 1);
+        if (unlock_code.Length() > 0)
+            unlock_code.Delete(1, 1);
+        sum += 3;
+    } while (again);
+    part = IntToHex(sum * 0x1040, 2);
+    if (part.Length() > 2)
+        part = part.SubString(part.Length() - 2, 2);
+    result = result + part;
+    sum += 2;
+    part = IntToHex(sum * 0xd91, 3);
+    if (part.Length() > 2)
+        part = part.SubString(part.Length() - 3, 3);
+    result = result + part;
+    sum += 3;
+    part = IntToHex(sum * 0x872, 4);
+    if (part.Length() > 2)
+        part = part.SubString(part.Length() - 4, 4);
+    result = result + part;
+    sum += 4;
+    part = IntToHex(sum * 0x157e, 3);
+    if (part.Length() > 2)
+        part = part.SubString(part.Length() - 3, 3);
+    return result + part;
+}
 
 // Non-PACKAGE redeclaration keeps `&GUI` a link-time constant, so bcc emits a
 // static `.data` relocation (matching reference slot 0x58b60c) rather than the
