@@ -456,6 +456,52 @@ them to pick the form that matches the reference.
   incomplete frame, not a source-form error — match the operands and move on;
   the whole-function comparison is the only authority (established while writing
   `Player_HandlePacket`, `tests/guard_probe.cpp`).
+- **A "register-allocation floor" is usually a cascade — do not accept one until
+  the *first* divergence is explained.** Settling five large functions showed
+  that a handful of real source differences each masqueraded as dozens or
+  thousands of register/slot mirrors, because bcc's temporary free-list and slot
+  numbering are global. `Player_HandlePacket` went 205 → 0 hunks, `Spell_Execute`
+  32 → 0, `Attack_Execute` 10 → 0, `EO_Decode_Deinterleave` and `FUN_00462374` to
+  0, all after earlier passes had recorded them as floors. Always locate the
+  first divergence (by instruction *count/opcode*, not by register names) and fix
+  that; re-measure; only then classify what is left.
+- **An unsigned product defeats bcc's in-place fold.** `player->w = player->w -
+  GetWeight(1) * amount;` folds to `sub [mem],eax`; casting the product —
+  `player->w = player->w - GetWeight(1) * (unsigned int)amount;` — makes bcc keep
+  the result in a register and re-evaluate the object pointer for the store:
+  `mov ecx,[edx+0x13c]; sub ecx,eax; mov eax,[player]; mov [eax+0x13c],ecx`.
+  This was the last 17 hunks of `Player_HandlePacket` (verified by
+  `tests/weight_probe.cpp`; ~14 signed spellings all fold).
+- **A declared-and-initialized but unread scalar still consumes a frame slot.**
+  `int behavior_id = type_info.behavior_id; player->session_token =
+  type_info.behavior_id;` (the later use re-reads the *field*, so the local is
+  never read) emits one store the reference has. `bcc32 -Od` allocates every
+  declared local, so a missing slot at a constant `+4` delta across a whole
+  function is often exactly this. Adding it collapsed the last 166 hunks of
+  `Player_HandlePacket` (`tests/statopen_probe.cpp`).
+- **Chained self-assignment emits a duplicate store.** `int offset_x = offset_x =
+  caster->x;` is the only form that reproduces the reference's doubled
+  `mov [offset_x],reg` (separate/comma declarations, casts, parens and two
+  consecutive assignments all emit one store). This made `Attack_Execute`
+  byte-exact.
+- **Concatenation operand order determines temporary slot allocation.** `A + B`
+  and `B + A` are the same bytes *except* that bcc allocates `A`'s temporary then
+  `B`'s, so a transposed pair permutes the free-list and cascades for thousands of
+  instructions. Fixing one transposed `data.SubString(1,4) + EO_EncodeNumber(...)`
+  in `Player_HandlePacket` moved the aligned prefix 9,511 → 28,765.
+- **A positive `&&` wrapper is not equivalent to a negative guard-with-`return`.**
+  `if (skill_type != 1 || type <= 0 || type >= 6) return 1;` and
+  `if (skill_type == 1 && type > 0 && type < 6) { … }` differ in which exit tail
+  the return shares and how the body's temporaries are scoped. Rewriting the NPC
+  damage body of `Spell_Execute` as the positive wrapper removed all 32 of its
+  remaining hunks.
+- **An `if` whose body returns still needs its `else`** where the reference emits
+  a jump over the else body (`Face`, `Chair`, `Sit` all needed this).
+- **A trailing `return` inside a block the reference lets fall through must be
+  deleted** — six such sites in `Player_HandlePacket` accounted for a 16-instruction
+  surplus each.
+- **Source order of two emitted regions is observable.** Moving the Guild Create
+  guards ahead of the banned-word chain removed a 140-instruction relocation.
 - **Positive-count guards lower two ways.** `if (n > 0)` compiles to
   `test eax,eax` / `jle`, while `if (n >= 1)` compiles to `dec eax` / `jl`. Same
   semantics, different bytes — the reference uses the `dec`/`jl` form, so write
