@@ -146,8 +146,8 @@ against the reference header and section table:
   base `0x00400000`).
 - Startup object is `c0w32.obj` (Windows GUI startup; built from
   `ref/Borland5/Source/RTL/source/startup/c0ntw.asm`, which includes `c0nt.asm`).
-- The application is multithreaded and statically linked, using the C/C++ RTL
-  (`cw32mt.lib`, `cp32mt.lib`) plus the **Debug** VCL/BDE libraries in
+- The application is multithreaded and statically linked, using the C++
+  *package* RTL (`cp32mt.lib`) plus the **Debug** VCL/BDE libraries in
   `ref/Borland5/Lib/Debug`. Byte-signature matching showed the reference's
   library code matches `Lib/Debug` (`vcl50`, `vcldb50`, `vclbde50`) and not
   `Lib/Release` across every library module, and the reference carries Debug-only
@@ -162,8 +162,24 @@ ilink32 -Tpe -aa -c -Gn -j -v \
     -L"$BZ\Lib" -L"$BZ\Lib\Obj" -L"$BZ\Lib\Debug" -L"$BZ\Lib\Release" \
     "$BZ\Lib\c0w32.obj" <objects>,
     GameServer.exe,,
-    import32.lib cw32mt.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib
+    import32.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib
 ```
+
+**`cp32mt.lib`, not `cw32mt.lib`.** A VCL application must link the package
+RTL. `cw32mt.lib` carries the stubbed-out `crtlst_i.c` / `crtlst_e.c` /
+`crtlst_l.c` versions of `___CRTL_VCL_Init`, `___CRTL_VCL_Exit` and
+`___CRTL_VCLLIB_Linkage` (each a bare `ret`); `cp32mt.lib` carries the real
+`crtlvcl.cpp`. `c0w32.obj` references all three. With `cw32mt.lib` listed
+first the stubs win and the whole VCL init chain never starts: nothing
+references `__InitVCL`, so `vcle50.lib|VCLINIT` is never pulled, so nothing
+references `@Sysinit@VclInit` / `@Sysinit@VclExit`, so the SysInit communals
+stay out of the image entirely. That is what the missing 377-byte block at
+`0x401150` was; with `cw32mt.lib` dropped the head matches the reference
+exactly and the image goes from 9,216 bytes too large to 1,024 too small.
+Note that the SysInit code is emitted from *communal* (`COMDEF`) definitions
+in `Lib/Obj/sysinit.obj`, so only the communals something actually references
+are emitted -- in the reference that is exactly `_16393`, `_16394`,
+`VclInit`, `VclExit`, `Finalization`, `initialization`.
 
 The library set covers the components observed in the target (`vcl50.lib` for
 VCL/forms/sockets, `vcldb50.lib` for the `Db` unit, `vclbde50.lib` for
@@ -194,7 +210,8 @@ and `make unit`/`unit-asm` (`CFLAGS`):
 - **`-tWM`** (multithreaded RTL target, defines `__MT__`). The reference's
   iostream/RTTI layouts are the multithreaded ones (`basic_streambuf` 68,
   `basic_filebuf` 100, `basic_ofstream` 200 bytes, each carrying the
-  `_RWSTD_MULTI_THREAD` mutex) and the link uses `cw32mt.lib`; without
+  `_RWSTD_MULTI_THREAD` mutex) and the link uses the multithreaded RTL
+  (`cp32mt.lib`); without
   `__MT__` stdcomp.h picks the single-threaded layouts and any unit using
   iostreams (e.g. `Msgboardcontrol::SaveBoards`) diverges.
 

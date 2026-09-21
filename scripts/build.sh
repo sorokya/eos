@@ -41,7 +41,8 @@ mkdir -p build/obj
   done
   echo "wine \"\$B\\Bin\\brcc32.exe\" -fo\"Z:\\work\\build\\GameServer.res\" res/GameServer.rc"
   fi
-  echo 'L="-L$BZ\Lib -L$BZ\Lib\Obj -L$BZ\Lib\Debug -L$BZ\Lib\Release"'
+  echo "L=\"${LPATH:--L\$BZ\\Lib -L\$BZ\\Lib\\Obj -L\$BZ\\Lib\\Debug -L\$BZ\\Lib\\Release}\""
+
   OBJS="${HEADOBJ-" \"Z:\\borland\\Lib\\Obj\\sysinit.obj\""}" 
   for u in "${UNITS[@]}"; do
     OBJS+=" \"Z:\\work\\build\\obj\\$u.obj\""

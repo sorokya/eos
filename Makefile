@@ -20,7 +20,10 @@ JOBS      ?=
 # search path; same-named .libs there win. Exact library order is finalized in
 # Phase 2.
 LINKFLAGS ?= -Tpe -aa -c -Gn -j -v
-VLIB      ?= import32.lib cw32mt.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib
+# cp32mt.lib, not cw32mt.lib: the latter carries the stubbed-out
+# ___CRTL_VCL_Init/_Exit/___CRTL_VCLLIB_Linkage (crtlst_[iel].c) and, listed
+# first, kills the whole VCL init chain -- see scripts/build.sh.
+VLIB      ?= import32.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib
 
 CLANG_FORMAT ?= clang-format
 SRC          := $(wildcard src/*.cpp src/*.h)
