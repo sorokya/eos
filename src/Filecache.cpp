@@ -107,7 +107,7 @@ void FileCache::UpdatePlayerCache(FileCache *self, char *record)
 {
     if (self->field_0x58 < *(int *)(record + 0xc0) && *(int *)(record + 0x98) == 0)
     {
-        std::vector<FilecacheEntry *>::iterator it;
+        vector<FilecacheEntry *>::iterator it;
         FilecacheEntry *last = 0;
         bool found = false;
         int min_experience = 0x7ffffff8;
@@ -157,7 +157,7 @@ void Database_FlushCache(FileCache *self)
     self->string_list->Clear();
     if (self->pending_player_writes.size() > 99)
     {
-        for (std::vector<FilecacheEntry *>::iterator it =
+        for (vector<FilecacheEntry *>::iterator it =
                  self->pending_player_writes.begin();
              it != self->pending_player_writes.end();
              it++)
@@ -175,7 +175,7 @@ void Database_FlushCache(FileCache *self)
     self->string_list->Clear();
     if (self->pending_guild_writes.size() > 99)
     {
-        for (std::vector<FilecacheEntryB *>::iterator it =
+        for (vector<FilecacheEntryB *>::iterator it =
                  self->pending_guild_writes.begin();
              it != self->pending_guild_writes.end();
              it++)

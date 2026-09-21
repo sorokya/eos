@@ -65,7 +65,7 @@ JukeBoxController::EncodeNumber(JukeBoxController *self, unsigned int value, int
 String JukeBoxController::BuildRecentTracksString(JukeBoxController *self, int map_id)
 {
     String result = "";
-    for (std::vector<JukeBox>::iterator it = self->recent_plays.begin();
+    for (vector<JukeBox>::iterator it = self->recent_plays.begin();
          it != self->recent_plays.end();
          it++)
     {
@@ -91,7 +91,7 @@ String JukeBoxController::BuildRecentTracksString(JukeBoxController *self, int m
 bool JukeBoxController::TryPlayTrack(JukeBoxController *self, int map_id, String track)
 {
     bool played = false;
-    for (std::vector<JukeBox>::iterator it = self->recent_plays.begin();
+    for (vector<JukeBox>::iterator it = self->recent_plays.begin();
          it != self->recent_plays.end();
          it++)
     {
@@ -122,7 +122,7 @@ bool JukeBoxController::TryPlayTrack(JukeBoxController *self, int map_id, String
 
 void JukeBoxController_RemoveMap(JukeBoxController *self, int map_id)
 {
-    for (std::vector<JukeBox>::iterator it = self->recent_plays.begin();
+    for (vector<JukeBox>::iterator it = self->recent_plays.begin();
          it != self->recent_plays.end();
          it++)
     {

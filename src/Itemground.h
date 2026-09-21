@@ -10,7 +10,7 @@
 // Mapcontrol_AddGroundItem allocates 0x24 bytes and fills index/item_id/x/y/
 // amount at +0x00..+0x10, a TTimeStamp at +0x14, owner_player_id at +0x1c and
 // protect_ticks at +0x20. The class name is ChestItem: the reference RTTI
-// type-name table carries `std::vector<ChestItem,...>` for MapContainer's
+// type-name table carries `vector<ChestItem,...>` for MapContainer's
 // ground-item list, which holds ChestItem pointers.
 struct ChestItem
 {

@@ -1,7 +1,7 @@
 #ifndef MysqlcontrolsH
 #define MysqlcontrolsH
 
-#include <vector>
+#include <vector.h>
 #include <Classes.hpp>
 #include <DBTables.hpp>
 #include <SysUtils.hpp>

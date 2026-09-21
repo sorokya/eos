@@ -64,6 +64,7 @@
 #define FREE_FROM_JAIL_X 9
 #define FREE_FROM_JAIL_Y 0xb
 
+bool Coords_IsWithinTwo(Server *self, int x1, int y1, int x2, int y2);
 void Server_AddReceivedBytes(Server *server, int value);
 void Server_AddSentBytes(Server *server, int value);
 String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index);
@@ -872,8 +873,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         }
                         if (data[2] == 'i')
                         {
-                            std::vector<PlayerInventory>::iterator iter;
-                            std::vector<PlayerInventory>::iterator bank_iter;
+                            vector<PlayerInventory>::iterator iter;
+                            vector<PlayerInventory>::iterator bank_iter;
                             for (iter = target->inventory.begin();
                                  iter != target->inventory.end();
                                  iter++)
@@ -2278,7 +2279,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 weight_max = 0xfa;
             out.Insert(EO_EncodeNumber(server, weight_current, 1), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, weight_max, 1), out.Length() + 1);
-            std::vector<PlayerInventory>::iterator iter;
+            vector<PlayerInventory>::iterator iter;
             for (iter = player->inventory.begin(); iter != player->inventory.end();
                  iter++)
             {
@@ -2286,7 +2287,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 out.Insert(EO_EncodeNumber(server, iter->amount, 4), out.Length() + 1);
             }
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
-            std::vector<PlayerSkill>::iterator iter2;
+            vector<PlayerSkill>::iterator iter2;
             for (iter2 = player->spells.begin(); iter2 != player->spells.end(); iter2++)
             {
                 out.Insert(EO_EncodeNumber(server, iter2->skill_id, 2), out.Length() + 1);
@@ -3015,7 +3016,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                          ->ground_items) > 0x3e7)
                 return true;
-            if (!Server_InViewRing(server, player->x, player->y, x, y))
+            if (!Coords_IsWithinTwo(server, player->x, player->y, x, y))
                 return true;
             if (!Mapcontrol_IsDropTileClear(server->map_control, player->map_id, x, y))
                 return true;
@@ -3134,7 +3135,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (info.x < 0 || info.y < 0)
                 return true;
-            if (!Server_InViewRing(server, player->x, player->y, info.x, info.y))
+            if (!Coords_IsWithinTwo(server, player->x, player->y, info.x, info.y))
                 return true;
             Mapcontrol_RemoveGroundItem(
                 server->map_control, player->map_id, ground_index);
@@ -3947,7 +3948,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                        out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, take_weight_current, 1), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, take_weight_max, 1), out.Length() + 1);
-            std::vector<PlayerInventory>::iterator iter;
+            vector<PlayerInventory>::iterator iter;
             for (iter = player->bank.begin(); iter != player->bank.end(); iter++)
             {
                 out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
@@ -4024,7 +4025,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                        out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, add_weight_current, 1), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, add_weight_max, 1), out.Length() + 1);
-            std::vector<PlayerInventory>::iterator iter;
+            vector<PlayerInventory>::iterator iter;
             for (iter = player->bank.begin(); iter != player->bank.end(); iter++)
             {
                 out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
@@ -4050,7 +4051,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     server->map_control, player->map_id, coords.x, coords.y) != 0xf)
                 return true;
             String out = data.SubString(1, 2);
-            std::vector<PlayerInventory>::iterator iter;
+            vector<PlayerInventory>::iterator iter;
             for (iter = player->bank.begin(); iter != player->bank.end(); iter++)
             {
                 out.Insert(EO_EncodeNumber(server, iter->item_id, 2), out.Length() + 1);
@@ -4565,7 +4566,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             target->trade_accepted = false;
             target->trade_value = 100;
             String out = EO_EncodeNumber(server, player->player_id, 2);
-            std::vector<PlayerInventory>::iterator iter;
+            vector<PlayerInventory>::iterator iter;
             for (iter = player->trade_items.begin(); iter != player->trade_items.end();
                  iter++)
             {
@@ -4574,7 +4575,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, target->player_id, 2), out.Length() + 1);
-            std::vector<PlayerInventory>::iterator iter2;
+            vector<PlayerInventory>::iterator iter2;
             for (iter2 = target->trade_items.begin(); iter2 != target->trade_items.end();
                  iter2++)
             {
@@ -4612,7 +4613,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             target->trade_accepted = false;
             target->trade_value = 100;
             String out = EO_EncodeNumber(server, player->player_id, 2);
-            std::vector<PlayerInventory>::iterator iter;
+            vector<PlayerInventory>::iterator iter;
             for (iter = player->trade_items.begin(); iter != player->trade_items.end();
                  iter++)
             {
@@ -4621,7 +4622,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, target->player_id, 2), out.Length() + 1);
-            std::vector<PlayerInventory>::iterator iter2;
+            vector<PlayerInventory>::iterator iter2;
             for (iter2 = target->trade_items.begin(); iter2 != target->trade_items.end();
                  iter2++)
             {
@@ -4682,7 +4683,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 target->trade_accepted = 0;
                 target->trade_value = 100;
                 String out = EO_EncodeNumber(server, player->player_id, 2);
-                std::vector<PlayerInventory>::iterator iter;
+                vector<PlayerInventory>::iterator iter;
                 for (iter = player->trade_items.begin();
                      iter != player->trade_items.end();
                      iter++)
@@ -4695,7 +4696,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, target->player_id, 2),
                            out.Length() + 1);
-                std::vector<PlayerInventory>::iterator iter2;
+                vector<PlayerInventory>::iterator iter2;
                 for (iter2 = target->trade_items.begin();
                      iter2 != target->trade_items.end();
                      iter2++)
@@ -4712,7 +4713,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     server, target, PacketAction_Admin, PacketFamily_Trade, out);
                 return true;
             }
-            std::vector<PlayerInventory>::iterator iter;
+            vector<PlayerInventory>::iterator iter;
             for (iter = player->trade_items.begin(); iter != player->trade_items.end();
                  iter++)
             {
@@ -4741,7 +4742,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, target->player_id, 2));
                 return true;
             }
-            std::vector<PlayerInventory>::iterator iter2;
+            vector<PlayerInventory>::iterator iter2;
             for (iter2 = target->trade_items.begin(); iter2 != target->trade_items.end();
                  iter2++)
             {
@@ -6991,7 +6992,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         server->mysql_controls->file_cache->pending_player_writes.size(),
                         2),
                     out.Length() + 1);
-                std::vector<FilecacheEntry *>::iterator iter;
+                vector<FilecacheEntry *>::iterator iter;
                 for (iter = server->mysql_controls->file_cache->pending_player_writes
                                 .begin();
                      iter !=
@@ -7025,7 +7026,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         server->mysql_controls->file_cache->pending_guild_writes.size(),
                         2),
                     out.Length() + 1);
-                std::vector<FilecacheEntryB *>::iterator iter;
+                vector<FilecacheEntryB *>::iterator iter;
                 for (iter =
                          server->mysql_controls->file_cache->pending_guild_writes.begin();
                      iter !=
@@ -7305,7 +7306,7 @@ Server::~Server()
 {
 }
 
-// The reference helpers are the out-of-line copies of `std::vector<T>::begin`/
+// The reference helpers are the out-of-line copies of `vector<T>::begin`/
 // `end`; `-v` keeps them as calls, so the bodies reduce to the vector's start
 // and finish pointers. `Mapcontrol::maps` is the vector at +0x00, whose
 // `_M_start`/`_M_finish` land at +0x04/+0x08 (pinned by Mapcontrol_GetCount's
@@ -7569,7 +7570,7 @@ void Player_EvaluateQuestRules(Server *server,
                                int event,
                                int arg)
 {
-    std::vector<QuestRule *>::iterator iter;
+    vector<QuestRule *>::iterator iter;
     int index = -1;
     for (iter = state->rules.begin(); iter != state->rules.end(); iter++)
     {
@@ -8756,7 +8757,7 @@ String Player_SerializePaperdoll(Server *server, Player *player)
     String out = "";
     try
     {
-        std::vector<PlayerQuest>::iterator it;
+        vector<PlayerQuest>::iterator it;
         out.Insert(player->name, out.Length() + 1);
         out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
         out.Insert(player->home_name, out.Length() + 1);
@@ -11012,7 +11013,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
     }
     if (query_result->query_id == 0x53)
     {
-        std::vector<FilecacheEntryB *>::iterator it =
+        vector<FilecacheEntryB *>::iterator it =
             server->mysql_controls->file_cache->pending_guild_writes.begin();
         while (it != server->mysql_controls->file_cache->pending_guild_writes.end())
         {
@@ -11060,7 +11061,7 @@ void Player_ApplyQuestActions(Server *server,
             tracker->done = 1;
             return;
         }
-        for (std::vector<QuestAction *>::iterator iter = state->actions.begin();
+        for (vector<QuestAction *>::iterator iter = state->actions.begin();
              iter != state->actions.end();
              iter++)
         {
@@ -11134,7 +11135,7 @@ void Player_ApplyQuestActions(Server *server,
                 if ((*iter)->action == 7)
                 {
                     bool found = true;
-                    for (std::vector<PlayerQuest>::iterator iter2 =
+                    for (vector<PlayerQuest>::iterator iter2 =
                              player->quest_history.begin();
                          iter2 != player->quest_history.end();
                          iter2++)

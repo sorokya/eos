@@ -2,7 +2,7 @@
 #define MapH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 
 #include "Itemground.h"
 #include "Mapchest.h"
@@ -34,7 +34,7 @@ struct MapContainer
     int arena_ticks;                             // +0x18
     int quest_cooldown;                          // +0x1c
     int evac_countdown;                          // +0x20
-    std::vector<MapWarp> arena_spawn_list;       // +0x24
+    vector<MapWarp> arena_spawn_list;       // +0x24
     int relog_x;                                 // +0x44
     int relog_y;                                 // +0x48
     short field_0x4c;                            // +0x4c
@@ -43,12 +43,12 @@ struct MapContainer
     String buf;                                  // +0x50
     String hp_drain_others;                      // +0x54
     char hp_drain_others_sent;                   // +0x58
-    std::vector<MapObject> tile_specs;           // +0x5c
-    std::vector<MapObject> legacy_door_key_list; // +0x7c
-    std::vector<MapChest> chest_list;            // +0x9c
-    std::vector<MapWarp> warp_list;              // +0xbc
-    std::vector<Npc *> npc_list;                 // +0xdc
-    std::vector<ChestItem *> ground_items;       // +0xfc
+    vector<MapObject> tile_specs;           // +0x5c
+    vector<MapObject> legacy_door_key_list; // +0x7c
+    vector<MapChest> chest_list;            // +0x9c
+    vector<MapWarp> warp_list;              // +0xbc
+    vector<Npc *> npc_list;                 // +0xdc
+    vector<ChestItem *> ground_items;       // +0xfc
     int next_ground_item_id;                     // +0x11c
     short child_npc_id;                          // +0x120
     bool boss_alive;                             // +0x122
@@ -57,7 +57,7 @@ struct MapContainer
     char has_open_doors;                         // +0x125
     int npc_act_ticks;                           // +0x128
     int player_count;                            // +0x12c
-    std::vector<bool> tile_bits;                 // +0x130
+    vector<bool> tile_bits;                 // +0x130
 
     MapContainer(int map_id, int width, int height);
     ~MapContainer();

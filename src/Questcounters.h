@@ -2,17 +2,17 @@
 #define QuestcountersH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 #include "Questcounter.h"
 
 // Recovered from the reference (Questcounters unit, 0x54084c..0x541e84):
 // a plain collection of QuestCounter records, one per quest id, held by value
 // (0x2c element stride). RTTI type name `QuestCounters`; the member is
-// `std::vector<QuestCounter>`.
+// `vector<QuestCounter>`.
 class QuestCounters
 {
   public:
-    std::vector<QuestCounter> counters;
+    vector<QuestCounter> counters;
 
     QuestCounters();
     ~QuestCounters();

@@ -7,7 +7,7 @@
 #include "Mapcontrol.h"
 #include "Protocol.h"
 
-#include <vector>
+#include <vector.h>
 
 #pragma package(smart_init)
 
@@ -30,7 +30,7 @@ void DoorController::Tick(DoorController *self)
     if (ms / MS_PER_SECOND + days * SECONDS_PER_DAY > 1)
         elapsed = true;
 
-    for (std::vector<MapContainer>::iterator map_iter = self->map_control->maps.begin();
+    for (vector<MapContainer>::iterator map_iter = self->map_control->maps.begin();
          map_iter != self->map_control->maps.end();
          map_iter++)
     {
@@ -38,7 +38,7 @@ void DoorController::Tick(DoorController *self)
             continue;
 
         bool found = false;
-        for (std::vector<MapObject>::iterator spec_iter = map_iter->tile_specs.begin();
+        for (vector<MapObject>::iterator spec_iter = map_iter->tile_specs.begin();
              spec_iter != map_iter->tile_specs.end();
              spec_iter++)
         {

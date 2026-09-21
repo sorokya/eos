@@ -83,7 +83,7 @@ void MsgBoardController::DeletePost(MsgBoardController *self, int board, int pos
     if (board >= 1 && board <= 8)
     {
         board--;
-        for (std::vector<MsgBoard>::iterator it = self->boards[board].begin();
+        for (vector<MsgBoard>::iterator it = self->boards[board].begin();
              it != self->boards[board].end();
              it++)
         {
@@ -103,7 +103,7 @@ int MsgBoardController::CountPosts(MsgBoardController *self, int board, String a
     if (board >= 1 && board <= 8)
     {
         board--;
-        for (std::vector<MsgBoard>::iterator it = self->boards[board].begin();
+        for (vector<MsgBoard>::iterator it = self->boards[board].begin();
              it != self->boards[board].end();
              it++)
         {
@@ -138,7 +138,7 @@ void MsgBoardController::AddPost(MsgBoardController *self,
     }
 }
 
-void MsgBoardController::SetPostLimit(std::vector<MsgBoard> *posts, unsigned int count)
+void MsgBoardController::SetPostLimit(vector<MsgBoard> *posts, unsigned int count)
 {
     MsgBoard post;
     if (posts->size() < count)
@@ -168,7 +168,7 @@ String MsgBoardController::GetPost(MsgBoardController *self, int board, int post
     if (board >= 1 && board <= 8)
     {
         board--;
-        std::vector<MsgBoard>::iterator it;
+        vector<MsgBoard>::iterator it;
         int count = 0;
         for (it = self->boards[board].begin();
              it != self->boards[board].end() && count < self->field_0x0;
@@ -195,7 +195,7 @@ void MsgBoardController::BuildBoardName(MsgBoardController *self, int board)
         String result = EncodeNumber(self, board, 1);
         result.Insert(EncodeNumber(self, count, 1), result.Length() + 1);
         board--;
-        std::vector<MsgBoard>::iterator it;
+        vector<MsgBoard>::iterator it;
         int i = 0;
         for (it = self->boards[board].begin();
              it != self->boards[board].end() && i < self->field_0x0;
@@ -221,7 +221,7 @@ String MsgBoardController::BuildBoardData(MsgBoardController *self, int board)
         board--;
         result = EncodeNumber(self, self->boards[board].size(), 2);
         result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
-        std::vector<MsgBoard>::iterator it;
+        vector<MsgBoard>::iterator it;
         for (it = self->boards[board].begin(); it != self->boards[board].end(); it++)
         {
             String poster = it->poster;

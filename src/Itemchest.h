@@ -2,7 +2,7 @@
 #define ItemchestH
 
 // The class defined by the Itemchest unit is MapItem: the reference RTTI
-// type-name table carries `std::vector<MapItem,...>` for the vector that
+// type-name table carries `vector<MapItem,...>` for the vector that
 // MapChest holds, and the Itemchest unit exports `@@Itemchest@Initialize`.
 // Layout recovered from those field accesses in ChestController::Tick
 // (0x4b5594) and the element size 0x2c pinned by the vector grow code at

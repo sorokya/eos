@@ -2,7 +2,7 @@
 #define QueststateH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 
 // Layouts recovered from the reference constructors and the Questengine parser
 // (0x5397c8); class names are the RTTI type names.
@@ -17,8 +17,8 @@
 // QuestState  (0x54): int state_index (+0), String name (+4), String description
 //                     (+8), int fast_dispatch_rule_index (+0xc),
 //                     int fast_dispatch_condition_type (+0x10),
-//                     std::vector<QuestAction *> actions (+0x14),
-//                     std::vector<QuestRule *> rules (+0x34)
+//                     vector<QuestAction *> actions (+0x14),
+//                     vector<QuestRule *> rules (+0x34)
 class QuestAction
 {
   public:
@@ -51,8 +51,8 @@ class QuestState
     String description;
     int fast_dispatch_rule_index;
     int fast_dispatch_condition_type;
-    std::vector<QuestAction *> actions;
-    std::vector<QuestRule *> rules;
+    vector<QuestAction *> actions;
+    vector<QuestRule *> rules;
 
     QuestState(int state_index, String name);
     ~QuestState();

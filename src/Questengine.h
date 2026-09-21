@@ -2,7 +2,7 @@
 #define QuestengineH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 #include "Quest.h"
 #include "Queststate.h"
 #include "Questtype.h"
@@ -12,7 +12,7 @@ class Settings;
 // Layout recovered from the reference constructor (0x537ae0), the parser
 // (0x5397c8) and the quest accessors; sizeof(Questengine) is 0x94.
 //   +0x00 unsigned short              max_quests
-//   +0x04 std::vector<Quest *>        quest_list
+//   +0x04 vector<Quest *>        quest_list
 //   +0x24 Settings *                  settings
 //   +0x28 void *                      encode_scratch
 //   +0x2c QuestState *                field_0x2c
@@ -31,13 +31,13 @@ class Settings;
 //   +0x50 char                        field_0x50
 //   +0x51 char                        field_0x51
 //   +0x52 char                        field_0x52
-//   +0x54 std::vector<QuestType>      action_names
-//   +0x74 std::vector<QuestType>      cond_names
+//   +0x54 vector<QuestType>      action_names
+//   +0x74 vector<QuestType>      cond_names
 class Questengine
 {
   public:
     unsigned short max_quests;
-    std::vector<Quest *> quest_list;
+    vector<Quest *> quest_list;
     Settings *settings;
     void *encode_scratch;
     QuestState *field_0x2c;
@@ -60,8 +60,8 @@ class Questengine
     char field_0x51;
     char field_0x52;
     char pad_0x53;
-    std::vector<QuestType> action_names;
-    std::vector<QuestType> cond_names;
+    vector<QuestType> action_names;
+    vector<QuestType> cond_names;
 
     Questengine(Settings *settings);
     ~Questengine();

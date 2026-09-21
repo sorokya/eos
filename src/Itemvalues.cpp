@@ -222,7 +222,7 @@ void ItemValues::AddItem(ItemValues *self,
 
 void ItemValues::Clear(ItemValues *self)
 {
-    std::vector<ItemValue *>::iterator it = self->record_list.begin();
+    vector<ItemValue *>::iterator it = self->record_list.begin();
     while (it != self->record_list.end())
     {
         ItemValue *value = *it;
@@ -232,7 +232,7 @@ void ItemValues::Clear(ItemValues *self)
     self->field_0x3c = -1;
 }
 
-ItemValue **ItemValues::GetRecordSlot(std::vector<ItemValue *> *record_list, int index)
+ItemValue **ItemValues::GetRecordSlot(vector<ItemValue *> *record_list, int index)
 {
     return record_list->begin() + index;
 }

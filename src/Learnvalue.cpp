@@ -31,7 +31,7 @@ void LearnValue::AddSkill(int skill_id,
                           int cha_requirement)
 {
     bool found = false;
-    std::vector<LearnItemVal>::iterator it = skills.begin();
+    vector<LearnItemVal>::iterator it = skills.begin();
     while (it != skills.end())
     {
         if (skill_id == it->id)

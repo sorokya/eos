@@ -61,7 +61,7 @@ int KillCounters::IncrementAndGet(KillCounters *self, String name)
     int bucket = name[1] - 'a';
     if (bucket < 0 || bucket > 26)
         bucket = 26;
-    for (std::vector<KillCounter>::iterator it = self->buckets[bucket].begin();
+    for (vector<KillCounter>::iterator it = self->buckets[bucket].begin();
          it != self->buckets[bucket].end();
          it++)
     {
@@ -82,7 +82,7 @@ int KillCounters::Get(KillCounters *self, String name)
     int bucket = name[1] - 'a';
     if (bucket < 0 || bucket > 26)
         bucket = 26;
-    for (std::vector<KillCounter>::iterator it = self->buckets[bucket].begin();
+    for (vector<KillCounter>::iterator it = self->buckets[bucket].begin();
          it != self->buckets[bucket].end();
          it++)
     {
@@ -113,7 +113,7 @@ void KillCounters::Save(KillCounters *self)
         remove(path.c_str());
     }
     self->string_list->Clear();
-    std::vector<KillCounter>::iterator it;
+    vector<KillCounter>::iterator it;
     for (int i = 0; i < 26; i++)
     {
         for (it = self->buckets[i].begin(); it != self->buckets[i].end(); it++)

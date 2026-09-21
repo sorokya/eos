@@ -1,21 +1,21 @@
 #ifndef InnvaluesH
 #define InnvaluesH
 
-#include <vector>
+#include <vector.h>
 #include "Innvalue.h"
 
 // The inn table (EID). Layout recovered from the reference constructor
-// (0x5342dc) and the parser/accessors: sizeof(std::vector<InnValue>) is 32 and
+// (0x5342dc) and the parser/accessors: sizeof(vector<InnValue>) is 32 and
 // the element extent runs to 0x24 / the element type is InnValue:
 //   +0x00 char                       loaded
-//   +0x04 std::vector<InnValue>      record_list
+//   +0x04 vector<InnValue>      record_list
 //   +0x24 int                        field_0x24 = -1
 class InnValues
 {
   public:
     char loaded;
     char pad_0x1[3];
-    std::vector<InnValue> record_list;
+    vector<InnValue> record_list;
     int field_0x24;
 
     InnValues();

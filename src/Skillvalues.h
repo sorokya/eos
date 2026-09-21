@@ -1,7 +1,7 @@
 #ifndef SkillvaluesH
 #define SkillvaluesH
 
-#include <vector>
+#include <vector.h>
 #include "Skillvalue.h"
 
 // Two-int return values of the Get* accessors below. The names are not
@@ -32,7 +32,7 @@ struct SkillElement
 };
 
 // The skill table (ESF). Layout recovered from the reference constructor
-// (0x4a3018) and the parser/accessors: sizeof(std::vector<SkillValue>) is 32 and
+// (0x4a3018) and the parser/accessors: sizeof(vector<SkillValue>) is 32 and
 // sizeof(SkillValue) is 76, matching the reference's element size:
 //   +0x00 int                        file_id
 //   +0x04 int                        num_records
@@ -41,7 +41,7 @@ struct SkillElement
 //   +0x10 char                       loaded
 //   +0x14 TStringList *              string_list
 //   +0x18 void *                     field_0x18 = operator new(8)
-//   +0x1c std::vector<SkillValue>    record_list
+//   +0x1c vector<SkillValue>    record_list
 //   +0x3c int                        field_0x3c = -1
 class SkillValues
 {
@@ -54,7 +54,7 @@ class SkillValues
     char pad_0x11[3];
     TStringList *string_list;
     void *field_0x18;
-    std::vector<SkillValue> record_list;
+    vector<SkillValue> record_list;
     int field_0x3c;
 
     SkillValues();

@@ -1,7 +1,7 @@
 #ifndef MsgboardcontrolH
 #define MsgboardcontrolH
 
-#include <vector>
+#include <vector.h>
 #include <fstream.h>
 #include "Msgboard.h"
 
@@ -10,7 +10,7 @@
 // (0x4ad190):
 //   +0x000 int                       field_0x0
 //   +0x004 int                       field_0x4
-//   +0x008 std::vector<MsgBoard>     boards[8]      inline fixed array
+//   +0x008 vector<MsgBoard>     boards[8]      inline fixed array
 //   +0x108 String                    misc_text
 //   +0x10c int                       field_0x10c
 //   +0x110 int                       field_0x110
@@ -29,7 +29,7 @@ class MsgBoardController
   public:
     int field_0x0;
     int field_0x4;
-    std::vector<MsgBoard> boards[8];
+    vector<MsgBoard> boards[8];
     String misc_text;
     int field_0x10c;
     int field_0x110;
@@ -58,7 +58,7 @@ class MsgBoardController
                         String subject,
                         String message,
                         char flag);
-    static void SetPostLimit(std::vector<MsgBoard> *posts, unsigned int count);
+    static void SetPostLimit(vector<MsgBoard> *posts, unsigned int count);
     static String GetBoard(MsgBoardController *self, int board);
     static String GetPost(MsgBoardController *self, int board, int post_id);
     static void BuildBoardName(MsgBoardController *self, int board);

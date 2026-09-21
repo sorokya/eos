@@ -2,7 +2,7 @@
 #define ShopvalueH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 #include "Shopitem.h"
 #include "Shopcraft.h"
 
@@ -10,7 +10,7 @@
 // constructor default-constructs `name` (offset 4) and the trade/craft vectors
 // (offsets 0x10/0x30), stores the shop id at offset 0 and clears both vectors;
 // the destructor destroys crafts, trades then name and deletes. The vectors are
-// std::vector<ShopItemVal> and std::vector<ShopCraftVal> per the RTTI. Offsets
+// vector<ShopItemVal> and vector<ShopCraftVal> per the RTTI. Offsets
 // 8/0xa/0xc hold the ShopRecord header fields min_level/max_level/
 // class_requirement, each stored as a short by ShopValues::LoadShops (0x4b1b11,
 // 0x4b1b66, 0x4b1bbb); the two bytes at 0xe are compiler padding, not copied
@@ -22,8 +22,8 @@ struct ShopValue
     short min_level;
     short max_level;
     short class_requirement;
-    std::vector<ShopItemVal> trades;
-    std::vector<ShopCraftVal> crafts;
+    vector<ShopItemVal> trades;
+    vector<ShopCraftVal> crafts;
 
     ShopValue(int id);
     ~ShopValue();

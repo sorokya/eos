@@ -127,7 +127,7 @@ void ShopValues::AddCraft(ShopValues *self,
 
 void ShopValues::Clear(ShopValues *self)
 {
-    std::vector<ShopValue>::iterator it = self->record_list.begin();
+    vector<ShopValue>::iterator it = self->record_list.begin();
     while (it != self->record_list.end())
     {
         it->trades.clear();
@@ -153,7 +153,7 @@ ShopValues::GetCraftIngredient1(ShopValues *self, int shop_id, int craft_id)
         {
             if (self->record_list[shop_id - 1].crafts.size() > 0)
             {
-                std::vector<ShopCraftVal>::iterator it =
+                vector<ShopCraftVal>::iterator it =
                     self->record_list[shop_id - 1].crafts.begin();
                 while (it != self->record_list[shop_id - 1].crafts.end())
                 {
@@ -183,7 +183,7 @@ ShopValues::GetCraftIngredient2(ShopValues *self, int shop_id, int craft_id)
         {
             if (self->record_list[shop_id - 1].crafts.size() > 0)
             {
-                std::vector<ShopCraftVal>::iterator it =
+                vector<ShopCraftVal>::iterator it =
                     self->record_list[shop_id - 1].crafts.begin();
                 while (it != self->record_list[shop_id - 1].crafts.end())
                 {
@@ -213,7 +213,7 @@ ShopValues::GetCraftIngredient3(ShopValues *self, int shop_id, int craft_id)
         {
             if (self->record_list[shop_id - 1].crafts.size() > 0)
             {
-                std::vector<ShopCraftVal>::iterator it =
+                vector<ShopCraftVal>::iterator it =
                     self->record_list[shop_id - 1].crafts.begin();
                 while (it != self->record_list[shop_id - 1].crafts.end())
                 {
@@ -243,7 +243,7 @@ ShopValues::GetCraftIngredient4(ShopValues *self, int shop_id, int craft_id)
         {
             if (self->record_list[shop_id - 1].crafts.size() > 0)
             {
-                std::vector<ShopCraftVal>::iterator it =
+                vector<ShopCraftVal>::iterator it =
                     self->record_list[shop_id - 1].crafts.begin();
                 while (it != self->record_list[shop_id - 1].crafts.end())
                 {
@@ -270,7 +270,7 @@ int ShopValues::GetBuyPrice(ShopValues *self, int shop_id, int item_id, int amou
         {
             if (self->record_list[shop_id - 1].trades.size() > 0)
             {
-                std::vector<ShopItemVal>::iterator it =
+                vector<ShopItemVal>::iterator it =
                     self->record_list[shop_id - 1].trades.begin();
                 while (it != self->record_list[shop_id - 1].trades.end())
                 {
@@ -297,7 +297,7 @@ int ShopValues::GetSellPrice(ShopValues *self, int shop_id, int item_id, int amo
         {
             if (self->record_list[shop_id - 1].trades.size() > 0)
             {
-                std::vector<ShopItemVal>::iterator it =
+                vector<ShopItemVal>::iterator it =
                     self->record_list[shop_id - 1].trades.begin();
                 while (it != self->record_list[shop_id - 1].trades.end())
                 {
@@ -357,9 +357,9 @@ String ShopValues::EncodeNumber(ShopValues *self, unsigned int value, int width)
 String ShopValues::BuildOpenData(ShopValues *self, int behavior_id)
 {
     String result = "";
-    std::vector<ShopValue>::iterator it = self->record_list.begin();
-    std::vector<ShopItemVal>::iterator trade_iter;
-    std::vector<ShopCraftVal>::iterator craft_iter;
+    vector<ShopValue>::iterator it = self->record_list.begin();
+    vector<ShopItemVal>::iterator trade_iter;
+    vector<ShopCraftVal>::iterator craft_iter;
     while (it != self->record_list.end())
     {
         if (it->id == behavior_id)

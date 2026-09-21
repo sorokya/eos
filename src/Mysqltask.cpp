@@ -40,7 +40,7 @@ void mySQLbuffer::EnqueueTask(mySQLtask *task)
         task->query_id != 1)
         return;
 
-    for (std::vector<mySQLtask *>::iterator it = job_queue.begin(); it != job_queue.end();
+    for (vector<mySQLtask *>::iterator it = job_queue.begin(); it != job_queue.end();
          ++it)
     {
         if ((*it)->player_id == task->player_id && task->query_id != 1 &&
@@ -53,7 +53,7 @@ void mySQLbuffer::EnqueueTask(mySQLtask *task)
 
 bool mySQLbuffer::HasPendingTask(int player_id)
 {
-    for (std::vector<mySQLtask *>::iterator it = job_queue.begin(); it != job_queue.end();
+    for (vector<mySQLtask *>::iterator it = job_queue.begin(); it != job_queue.end();
          ++it)
     {
         if ((*it)->expected_query_id == player_id && (*it)->query_id == 1)

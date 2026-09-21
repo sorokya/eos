@@ -4,7 +4,7 @@
 #include <Classes.hpp>
 #include <SysUtils.hpp>
 #include <ScktComp.hpp>
-#include <vector>
+#include <vector.h>
 
 #include "Player.h"
 
@@ -23,14 +23,14 @@ Player **Players_Iter_Begin(Players *self);
 Player **Players_Iter_End(Players *self);
 
 // Player manager. Layout recovered from the reference (Players unit,
-// 0x407948..0x410de4): a std::vector<Player *> at +0, the 100000-entry
+// 0x407948..0x410de4): a vector<Player *> at +0, the 100000-entry
 // socket-handle index at +0x20, the Settings/Mysqlcontrols back-references at
 // +0x61aa0/+0x61aa4, the removal/dirty flag at +0x61aa8, the idle-timeout
 // counter at +0x61aac and the stat total at +0x61ab0. sizeof is 0x61ab4.
 class Players
 {
   public:
-    std::vector<Player *> players;    // +0x00000
+    vector<Player *> players;    // +0x00000
     Player *by_id[SOCKET_HANDLE_MAX]; // +0x00020
     Settings *settings;               // +0x61aa0
     Mysqlcontrols *mysql_controls;    // +0x61aa4

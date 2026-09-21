@@ -2,7 +2,7 @@
 #pragma hdrstop
 
 #include <SyncObjs.hpp>
-#include <vector>
+#include <vector.h>
 
 #include "Mysqlthread.h"
 #include "Mysqltask.h"
@@ -37,7 +37,7 @@ void __fastcall MySQLthread::Execute()
 
         if (queue->job_queue.size() > 0)
         {
-            std::vector<mySQLtask *>::iterator it = queue->job_queue.begin();
+            vector<mySQLtask *>::iterator it = queue->job_queue.begin();
             job = *it;
             queue->field_0x2c = job->query_id;
             queue->last_player_id = job->player_id;

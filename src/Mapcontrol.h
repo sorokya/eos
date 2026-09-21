@@ -2,7 +2,7 @@
 #define MapcontrolH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 
 #include "Map.h"
 
@@ -47,7 +47,7 @@ struct GroundItemInfo
 };
 
 // Layout recovered from the reference constructor (Mapcontrol unit,
-// 0x47ad3c..0x487d38). The constructor runs the std::vector<MapContainer>
+// 0x47ad3c..0x487d38). The constructor runs the vector<MapContainer>
 // default constructor first (member auto-init), then allocates the 8-byte
 // encode scratch buffer, stores the Settings pointer and copies the start/
 // rescue/map-limit settings, then loads every map. sizeof is 0x44 (pinned by
@@ -55,7 +55,7 @@ struct GroundItemInfo
 class Mapcontrol
 {
   public:
-    std::vector<MapContainer> maps; // +0x00
+    vector<MapContainer> maps; // +0x00
     unsigned short start_map;       // +0x20
     int start_x;                    // +0x24
     int start_y;                    // +0x28
@@ -100,7 +100,7 @@ class Mapcontrol
                                             unsigned int y);
     static unsigned char
     Mapcontrol_ToggleDoor(Mapcontrol *self, int map_id, unsigned int x, unsigned int y);
-    static MapItem *Mapcontrol_GetSlot(std::vector<MapItem> *slot_list, int slot);
+    static MapItem *Mapcontrol_GetSlot(vector<MapItem> *slot_list, int slot);
     static int Mapcontrol_GetWarpDoorAt(Mapcontrol *self, int map_id, MapCoord coords);
     static int
     Mapcontrol_GetChestSlotCount(Mapcontrol *self, int map_id, MapCoord coords);

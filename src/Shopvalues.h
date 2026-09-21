@@ -2,7 +2,7 @@
 #define ShopvaluesH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 #include "Shopvalue.h"
 
 // The two-int result returned by GetCraftIngredient1..4. The reference calls an
@@ -24,14 +24,14 @@ struct ShopCraftIngredient
 // The shop table (ESF). Layout recovered from the reference constructor
 // (0x4b15c0) and the parser/accessors: the loader reads ./pub/dts001.esf once.
 //   +0x00 char                        loaded
-//   +0x04 std::vector<ShopValue>      record_list
+//   +0x04 vector<ShopValue>      record_list
 //   +0x24 int                         field_0x24 = -1
 class ShopValues
 {
   public:
     char loaded;
     char pad_0x1[3];
-    std::vector<ShopValue> record_list;
+    vector<ShopValue> record_list;
     int field_0x24;
 
     ShopValues();

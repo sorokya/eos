@@ -21,7 +21,7 @@
 
 bool Mapcontrol_ParseMapFile(Mapcontrol *self, MapContainer *map, int map_id);
 
-typedef std::vector<ChestItem *> GroundItemPtrVector;
+typedef vector<ChestItem *> GroundItemPtrVector;
 
 Mapcontrol::Mapcontrol(Settings *settings)
 {
@@ -50,7 +50,7 @@ int Mapcontrol::Mapcontrol_GetWarpMap(Mapcontrol *self, int map_id, int x, int y
         int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
         if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
         {
-            for (std::vector<MapWarp>::iterator warp_iter =
+            for (vector<MapWarp>::iterator warp_iter =
                      Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
                  warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
                  warp_iter++)
@@ -71,7 +71,7 @@ int Mapcontrol::Mapcontrol_GetWarpLevelReq(Mapcontrol *self, int map_id, int x, 
     int result = 1000;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<MapWarp>::iterator warp_iter =
+        for (vector<MapWarp>::iterator warp_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
              warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
              warp_iter++)
@@ -91,7 +91,7 @@ int Mapcontrol::Mapcontrol_GetWarpX(Mapcontrol *self, int map_id, int x, int y)
     int result = 1000;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<MapWarp>::iterator warp_iter =
+        for (vector<MapWarp>::iterator warp_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
              warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
              warp_iter++)
@@ -111,7 +111,7 @@ int Mapcontrol::Mapcontrol_GetWarpY(Mapcontrol *self, int map_id, int x, int y)
     int result = 1000;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<MapWarp>::iterator warp_iter =
+        for (vector<MapWarp>::iterator warp_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
              warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
              warp_iter++)
@@ -130,7 +130,7 @@ unsigned int
 Mapcontrol::Mapcontrol_GetTileSpec(Mapcontrol *self, int map_id, int x, int y)
 {
     unsigned int result = 0xffffffff;
-    for (std::vector<MapObject>::iterator spec_iter =
+    for (vector<MapObject>::iterator spec_iter =
              Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
          spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
          spec_iter++)
@@ -149,7 +149,7 @@ bool Mapcontrol::Mapcontrol_IsOccupied(Mapcontrol *self, int map_id, int x, int 
     bool result = false;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<Npc *>::iterator npc_iter =
+        for (vector<Npc *>::iterator npc_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
              npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
              npc_iter++)
@@ -209,7 +209,7 @@ bool Mapcontrol::Mapcontrol_IsTileWalkable(Mapcontrol *self, int map_id, int x, 
                 }
                 else
                 {
-                    for (std::vector<MapObject>::iterator spec_iter =
+                    for (vector<MapObject>::iterator spec_iter =
                              Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
                          spec_iter !=
                          Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
@@ -252,7 +252,7 @@ int Mapcontrol::Mapcontrol_IsWalkableNPC(
                 else
                 {
                     result = 1;
-                    for (std::vector<MapObject>::iterator spec_iter =
+                    for (vector<MapObject>::iterator spec_iter =
                              Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
                          spec_iter !=
                          Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
@@ -359,7 +359,7 @@ int Mapcontrol::Mapcontrol_CountNpcsChasingPlayer(Mapcontrol *self,
     int chase_count = 0;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<Npc *>::iterator npc_iter =
+        for (vector<Npc *>::iterator npc_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
              npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
              npc_iter++)
@@ -377,7 +377,7 @@ bool Mapcontrol::Mapcontrol_AggroChildNpcs(Mapcontrol *self, int map_id)
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         TDateTime now = Now();
-        for (std::vector<Npc *>::iterator npc_iter =
+        for (vector<Npc *>::iterator npc_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
              npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
              npc_iter++)
@@ -399,7 +399,7 @@ bool Mapcontrol::Mapcontrol_KillChildNpcs(Mapcontrol *self, int map_id)
     {
         Mapcontrol_GetByIndex(self, map_id - 1)->boss_alive = false;
         TDateTime now = Now();
-        for (std::vector<Npc *>::iterator npc_iter =
+        for (vector<Npc *>::iterator npc_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
              npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
              npc_iter++)
@@ -440,7 +440,7 @@ void Mapcontrol::Mapcontrol_AddLockKey(
     Mapcontrol *self, MapContainer *map, unsigned int x, unsigned int y, int key_id)
 {
     bool found = false;
-    for (std::vector<MapObject>::iterator lock_iter = map->legacy_door_key_list.begin();
+    for (vector<MapObject>::iterator lock_iter = map->legacy_door_key_list.begin();
          lock_iter != map->legacy_door_key_list.end();
          lock_iter++)
     {
@@ -464,7 +464,7 @@ void Mapcontrol::Mapcontrol_GetOrCreateChest(Mapcontrol *self,
                                              unsigned int y)
 {
     bool found = false;
-    for (std::vector<MapChest>::iterator chest_iter = map->chest_list.begin();
+    for (vector<MapChest>::iterator chest_iter = map->chest_list.begin();
          chest_iter != map->chest_list.end();
          chest_iter++)
     {
@@ -489,7 +489,7 @@ unsigned char Mapcontrol::Mapcontrol_ToggleDoor(Mapcontrol *self,
     unsigned char result = 0;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<MapObject>::iterator spec_iter =
+        for (vector<MapObject>::iterator spec_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
              spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
              spec_iter++)
@@ -529,7 +529,7 @@ int Mapcontrol::Mapcontrol_GetWarpDoorAt(Mapcontrol *self, int map_id, MapCoord 
     int result = 0;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<MapObject>::iterator door_iter =
+        for (vector<MapObject>::iterator door_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.begin();
              door_iter !=
              Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.end();
@@ -553,7 +553,7 @@ int Mapcontrol::Mapcontrol_GetChestSlotCount(Mapcontrol *self,
     int result = -1;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<MapChest>::iterator chest_iter =
+        for (vector<MapChest>::iterator chest_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
              chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
              chest_iter++)
@@ -580,7 +580,7 @@ void Mapcontrol::Mapcontrol_AddChestSpawn(Mapcontrol *self,
                                           int amount)
 {
     bool found = false;
-    std::vector<MapChest>::iterator chest_iter = map->chest_list.begin();
+    vector<MapChest>::iterator chest_iter = map->chest_list.begin();
     while (chest_iter != map->chest_list.end())
     {
         if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
@@ -655,7 +655,7 @@ void Mapcontrol::Mapcontrol_AddChestItem(
 {
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<MapChest>::iterator chest_iter =
+        for (vector<MapChest>::iterator chest_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
              chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
              chest_iter++)
@@ -664,7 +664,7 @@ void Mapcontrol::Mapcontrol_AddChestItem(
                 (unsigned short)chest_iter->y == coords.y)
             {
                 bool found = false;
-                for (std::vector<MapItem>::iterator item_iter = chest_iter->slots.begin();
+                for (vector<MapItem>::iterator item_iter = chest_iter->slots.begin();
                      item_iter != chest_iter->slots.end() && !found;
                      item_iter++)
                 {
@@ -709,7 +709,7 @@ ItemStack Mapcontrol::Mapcontrol_TakeChestItem(Mapcontrol *self,
     result.amount = -1;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<MapChest>::iterator chest_iter =
+        for (vector<MapChest>::iterator chest_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
              chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
              chest_iter++)
@@ -718,7 +718,7 @@ ItemStack Mapcontrol::Mapcontrol_TakeChestItem(Mapcontrol *self,
                 (unsigned short)chest_iter->y == coords.y)
             {
                 bool found = false;
-                for (std::vector<MapItem>::iterator item_iter = chest_iter->slots.begin();
+                for (vector<MapItem>::iterator item_iter = chest_iter->slots.begin();
                      item_iter != chest_iter->slots.end() && !found;
                      item_iter++)
                 {
@@ -825,7 +825,7 @@ void Mapcontrol::Mapcontrol_PurgeGroundItemsInRange(Mapcontrol *self,
     }
 }
 
-MapItem *Mapcontrol::Mapcontrol_GetSlot(std::vector<MapItem> *slot_list, int slot)
+MapItem *Mapcontrol::Mapcontrol_GetSlot(vector<MapItem> *slot_list, int slot)
 {
     return slot_list->begin() + slot;
 }
@@ -956,7 +956,7 @@ Mapcontrol_GetNpcIdByIndex(Mapcontrol *self, int map_id, unsigned int npc_index)
     unsigned int result = 0xffffffff;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<Npc *>::iterator npc_iter =
+        for (vector<Npc *>::iterator npc_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
              npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
              npc_iter++)
@@ -979,7 +979,7 @@ Mapcontrol_GetNpcCoordsByIndex(Mapcontrol *self, int map_id, unsigned int npc_in
     coords.y = -1;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<Npc *>::iterator npc_iter =
+        for (vector<Npc *>::iterator npc_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
              npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
              npc_iter++)
@@ -1009,7 +1009,7 @@ char Mapcontrol_IsDropTileClear(Mapcontrol *self, int map_id, int x, int y)
                 if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
                 {
                     result = 0;
-                    for (std::vector<MapObject>::iterator spec_iter =
+                    for (vector<MapObject>::iterator spec_iter =
                              Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
                          spec_iter !=
                          Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
@@ -1053,7 +1053,7 @@ unsigned int Mapcontrol_GetTileSpecValueAt(Mapcontrol *self,
         {
             if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
             {
-                for (std::vector<MapObject>::iterator spec_iter =
+                for (vector<MapObject>::iterator spec_iter =
                          Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
                      spec_iter !=
                      Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
@@ -1077,7 +1077,7 @@ int Mapcontrol_GetChestKeyAt(Mapcontrol *self, int map_id, MapCoord coords)
     int result = 0;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (std::vector<MapChest>::iterator chest_iter =
+        for (vector<MapChest>::iterator chest_iter =
                  Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
              chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
              chest_iter++)
@@ -1113,7 +1113,7 @@ int Mapcontrol_CountBlockedNeighbors(Mapcontrol *self,
 MapObject Mapcontrol_GetTileSpecObject(Mapcontrol *self, int map_id, int x, int y)
 {
     map_id <= 0 ? (map_id == 1) : 0;
-    std::vector<MapObject>::iterator spec_iter =
+    vector<MapObject>::iterator spec_iter =
         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
     while (spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end())
     {
@@ -1207,8 +1207,8 @@ Mapcontrol_TakeGroundItemInfo(Mapcontrol *self, int map_id, int index, int playe
 String Mapcontrol_BuildChestItemsString(Mapcontrol *self, int map_id, MapCoord coords)
 {
     String result = "N";
-    std::vector<MapChest>::iterator chest_iter;
-    std::vector<MapItem>::iterator item_iter;
+    vector<MapChest>::iterator chest_iter;
+    vector<MapItem>::iterator item_iter;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         for (chest_iter = Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();

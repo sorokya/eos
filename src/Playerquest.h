@@ -6,7 +6,7 @@
 // Layout recovered from the reference (Playerquest unit, 0x537530..0x5375b4):
 // the constructor stores the quest id at offset 0, state_index at 4, the
 // tracked quest version at 6, clears the five-element `counters` array at 8 and
-// the `done` flag at 0x12; the element stride of the owning std::vector is
+// the `done` flag at 0x12; the element stride of the owning vector is
 // 0x14. The class name is the RTTI type name ("PlayerQuest").
 //
 // state_index/counters/done are the fields the quest engine reads:

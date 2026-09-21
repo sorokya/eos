@@ -3,7 +3,7 @@
 
 #include <Classes.hpp>
 #include <ScktComp.hpp>
-#include <vector>
+#include <vector.h>
 #include <deque>
 #include <stack>
 #include <queue>

@@ -1,7 +1,7 @@
 #include <vcl.h>
 #pragma hdrstop
 
-#include <vector>
+#include <vector.h>
 
 #include "Weddings.h"
 #include "Protocol.h"
@@ -26,7 +26,7 @@ WeddingController::~WeddingController()
 
 bool WeddingController::Has(WeddingController *self, int map_id, int priest_line)
 {
-    for (std::vector<Wedding *>::iterator it = self->active_weddings.begin();
+    for (vector<Wedding *>::iterator it = self->active_weddings.begin();
          it != self->active_weddings.end();
          it++)
     {
@@ -59,7 +59,7 @@ void WeddingController::Confirm(WeddingController *self,
                                 int priest_line,
                                 int player_id)
 {
-    for (std::vector<Wedding *>::iterator it = self->active_weddings.begin();
+    for (vector<Wedding *>::iterator it = self->active_weddings.begin();
          it != self->active_weddings.end();
          it++)
     {
@@ -127,7 +127,7 @@ void WeddingController::Confirm(WeddingController *self,
 
 void WeddingController::Tick(WeddingController *self)
 {
-    for (std::vector<Wedding *>::iterator it = self->active_weddings.begin();
+    for (vector<Wedding *>::iterator it = self->active_weddings.begin();
          it != self->active_weddings.end();
          it++)
     {

@@ -2,18 +2,18 @@
 #define JukeboxcontrolH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 #include "Jukebox.h"
 
 // Recovered from the reference (JukeBoxController unit, 0x4a9b54..0x4aa9b8).
 // Object layout pinned by the constructor:
 //   +0x00 char *                  encode_scratch = operator new(8), an encode buffer
-//   +0x04 std::vector<JukeBox>    recent_plays (stride 0x18 = sizeof(JukeBox))
+//   +0x04 vector<JukeBox>    recent_plays (stride 0x18 = sizeof(JukeBox))
 class JukeBoxController
 {
   public:
     char *encode_scratch;
-    std::vector<JukeBox> recent_plays;
+    vector<JukeBox> recent_plays;
 
     JukeBoxController();
     ~JukeBoxController();

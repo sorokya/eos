@@ -1,7 +1,7 @@
 #ifndef ItemvaluesH
 #define ItemvaluesH
 
-#include <vector>
+#include <vector.h>
 #include <Classes.hpp>
 #include "Itemvalue.h"
 
@@ -37,7 +37,7 @@ struct ItemSpecXY
 };
 
 // The item table (EIF). Layout recovered from the reference constructor
-// (0x47826c); sizeof(std::vector<ItemValue*>) is 32 and the member extent runs
+// (0x47826c); sizeof(vector<ItemValue*>) is 32 and the member extent runs
 // to 0x3c / the vector element type is ItemValue*:
 //   +0x00 int                         file_id
 //   +0x04 int                         num_records
@@ -46,7 +46,7 @@ struct ItemSpecXY
 //   +0x10 char                        loaded
 //   +0x14 TStringList *               string_list
 //   +0x18 void *                      field_0x18 = operator new(8)
-//   +0x1c std::vector<ItemValue *>    record_list
+//   +0x1c vector<ItemValue *>    record_list
 //   +0x3c int                         field_0x3c = -1
 class ItemValues
 {
@@ -59,7 +59,7 @@ class ItemValues
     char pad_0x11[3];
     TStringList *string_list;
     void *field_0x18;
-    std::vector<ItemValue *> record_list;
+    vector<ItemValue *> record_list;
     int field_0x3c;
 
     ItemValues();
@@ -71,7 +71,7 @@ class ItemValues
     static void Clear(ItemValues *self);
     static int GetCount(ItemValues *self);
     static ItemValue *GetByIndex(ItemValues *self, int index);
-    static ItemValue **GetRecordSlot(std::vector<ItemValue *> *record_list, int index);
+    static ItemValue **GetRecordSlot(vector<ItemValue *> *record_list, int index);
     static void AddItem(ItemValues *self,
                         int id,
                         String name,

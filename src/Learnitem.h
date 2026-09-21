@@ -8,7 +8,7 @@
 // expansion of the EMF SkillMasterSkillRecord (eo-protocol
 // xml/pub/server/protocol.xml): the on-disk shorts/chars are widened to their
 // in-memory widths (id -> int, price -> int). The element size of
-// std::vector<LearnItemVal> is 0x20 (AddSkill advances the iterator by 0x20 and
+// vector<LearnItemVal> is 0x20 (AddSkill advances the iterator by 0x20 and
 // the GetSkill copy moves 8 dwords). Class name is the RTTI type name.
 struct LearnItemVal
 {

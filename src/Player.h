@@ -4,7 +4,7 @@
 #include <Classes.hpp>
 #include <SysUtils.hpp>
 #include <ScktComp.hpp>
-#include <vector>
+#include <vector.h>
 
 #include "Playerinventory.h"
 #include "Playerquest.h"
@@ -186,12 +186,12 @@ class Player
     int armlet2_item_id;                      // +0x22c
     int bracer1_item_id;                      // +0x230
     int bracer2_item_id;                      // +0x234
-    std::vector<PlayerInventory> inventory;   // +0x238
-    std::vector<PlayerInventory> trade_items; // +0x258
-    std::vector<PlayerInventory> bank;        // +0x278
-    std::vector<PlayerSkill> spells;          // +0x298
-    std::vector<PlayerQuest> quest_trackers;  // +0x2b8
-    std::vector<PlayerQuest> quest_history;   // +0x2d8
+    vector<PlayerInventory> inventory;   // +0x238
+    vector<PlayerInventory> trade_items; // +0x258
+    vector<PlayerInventory> bank;        // +0x278
+    vector<PlayerSkill> spells;          // +0x298
+    vector<PlayerQuest> quest_trackers;  // +0x2b8
+    vector<PlayerQuest> quest_history;   // +0x2d8
     bool in_party;                            // +0x2f8
     char pad_0x2f9[3];                        // +0x2f9
     int party_leader_id;                      // +0x2fc
@@ -229,7 +229,7 @@ class Player
     int drop_counter;                        // +0x380
     int walk_tick;                           // +0x384
     int field_0x388;                         // +0x388
-    std::vector<PlayerCommand> action_queue; // +0x38c
+    vector<PlayerCommand> action_queue; // +0x38c
     char fast_action;                        // +0x3ac
     char flush_queue;                        // +0x3ad
     char pad_0x3ae[2];                       // +0x3ae

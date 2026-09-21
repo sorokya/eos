@@ -18,7 +18,7 @@ QuestCounters::~QuestCounters()
 
 void QuestCounters::Clear(QuestCounters *self)
 {
-    std::vector<QuestCounter>::iterator it;
+    vector<QuestCounter>::iterator it;
     for (it = self->counters.begin(); it != self->counters.end(); it++)
     {
         QuestCounter::Clear(it);
@@ -62,7 +62,7 @@ void QuestCounters::Load(QuestCounters *self)
             }
         }
     }
-    std::vector<QuestCounter>::iterator it;
+    vector<QuestCounter>::iterator it;
     for (it = self->counters.begin(); it != self->counters.end(); it++)
     {
         // Verified fidelity fact: the reference loads (*it).quest_id into a
@@ -74,7 +74,7 @@ void QuestCounters::Load(QuestCounters *self)
 
 void QuestCounters::Save(QuestCounters *self)
 {
-    std::vector<QuestCounter>::iterator it;
+    vector<QuestCounter>::iterator it;
     for (it = self->counters.begin(); it != self->counters.end(); it++)
     {
         QuestCounter::Save(it);
@@ -92,7 +92,7 @@ int QuestCounters::RecordCompletion(QuestCounters *self, String name, int quest_
     {
         bucket = 26;
     }
-    std::vector<QuestCounter>::iterator it;
+    vector<QuestCounter>::iterator it;
     for (it = self->counters.begin(); it != self->counters.end(); it++)
     {
         if (quest_id == (*it).quest_id)
@@ -117,7 +117,7 @@ int QuestCounters::GetCompletionCount(QuestCounters *self,
     {
         bucket = 26;
     }
-    std::vector<QuestCounter>::iterator it;
+    vector<QuestCounter>::iterator it;
     for (it = self->counters.begin(); it != self->counters.end(); it++)
     {
         if (quest_id == (*it).quest_id)

@@ -1,25 +1,25 @@
 #ifndef LearnvaluesH
 #define LearnvaluesH
 
-#include <vector>
+#include <vector.h>
 #include <Classes.hpp>
 #include "Learnvalue.h"
 
 // The skill-master table (EMF). Layout recovered from the reference constructor
 // (0x530e98) and Clear (0x532528): a byte loaded flag at 0, the record_list
-// vector at +4 (sizeof(std::vector<LearnValue>) is 0x20) and a dword at +0x24
+// vector at +4 (sizeof(vector<LearnValue>) is 0x20) and a dword at +0x24
 // reset to -1 on clear. There is no num/rid/TStringList member (unlike
 // ItemValues/SkillValues): the constructor constructs only the vector, stores
 // -1 at +0x24 and 0 at 0, then calls the loader.
 //   +0x00 char                        loaded
-//   +0x04 std::vector<LearnValue>     record_list
+//   +0x04 vector<LearnValue>     record_list
 //   +0x24 int                         field_0x24 = -1
 class LearnValues
 {
   public:
     char loaded;
     char pad_0x1[3];
-    std::vector<LearnValue> record_list;
+    vector<LearnValue> record_list;
     int field_0x24;
 
     LearnValues();

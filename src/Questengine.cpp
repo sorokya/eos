@@ -263,9 +263,9 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
         return false;
     }
 
-    std::vector<QuestState *>::iterator step;
-    std::vector<QuestState *>::iterator lookup;
-    std::vector<QuestRule *>::iterator ref;
+    vector<QuestState *>::iterator step;
+    vector<QuestState *>::iterator lookup;
+    vector<QuestRule *>::iterator ref;
     for (step = quest->states.begin(); step != quest->states.end(); ++step)
     {
         for (ref = (*step)->rules.begin(); ref != (*step)->rules.end(); ++ref)
@@ -485,7 +485,7 @@ int Questengine::GetActionType(Questengine *self, String name)
     if (name.Length() < 3)
         return 0;
 
-    for (std::vector<QuestType>::iterator it = self->action_names.begin();
+    for (vector<QuestType>::iterator it = self->action_names.begin();
          it != self->action_names.end();
          ++it)
     {
@@ -500,7 +500,7 @@ int Questengine::GetConditionType(Questengine *self, String name)
     if (name.Length() < 3)
         return 0;
 
-    for (std::vector<QuestType>::iterator it = self->cond_names.begin();
+    for (vector<QuestType>::iterator it = self->cond_names.begin();
          it != self->cond_names.end();
          ++it)
     {
@@ -587,7 +587,7 @@ Questengine::GetActionData(Questengine *self, int quest_id, int state_index, int
         return "";
 
     String data = "";
-    for (std::vector<QuestAction *>::iterator it = state->actions.begin();
+    for (vector<QuestAction *>::iterator it = state->actions.begin();
          it != state->actions.end();
          ++it)
     {
@@ -607,7 +607,7 @@ Questengine::GetActionData2(Questengine *self, int quest_id, int state_index, in
     if (state == NULL)
         return "";
     String data = "";
-    for (std::vector<QuestAction *>::iterator it = state->actions.begin();
+    for (vector<QuestAction *>::iterator it = state->actions.begin();
          it != state->actions.end();
          ++it)
     {
@@ -641,7 +641,7 @@ int Questengine::GetRuleValue(Questengine *self,
         return -1;
 
     String unused = "";
-    for (std::vector<QuestRule *>::iterator it = state->rules.begin();
+    for (vector<QuestRule *>::iterator it = state->rules.begin();
          it != state->rules.end();
          ++it)
     {
@@ -661,7 +661,7 @@ int Questengine::GetRuleValue2(Questengine *self,
         return -1;
 
     String unused = "";
-    for (std::vector<QuestRule *>::iterator it = state->rules.begin();
+    for (vector<QuestRule *>::iterator it = state->rules.begin();
          it != state->rules.end();
          ++it)
     {

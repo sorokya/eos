@@ -49,7 +49,7 @@ void QuestCounter::Save(QuestCounter *self)
         remove(path.c_str());
     }
     self->string_list->Clear();
-    std::vector<QuestCounterList>::iterator it;
+    vector<QuestCounterList>::iterator it;
     for (it = self->counters.begin(); it != self->counters.end(); it++)
     {
         String line = (*it).name + ";";
@@ -74,7 +74,7 @@ int QuestCounter::Increment(QuestCounter *self, String name)
     name += name.LowerCase();
     // Verified: the iterator is declared before the loop. Moving it into the
     // for-init arms an extra EH scope marker and changes the bytes.
-    std::vector<QuestCounterList>::iterator it;
+    vector<QuestCounterList>::iterator it;
     for (it = self->counters.begin(); it != self->counters.end(); it++)
     {
         if (name == (*it).name)
@@ -91,7 +91,7 @@ int QuestCounter::Increment(QuestCounter *self, String name)
 int QuestCounter::Get(QuestCounter *self, String name)
 {
     name += name.LowerCase();
-    std::vector<QuestCounterList>::iterator it;
+    vector<QuestCounterList>::iterator it;
     for (it = self->counters.begin(); it != self->counters.end(); it++)
     {
         if (name == (*it).name)
@@ -105,7 +105,7 @@ int QuestCounter::Get(QuestCounter *self, String name)
 void QuestCounter::Set(QuestCounter *self, String name, int count)
 {
     name += name.LowerCase();
-    std::vector<QuestCounterList>::iterator it;
+    vector<QuestCounterList>::iterator it;
     for (it = self->counters.begin(); it != self->counters.end(); it++)
     {
         if (name == (*it).name)

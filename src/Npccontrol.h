@@ -2,7 +2,7 @@
 #define NpccontrolH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 #include "Npc.h"
 
 class Player;
@@ -13,7 +13,7 @@ class Settings;
 
 // The NPC runtime driver. Layout (sizeof 0x44) is pinned by the reference
 // constructor (0x4ae37c) stores and the destructor; the argument order is pinned
-// by the FormCreate call site. player_targets is a std::vector<Player*> and its
+// by the FormCreate call site. player_targets is a vector<Player*> and its
 // begin pointer lands at +0x1c (the compiler's vector layout puts _M_start at
 // the object's +4).
 class NpcController
@@ -26,7 +26,7 @@ class NpcController
     void *encode_scratch;      // +0x10 (operator new(8), base-253 encode buffer)
     char player_targets_valid; // +0x14
     char pad_0x15[3];          // +0x15
-    std::vector<Player *> player_targets; // +0x18
+    vector<Player *> player_targets; // +0x18
     int act_counter;                      // +0x38
     int talk_counter;                     // +0x3c
     int regen_counter;                    // +0x40

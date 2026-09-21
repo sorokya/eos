@@ -2,7 +2,7 @@
 #define KillcountersH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 #include "Killcounter.h"
 
 // Recovered from the reference (KillCounters unit, 0x53e4b4..0x53f5e4).
@@ -10,7 +10,7 @@
 // (0x53e784), and by the 0x368-byte allocation at the call site (0x416864):
 //   +0x00 TStringList *                             string_list = new TStringList
 //   +0x04 String                                    name
-//   +0x08 std::vector<KillCounter> buckets[27]      inline fixed array
+//   +0x08 vector<KillCounter> buckets[27]      inline fixed array
 // The ctor passes &buckets as a *pre-allocated* destination to the 7-argument
 // _vector_new_ldtc_(dest, 0x20, 27, flags, elem_ctor, flags, typedesc), i.e. the
 // array is constructed in place, and the dtor uses _vector_delete_ldtc_ on it.
@@ -19,7 +19,7 @@ struct KillCounters
 {
     TStringList *string_list;
     String name;
-    std::vector<KillCounter> buckets[27];
+    vector<KillCounter> buckets[27];
 
     KillCounters();
     ~KillCounters();

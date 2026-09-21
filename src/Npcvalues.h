@@ -2,7 +2,7 @@
 #define NpcvaluesH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 #include "Npcvalue.h"
 
 int RandRange(int max);
@@ -49,7 +49,7 @@ struct NpcDropInfo
 //   +0x12 char                      talk_loaded
 //   +0x14 TStringList *             string_list (each loaded ENF blob)
 //   +0x18 void *                    field_0x18 = operator new(8)
-//   +0x1c std::vector<NpcValue>     record_list
+//   +0x1c vector<NpcValue>     record_list
 //   +0x3c int                       field_0x3c = -1
 class NpcValues
 {
@@ -64,7 +64,7 @@ class NpcValues
     char pad_0x13;
     TStringList *string_list;
     void *field_0x18;
-    std::vector<NpcValue> record_list;
+    vector<NpcValue> record_list;
     int field_0x3c;
 
     NpcValues();

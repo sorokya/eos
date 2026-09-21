@@ -1,7 +1,7 @@
 #ifndef LearnvalueH
 #define LearnvalueH
 
-#include <vector>
+#include <vector.h>
 #include <Classes.hpp>
 #include "Learnitem.h"
 
@@ -17,7 +17,7 @@
 //   +0x0a short                      max_level
 //   +0x0c short                      class_requirement
 //   +0x0e                            compiler padding (not copied)
-//   +0x10 std::vector<LearnItemVal>  skills
+//   +0x10 vector<LearnItemVal>  skills
 // sizeof = 0x30 (the owning record_list advances its iterator by 0x30).
 //
 // The SkillMasterSkillRecord fields are the in-memory expansion of the EMF
@@ -30,7 +30,7 @@ struct LearnValue
     short min_level;
     short max_level;
     short class_requirement;
-    std::vector<LearnItemVal> skills;
+    vector<LearnItemVal> skills;
 
     LearnValue(int id);
     ~LearnValue();

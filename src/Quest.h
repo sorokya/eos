@@ -2,7 +2,7 @@
 #define QuestH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 #include "Queststate.h"
 
 // Layout recovered from the reference constructor (0x5376c0), the deleting
@@ -11,7 +11,7 @@
 //
 // Quest (0x34): int quest_id (+0), String name (+4), int version (+8),
 //               int state_count (+0xc), char loaded (+0x10),
-//               std::vector<QuestState *> states (+0x14)
+//               vector<QuestState *> states (+0x14)
 class Quest
 {
   public:
@@ -20,7 +20,7 @@ class Quest
     int version;
     int state_count;
     char loaded;
-    std::vector<QuestState *> states;
+    vector<QuestState *> states;
 
     Quest(int quest_id);
     ~Quest();

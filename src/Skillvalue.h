@@ -11,7 +11,7 @@
 // The remaining fields are the in-memory expansion of the ESF record
 // (eo-protocol EsfRecord). Each short (or widened int) was derived from the
 // `Skillvalues` parser's stores and the Get* accessors; the element size of
-// std::vector<SkillValue> is 76 bytes (0x4C), matching this layout.
+// vector<SkillValue> is 76 bytes (0x4C), matching this layout.
 struct SkillValue
 {
     int id;

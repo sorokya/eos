@@ -120,7 +120,7 @@ void LearnValues::AddSkill(LearnValues *self,
 
 void LearnValues::Clear(LearnValues *self)
 {
-    std::vector<LearnValue>::iterator it = self->record_list.begin();
+    vector<LearnValue>::iterator it = self->record_list.begin();
     while (it != self->record_list.end())
     {
         it->skills.clear();
@@ -140,7 +140,7 @@ bool LearnValues::HasSkill(LearnValues *self, int master_id, int skill_id)
     {
         if (self->record_list[master_id - 1].skills.size() > 0)
         {
-            std::vector<LearnItemVal>::iterator it =
+            vector<LearnItemVal>::iterator it =
                 self->record_list[master_id - 1].skills.begin();
             while (it != self->record_list[master_id - 1].skills.end())
             {
@@ -163,7 +163,7 @@ LearnItemVal LearnValues::GetSkill(LearnValues *self, int master_id, int skill_i
     {
         if (self->record_list[master_id - 1].skills.size() > 0)
         {
-            std::vector<LearnItemVal>::iterator it =
+            vector<LearnItemVal>::iterator it =
                 self->record_list[master_id - 1].skills.begin();
             while (it != self->record_list[master_id - 1].skills.end())
             {
@@ -182,8 +182,8 @@ LearnItemVal LearnValues::GetSkill(LearnValues *self, int master_id, int skill_i
 String LearnValues::BuildOpenData(LearnValues *self, int behavior_id)
 {
     String data = "";
-    std::vector<LearnValue>::iterator it = self->record_list.begin();
-    std::vector<LearnItemVal>::iterator skill_iter;
+    vector<LearnValue>::iterator it = self->record_list.begin();
+    vector<LearnItemVal>::iterator skill_iter;
     while (it != self->record_list.end())
     {
         if (it->id == behavior_id)

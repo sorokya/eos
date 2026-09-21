@@ -1,7 +1,7 @@
 #ifndef FilecacheH
 #define FilecacheH
 
-#include <vector>
+#include <vector.h>
 #include <Classes.hpp>
 
 class FilecacheEntry
@@ -39,8 +39,8 @@ class FileCache
     int accounts_count;
     int characters_count;
     int guilds_count;
-    std::vector<FilecacheEntry *> pending_player_writes;
-    std::vector<FilecacheEntryB *> pending_guild_writes;
+    vector<FilecacheEntry *> pending_player_writes;
+    vector<FilecacheEntryB *> pending_guild_writes;
     TStringList *string_list;
     String field_0x54;
     int field_0x58;

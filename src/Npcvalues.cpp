@@ -210,7 +210,7 @@ void NpcValues::LoadTalk(NpcValues *self)
 void NpcValues::AddDrop(
     NpcValues *self, int npc_id, int item_id, int min_amount, int max_amount, int rate)
 {
-    std::vector<NpcValue>::iterator it = self->record_list.begin();
+    vector<NpcValue>::iterator it = self->record_list.begin();
     while (it != self->record_list.end())
     {
         if (npc_id == it->id)
@@ -224,7 +224,7 @@ void NpcValues::AddDrop(
 
 void NpcValues::SetTalk(NpcValues *self, int npc_id, int rate, String message)
 {
-    std::vector<NpcValue>::iterator it = self->record_list.begin();
+    vector<NpcValue>::iterator it = self->record_list.begin();
     while (it != self->record_list.end())
     {
         if (npc_id == it->id)
@@ -266,14 +266,14 @@ NpcDropInfo NpcValues::GetDrop(NpcValues *self, int npc_id)
     NpcDropInfo result;
     result.item_id = 0;
     result.amount = 0;
-    std::vector<NpcValue>::iterator it = self->record_list.begin();
+    vector<NpcValue>::iterator it = self->record_list.begin();
     while (it != self->record_list.end())
     {
         if (it->id == npc_id)
         {
             int roll = RandRange(64000);
             int sum = 0;
-            std::vector<NpcDropItem>::iterator drop = it->drops.begin();
+            vector<NpcDropItem>::iterator drop = it->drops.begin();
             while (drop != it->drops.end())
             {
                 sum = sum + drop->rate;
@@ -358,7 +358,7 @@ int NpcValues::GetCount(NpcValues *self)
 NpcValue NpcValues::GetNpc(NpcValues *self, int id)
 {
     NpcValue result;
-    std::vector<NpcValue>::iterator it = self->record_list.begin();
+    vector<NpcValue>::iterator it = self->record_list.begin();
     NpcValue *value;
     while (it != self->record_list.end())
     {
@@ -402,7 +402,7 @@ NpcTypeInfo NpcValues::GetType(NpcValues *self, int enf_id)
     NpcTypeInfo result;
     result.type = -1;
     result.behavior_id = -1;
-    std::vector<NpcValue>::iterator it = self->record_list.begin();
+    vector<NpcValue>::iterator it = self->record_list.begin();
     while (it != self->record_list.end())
     {
         if (enf_id == it->id)
@@ -419,7 +419,7 @@ NpcTypeInfo NpcValues::GetType(NpcValues *self, int enf_id)
 int NpcValues::GetExp(NpcValues *self, int npc_id)
 {
     int result = 0;
-    std::vector<NpcValue>::iterator it = self->record_list.begin();
+    vector<NpcValue>::iterator it = self->record_list.begin();
     while (it != self->record_list.end())
     {
         if (npc_id == it->id)
@@ -435,7 +435,7 @@ int NpcValues::GetExp(NpcValues *self, int npc_id)
 int NpcValues::GetMaxHp(NpcValues *self, int npc_id)
 {
     int result = 1;
-    std::vector<NpcValue>::iterator it = self->record_list.begin();
+    vector<NpcValue>::iterator it = self->record_list.begin();
     while (it != self->record_list.end())
     {
         if (npc_id == it->id)

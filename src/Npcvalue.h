@@ -2,14 +2,14 @@
 #define NpcvalueH
 
 #include <Classes.hpp>
-#include <vector>
+#include <vector.h>
 #include "Npcdrop.h"
 
 // Recovered from the reference (Npcvalue unit, 0x4a8f84..0x4a9ac8). The
 // constructor default-constructs `name` (offset 4) and the drop/talk vectors
 // (offsets 0x3c/0x5c), stores the npc id at offset 0 and clears both vectors;
 // the destructor destroys the talk vector, the drop vector then `name`. The
-// element size of std::vector<NpcValue> is 0x7c, matching this layout; every
+// element size of vector<NpcValue> is 0x7c, matching this layout; every
 // offset is pinned by the parsers (LoadNpcs/AddNpc 0x4a5654/0x4a6f68) and
 // the accessors (NpcValues::GetExp/GetMaxHp/GetType 0x4a8be4/0x4a8c34/0x4a8c88) and the
 // implicit copy constructor (0x4a7528). Fields widen the on-disk EnfRecord
@@ -41,8 +41,8 @@ struct NpcValue
     int experience;
     int talk_rate;
     char has_talk;
-    std::vector<NpcDropItem> drops;
-    std::vector<String> talk_lines;
+    vector<NpcDropItem> drops;
+    vector<String> talk_lines;
 
     NpcValue();
     NpcValue(int id);
