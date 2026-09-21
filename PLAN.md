@@ -134,21 +134,30 @@ strings and vtables correctly once the source matches.
   `tlib` and listing them as explicit objects instead of the `.lib`;
   unreferenced COMDATs are dropped exactly as when the `.lib` is pulled, so the
   block is byte-identical (109,236 B vs the reference's 109,228) and the export
-  order now matches 133/133. The remaining residuals are the `.text` +0x200 and
-  the second library block being ~2 KB too large. Units within a contiguous run
-  are otherwise contiguous and a unit's `code_span` is its real code size,
-  confirmed on `Serial`: our linked `SERIAL.OBJ` is `0x1A94` bytes against a
-  reference span of `0x1AF0`.
-  **The `.text` is a further 512 B larger than the reference** (raw `0x159800`
-  vs `0x159600`). The breakdown: ~460 B of extra compiler-emitted STL helper
-  COMDATs kept in the vector-heavy application units — canonical diffing a unit
-  span shows it directly (`Npcvalue`: 1123 our vs 1031 reference instructions,
-  all `std::vector`/`allocator`/`bad_alloc` helpers; `Mapcontrol` +208,
-  `Itemvalues`/`Skillvalues` +104 each, while `Npcvalues` −80 and `Mainform`
-  −36) — plus ~56 B in the `vcldb50` block, partly offset by a smaller `cp32mt`
-  tail. The likely cause is the set/order of library members from which the STL
-  helpers are resolved; reconcile the module set before chasing individual
-  units.
+  order now matches 133/133. **Size residuals, measured at the last non-zero
+  byte of each section** (raw sizes are `FileAlignment`-rounded and overstate the
+  difference): `.text` **+0x1FC (508 B)**, `.data` **+0x1D4 (468 B)**, `.rsrc`
+  **−0x238 (568 B)**, `.reloc` +0x3C. The `.text`/`.data` surpluses move together,
+  as extra compiler-emitted COMDATs contribute both code and RTTI/EH metadata.
+  Two tools settle what they are *not*: `scripts/libcompare.py` locates all 307 of
+  our CODE modules in the reference (**absent=0** — we pull no module the
+  reference lacks) and `scripts/objfuncs.py` does the same per function for one
+  unit (`Npcvalue`: **found=87, absent=0** — the unit emits no function the
+  reference lacks). So the surplus is not an extra module or function; it is a
+  COMDAT *placement/size* difference (which side keeps a shared STL helper, plus
+  the alignment padding each module carries). `libcompare --sizes` points at
+  cp32mt's iostream/locale members (`allstl`, `ios`, `iostream`, `char`,
+  `charby`, `rwlocale`, `stdexcept`) as the cluster where ours is largest, but the
+  reference's per-member boundaries are inferred from our own module starts, so
+  treat it as a pointer, not a measurement.
+  **Map caveat:** the detailed `ilink32 -s` map is truncated by a deterministic
+  Wine fault (`Unhandled illegal instruction`) before the final ~2.4 KB of modules
+  are written — with or without `-v`, and with a response file — so the map's last
+  entry reaches RVA offset `0x158d54` while `.text` content runs to `0x1596bc`.
+  Block/unit accounting is unaffected; the cp32mt tail is not. Units within a
+  contiguous run are otherwise contiguous and a unit's `code_span` is its real
+  code size, confirmed on `Serial`: our linked `SERIAL.OBJ` is `0x1A94` bytes
+  against a reference span of `0x1AF0`.
   **Caveat:** every linked module
   emits a refcount-guarded initializer stub, but `units.py` sees only modules
   exported as `@@Unit@Initialize`; units compiled without
