@@ -39,10 +39,15 @@ CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od -tWM -k}"
 # analysis/target/modules.tsv against the pulled per-library sizes, and
 # verified by comparing export RVAs against a relink) is:
 #   vcldb50.lib between Itemground and Itemchest  (~109,228 B block),
-#   vcl50.lib + vclbde50.lib + vcle50.lib between Weaponmap and Banned
-#   (~486,572 B block),
-# with import32.lib + cp32mt.lib searched last so cp32mt's members append
-# after all units.  Putting the VCL libraries after the comma instead pushes
+#   vclbde50.lib + vcl50.lib between Weaponmap and Banned
+#   (~423,596 B block),
+# and vcle50.lib at the very end, *after* cp32mt.lib: matching each module of
+# ours to its home in the reference (`scripts/libcompare.py`) puts the
+# reference's VCLBDE50 members (SMIntf 0x4b5c80, DbPwDlg 0x4b5ce8, Bde
+# 0x4b6374, DbTables 0x4baf60) *before* VCL50's AppEvnts 0x4c9164 -- i.e. the
+# original link listed vclbde50.lib first -- and the vcle50 members (DSTRING
+# 0x5590dd, syssupp, vclinit, datetime, classcre) after cp32mt's tail
+# (XX 0x555478).  Putting the VCL libraries after the comma instead pushes
 # every library member to the end and shifts the post-Itemground unit RVAs by
 # up to ~600 KB.
 #
@@ -53,9 +58,18 @@ CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od -tWM -k}"
 # objects instead; unreferenced COMDATs are dropped exactly as when the .lib is
 # pulled, so the block is byte-identical, and vcldb50.lib stays in the tail to
 # resolve anything remaining.
-LIB_VCL='"Z:\borland\Lib\Debug\vcl50.lib" "Z:\borland\Lib\Debug\vclbde50.lib" "Z:\borland\Lib\Debug\vcle50.lib"'
+#
+# vcl50.lib is listed a second time, immediately after the vclbde50/vcl50 pair.
+# The repeat pulls no member (everything it resolves was already pulled), so it
+# changes neither the VCL block nor the tail, but ilink32's package(smart_init)
+# tie-break is sensitive to the library scan list: without it Wedding is emitted
+# before Eventcontrol (the reference has Eventcontrol 0x52db20 before Wedding
+# 0x52e224, and their init counters 0x58c6b8/0x58c6bc).  The repeat restores the
+# reference's export order while keeping vcle50 in the tail, i.e. .data at +48
+# instead of +468.
+LIB_VCL='"Z:\borland\Lib\Debug\vclbde50.lib" "Z:\borland\Lib\Debug\vcl50.lib" "Z:\borland\Lib\Debug\vcl50.lib"'
 LIB_DB_OBJS='"Z:\work\build\res\vcldb\DbLogDlg.OBJ" "Z:\work\build\res\vcldb\DBCommon.OBJ" "Z:\work\build\res\vcldb\DbConsts.OBJ" "Z:\work\build\res\vcldb\Db.OBJ"'
-VLIB="${VLIB:-vcldb50.lib import32.lib cp32mt.lib}"
+VLIB="${VLIB:-vcldb50.lib import32.lib cp32mt.lib vcle50.lib}"
 LINKFLAGS="${LINKFLAGS:--Tpe -aa -c -Gn -j -v}"
 MAPARG=""
 

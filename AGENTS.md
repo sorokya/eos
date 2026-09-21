@@ -487,12 +487,18 @@ is the read-only Ghidra function inventory.
   library field (after the comma) has its members appended *after* every
   explicit object; a library listed **inline in the OBJFILES field** has its
   members laid out at that point. The reference interleaves its libraries —
-  `vcldb50.lib` sits between `Itemground` and `Itemchest` (a 109,228-byte block)
-  and `vcl50.lib`/`vclbde50.lib`/`vcle50.lib` between `Weaponmap` and `Banned`
-  (~486,572 bytes), with `import32.lib`/`cp32mt.lib` searched last — so
-  `scripts/build.sh` lists them inline. Putting them after the comma instead
-  pushes every library member to the end and shifts the post-`Itemground` unit
-  RVAs by up to ~600 KB.
+  `vcldb50.lib` sits between `Itemground` and `Itemchest` (a ~109,228-byte
+  block), `vclbde50.lib` then `vcl50.lib` between `Weaponmap` and `Banned`
+  (the reference's first VCL member at `0x4b5c80` is `SMIntf`, a `vclbde50`
+  member), and `vcle50.lib` *after* `cp32mt.lib` in the library field. Our
+  `scripts/build.sh` mirrors this; putting the VCL libraries after the comma
+  instead pushes every library member to the end and shifts the post-`Itemground`
+  unit RVAs by up to ~600 KB. `scripts/build.sh` also lists `vcl50.lib` twice:
+  the repeat pulls no member but `ilink32`'s `package(smart_init)` tie-break is
+  sensitive to the library *scan list* (without it `Wedding` precedes
+  `Eventcontrol`, which the reference does not), so it reproduces the reference's
+  export order — plausible in an IDE-generated link line, and no byte effect of
+  its own.
 - **Package order is not always command-line order.** `#pragma
   package(smart_init)` units can be reordered by `ilink32` according to package
   initialization order: `Skillvalue`/`Npcvalue` came out in the opposite order

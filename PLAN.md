@@ -120,26 +120,29 @@ strings and vtables correctly once the source matches.
   they are laid out there (established with a synthetic `ilink32` probe: the
   same `.lib` moved between the object field and the library field relocates its
   members). The reference interleaves its libraries: `vcldb50.lib` sits between
-  `Itemground` and `Itemchest` (a 109,228-byte block, vs our pulled 109,236) and
-  `vcl50.lib`/`vclbde50.lib`/`vcle50.lib` between `Weaponmap` and `Banned`
-  (~486,572 bytes), with `import32.lib`/`cp32mt.lib` searched last. Listing them
-  after the comma, as the build did until now, pushes every library member to the
-  end and shifts the post-`Itemground` unit RVAs by up to ~600 KB; the inline
-  placement in `scripts/build.sh` brings every export RVA within ~4 KB of the
-  reference. The `Skillvalue`/`Npcvalue` inversion was bisected to *scanning*
-  `vcldb50.lib` inline: any position inverts the pair, the VCL block alone does
-  not, and the order is invariant both to the command line and to swapping the
-  two units (which have no reference to each other). **Resolved** by extracting
-  `vcldb50`'s four needed members (`DbLogDlg`, `DBCommon`, `DbConsts`, `Db`) with
-  `tlib` and listing them as explicit objects instead of the `.lib`;
-  unreferenced COMDATs are dropped exactly as when the `.lib` is pulled, so the
-  block is byte-identical (109,236 B vs the reference's 109,228) and the export
-  order now matches 133/133. **Size residuals, measured at the last non-zero
-  byte of each section** (raw sizes are `FileAlignment`-rounded and overstate the
-  difference): `.text` **+0x1FC (508 B)**, `.data` **+0x1D4 (468 B)**; `.rsrc` is
+  `Itemground` and `Itemchest` (a ~109,228-byte block, vs our pulled 109,236);
+  `vclbde50.lib` then `vcl50.lib` between `Weaponmap` and `Banned` (proven by the
+  reference's first VCL member at `0x4b5c80` being `SMIntf`, a `vclbde50` member);
+  and `vcle50.lib` *after* `cp32mt.lib` in the library field. Listing the VCL
+  libraries after the comma instead pushes every library member to the end and
+  shifts the post-`Itemground` unit RVAs by up to ~600 KB.
+  The `Skillvalue`/`Npcvalue` inversion was resolved by extracting `vcldb50`'s
+  four needed members (`DbLogDlg`, `DBCommon`, `DbConsts`, `Db`) with `tlib` and
+  listing them as explicit objects instead of the `.lib` (unreferenced COMDATs
+  drop exactly as when the `.lib` is pulled, so the block is byte-identical,
+  109,236 B vs the reference's 109,228). Moving `vcle50.lib` to the tail then
+  triggers a second `smart_init` tie-break (`Wedding` before `Eventcontrol`); it
+  is invariant to the object order but flips with the library *scan list*, so
+  `build.sh` lists `vcl50.lib` a second time (the repeat pulls no member).
+  With that arrangement the export order matches 133/133 and `.data` content is
+  **+0x30 (48 B)** instead of `+0x1D4 (468 B)`. **Size residuals, measured at the
+  last non-zero byte of each section** (raw sizes are `FileAlignment`-rounded and
+  overstate the difference): `.text` **+0x1FC (508 B)**, `.data` **+0x30 (48 B)**;
+  `.rsrc` is
   **resolved** (see Phase 3 -- byte-identical via the app-only `.res` and
-  injection). The `.text`/`.data` surpluses move together, as compiler-emitted
-  COMDATs contribute both code and RTTI/EH metadata. They are *not* extra
+  injection). The remaining `.text` surplus is compiler-emitted COMDATs (code
+  plus the RTTI/EH metadata that lands in `.data`); after the `vcle50` tail fix
+  the `.data` residual is only +0x30 (48 B). They are *not* extra
   strings: `.data` holds 1088 printable strings against the reference's 1090, and
   the few set differences are 1-byte boundary artifacts, so string content is not
   the cause (and `-d`/merge-duplicate-strings over-merges: it drops `.data` raw to
