@@ -2,11 +2,11 @@
 #define EventcontrolH
 
 #include <Classes.hpp>
+#include "Mapcontrol.h"
+#include "Players.h"
+#include "Server.h"
+#include "Settings.h"
 
-class Mapcontrol;
-class Players;
-class Server;
-class Settings;
 
 // The map timed-events driver. Layout (sizeof 0x14) is pinned by the reference
 // constructor (0x52db20): pEncode_scratch at +0x00 (operator new(8)), settings

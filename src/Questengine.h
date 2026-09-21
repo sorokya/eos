@@ -6,8 +6,8 @@
 #include "Quest.h"
 #include "Queststate.h"
 #include "Questtype.h"
+#include "Settings.h"
 
-class Settings;
 
 // Layout recovered from the reference constructor (0x537ae0), the parser
 // (0x5397c8) and the quest accessors; sizeof(Questengine) is 0x94.

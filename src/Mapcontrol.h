@@ -5,8 +5,8 @@
 #include <vector.h>
 
 #include "Map.h"
+#include "Settings.h"
 
-class Settings;
 
 struct MapCoord
 {

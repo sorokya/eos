@@ -1013,7 +1013,3 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
     return;
 }
 
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
-#pragma warn.8057
-// END GENERATED STUBS

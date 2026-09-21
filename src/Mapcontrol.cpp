@@ -1343,8 +1343,6 @@ String Mapcontrol_ReadRawFile(Mapcontrol *self, int map_id)
     return result;
 }
 
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
 bool Mapcontrol_ParseMapFile(Mapcontrol *self, ChestItem *map, int map_id)
 {
     String map_buf;
@@ -1801,5 +1799,3 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *self, int map_id)
     }
     return true;
 }
-#pragma warn.8057
-// END GENERATED STUBS

@@ -9,35 +9,35 @@
 #include <DBTables.hpp>
 #include <ScktComp.hpp>
 #include <AppEvnts.hpp>
+#include "Settings.h"
+#include "Serial.h"
+#include "Mapcontrol.h"
+#include "Mysqlcontrols.h"
+#include "Players.h"
+#include "Logins.h"
+#include "Server.h"
+#include "Npccontrol.h"
+#include "Chestcontrol.h"
+#include "Doorcontrol.h"
+#include "Effectcontrol.h"
+#include "Eventcontrol.h"
+#include "Itemvalues.h"
+#include "Npcvalues.h"
+#include "Skillvalues.h"
+#include "Learnvalues.h"
+#include "Shopvalues.h"
+#include "Innvalues.h"
+#include "Classvalues.h"
+#include "Msgboardcontrol.h"
+#include "Jukeboxcontrol.h"
+#include "Weddings.h"
+#include "Questengine.h"
+#include "Newscontrol.h"
+#include "Gamecontrol.h"
 
 // Cross-unit application classes (units reconstructed separately). Only the
 // pointer types are needed here; the members the TGUI handlers call are
 // declared in Mainform.cpp.
-class Settings;
-class Serial;
-class Mapcontrol;
-class Mysqlcontrols;
-class Players;
-class Logins;
-class Server;
-class NpcController;
-class ChestController;
-class DoorController;
-class EffectController;
-class EventController;
-class ItemValues;
-class NpcValues;
-class SkillValues;
-class LearnValues;
-class ShopValues;
-class InnValues;
-class ClassValues;
-class MsgBoardController;
-class JukeBoxController;
-class WeddingController;
-class Questengine;
-class Newscontrol;
-class Gamecontrol;
 
 // TGUI is the main form (class name from the embedded DFM/RTTI, unit name
 // "MainForm" from the class RTTI, export @@Mainform@Initialize). The published

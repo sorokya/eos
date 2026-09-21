@@ -3,11 +3,10 @@
 
 #include <Classes.hpp>
 #include <DBTables.hpp>
+#include "Mysqltask.h"
 
 // mySQLtask and mySQLbuffer are defined in the Mysqltask unit; this unit only
 // holds pointers to them.
-class mySQLtask;
-class mySQLbuffer;
 
 // TThread-derived worker (class name from the reference RTTI, VA 0x533720 and
 // the VMT name string at 0x580845). Layout: TThread occupies 0x00..0x2f, then

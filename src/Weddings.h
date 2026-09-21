@@ -4,9 +4,9 @@
 #include <Classes.hpp>
 #include <vector.h>
 #include "Wedding.h"
+#include "Players.h"
+#include "Server.h"
 
-class Players;
-class Server;
 
 // Layout recovered from the reference constructor (0x52e37c); class name from the
 // RTTI type name `WeddingController`, vector element type from the RTTI string

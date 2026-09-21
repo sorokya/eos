@@ -444,7 +444,3 @@ void MsgBoardController::SaveBoards(MsgBoardController *self)
     file.close();
 }
 
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
-#pragma warn.8057
-// END GENERATED STUBS

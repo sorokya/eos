@@ -4,12 +4,12 @@
 #include <Classes.hpp>
 #include <vector.h>
 #include "Npc.h"
+#include "Player.h"
+#include "Mapcontrol.h"
+#include "Players.h"
+#include "Server.h"
+#include "Settings.h"
 
-class Player;
-class Mapcontrol;
-class Players;
-class Server;
-class Settings;
 
 // The NPC runtime driver. Layout (sizeof 0x44) is pinned by the reference
 // constructor (0x4ae37c) stores and the destructor; the argument order is pinned

@@ -3,8 +3,8 @@
 
 #include <Classes.hpp>
 #include <SysUtils.hpp>
+#include "Mysqlcontrols.h"
 
-class Mysqlcontrols;
 
 // Ban record stored in the Banned manager's list. RTTI type name is
 // `Asocketban` (reference type table at 0x52ca98, sizeof 0x1c, deleting

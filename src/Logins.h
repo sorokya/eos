@@ -2,8 +2,8 @@
 #define LoginsH
 
 #include <Classes.hpp>
+#include "Mysqlcontrols.h"
 
-class Mysqlcontrols;
 
 class Logins
 {

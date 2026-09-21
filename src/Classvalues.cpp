@@ -178,7 +178,3 @@ bool ClassValues::ClassMatches(ClassValues *self, int class_id, int class_requir
     return false;
 }
 
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
-#pragma warn.8057
-// END GENERATED STUBS

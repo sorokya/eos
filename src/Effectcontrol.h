@@ -3,10 +3,10 @@
 
 #include <Classes.hpp>
 #include "Settings.h"
+#include "Mapcontrol.h"
+#include "Players.h"
+#include "Server.h"
 
-class Mapcontrol;
-class Players;
-class Server;
 
 class EffectController
 {

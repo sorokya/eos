@@ -64,37 +64,6 @@
 #define FREE_FROM_JAIL_X 9
 #define FREE_FROM_JAIL_Y 0xb
 
-bool Coords_IsWithinTwo(Server *self, int x1, int y1, int x2, int y2);
-void Server_AddReceivedBytes(Server *server, int value);
-void Server_AddSentBytes(Server *server, int value);
-String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index);
-void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value);
-void Server_BroadcastToMapAndAdmins(
-    Server *server, int map_id, unsigned char action, unsigned char family, String data);
-void Admin_BroadcastToOtherAdmins(Server *server,
-                                  Player *player,
-                                  unsigned char action,
-                                  unsigned char family,
-                                  String data);
-void Server_BroadcastToAll(Server *server,
-                           unsigned char action,
-                           unsigned char family,
-                           String data);
-void Server_SyncMapHazardFlags(Server *server, int map_id);
-void Server_AppendChatLog(Server *server, String message);
-void Talk_PlayerWhisper(Server *server, int map_id, String message, int break_byte);
-String Server_BuildOnlineNames(Server *server);
-String Server_BuildOnlineList(Server *server);
-String Refresh_BuildReply(Server *server, Player *player);
-String Party_EncodeMemberList(Server *server, Player *player);
-bool Server_TickOncePerFiveSeconds(Server *server);
-String Message_BuildServerStatus(Server *server);
-String Paperdoll_BuildReply(Server *server, Player *player);
-void Player_ApplyQuestActions(Server *server,
-                              Player *player,
-                              PlayerQuest *tracker,
-                              bool repeat);
-
 bool Player_HandlePacket(Server *server, Player *player, String data)
 {
     Server_AddReceivedBytes(server, data.Length());
@@ -9960,57 +9929,6 @@ void Server_RemovePlayer(Server *server, TCustomWinSocket *socket)
     }
 }
 
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
-// STUB(0x0044f58c, 33 bytes) Exception_InstallFrame - ref: undefined4
-// Exception_InstallFrame(void * passthrough_value)
-int Exception_InstallFrame_Stub(void *a0)
-{
-    return 0;
-}
-// STUB(0x0044f6c8, 35 bytes) FUN_0044f6c8 - ref: undefined FUN_0044f6c8(int param_1, byte
-// param_2)
-void FUN_0044f6c8_Stub(int a0, unsigned char a1)
-{
-}
-// STUB(0x0044f710, 43 bytes) FUN_0044f710 - ref: undefined FUN_0044f710(int param_1)
-void FUN_0044f710_Stub(int a0)
-{
-}
-// STUB(0x0044f73c, 60 bytes) FUN_0044f73c - ref: int FUN_0044f73c(int param_1)
-int FUN_0044f73c_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0044f778, 155 bytes) FUN_0044f778 - ref: int FUN_0044f778(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-int FUN_0044f778_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0044f814, 155 bytes) FUN_0044f814 - ref: int FUN_0044f814(int param_1,
-// undefined4 * param_2, undefined4 * param_3)
-int FUN_0044f814_Stub(int a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0044f8d8, 36 bytes) FUN_0044f8d8 - ref: int FUN_0044f8d8(int param_1)
-int FUN_0044f8d8_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0044f8fc, 22 bytes) FUN_0044f8fc - ref: int FUN_0044f8fc(int param_1, int
-// param_2)
-int FUN_0044f8fc_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x0044f914, 101 bytes) FUN_0044f914 - ref: undefined4 * FUN_0044f914(int param_1,
-// undefined4 * param_2)
-void *FUN_0044f914_Stub(int a0, void *a1)
-{
-    return 0;
-}
 int FUN_0044f97c(Mapcontrol *map_control)
 {
     return ((char *)MapVector_End(map_control) -
@@ -10020,180 +9938,6 @@ int FUN_0044f97c(Mapcontrol *map_control)
 int FUN_0044f9bc(Mapcontrol *map_control)
 {
     return ((char *)map_control->maps.end() - (char *)Map_NpcIter_Begin(map_control)) / 4;
-}
-// STUB(0x0044f9fc, 169 bytes) FUN_0044f9fc - ref: undefined FUN_0044f9fc(int param_1)
-void FUN_0044f9fc_Stub(int a0)
-{
-}
-// STUB(0x0044faa8, 33 bytes) FUN_0044faa8 - ref: undefined FUN_0044faa8(int param_1)
-void FUN_0044faa8_Stub(int a0)
-{
-}
-// STUB(0x0044facc, 17 bytes) FUN_0044facc - ref: int FUN_0044facc(int param_1)
-int FUN_0044facc_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0044fae0, 28 bytes) FUN_0044fae0 - ref: undefined FUN_0044fae0(LONG * param_1,
-// int param_2)
-void FUN_0044fae0_Stub(void *a0, int a1)
-{
-}
-// STUB(0x0044fb08, 17 bytes) FUN_0044fb08 - ref: undefined4 FUN_0044fb08(int param_1)
-int FUN_0044fb08_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0044fb1c, 19 bytes) FUN_0044fb1c - ref: undefined FUN_0044fb1c(undefined4
-// param_1, undefined4 param_2, undefined4 * param_3)
-void FUN_0044fb1c_Stub(int a0, int a1, void *a2)
-{
-}
-// STUB(0x0044fd94, 19 bytes) FUN_0044fd94 - ref: undefined FUN_0044fd94(undefined4
-// param_1, undefined4 param_2, undefined4 * param_3)
-void FUN_0044fd94_Stub(int a0, int a1, void *a2)
-{
-}
-// STUB(0x00450010, 11 bytes) FUN_00450010 - ref: undefined4 FUN_00450010(int param_1)
-int FUN_00450010_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0045001c, 11 bytes) FUN_0045001c - ref: undefined4 FUN_0045001c(int param_1)
-int FUN_0045001c_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00450034, 11 bytes) FUN_00450034 - ref: undefined4 FUN_00450034(int param_1)
-int FUN_00450034_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00450040, 11 bytes) FUN_00450040 - ref: undefined4 FUN_00450040(int param_1)
-int FUN_00450040_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0045004c, 11 bytes) FUN_0045004c - ref: undefined4 FUN_0045004c(int param_1)
-int FUN_0045004c_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00450058, 11 bytes) FUN_00450058 - ref: int FUN_00450058(int * param_1)
-int FUN_00450058_Stub(void *a0)
-{
-    return 0;
-}
-// STUB(0x00450064, 31 bytes) FUN_00450064 - ref: int FUN_00450064(LONG * param_1)
-int FUN_00450064_Stub(void *a0)
-{
-    return 0;
-}
-// STUB(0x004500ec, 33 bytes) FUN_004500ec - ref: int FUN_004500ec(int param_1, int
-// param_2, undefined4 * param_3)
-int FUN_004500ec_Stub(int a0, int a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00450110, 10 bytes) FUN_00450110 - ref: undefined * FUN_00450110(void)
-void *FUN_00450110_Stub()
-{
-    return 0;
-}
-// STUB(0x0045011c, 113 bytes) FUN_0045011c - ref: undefined FUN_0045011c(undefined4
-// param_1, undefined4 * param_2)
-void FUN_0045011c_Stub(int a0, void *a1)
-{
-}
-// STUB(0x00450190, 88 bytes) FUN_00450190 - ref: undefined4 * FUN_00450190(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_00450190_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x004501e8, 114 bytes) FUN_004501e8 - ref: int FUN_004501e8(undefined4 param_1,
-// int param_2)
-int FUN_004501e8_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x0045025c, 99 bytes) FUN_0045025c - ref: int FUN_0045025c(undefined4 * param_1,
-// undefined4 * param_2, int param_3)
-int FUN_0045025c_Stub(void *a0, void *a1, int a2)
-{
-    return 0;
-}
-// STUB(0x004502e4, 33 bytes) FUN_004502e4 - ref: int FUN_004502e4(int param_1, int
-// param_2, undefined4 * param_3)
-int FUN_004502e4_Stub(int a0, int a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00450308, 144 bytes) FUN_00450308 - ref: undefined FUN_00450308(undefined4
-// param_1, undefined4 * param_2)
-void FUN_00450308_Stub(int a0, void *a1)
-{
-}
-// STUB(0x004503b4, 53 bytes) FUN_004503b4 - ref: undefined4 * FUN_004503b4(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_004503b4_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x004503ec, 114 bytes) FUN_004503ec - ref: int FUN_004503ec(undefined4 param_1,
-// int param_2)
-int FUN_004503ec_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00450460, 99 bytes) FUN_00450460 - ref: int FUN_00450460(undefined4 * param_1,
-// undefined4 * param_2, int param_3)
-int FUN_00450460_Stub(void *a0, void *a1, int a2)
-{
-    return 0;
-}
-// STUB(0x004504e8, 33 bytes) FUN_004504e8 - ref: int FUN_004504e8(int param_1, int
-// param_2, undefined4 * param_3)
-int FUN_004504e8_Stub(int a0, int a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0045050c, 36 bytes) FUN_0045050c - ref: int FUN_0045050c(LONG * param_1)
-int FUN_0045050c_Stub(void *a0)
-{
-    return 0;
-}
-// STUB(0x00450530, 5 bytes) FUN_00450530 - ref: undefined FUN_00450530(void)
-void FUN_00450530_Stub()
-{
-}
-// STUB(0x00450538, 54 bytes) FUN_00450538 - ref: int FUN_00450538(int param_1, int
-// param_2)
-int FUN_00450538_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00450570, 25 bytes) FUN_00450570 - ref: undefined FUN_00450570(int param_1, int
-// param_2)
-void FUN_00450570_Stub(int a0, int a1)
-{
-}
-// STUB(0x0045058c, 54 bytes) FUN_0045058c - ref: int FUN_0045058c(int param_1, int
-// param_2)
-int FUN_0045058c_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x004505c4, 25 bytes) FUN_004505c4 - ref: undefined FUN_004505c4(int param_1, int
-// param_2)
-void FUN_004505c4_Stub(int a0, int a1)
-{
-}
-// STUB(0x004505e0, 54 bytes) FUN_004505e0 - ref: int FUN_004505e0(int param_1, int
-// param_2)
-int FUN_004505e0_Stub(int a0, int a1)
-{
-    return 0;
 }
 String Account_DecodePassword(Server *server, String value);
 String Account_EncodePassword(Server *server, String value);
@@ -11024,27 +10768,6 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         Mysqlcontrols::LoadCachedGuilds(server->mysql_controls);
     }
 }
-// STUB(0x00459638, 101 bytes) FUN_00459638 - ref: undefined4 * FUN_00459638(int param_1,
-// undefined4 * param_2)
-void *FUN_00459638_Stub(int a0, void *a1)
-{
-    return 0;
-}
-// STUB(0x004596a0, 42 bytes) FUN_004596a0 - ref: undefined4 * FUN_004596a0(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_004596a0_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00459700, 5 bytes) FUN_00459700 - ref: undefined FUN_00459700(void)
-void FUN_00459700_Stub()
-{
-}
-// STUB(0x00459b64, 11 bytes) FUN_00459b64 - ref: undefined4 FUN_00459b64(int param_1)
-int FUN_00459b64_Stub(int a0)
-{
-    return 0;
-}
 void Player_ApplyQuestActions(Server *server,
                               Player *player,
                               PlayerQuest *tracker,
@@ -11292,16 +11015,6 @@ void Player_ApplyQuestActions(Server *server,
     if (repeat)
         Player_FireQuestTriggers(server, player, 0x190, 0);
 }
-// STUB(0x0045b0c4, 11 bytes) FUN_0045b0c4 - ref: undefined4 FUN_0045b0c4(int param_1)
-int FUN_0045b0c4_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0045b0d0, 11 bytes) FUN_0045b0d0 - ref: undefined4 FUN_0045b0d0(int param_1)
-int FUN_0045b0d0_Stub(int a0)
-{
-    return 0;
-}
 void Login_SendCharacterList(
     Server *server, Player *player, PacketAction action, PacketFamily family, String data)
 {
@@ -11543,12 +11256,6 @@ void Login_SendCharacterList(
 
     Client_SendEncoded(server, player, action, family, data);
 }
-// STUB(0x0045d874, 1342 bytes) Walk_BuildReply - ref: AnsiString *
-// Walk_BuildReply(AnsiString * out, Server * server, Player * player)
-void *Walk_BuildReply_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
 String Server_BuildInitOkReply(Server *server, Player *player)
 {
     int total = server->ping_history[0] + 0x0d;
@@ -11646,9 +11353,6 @@ bool FUN_00462374(Server *server, Player *player, String data)
     Logins::AddLogin(server->logins, player->remote_ip);
     return false;
 }
-// STUB(0x00464030, 1286 bytes) Client_SendEncoded - ref: undefined
-// Client_SendEncoded(Server * server, Player * player, PacketAction action, PacketFamily
-// family)
 void Client_SendEncoded(Server *server,
                         Player *player,
                         unsigned char action,
@@ -11695,8 +11399,6 @@ void Client_SendEncoded(Server *server,
         player->socket->SendText(out);
     }
 }
-// STUB(0x00467980, 12223 bytes) Attack_Execute - ref: int Attack_Execute(Server * server,
-// Player * attacker, PacketAction action, AnsiString * packet_data)
 bool Attack_Execute(Server *server, Player *caster, int action, String *data)
 {
     *(TTimeStamp *)&caster->walk_tick = DateTimeToTimeStamp(Now());
@@ -12291,8 +11993,6 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
     }
     return 0;
 }
-// STUB(0x0046a9b0, 17449 bytes) Spell_Execute - ref: int Spell_Execute(Server * server,
-// Player * caster, int action, AnsiString * packet_data)
 bool Spell_Execute(Server *server, Player *caster, int action, String *data)
 {
     *(TTimeStamp *)&caster->walk_tick = DateTimeToTimeStamp(Now());
@@ -13372,18 +13072,6 @@ String Account_EncodePassword(Server *server, String value)
     }
     return result;
 }
-// STUB(0x00470d06, 207 bytes) FUN_00470d06 - ref: undefined4 FUN_00470d06(void)
-int FUN_00470d06_Stub()
-{
-    return 0;
-}
-// STUB(0x00470dee, 239 bytes) FUN_00470dee - ref: undefined4 FUN_00470dee(void)
-int FUN_00470dee_Stub()
-{
-    return 0;
-}
-// STUB(0x00470ef0, 759 bytes) EO_Encode_Interleave - ref: void EO_Encode_Interleave(char
-// * data, int len, char * out)
 String EO_Encode_Interleave(Server *server, int multiple, char *begin, char *end)
 {
     int len = 0;
@@ -13435,314 +13123,6 @@ String EO_Encode_Interleave(Server *server, int multiple, char *begin, char *end
     String data(server->packet_buffer, len);
     return data;
 }
-// STUB(0x004712e4, 50 bytes) FUN_004712e4 - ref: undefined FUN_004712e4(undefined4 *
-// param_1, byte param_2)
-void FUN_004712e4_Stub(void *a0, unsigned char a1)
-{
-}
-// STUB(0x00471318, 56 bytes) FUN_00471318 - ref: int FUN_00471318(int param_1, int
-// param_2)
-int FUN_00471318_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00471388, 97 bytes) FUN_00471388 - ref: int FUN_00471388(int param_1)
-int FUN_00471388_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00471418, 19 bytes) FUN_00471418 - ref: undefined FUN_00471418(undefined4 *
-// param_1, undefined1 * param_2)
-void FUN_00471418_Stub(void *a0, void *a1)
-{
-}
-// STUB(0x0047142c, 14 bytes) FUN_0047142c - ref: undefined FUN_0047142c(int param_1)
-void FUN_0047142c_Stub(int a0)
-{
-}
-// STUB(0x0047143c, 14 bytes) FUN_0047143c - ref: undefined FUN_0047143c(int param_1)
-void FUN_0047143c_Stub(int a0)
-{
-}
-// STUB(0x0047144c, 127 bytes) FUN_0047144c - ref: undefined FUN_0047144c(undefined4 *
-// param_1, undefined1 * param_2)
-void FUN_0047144c_Stub(void *a0, void *a1)
-{
-}
-// STUB(0x004714cc, 14 bytes) FUN_004714cc - ref: undefined FUN_004714cc(undefined4 *
-// param_1)
-void FUN_004714cc_Stub(void *a0)
-{
-}
-// STUB(0x004714dc, 18 bytes) FUN_004714dc - ref: bool FUN_004714dc(int param_1)
-bool FUN_004714dc_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x004714f0, 35 bytes) FUN_004714f0 - ref: undefined FUN_004714f0(int param_1)
-void FUN_004714f0_Stub(int a0)
-{
-}
-// STUB(0x00471514, 136 bytes) FUN_00471514 - ref: undefined FUN_00471514(undefined4 *
-// param_1)
-void FUN_00471514_Stub(void *a0)
-{
-}
-// STUB(0x0047159c, 53 bytes) FUN_0047159c - ref: undefined FUN_0047159c(int param_1)
-void FUN_0047159c_Stub(int a0)
-{
-}
-// STUB(0x004715d4, 124 bytes) FUN_004715d4 - ref: undefined FUN_004715d4(undefined4 *
-// param_1)
-void FUN_004715d4_Stub(void *a0)
-{
-}
-// STUB(0x00471650, 182 bytes) FUN_00471650 - ref: int FUN_00471650(int param_1, int
-// param_2)
-int FUN_00471650_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00471708, 64 bytes) FUN_00471708 - ref: int FUN_00471708(int param_1)
-int FUN_00471708_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00471748, 55 bytes) FUN_00471748 - ref: int FUN_00471748(int param_1, undefined4
-// param_2)
-int FUN_00471748_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00471780, 26 bytes) FUN_00471780 - ref: int FUN_00471780(int param_1, int
-// param_2)
-int FUN_00471780_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x0047179c, 740 bytes) FUN_0047179c - ref: undefined FUN_0047179c(undefined4 *
-// param_1)
-void FUN_0047179c_Stub(void *a0)
-{
-}
-// STUB(0x00471af8, 19 bytes) FUN_00471af8 - ref: undefined FUN_00471af8(undefined4
-// param_1, undefined4 param_2, undefined1 * param_3)
-void FUN_00471af8_Stub(int a0, int a1, void *a2)
-{
-}
-// STUB(0x00471b0c, 22 bytes) FUN_00471b0c - ref: int FUN_00471b0c(int param_1, int
-// param_2)
-int FUN_00471b0c_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00471b24, 11 bytes) FUN_00471b24 - ref: undefined4 FUN_00471b24(int param_1)
-int FUN_00471b24_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00471b30, 81 bytes) FUN_00471b30 - ref: int FUN_00471b30(int param_1, int
-// param_2)
-int FUN_00471b30_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00471b94, 205 bytes) FUN_00471b94 - ref: undefined FUN_00471b94(undefined4 *
-// param_1)
-void FUN_00471b94_Stub(void *a0)
-{
-}
-// STUB(0x00471c64, 55 bytes) FUN_00471c64 - ref: int FUN_00471c64(int param_1, int
-// param_2, int param_3)
-int FUN_00471c64_Stub(int a0, int a1, int a2)
-{
-    return 0;
-}
-// STUB(0x00471c9c, 212 bytes) FUN_00471c9c - ref: undefined FUN_00471c9c(undefined4 *
-// param_1)
-void FUN_00471c9c_Stub(void *a0)
-{
-}
-// STUB(0x00471d70, 26 bytes) FUN_00471d70 - ref: undefined4 FUN_00471d70(undefined4
-// param_1)
-int FUN_00471d70_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00471d8c, 22 bytes) FUN_00471d8c - ref: int FUN_00471d8c(int param_1, int
-// param_2)
-int FUN_00471d8c_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00471da4, 26 bytes) FUN_00471da4 - ref: int FUN_00471da4(int param_1, int
-// param_2)
-int FUN_00471da4_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00471dc0, 22 bytes) FUN_00471dc0 - ref: int FUN_00471dc0(int param_1, undefined4
-// param_2)
-int FUN_00471dc0_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00471dd8, 124 bytes) FUN_00471dd8 - ref: undefined4 * FUN_00471dd8(undefined4 *
-// param_1)
-void *FUN_00471dd8_Stub(void *a0)
-{
-    return 0;
-}
-// STUB(0x00471e54, 78 bytes) FUN_00471e54 - ref: uint FUN_00471e54(void)
-unsigned int FUN_00471e54_Stub()
-{
-    return 0;
-}
-// STUB(0x00471ea4, 107 bytes) FUN_00471ea4 - ref: int FUN_00471ea4(undefined4 param_1,
-// int param_2)
-int FUN_00471ea4_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00471f10, 11 bytes) FUN_00471f10 - ref: undefined4 FUN_00471f10(int param_1)
-int FUN_00471f10_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00471f1c, 33 bytes) FUN_00471f1c - ref: undefined4 FUN_00471f1c(undefined4
-// param_1)
-int FUN_00471f1c_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00471f40, 111 bytes) FUN_00471f40 - ref: int FUN_00471f40(undefined4 param_1,
-// int param_2)
-int FUN_00471f40_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00471fb0, 42 bytes) FUN_00471fb0 - ref: undefined4 * FUN_00471fb0(undefined4 *
-// param_1, undefined4 * param_2, undefined4 * param_3)
-void *FUN_00471fb0_Stub(void *a0, void *a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00471fec, 77 bytes) FUN_00471fec - ref: int FUN_00471fec(int param_1, undefined4
-// param_2, int * param_3)
-int FUN_00471fec_Stub(int a0, int a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0047203c, 33 bytes) FUN_0047203c - ref: int FUN_0047203c(int param_1, int
-// param_2, undefined4 * param_3)
-int FUN_0047203c_Stub(int a0, int a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x00472060, 33 bytes) FUN_00472060 - ref: undefined FUN_00472060(undefined4
-// param_1, undefined1 * param_2)
-void FUN_00472060_Stub(int a0, void *a1)
-{
-}
-// STUB(0x00472084, 8 bytes) FUN_00472084 - ref: undefined4 FUN_00472084(undefined4
-// param_1, undefined4 param_2)
-int FUN_00472084_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x0047208c, 5 bytes) FUN_0047208c - ref: undefined FUN_0047208c(void)
-void FUN_0047208c_Stub()
-{
-}
-// STUB(0x00472094, 22 bytes) FUN_00472094 - ref: undefined FUN_00472094(int param_1, int
-// param_2)
-void FUN_00472094_Stub(int a0, int a1)
-{
-}
-// STUB(0x004720ac, 81 bytes) FUN_004720ac - ref: int FUN_004720ac(int param_1, int
-// param_2)
-int FUN_004720ac_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00472100, 41 bytes) FUN_00472100 - ref: int FUN_00472100(int param_1, undefined4
-// param_2)
-int FUN_00472100_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x0047212c, 31 bytes) FUN_0047212c - ref: bool FUN_0047212c(int param_1, int
-// param_2)
-bool FUN_0047212c_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x0047214c, 44 bytes) FUN_0047214c - ref: undefined4 * FUN_0047214c(undefined4 *
-// param_1, undefined4 * param_2)
-void *FUN_0047214c_Stub(void *a0, void *a1)
-{
-    return 0;
-}
-// STUB(0x00472178, 8 bytes) FUN_00472178 - ref: undefined4 FUN_00472178(undefined4
-// param_1)
-int FUN_00472178_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00472180, 128 bytes) FUN_00472180 - ref: undefined4 * FUN_00472180(undefined4 *
-// param_1, undefined4 * param_2)
-void *FUN_00472180_Stub(void *a0, void *a1)
-{
-    return 0;
-}
-// STUB(0x00472200, 11 bytes) FUN_00472200 - ref: undefined4 FUN_00472200(int param_1)
-int FUN_00472200_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0047220c, 25 bytes) FUN_0047220c - ref: int FUN_0047220c(int param_1, undefined1
-// * param_2)
-int FUN_0047220c_Stub(int a0, void *a1)
-{
-    return 0;
-}
-// STUB(0x00472228, 23 bytes) FUN_00472228 - ref: int FUN_00472228(undefined4 param_1, int
-// param_2)
-int FUN_00472228_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00472240, 54 bytes) FUN_00472240 - ref: int FUN_00472240(int param_1, int
-// param_2)
-int FUN_00472240_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00472278, 170 bytes) FUN_00472278 - ref: int FUN_00472278(int param_1, int
-// param_2)
-int FUN_00472278_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00472324, 74 bytes) FUN_00472324 - ref: undefined4 FUN_00472324(int param_1, int
-// param_2)
-int FUN_00472324_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00472370, 72 bytes) FUN_00472370 - ref: int FUN_00472370(int param_1)
-int FUN_00472370_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x004723b8, 91 bytes) FUN_004723b8 - ref: int FUN_004723b8(int param_1, int
-// param_2)
-int FUN_004723b8_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00472414, 870 bytes) EO_Decode_Deinterleave - ref: void
-// EO_Decode_Deinterleave(char * data, int len, char * out)
 String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *end)
 {
     int len = 0;
@@ -13804,30 +13184,6 @@ String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *e
     return data;
 }
 
-// STUB(0x00472810, 56 bytes) FUN_00472810 - ref: int FUN_00472810(int param_1, int
-// param_2)
-int FUN_00472810_Stub(int a0, int a1)
-{
-    return 0;
-}
-// STUB(0x00472880, 19 bytes) FUN_00472880 - ref: undefined FUN_00472880(undefined4 *
-// param_1, undefined1 * param_2)
-void FUN_00472880_Stub(void *a0, void *a1)
-{
-}
-// STUB(0x00472894, 14 bytes) FUN_00472894 - ref: undefined FUN_00472894(int param_1)
-void FUN_00472894_Stub(int a0)
-{
-}
-// STUB(0x004728a4, 14 bytes) FUN_004728a4 - ref: undefined FUN_004728a4(int param_1)
-void FUN_004728a4_Stub(int a0)
-{
-}
-// STUB(0x004728b4, 14 bytes) FUN_004728b4 - ref: undefined FUN_004728b4(undefined4 *
-// param_1)
-void FUN_004728b4_Stub(void *a0)
-{
-}
 void Server_AddSentBytes(Server *server, int value)
 {
     server->sent_bytes += value;
@@ -13842,8 +13198,6 @@ void Server_AddSentBytes(Server *server, int value)
         server->sent_kilobytes -= BYTES_PER_KB;
     }
 }
-// STUB(0x00472944, 74 bytes) Server_AddReceivedBytes - ref: undefined
-// Server_AddReceivedBytes(int param_1, int param_2)
 void Server_AddReceivedBytes(Server *server, int value)
 {
     server->received_bytes += value;
@@ -13936,55 +13290,3 @@ void Server_AppendChatLog(Server *server, String message)
         remove(path.c_str());
     }
 }
-// STUB(0x00473f18, 67 bytes) FUN_00473f18 - ref: undefined FUN_00473f18(undefined4 *
-// param_1, byte param_2)
-void FUN_00473f18_Stub(void *a0, unsigned char a1)
-{
-}
-// STUB(0x00474138, 33 bytes) FUN_00474138 - ref: undefined4 FUN_00474138(undefined4
-// param_1)
-int FUN_00474138_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0047415c, 11 bytes) FUN_0047415c - ref: undefined4 FUN_0047415c(int param_1)
-int FUN_0047415c_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00474178, 14 bytes) FUN_00474178 - ref: undefined FUN_00474178(undefined4
-// param_1, int param_2)
-void FUN_00474178_Stub(int a0, int a1)
-{
-}
-// STUB(0x00474300, 33 bytes) FUN_00474300 - ref: undefined4 FUN_00474300(undefined4
-// param_1)
-int FUN_00474300_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00474324, 11 bytes) FUN_00474324 - ref: undefined4 FUN_00474324(int param_1)
-int FUN_00474324_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x00474330, 14 bytes) FUN_00474330 - ref: undefined FUN_00474330(void)
-void FUN_00474330_Stub()
-{
-}
-// STUB(0x00474340, 14 bytes) FUN_00474340 - ref: undefined FUN_00474340(undefined4
-// param_1, int * param_2)
-void FUN_00474340_Stub(int a0, void *a1)
-{
-}
-// STUB(0x00474568, 14 bytes) FUN_00474568 - ref: undefined FUN_00474568(void)
-void FUN_00474568_Stub()
-{
-}
-// STUB(0x00474578, 14 bytes) FUN_00474578 - ref: undefined FUN_00474578(undefined4
-// param_1, int * param_2)
-void FUN_00474578_Stub(int a0, void *a1)
-{
-}
-#pragma warn.8057
-// END GENERATED STUBS

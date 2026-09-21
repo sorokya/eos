@@ -7,13 +7,13 @@
 #include <vector.h>
 
 #include "Player.h"
+#include "Settings.h"
+#include "Mysqlcontrols.h"
 
 // Largest socket handle the by_id[] index holds: the array bound and the
 // validation range for incoming socket handles.
 #define SOCKET_HANDLE_MAX 100000
 
-class Settings;
-class Mysqlcontrols;
 class Server;
 class Players;
 

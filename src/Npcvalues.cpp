@@ -481,7 +481,3 @@ int NpcValues::DecodeNumber(String value)
     return result;
 }
 
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
-#pragma warn.8057
-// END GENERATED STUBS

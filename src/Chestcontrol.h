@@ -2,11 +2,11 @@
 #define ChestcontrolH
 
 #include <Classes.hpp>
+#include "Mapcontrol.h"
+#include "Players.h"
+#include "Server.h"
+#include "Settings.h"
 
-class Mapcontrol;
-class Players;
-class Server;
-class Settings;
 
 class ChestController
 {

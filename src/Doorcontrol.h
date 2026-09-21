@@ -3,8 +3,8 @@
 
 #include <Classes.hpp>
 #include <sysutils.hpp>
+#include "Mapcontrol.h"
 
-class Mapcontrol;
 
 // Object layout pinned by the reference (DoorController unit, 0x4aaf7c..0x4ab104):
 //   +0x00 TTimeStamp last_tick

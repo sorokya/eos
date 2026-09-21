@@ -1139,35 +1139,3 @@ void Players::Player_ClearSpells(Players *self, Player *player)
     player->spells.clear();
 }
 
-// BEGIN GENERATED STUBS (scripts/genstubs.py)
-#pragma warn - 8057
-// STUB(0x004081c8, 381 bytes) FUN_004081c8 - ref: undefined4 FUN_004081c8(Players *
-// players, int socket)
-int FUN_004081c8_Stub(void *a0, int a1)
-{
-    return 0;
-}
-// STUB(0x0040dc48, 11 bytes) FUN_0040dc48 - ref: undefined4 FUN_0040dc48(int param_1)
-int FUN_0040dc48_Stub(int a0)
-{
-    return 0;
-}
-// STUB(0x0040e828, 99 bytes) FUN_0040e828 - ref: int FUN_0040e828(undefined4 * param_1,
-// undefined4 * param_2, int param_3)
-int FUN_0040e828_Stub(void *a0, void *a1, int a2)
-{
-    return 0;
-}
-// STUB(0x0040e8c0, 33 bytes) FUN_0040e8c0 - ref: int FUN_0040e8c0(int param_1, int
-// param_2, undefined4 * param_3)
-int FUN_0040e8c0_Stub(int a0, int a1, void *a2)
-{
-    return 0;
-}
-// STUB(0x0040e8fc, 25 bytes) FUN_0040e8fc - ref: undefined FUN_0040e8fc(int param_1, int
-// param_2)
-void FUN_0040e8fc_Stub(int a0, int a1)
-{
-}
-#pragma warn.8057
-// END GENERATED STUBS
