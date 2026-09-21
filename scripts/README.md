@@ -59,6 +59,16 @@ imports, exports, resource tree). No `pip` packages required.
   delta above `--tol`; without it the report is informational. A reference unit
   span that absorbs library code (e.g. `Banned`, whose first ~58 KB is the RTL
   `System` member) is annotated and excluded from the comparison.
+- **`tdsinfo.py [TDS] [--seg N] [--image-base 0x400000]`** — read the module map
+  out of the Borland TD32/TDS debug file ilink32 writes with `-v`. The `.tds` is
+  CodeView-4 style (signature `FB0A` = C++Builder): a 4-byte signature, a
+  32-bit directory offset, a directory of `(type, module_index, offset, size)`
+  entries (`0x120` Module, `0x130` Names), and per module a set of code/data/TLS
+  segments `(seg_index, flags, offset, length)`. It gives the same per-module
+  layout as `ilink32 -s` but is **written in full** (the Wine fault truncates the
+  `-s` map), and it names library modules by source unit (`DB.pas`,
+  `Controls.pas`). The RTL (`cp32mt.lib`) members carry no debug info, so they do
+  not appear here; `--seg 1` prints the `_TEXT` (code) layout with VAs.
 - **`libcompare.py [--libs-only|--objs-only] [--only-unmatched] [--threshold R]`**
   — for every CODE module in the ilink map, take its bytes from our `.text` and
   locate them in the reference `.text`, wildcarding absolute addresses and rel32
