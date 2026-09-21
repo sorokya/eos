@@ -59,6 +59,16 @@ imports, exports, resource tree). No `pip` packages required.
   delta above `--tol`; without it the report is informational. A reference unit
   span that absorbs library code (e.g. `Banned`, whose first ~58 KB is the RTL
   `System` member) is annotated and excluded from the comparison.
+- **`libcompare.py [--libs-only|--objs-only] [--only-unmatched] [--threshold R]`**
+  — for every CODE module in the ilink map, take its bytes from our `.text` and
+  locate them in the reference `.text`, wildcarding absolute addresses and rel32
+  call/jmp/jcc operands. It answers "do we pull a module the reference does not",
+  which is the practical form of the `.text` surplus question: a module whose
+  bytes have no home in the reference is one we pull and the reference doesn't.
+  The per-module `ratio` is computed over the whole member, so it is only
+  meaningful when the member has no internal insertion; treat low ratios on
+  large units as an alignment artifact, not divergence. Requires
+  `MAP=1 scripts/build.sh`.
 - **`compare_functions.py FUNCTIONS_TSV REF CANDIDATE [--mask-reloc] [--list N]`**
   — per-function byte comparison using the Ghidra inventory; masks base-relocation
   words when layouts are not yet identical.

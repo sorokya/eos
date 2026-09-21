@@ -31,7 +31,7 @@ VLIB      ?= vcl50.lib vcldb50.lib vclbde50.lib import32.lib cp32mt.lib
 CLANG_FORMAT ?= clang-format
 SRC          := $(wildcard src/*.cpp src/*.h)
 
-.PHONY: image analyze extract units track unitmap functions struct layout disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
+.PHONY: image analyze extract units track unitmap functions struct layout libcompare disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
 
 image:
 	docker build -t $(IMAGE) docker
@@ -75,6 +75,11 @@ struct:
 # library interleave points. Requires `MAP=1 scripts/build.sh` first.
 layout:
 	$(PYTHON) scripts/layoutdiff.py
+
+# Locate each of our modules in the reference image ("do we pull a module the
+# reference does not"). Requires `MAP=1 scripts/build.sh` first.
+libcompare:
+	$(PYTHON) scripts/libcompare.py
 
 disasm:
 	scripts/disasm.sh
