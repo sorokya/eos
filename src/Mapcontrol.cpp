@@ -21,8 +21,6 @@
 
 bool Mapcontrol_ParseMapFile(Mapcontrol *self, ChestItem *map, int map_id);
 
-typedef vector<ItemObj *> GroundItemPtrVector;
-
 Mapcontrol::Mapcontrol(Settings *settings)
 {
     encode_scratch = (char *)operator new(8);
@@ -782,8 +780,8 @@ int Mapcontrol::Mapcontrol_AddGroundItem(Mapcontrol *self,
             Mapcontrol_PurgeGroundItemsInRange(self, map_id, 0, 15000);
         if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id >= 60000)
             Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id = 0;
-        ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-            ->insert(((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+        ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
+            ->insert(((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
                           ->ground_items)
                          ->end(),
                      item);
@@ -799,11 +797,11 @@ void Mapcontrol::Mapcontrol_PurgeGroundItemsInRange(Mapcontrol *self,
                                                     int range_low,
                                                     int range_high)
 {
-    GroundItemPtrVector::iterator cursor =
-        ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
+    vector<ItemObj *>::iterator cursor =
+        ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
             ->begin();
     while (cursor !=
-           ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
+           ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
                ->end())
     {
         if ((*cursor)->index < range_low)
@@ -817,7 +815,7 @@ void Mapcontrol::Mapcontrol_PurgeGroundItemsInRange(Mapcontrol *self,
         else
         {
             ItemObj *item = *cursor;
-            cursor = ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+            cursor = ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
                           ->ground_items)
                          ->erase(cursor);
             delete item;
@@ -1129,11 +1127,11 @@ bool Mapcontrol_CanDropItemAt(Mapcontrol *self, int map_id, int x, int y, int pl
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
         int count = 0;
-        for (GroundItemPtrVector::iterator cursor =
-                 ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+        for (vector<ItemObj *>::iterator cursor =
+                 ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
                       ->ground_items)
                      ->begin();
-             cursor != ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+             cursor != ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
                             ->ground_items)
                            ->end();
              cursor++)
@@ -1169,11 +1167,11 @@ Mapcontrol_TakeGroundItemInfo(Mapcontrol *self, int map_id, int index, int playe
     result.y = -1;
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (GroundItemPtrVector::iterator cursor =
-                 ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+        for (vector<ItemObj *>::iterator cursor =
+                 ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
                       ->ground_items)
                      ->begin();
-             cursor != ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+             cursor != ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
                             ->ground_items)
                            ->end();
              cursor++)
@@ -1255,7 +1253,7 @@ void Mapcontrol_ResetMap(Mapcontrol *self, int map_id)
     Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.clear();
     Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.clear();
     Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.clear();
-    ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
+    ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
         ->clear();
     Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.clear();
     Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.clear();
@@ -1270,11 +1268,11 @@ void Mapcontrol_RemoveGroundItem(Mapcontrol *self, int map_id, int index)
 {
     if (map_id > 0 && map_id <= Mapcontrol_GetCount(self))
     {
-        for (GroundItemPtrVector::iterator cursor =
-                 ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+        for (vector<ItemObj *>::iterator cursor =
+                 ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
                       ->ground_items)
                      ->begin();
-             cursor != ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+             cursor != ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
                             ->ground_items)
                            ->end();
              cursor++)
@@ -1282,7 +1280,7 @@ void Mapcontrol_RemoveGroundItem(Mapcontrol *self, int map_id, int index)
             if ((*cursor)->index == index)
             {
                 ItemObj *item = *cursor;
-                ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
+                ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
                      ->ground_items)
                     ->erase(cursor);
                 delete item;
