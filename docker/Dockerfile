@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 debian:bookworm
+FROM --platform=linux/amd64 debian:trixie
 
 RUN dpkg --add-architecture i386 && \
     apt-get update && \

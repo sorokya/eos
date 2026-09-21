@@ -48,6 +48,27 @@ from `docker/Dockerfile`. The image bakes a `WINEARCH=win32` prefix at
 docker build -t gameserver-borland-wine docker
 ```
 
+The base is `debian:trixie` (Wine 10.0). Its compiler/linker output is byte-identical
+to the earlier `debian:bookworm` (Wine 8.0) image — `make verify` 496/496 and
+`make track` 1795/1796 both hold under either — so the upgrade is safe. Two
+toolchain quirks are worth recording:
+
+- **`ilink32 -s -v` faults under Wine at the end of the link** ("Unhandled illegal
+  instruction"), with both Wine 8.0 and Wine 10.0. It writes the *complete* detailed
+  segment map first, then dies, leaving a corrupt exe. `-s` without `-v` and `-m`
+  both link cleanly but only produce the 276-byte summary map, so the detailed map
+  is only obtainable from the faulting combination. `MAP=1 scripts/build.sh` handles
+  this: it runs the detailed-map link tolerantly under a separate output base
+  (`build/GameServer_map.exe` → `build/GameServer_map.map`) and then relinks
+  `build/GameServer.exe` cleanly, so both artifacts are always valid.
+- **`tlib.exe` mis-parses a command line containing `(`** — i.e. anything invoked
+  through `$B` (`C:\Program Files (x86)\Borland\CBuilder5`): it fails with
+  `Error: unexpected char '(' in command line` even with no arguments. Invoke it
+  through the paren-free `$BZ` path instead, e.g.
+  `wine "$BZ\Bin\tlib.exe" "$BZ\Lib\Debug\vcl50.lib" '*sysinit*'` to extract a
+  library member. `bcc32`/`ilink32`/`brcc32`/`tdump` parse their command lines
+  normally and are unaffected.
+
 ### Canonical container invocation
 
 The toolchain must appear at the path recorded in its config files
