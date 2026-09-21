@@ -33,8 +33,10 @@ imports, exports, resource tree). No `pip` packages required.
 - **`unitmap.py`** — attribute code addresses to modules, three modes:
   - `--map FILE` parses an `ilink32 -s` map (`MAP=1 scripts/build.sh`) and names
     the object or library member behind every range. This is how the link layout
-    was established: explicit objects are contiguous in command-line order and
-    library members follow.
+    was established: explicit objects are contiguous in command-line order, and a
+    library's pulled members are laid out where its `.lib` sits in the link line
+    — inline in the OBJFILES field places them there, while listing it after the
+    comma appends them at the end (see `layoutdiff.py` and AGENTS.md).
   - `--pe FILE --stubs --units FILE [--functions FILE] [--libs DIR]` segments a
     PE at every module initializer stub, including modules `units.py` cannot see
     (no `@@Unit@Initialize` export), and classifies each unnamed module by
@@ -49,12 +51,34 @@ imports, exports, resource tree). No `pip` packages required.
   hash, header-field diffs, per-section geometry/hash diff, and the first
   differing byte offset; `--struct` adds imports/exports/relocations diffs. Exits
   non-zero on any difference.
+- **`layoutdiff.py [--ref modules.tsv] [--map map] [--tol N] [--strict]`** — the
+  reference module layout (`analysis/target/modules.tsv`) vs our ilink32 map:
+  per-unit start-RVA delta, size delta and order inversions, plus the size and
+  position of the contiguous library blocks (the interleave points). Requires
+  `MAP=1 scripts/build.sh`. `--strict` exits non-zero on any inversion or a start
+  delta above `--tol`; without it the report is informational. A reference unit
+  span that absorbs library code (e.g. `Banned`, whose first ~58 KB is the RTL
+  `System` member) is annotated and excluded from the comparison.
 - **`compare_functions.py FUNCTIONS_TSV REF CANDIDATE [--mask-reloc] [--list N]`**
   — per-function byte comparison using the Ghidra inventory; masks base-relocation
   words when layouts are not yet identical.
 - **`normalize_pe.py PE [--timestamp V] [--characteristics V] [-o OUT]`** — the
   documented deterministic post-link step: rewrite the volatile `TimeDateStamp`
   (at `e_lfanew + 8`) and optionally the COFF characteristics word.
+- **`extract_res.py PE [-o OUT.res] [--dump DIR] [--types LIST]`** — reconstruct
+  a Borland `.res` from the reference's embedded `.rsrc` (`make extract`): every
+  entry is written with the exact type, ordinal/name and language, so the file
+  reflects the reference resources. `--dump` also writes each payload plus a
+  `.rc`. The `.res` entry format was recovered from `brcc32` output (numeric
+  type/name is `WORD 0xFFFF` + ordinal; string names are NUL-terminated UTF-16;
+  the first entry must have all-zero flags, or ilink32 reports "Unsupported
+  16bit resource").
+- **`inject_rsrc.py --ref REF --target TARGET`** — copy the reference's `.rsrc`
+  raw payload over a rebuilt image's `.rsrc`. The linker merges library
+  resources by absolute path and auto-generates `DVCLAL`, so its `.rsrc` cannot
+  be driven from the application `.res`; this step reproduces the section
+  byte-for-byte. It refuses unless the two `.rsrc` sections have identical RVA
+  and raw size, which only holds once the rest of the image matches.
 - **`disasm.sh [PE] [OUT]`** — linear Intel-syntax disassembly of `.text` via
   host `objdump`.
 
@@ -75,9 +99,13 @@ produced.
   Environment knobs for link experiments — a full build is ~4 min, a relink
   ~12 s, so use these when only the link line is under test:
   - `LINK_ONLY=1` — skip the compiles and the `.rc`, reuse `build/obj`.
-  - `VLIB=...` — the library list (default `vcl50.lib vcldb50.lib
-    vclbde50.lib import32.lib cp32mt.lib`; the VCL libraries must come first
-    and `cw32mt.lib` must never appear — see AGENTS.md for both).
+  - `VLIB=...` — the libraries searched *last* (default `import32.lib
+    cp32mt.lib`). The VCL/BDE libraries are not here: they are listed **inline in
+    the OBJFILES field** at the reference's interleave points (`vcldb50.lib`
+    before `Itemchest`, `vcl50.lib`/`vclbde50.lib`/`vcle50.lib` before `Banned`),
+    because `ilink32` lays a library's members out where its `.lib` appears. The
+    VCL libraries must come first and `cw32mt.lib` must never appear — see
+    AGENTS.md for both.
   - `LPATH=...` — the `-L` search path (`Lib\Debug` must precede
     `Lib\Release`; swapping them drops ~85 KB of `.text` and is wrong).
   - `HEADOBJ=...` — the object(s) listed before the units, i.e. between

@@ -18,8 +18,10 @@ JOBS      ?=
 
 # Link configuration. The reference's library code byte-matches the Debug VCL/BDE
 # libraries, not Release (see PLAN.md), so Lib/Debug precedes Lib/Release on the
-# search path; same-named .libs there win. Exact library order is finalized in
-# Phase 2.
+# search path; same-named .libs there win.
+# VLIB here is only the tail library list used by the `sanity` test link.
+# `scripts/build.sh` places the VCL/BDE libraries *inline* in the object list at
+# the reference's interleave points (see AGENTS.md / scripts/README.md).
 LINKFLAGS ?= -Tpe -aa -c -Gn -j -v
 # cp32mt.lib, not cw32mt.lib: the latter carries the stubbed-out
 # ___CRTL_VCL_Init/_Exit/___CRTL_VCLLIB_Linkage (crtlst_[iel].c) and, listed
@@ -29,7 +31,7 @@ VLIB      ?= vcl50.lib vcldb50.lib vclbde50.lib import32.lib cp32mt.lib
 CLANG_FORMAT ?= clang-format
 SRC          := $(wildcard src/*.cpp src/*.h)
 
-.PHONY: image analyze units track unitmap functions struct disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
+.PHONY: image analyze extract units track unitmap functions struct layout disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
 
 image:
 	docker build -t $(IMAGE) docker
@@ -37,6 +39,11 @@ image:
 analyze:
 	$(PYTHON) scripts/extract_target.py $(REF) -o analysis/target
 	$(PYTHON) scripts/units.py $(REF)
+
+# Reconstruct the linked resource (.res) and the payloads from the reference
+# image's embedded .rsrc. Derived artifacts; not committed.
+extract:
+	$(PYTHON) scripts/extract_res.py $(REF) -o build/GameServer.res --dump build/res
 
 # Central per-function status sheet (analysis/target/functions.tsv) and the
 # generated README status block. Depends on --units output, so run `make unitmap`
@@ -63,6 +70,11 @@ functions:
 # Structural comparison (imports/exports/relocations).
 struct:
 	-$(PYTHON) scripts/compare_pe.py $(REF) build/GameServer.exe --ignore-timestamp --struct
+
+# Reference module layout vs our ilink32 map: per-unit RVA/order and the
+# library interleave points. Requires `MAP=1 scripts/build.sh` first.
+layout:
+	$(PYTHON) scripts/layoutdiff.py
 
 disasm:
 	scripts/disasm.sh

@@ -114,10 +114,42 @@ strings and vtables correctly once the source matches.
   the object or library member behind every range
   (`scripts/unitmap.py --map`). This established the layout rule: explicitly
   listed objects are laid out contiguously in command-line order (startup
-  `c0w32.obj`, then the units in link order) and **library members are appended
-  after them**. Units are therefore contiguous and a unit's `code_span` is its
-  real code size, confirmed on `Serial`: our linked `SERIAL.OBJ` is `0x1A94`
-  bytes against a reference span of `0x1AF0`. **Caveat:** every linked module
+  `c0w32.obj`, then the units in link order), and **where a library's members
+  land is set by where its `.lib` appears in the link line** — after the comma
+  they are appended after every object, but listed inline in the OBJFILES field
+  they are laid out there (established with a synthetic `ilink32` probe: the
+  same `.lib` moved between the object field and the library field relocates its
+  members). The reference interleaves its libraries: `vcldb50.lib` sits between
+  `Itemground` and `Itemchest` (a 109,228-byte block, vs our pulled 109,236) and
+  `vcl50.lib`/`vclbde50.lib`/`vcle50.lib` between `Weaponmap` and `Banned`
+  (~486,572 bytes), with `import32.lib`/`cp32mt.lib` searched last. Listing them
+  after the comma, as the build did until now, pushes every library member to the
+  end and shifts the post-`Itemground` unit RVAs by up to ~600 KB; the inline
+  placement in `scripts/build.sh` brings every export RVA within ~4 KB of the
+  reference. Two residuals remain: `Skillvalue`/`Npcvalue` come out in the wrong
+  order, and the second library block is ~2 KB too large. The inversion was
+  bisected to the inline `vcldb50.lib`: listing it inline at *any* position
+  inverts the pair, while the VCL block alone does not, and the order is
+  invariant both to the command line and to swapping the two units (which have no
+  reference to each other). All libraries inline at one point keeps the correct
+  order, so the tie-break is sensitive to the library distribution. The reference
+  links `vcldb50` inline at the same point and does *not* invert, so this is an
+  `ilink32` initialization-ordering artifact of the exact module set, not a
+  source dependency. Units within a contiguous run are otherwise contiguous and a
+  unit's `code_span` is its real code size, confirmed on `Serial`: our linked
+  `SERIAL.OBJ` is `0x1A94` bytes against a reference span of `0x1AF0`.
+  **The `.text` is a further 512 B larger than the reference** (raw `0x159800`
+  vs `0x159600`). The breakdown: ~460 B of extra compiler-emitted STL helper
+  COMDATs kept in the vector-heavy application units — canonical diffing a unit
+  span shows it directly (`Npcvalue`: 1123 our vs 1031 reference instructions,
+  all `std::vector`/`allocator`/`bad_alloc` helpers; `Mapcontrol` +208,
+  `Itemvalues`/`Skillvalues` +104 each, while `Npcvalues` −80 and `Mainform`
+  −36) — plus ~56 B in the `vcldb50` block, partly offset by a smaller `cp32mt`
+  tail. The likely cause is the set/order of library members from which the STL
+  helpers are resolved, which is also the prime suspect for the `Npcvalue`
+  ordering tie-break above; reconcile the module set before chasing individual
+  units.
+  **Caveat:** every linked module
   emits a refcount-guarded initializer stub, but `units.py` sees only modules
   exported as `@@Unit@Initialize`; units compiled without
   `#pragma package(smart_init)` are invisible to it. Scanning the stubs
@@ -461,6 +493,34 @@ Goal: identical resource and startup behavior.
 - Confirm `.rsrc` and `.reloc` equality.
 
 Exit criteria: `.rsrc`, `.edata`, and `.reloc` match byte-for-byte.
+
+**Resource findings (2026-09).** `make extract` (`scripts/extract_res.py`)
+reconstructs a `.res` from the reference's embedded `.rsrc`: it walks the tree
+and writes each entry with the exact type, ordinal/name and language. The
+`.res` entry format was recovered from `brcc32`'s own output (numeric type/name
+= `WORD 0xFFFF` + ordinal; string names are NUL-terminated UTF-16; the first
+entry must have all-zero flags or `ilink32` rejects the file with "Unsupported
+16bit resource"). The reference `.rsrc` holds 38 entries: 7 `RT_CURSOR`, 1
+`RT_ICON`, 18 `RT_STRING` blocks, 4 named `RT_RCDATA` (`DVCLAL`, `TGUI`,
+`TLOGINDIALOG`, `TPASSWORDDIALOG`), 7 `RT_GROUP_CURSOR` and the `MAINICON`
+group. Only the application owns `TGUI` and `MAINICON`; the rest come from the
+VCL/BDE library `.res`.
+
+**The linker's resource merge cannot be controlled from our link line.** The
+library `.res` are referenced by *absolute* path inside the `.lib`, so they
+cannot be shadowed via `-L`; an explicit `.res` never overrides a duplicate
+(the library's is kept, and `ilink32` auto-generates `DVCLAL` in a temp
+`TMP1.$$$` that wins), and `RT_STRING` blocks are renumbered into the linker's
+global string pool in library order. Providing the reference's exact payloads
+therefore does *not* reproduce `.rsrc`: linking the extracted `.res` leaves the
+15 string blocks and `DVCLAL` wrong. `-Rr` ("replace resources") does not change
+precedence.
+
+Consequently `.rsrc` is downstream of the same link-composition difference that
+leaves `.text` 512 B large: our rebuilt `.rsrc` is `0x6000` raw against the
+reference's `0x6200`, so a post-link byte copy (`scripts/inject_rsrc.py`,
+geometry-gated) cannot apply until the rest of the image matches. The byte-copy
+step is the planned mechanism once `.text`/`.data` are exact.
 
 ### Phase 4 — Whole-image fidelity and reproducibility
 

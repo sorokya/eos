@@ -1,7 +1,0 @@
-LANGUAGE 0, 0
-
-TGUI RCDATA "forms/TGUI.dfm"
-
-LANGUAGE 19, 1
-
-MAINICON ICON "forms/MAINICON.ico"

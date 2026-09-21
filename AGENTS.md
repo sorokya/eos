@@ -118,7 +118,8 @@ wine "$B\Bin\ilink32.exe" -Tpe -aa -c -Gn -j -v \
     -L"$BZ\Lib" -L"$BZ\Lib\Obj" -L"$BZ\Lib\Release" \
     "$BZ\Lib\c0w32.obj" hello.obj, hello.exe,, import32.lib cw32mt.lib
 
-# Resource compiler — brcc32 5.40
+# Resource compiler — brcc32 5.40 (the build no longer uses it; the linked
+# resource is reconstructed from the reference .rsrc by `make extract`)
 wine "$B\Bin\brcc32.exe" GameServer.rc
 ```
 
@@ -311,8 +312,8 @@ documented build, not a manual fix-up.
 
 `scripts/` and the `Makefile` provide the measurement pipeline; see
 `scripts/README.md` for the full list. Make targets: `image`, `analyze`, `units`,
-`functions`, `struct`, `disasm`, `sanity`, `compare`, `normalize`, `unit`,
-`unit-asm`, `verify`, `format`, `format-check`, `clean`.
+`functions`, `struct`, `layout`, `disasm`, `sanity`, `compare`, `normalize`,
+`unit`, `unit-asm`, `verify`, `format`, `format-check`, `clean`.
 
 - `make verify` compiles every unit to a bcc32 `-S` listing
   (`scripts/build_asm.sh`) and scores every function in a unit's own namespace
@@ -465,17 +466,45 @@ is the read-only Ghidra function inventory.
   call site is `operator new` followed by a ctor call), so a unit mixes a member
   constructor with free-function-style operations.
 - Reconstruct forms from the embedded DFM resources, not by hand-guessing layout.
-  The `TGUI`, `TLoginDialog`, and `TPasswordDialog` resources are available in the
-  reference `.rsrc`.
+  The `TGUI`, `TLoginDialog`, and `TPasswordDialog` resources live in the
+  reference `.rsrc`; `make extract` (`scripts/extract_res.py`) reconstructs the
+  linked `.res` and dumps the payloads from it. `forms/` and `res/` are derived
+  and gitignored — do not commit them.
+- **Resources.** The linker merges library resources from the read-only Borland
+  tree by absolute path and auto-generates `DVCLAL`; an application `.res` never
+  overrides a duplicate. So a rebuilt `.rsrc` cannot be driven from the link
+  line, and `scripts/inject_rsrc.py` copies the reference `.rsrc` payload over
+  the output once the image geometry matches (a post-link, geometry-gated step
+  in `scripts/build.sh`). See PLAN.md Phase 3.
 - Prefer the smallest construct that the compiler lowers to the observed bytes.
   Do not "improve" code; match it.
 - Keep generated artifacts out of version control (see `.gitignore`); commit only
   source, forms, resources, and build scripts when asked.
 - **Link layout.** `ilink32` lays out explicitly listed objects contiguously in
-  command-line order (startup `c0w32.obj`, then the units in link order) and
-  appends library members *after* them, so unit code is contiguous and a unit's
-  `code_span` is its real size. Confirm against a build with
-  `MAP=1 scripts/build.sh` and `scripts/unitmap.py --map`.
+  command-line order (startup `c0w32.obj`, then the units in link order), and a
+  unit's `code_span` is its real size. **But where a library's pulled members
+  land depends on where the `.lib` appears in the link line.** A library in the
+  library field (after the comma) has its members appended *after* every
+  explicit object; a library listed **inline in the OBJFILES field** has its
+  members laid out at that point. The reference interleaves its libraries —
+  `vcldb50.lib` sits between `Itemground` and `Itemchest` (a 109,228-byte block)
+  and `vcl50.lib`/`vclbde50.lib`/`vcle50.lib` between `Weaponmap` and `Banned`
+  (~486,572 bytes), with `import32.lib`/`cp32mt.lib` searched last — so
+  `scripts/build.sh` lists them inline. Putting them after the comma instead
+  pushes every library member to the end and shifts the post-`Itemground` unit
+  RVAs by up to ~600 KB.
+- **Package order is not always command-line order.** `#pragma
+  package(smart_init)` units can be reordered by `ilink32` according to package
+  initialization order: `Skillvalue`/`Npcvalue` come out in the opposite order
+  from the reference, **invariant both to the command line and to swapping the
+  two units**. The trigger was bisected to listing `vcldb50.lib` inline (any
+  position inverts the pair; the VCL block alone does not; all libraries inline at
+  one point does not), so it is an initialization tie-break sensitive to the
+  library distribution and the exact module set, not a source dependency (neither
+  object references the other). Confirm layout against a build with
+  `MAP=1 scripts/build.sh` and `scripts/unitmap.py --map` or
+  `scripts/layoutdiff.py` (reference `modules.tsv` vs the link map, per-module
+  delta and order inversions).
 - **Unexported units.** `units.py` recognises only modules exported as
   `@@Unit@Initialize`; a unit compiled without `#pragma package(smart_init)` has a
   non-exported module stub and is invisible to it, so a neighbouring unit's span
