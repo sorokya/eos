@@ -964,35 +964,43 @@ Tracked so they are not mistaken for done:
     `0x46a083` calls the folded EH thunk `0x44f58c` (our `MapCoord::MapCoord` vs the
     reference's aliased `std::allocator<PlayerInventory>` COMDAT name) — same
     address, name-only.
-  - `Spell_Execute` (`0x46a9b0`) — frame `0x2c0`; 6 dispatch arms for actions
-    `1, 30, 31, 33, 10` (fall-through `return 0`; Rust names Request/TargetSelf/
-    TargetOther/TargetGroup/Use) over ~10 regions and 2 loops; 54 callees over 597
-    sites; **no `std::string`**; no embedded stubs. Risks: the five near-identical
-    arm prologues (transcribe from a spec) and the action-numbering divergence
-    against the Rust names. The shared `0x58b60c` skill/item singleton still needs
-    its type identified. **Progress: all 6 dispatch arms are written** (`1`,
-    `0x1e`/TargetGroup, `0x1f`, `0x21`/TargetSelf, `0xa`/Use, fall-through
-    `return 0`); the true end is `0x46ee3c` (the stored `0x46edd9` truncates the
-    tail). Frame `-0x2c0` and all 150 EH scope markers match exactly.
-    `compare_asm.py build/Packets.asm Spell_Execute
-    '@@Spell_Execute$qp6Serverp6Playerip17System@AnsiString' 0x46a9b0 0x46ee3c
-    --frame-wild --strict-operands` reports **32 hunks** (4079 ref / 4089 our
-    instructions), all floor: 23 are a `-156`/`-160` stack-slot swap between the
-    `Refresh_BuildReply` temporary and the NPC not-dead `reply` (bcc's allocator;
-    wrapping either in a block made it worse, 119-120 hunks), 2 are register
-    allocation (the `chase_target_id` reload, an `eax`/`ecx` mirror), and 7 are
-    compiler basic-block layout (the `map_type != 3` and `type_info.type >= 6`
-    early `return 1`s sit inline instead of at the reference's far shared tail,
-    and the pkt-block return then saves/restores `eax` instead of falling through
-    that tail). Fixed this pass: the bare block around the damage `pkt` (declaring
-    it in the `skill_type==1` scope moved its slot `-112` -> the reference's
-    `-104`; hunks 64 -> 32), `(unsigned short)(*iter)->boss > 0` at both `boss`
-    guards, and `(unsigned short)...->child_npc_id` (`movzx`, not `movsx`).
-    Arm-1 callees remain
-    `Player_HasSpellId` `0x40cc80`, `Server_BroadcastNearby` `0x463f34`,
+  - `Spell_Execute` (`0x46a9b0`) — **byte-exact, converged.** Frame `-0x2c0`,
+    true end `0x46ee3c` (the stored `0x46edd9` truncates the tail), all 150 EH
+    scope markers match. 6 dispatch arms for actions `1, 30, 31, 33, 10`
+    (fall-through `return 0`; Rust names Request/TargetSelf/TargetOther/
+    TargetGroup/Use); 54 callees over 597 sites; **no `std::string`**; no
+    embedded stubs. Final: **4079 ref / 4079 our instructions, 0 mismatched**,
+    aligned prefix 4079 (unflagged and `--strict-operands`). The 32 "floor"
+    hunks from the previous pass were **not** floor — they were one structural
+    error plus its cascades:
+    - The NPC `skill_type==1` damage body (from the `chase_target_id` guard
+      through the not-dead `reply`) is wrapped in a positive
+      `if (skill_type == 1 && type_info.type > 0 && type_info.type < 6) { ... }`
+      with a trailing `return 1;` inside the loop — not the negative
+      `if (skill_type != 1 || type <= 0 || type >= 6) return 1;` we had. The
+      wrapper is the reference's source shape: it makes bcc emit the far shared
+      `return 1` tail at `0x46dce2` and, crucially, changes the **scope** the
+      allocator sees, which flips the `-156`/`-160` swap (the
+      `Refresh_BuildReply` temporary vs the not-dead `reply`). 23 hunks + the
+      2 chase-guard hunks collapsed at once.
+    - The Player-branch `map_type` guard is likewise the positive
+      `if (map_type == 3) { ... }` with its body falling through to the
+      `skill_type==1` block's `return 1` (no inner trailing `return`; the
+      reference's `0x46c2b7` shared tail). Inlining the negative guard had also
+      made the pkt destructor save/restore `eax`.
+    - The NPC arm's terminal `return 0;` is absent — the arm falls through to
+      the `PacketAction_TargetGroup` check (the reference's shared tail).
+    Fixed earlier in the same convergence: declaring the damage `pkt` in the
+    `skill_type==1` scope (slot `-112` -> `-104`; hunks 64 -> 32),
+    `(unsigned short)(*iter)->boss > 0` at both `boss` guards, and
+    `(unsigned short)...->child_npc_id` (`movzx`, not `movsx`). Arm-1 callees
+    remain `Player_HasSpellId` `0x40cc80`, `Server_BroadcastNearby` `0x463f34`,
     `EO_EncodeNumber` `0x470b9c`, `EO_DecodeNumber` `0x470de8`,
     `SkillValues::GetCastTime` `0x4a5268`; `Now`/`DateTimeToTimeStamp` are the
-    library `0x520500`/`0x51ff7c`.
+    library `0x520500`/`0x51ff7c`. Only residual `--strict-operands` label:
+    `0x46c437` calls the folded EH thunk `0x44f58c` (our `MapCoord::MapCoord` vs
+    the reference's aliased `std::allocator<PlayerInventory>` COMDAT name) — same
+    address, name-only.
 - `Packets`: `Player_HandlePacket` (`0x41794c`) — **byte-exact, converged.**
   `analysis/target/functions.tsv` ends the row at `0x0044ef54`, but the body
   continues to `0x44f58b`; the next real function is the folded EH thunk at
