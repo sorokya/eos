@@ -75,8 +75,9 @@ produced.
   Environment knobs for link experiments — a full build is ~4 min, a relink
   ~12 s, so use these when only the link line is under test:
   - `LINK_ONLY=1` — skip the compiles and the `.rc`, reuse `build/obj`.
-  - `VLIB=...` — the library list (default `import32.lib cp32mt.lib vcl50.lib
-    vcldb50.lib vclbde50.lib`; **never** add `cw32mt.lib`, see AGENTS.md).
+  - `VLIB=...` — the library list (default `vcl50.lib vcldb50.lib
+    vclbde50.lib import32.lib cp32mt.lib`; the VCL libraries must come first
+    and `cw32mt.lib` must never appear — see AGENTS.md for both).
   - `LPATH=...` — the `-L` search path (`Lib\Debug` must precede
     `Lib\Release`; swapping them drops ~85 KB of `.text` and is wrong).
   - `HEADOBJ=...` — the object(s) listed before the units, i.e. between

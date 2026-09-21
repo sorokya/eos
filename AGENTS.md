@@ -162,8 +162,21 @@ ilink32 -Tpe -aa -c -Gn -j -v \
     -L"$BZ\Lib" -L"$BZ\Lib\Obj" -L"$BZ\Lib\Debug" -L"$BZ\Lib\Release" \
     "$BZ\Lib\c0w32.obj" <objects>,
     GameServer.exe,,
-    import32.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib
+    vcl50.lib vcldb50.lib vclbde50.lib import32.lib cp32mt.lib
 ```
+
+**Library order is observable, and it is the C++Builder 5 default
+`$(LIBRARIES) import32.lib cp32mt.lib`** -- the VCL libraries first. Delphi
+threadvars compile to `[tlsblock + <offset of this module's _TLS segment>]`,
+where the offset is a link-time fixup, so the order in which library modules
+contribute to `_TLS` is baked into the code. The reference's `vcl50|System`
+threadvars sit at `0x0c` -- after `ScktComp` (4 bytes) and `Classes` (8) and
+before the 0xa4-byte `cp32mt` block. Searching `cp32mt.lib` first instead puts
+`System` at `0xb0`, and every System routine that touches a threadvar (the SEH
+dispatchers, `@RaiseExcept`, the TLS accessors -- eight functions, 795 bytes)
+then differs from the reference. `scripts/unitmap.py --pe ... --stubs` plus a
+relocation-masked search of our image for each reference module is what makes
+this checkable.
 
 **`cp32mt.lib`, not `cw32mt.lib`.** A VCL application must link the package
 RTL. `cw32mt.lib` carries the stubbed-out `crtlst_i.c` / `crtlst_e.c` /

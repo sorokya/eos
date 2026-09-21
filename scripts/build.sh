@@ -21,7 +21,15 @@ CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od -tWM}"
 # pulled, and with it nothing references @Sysinit@VclInit/VclExit -- so the
 # SysInit communals stay out of the image and the head after c0w32 is 56
 # bytes instead of the reference's 368.
-VLIB="${VLIB:-import32.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib}"
+# ... and the VCL libraries must precede import32.lib/cp32mt.lib, which is the
+# C++Builder 5 default ALLLIB order ($(LIBRARIES) import32.lib cp32mt.lib).
+# The order is observable: Delphi threadvars are addressed as [tls + <offset of
+# this module's _TLS segment>], a link-time fixup.  The reference's System unit
+# sits at offset 0x0c, i.e. after ScktComp(4) + Classes(8) and *before* the
+# 0xa4-byte cp32mt block; searching cp32mt first puts System at 0xb0 instead
+# and every System routine that touches a threadvar then differs from the
+# reference.
+VLIB="${VLIB:-vcl50.lib vcldb50.lib vclbde50.lib import32.lib cp32mt.lib}"
 LINKFLAGS="${LINKFLAGS:--Tpe -aa -c -Gn -j -v}"
 MAPARG=""
 

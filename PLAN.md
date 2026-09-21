@@ -251,7 +251,7 @@ method used to establish it.
 | Format | PE32 GUI, `coff-i386` | `objdump`, `pefile` |
 | Linker | 5.0, PE executable, GUI subsystem | PE header fields |
 | Link flags | `-Tpe -aa -c -Gn -j -v` | scratch link reproduces header `0x010e` and section geometry |
-| Static libraries | `import32.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib` (from `Lib/Debug`) | minimal VCL+BDE link resolves; Debug variant byte-matched. **`cw32mt.lib` must not be listed**: its `crtlst_[iel].c` stubs of `___CRTL_VCL_Init`/`_Exit`/`___CRTL_VCLLIB_Linkage` beat `cp32mt.lib`'s real `crtlvcl.cpp` and kill the whole VCL init chain (see AGENTS.md) |
+| Static libraries | `vcl50.lib vcldb50.lib vclbde50.lib import32.lib cp32mt.lib` (from `Lib/Debug`) | minimal VCL+BDE link resolves; Debug variant byte-matched. **`cw32mt.lib` must not be listed**: its `crtlst_[iel].c` stubs of `___CRTL_VCL_Init`/`_Exit`/`___CRTL_VCLLIB_Linkage` beat `cp32mt.lib`'s real `crtlvcl.cpp` and kill the whole VCL init chain (see AGENTS.md) |
 | Header characteristic | `0x010e` | PE header; reproduced with `ilink32 -v` |
 | Timestamp | `0x50CBB124` at file offset `0x208` | PE header (`e_lfanew + 8`) |
 | Entry point | `0x00401000` | PE header |
@@ -399,8 +399,8 @@ Delivered:
   `TPasswordDialog`, and `DVCLAL` payloads, and a 452,937-line linear `.text`
   disassembly.
 - Link configuration verified: `-Tpe -aa -c -Gn -j -v`, startup `c0w32.obj`,
-  search paths `Lib;Lib/Obj;Lib/Debug;Lib/Release`, libraries `import32.lib
-  cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib` (the Debug VCL/BDE
+  search paths `Lib;Lib/Obj;Lib/Debug;Lib/Release`, libraries `vcl50.lib
+  vcldb50.lib vclbde50.lib import32.lib cp32mt.lib` (the Debug VCL/BDE
   set was established later — see the library-linkage finding above;
   `cw32mt.lib` was dropped once its `crtlst_[iel].c` stubs were found to
   disable the VCL init chain). A minimal
