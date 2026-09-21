@@ -6992,7 +6992,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         server->mysql_controls->file_cache->pending_player_writes.size(),
                         2),
                     out.Length() + 1);
-                vector<FilecacheEntry *>::iterator iter;
+                vector<TopPlayer *>::iterator iter;
                 for (iter = server->mysql_controls->file_cache->pending_player_writes
                                 .begin();
                      iter !=
@@ -7026,7 +7026,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         server->mysql_controls->file_cache->pending_guild_writes.size(),
                         2),
                     out.Length() + 1);
-                vector<FilecacheEntryB *>::iterator iter;
+                vector<TopGuild *>::iterator iter;
                 for (iter =
                          server->mysql_controls->file_cache->pending_guild_writes.begin();
                      iter !=
@@ -7311,14 +7311,14 @@ Server::~Server()
 // and finish pointers. `Mapcontrol::maps` is the vector at +0x00, whose
 // `_M_start`/`_M_finish` land at +0x04/+0x08 (pinned by Mapcontrol_GetCount's
 // end-minus-begin over 0x160 and by the type's constructor).
-MapContainer *MapVector_Begin(Mapcontrol *map_control)
+ChestItem *MapVector_Begin(Mapcontrol *map_control)
 {
-    return *(MapContainer **)((char *)map_control + 0x04);
+    return *(ChestItem **)((char *)map_control + 0x04);
 }
 
-MapContainer *MapVector_End(Mapcontrol *map_control)
+ChestItem *MapVector_End(Mapcontrol *map_control)
 {
-    return *(MapContainer **)((char *)map_control + 0x08);
+    return *(ChestItem **)((char *)map_control + 0x08);
 }
 
 int Mapcontrol_GetCount(Mapcontrol *map_control)
@@ -7326,14 +7326,14 @@ int Mapcontrol_GetCount(Mapcontrol *map_control)
     return map_control->maps.end() - map_control->maps.begin();
 }
 
-MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index)
+ChestItem *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index)
 {
     return MapVector_Begin(map_control) + index;
 }
 
-MapContainer *Mapcontrol_Iter_Front(Mapcontrol *map_control)
+ChestItem *Mapcontrol_Iter_Front(Mapcontrol *map_control)
 {
-    return *(MapContainer **)((char *)map_control + 0x04);
+    return *(ChestItem **)((char *)map_control + 0x04);
 }
 
 void *Map_NpcIter_Begin(void *npc_list)
@@ -8639,15 +8639,15 @@ String Refresh_BuildReply(Server *server, Player *player)
             }
         }
         data.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), data.Length() + 1);
-        ChestItem **iiter;
+        ItemObj **iiter;
         if (player->map_id > 0 &&
             player->map_id <= Mapcontrol_GetCount(server->map_control))
         {
-            for (iiter = (ChestItem **)GroundItemPtrVector_Begin(
+            for (iiter = (ItemObj **)GroundItemPtrVector_Begin(
                      &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                           ->ground_items);
                  iiter !=
-                 (ChestItem **)PtrVector_GetEnd(
+                 (ItemObj **)PtrVector_GetEnd(
                      &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                           ->ground_items);
                  iiter++)
@@ -8887,7 +8887,7 @@ String Walk_BuildReply(Server *server, Player *player)
     {
         Player **iter;
         Npc **niter;
-        ChestItem **iiter;
+        ItemObj **iiter;
         for (iter = Players_Iter_Begin(server->players);
              iter != Players_Iter_End(server->players);
              iter++)
@@ -8926,11 +8926,11 @@ String Walk_BuildReply(Server *server, Player *player)
         {
             if (player->map_id <= Mapcontrol_GetCount(server->map_control))
             {
-                for (iiter = (ChestItem **)GroundItemPtrVector_Begin(
+                for (iiter = (ItemObj **)GroundItemPtrVector_Begin(
                          &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                               ->ground_items);
                      iiter !=
-                     (ChestItem **)PtrVector_GetEnd(
+                     (ItemObj **)PtrVector_GetEnd(
                          &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                               ->ground_items);
                      iiter++)
@@ -11013,11 +11013,11 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
     }
     if (query_result->query_id == 0x53)
     {
-        vector<FilecacheEntryB *>::iterator it =
+        vector<TopGuild *>::iterator it =
             server->mysql_controls->file_cache->pending_guild_writes.begin();
         while (it != server->mysql_controls->file_cache->pending_guild_writes.end())
         {
-            FilecacheEntryB *entry = *it;
+            TopGuild *entry = *it;
             it = server->mysql_controls->file_cache->pending_guild_writes.erase(it);
             delete entry;
         }

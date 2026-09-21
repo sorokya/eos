@@ -201,6 +201,28 @@ affect the bytes; the exact set and order are finalized in Phase 2 by matching
 the linked object set. The `-L` directories mirror the paths in `ilink32.cfg`;
 `Lib/Obj` is required for the VCL `.res` files (for example `Controls.res`).
 
+### Type names are part of the bytes
+
+Borland writes the **spelled** type name into the RTTI descriptor it emits for
+a pointer type (`vector<X,allocator<X> > *`), so both the namespace
+qualification and the class names the reconstruction chooses change `.text`:
+
+- Write the STL containers unqualified (`vector<X>`, not `std::vector<X>`) and
+  include `<vector.h>`, which supplies the `using namespace std;` that
+  `<vector>` suppresses.  Every one of the reference's 43 application
+  container descriptors is unqualified; each `std::` costs 5 bytes.
+- The descriptors are also a **name oracle**.  Pair the reference's container
+  descriptors against ours and any leftover on each side names a type we got
+  wrong: that is how `FilecacheEntry`/`FilecacheEntryB` were identified as
+  `TopPlayer`/`TopGuild`, and how the ground-item struct turned out to be
+  `ItemObj` while the *map record* is (improbably, but unambiguously) called
+  `ChestItem`.
+  `scripts/coverage.py` plus a `vector<...>` string diff of the two images is
+  the whole procedure.
+
+When you rename a reconstructed class, update `UNIT_CLASS_ALIASES` in
+`scripts/verify_units.py` or its functions silently stop being scored.
+
 ### Compiler flags
 
 Five flags are required for byte fidelity, all passed by `scripts/build.sh`

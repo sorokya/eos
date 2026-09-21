@@ -5,7 +5,7 @@
 
 #pragma package(smart_init)
 
-MapContainer::MapContainer(int map_id, int width, int height)
+ChestItem::ChestItem(int map_id, int width, int height)
 {
     rid = map_id;
     this->width = width;
@@ -37,6 +37,6 @@ MapContainer::MapContainer(int map_id, int width, int height)
     chest_list.clear();
 }
 
-MapContainer::~MapContainer()
+ChestItem::~ChestItem()
 {
 }

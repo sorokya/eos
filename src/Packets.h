@@ -88,10 +88,10 @@ class Server
 
 // Cross-unit operations this unit defines as free functions; the controllers
 // and Mainform reference these exact mangled names.
-MapContainer *MapVector_Begin(Mapcontrol *map_control);
-MapContainer *MapVector_End(Mapcontrol *map_control);
+ChestItem *MapVector_Begin(Mapcontrol *map_control);
+ChestItem *MapVector_End(Mapcontrol *map_control);
 int Mapcontrol_GetCount(Mapcontrol *map_control);
-MapContainer *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
+ChestItem *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
 void Game_Tick(Server *server);
 void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data);
 void Server_Shutdown(Server *server);
@@ -173,7 +173,7 @@ void Server_BroadcastToMap(
 
 int Math_Abs(int value);
 
-MapContainer *Mapcontrol_Iter_Front(Mapcontrol *map_control);
+ChestItem *Mapcontrol_Iter_Front(Mapcontrol *map_control);
 void *Map_NpcIter_Begin(void *npc_list);
 void *Map_NpcIter_End(void *npc_list);
 void *GroundItemPtrVector_Begin(void *list);

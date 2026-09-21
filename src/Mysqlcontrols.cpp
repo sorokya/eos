@@ -154,7 +154,7 @@ void Mysqlcontrols::LoadCachedPlayers(Mysqlcontrols *self)
 {
     while (GUI->myquery->Eof == false)
     {
-        FilecacheEntry *entry = new FilecacheEntry;
+        TopPlayer *entry = new TopPlayer;
         entry->privilege = GUI->myquery->Fields->FieldByName("privilege")->AsInteger;
         entry->name = GUI->myquery->Fields->FieldByName("name")->AsString;
         entry->title = GUI->myquery->Fields->FieldByName("title")->AsString;
@@ -171,7 +171,7 @@ void Mysqlcontrols::LoadCachedGuilds(Mysqlcontrols *self)
 {
     while (GUI->myquery->Eof == false)
     {
-        FilecacheEntryB *entry = new FilecacheEntryB;
+        TopGuild *entry = new TopGuild;
         entry->ident_guild = GUI->myquery->Fields->FieldByName("ident_guild")->AsString;
         entry->guild = GUI->myquery->Fields->FieldByName("guild")->AsString;
         entry->exptotal = GUI->myquery->Fields->FieldByName("exptotal")->AsInteger;

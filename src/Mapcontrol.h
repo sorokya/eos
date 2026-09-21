@@ -47,7 +47,7 @@ struct GroundItemInfo
 };
 
 // Layout recovered from the reference constructor (Mapcontrol unit,
-// 0x47ad3c..0x487d38). The constructor runs the vector<MapContainer>
+// 0x47ad3c..0x487d38). The constructor runs the vector<ChestItem>
 // default constructor first (member auto-init), then allocates the 8-byte
 // encode scratch buffer, stores the Settings pointer and copies the start/
 // rescue/map-limit settings, then loads every map. sizeof is 0x44 (pinned by
@@ -55,7 +55,7 @@ struct GroundItemInfo
 class Mapcontrol
 {
   public:
-    vector<MapContainer> maps; // +0x00
+    vector<ChestItem> maps; // +0x00
     unsigned short start_map;       // +0x20
     int start_x;                    // +0x24
     int start_y;                    // +0x28
@@ -77,15 +77,15 @@ class Mapcontrol
     static void Mapcontrol_DecPlayerCount(Mapcontrol *self, int map_id);
     static void Mapcontrol_SetArenaBlock(Mapcontrol *self, int map_id, int block);
     static void
-    Mapcontrol_SetTileBits(Mapcontrol *self, MapContainer *map, int x, int y, int code);
+    Mapcontrol_SetTileBits(Mapcontrol *self, ChestItem *map, int x, int y, int code);
     static int
     Mapcontrol_CountNpcsChasingPlayer(Mapcontrol *self, int map_id, int player_id);
     static bool Mapcontrol_AggroChildNpcs(Mapcontrol *self, int map_id);
     static bool Mapcontrol_KillChildNpcs(Mapcontrol *self, int map_id);
     static void
-    Mapcontrol_AddTileSpec(Mapcontrol *self, MapContainer *map, int x, int y, int spec);
+    Mapcontrol_AddTileSpec(Mapcontrol *self, ChestItem *map, int x, int y, int spec);
     static void Mapcontrol_AddWarp(Mapcontrol *self,
-                                   MapContainer *map,
+                                   ChestItem *map,
                                    int x,
                                    int y,
                                    int dest_map,
@@ -93,9 +93,9 @@ class Mapcontrol
                                    int dest_x,
                                    int dest_y);
     static void Mapcontrol_AddLockKey(
-        Mapcontrol *self, MapContainer *map, unsigned int x, unsigned int y, int key_id);
+        Mapcontrol *self, ChestItem *map, unsigned int x, unsigned int y, int key_id);
     static void Mapcontrol_GetOrCreateChest(Mapcontrol *self,
-                                            MapContainer *map,
+                                            ChestItem *map,
                                             unsigned int x,
                                             unsigned int y);
     static unsigned char
@@ -105,7 +105,7 @@ class Mapcontrol
     static int
     Mapcontrol_GetChestSlotCount(Mapcontrol *self, int map_id, MapCoord coords);
     static void Mapcontrol_AddChestSpawn(Mapcontrol *self,
-                                         MapContainer *map,
+                                         ChestItem *map,
                                          unsigned int x,
                                          unsigned int y,
                                          int key_id,

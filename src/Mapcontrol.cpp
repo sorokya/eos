@@ -19,9 +19,9 @@
 #define MAP_QUEST_COOLDOWN 10
 #define MAP_GROUND_ITEM_MAX 9
 
-bool Mapcontrol_ParseMapFile(Mapcontrol *self, MapContainer *map, int map_id);
+bool Mapcontrol_ParseMapFile(Mapcontrol *self, ChestItem *map, int map_id);
 
-typedef vector<ChestItem *> GroundItemPtrVector;
+typedef vector<ItemObj *> GroundItemPtrVector;
 
 Mapcontrol::Mapcontrol(Settings *settings)
 {
@@ -327,7 +327,7 @@ void Mapcontrol_AddArenaSpawn(
 }
 
 void Mapcontrol::Mapcontrol_SetTileBits(
-    Mapcontrol *self, MapContainer *map, int x, int y, int code)
+    Mapcontrol *self, ChestItem *map, int x, int y, int code)
 {
     int tile_offset = x * 2 + map->width * 2 * y;
     if (code == 0)
@@ -417,14 +417,14 @@ bool Mapcontrol::Mapcontrol_KillChildNpcs(Mapcontrol *self, int map_id)
 }
 
 void Mapcontrol::Mapcontrol_AddTileSpec(
-    Mapcontrol *self, MapContainer *map, int x, int y, int spec)
+    Mapcontrol *self, ChestItem *map, int x, int y, int spec)
 {
     MapObject value(x, y, spec);
     map->tile_specs.insert(map->tile_specs.end(), value);
 }
 
 void Mapcontrol::Mapcontrol_AddWarp(Mapcontrol *self,
-                                    MapContainer *map,
+                                    ChestItem *map,
                                     int x,
                                     int y,
                                     int dest_map,
@@ -437,7 +437,7 @@ void Mapcontrol::Mapcontrol_AddWarp(Mapcontrol *self,
 }
 
 void Mapcontrol::Mapcontrol_AddLockKey(
-    Mapcontrol *self, MapContainer *map, unsigned int x, unsigned int y, int key_id)
+    Mapcontrol *self, ChestItem *map, unsigned int x, unsigned int y, int key_id)
 {
     bool found = false;
     for (vector<MapObject>::iterator lock_iter = map->legacy_door_key_list.begin();
@@ -459,7 +459,7 @@ void Mapcontrol::Mapcontrol_AddLockKey(
 }
 
 void Mapcontrol::Mapcontrol_GetOrCreateChest(Mapcontrol *self,
-                                             MapContainer *map,
+                                             ChestItem *map,
                                              unsigned int x,
                                              unsigned int y)
 {
@@ -570,7 +570,7 @@ int Mapcontrol::Mapcontrol_GetChestSlotCount(Mapcontrol *self,
 }
 
 void Mapcontrol::Mapcontrol_AddChestSpawn(Mapcontrol *self,
-                                          MapContainer *map,
+                                          ChestItem *map,
                                           unsigned int x,
                                           unsigned int y,
                                           int key_id,
@@ -763,7 +763,7 @@ int Mapcontrol::Mapcontrol_AddGroundItem(Mapcontrol *self,
         x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
         y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
     {
-        ChestItem *item = new ChestItem();
+        ItemObj *item = new ItemObj();
         item->index = Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id;
         item->item_id = item_id;
         item->x = x;
@@ -816,7 +816,7 @@ void Mapcontrol::Mapcontrol_PurgeGroundItemsInRange(Mapcontrol *self,
         }
         else
         {
-            ChestItem *item = *cursor;
+            ItemObj *item = *cursor;
             cursor = ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
                           ->ground_items)
                          ->erase(cursor);
@@ -866,7 +866,7 @@ void Mapcontrol::Mapcontrol_LoadMaps(Mapcontrol *self)
     {
         if (!Mapcontrol_LoadMap(self, map_id))
         {
-            MapContainer value(map_id, 0, 0);
+            ChestItem value(map_id, 0, 0);
             self->maps.insert(self->maps.end(), value);
         }
     }
@@ -1281,7 +1281,7 @@ void Mapcontrol_RemoveGroundItem(Mapcontrol *self, int map_id, int index)
         {
             if ((*cursor)->index == index)
             {
-                ChestItem *item = *cursor;
+                ItemObj *item = *cursor;
                 ((GroundItemPtrVector *)&Mapcontrol_GetByIndex(self, map_id - 1)
                      ->ground_items)
                     ->erase(cursor);
@@ -1347,7 +1347,7 @@ String Mapcontrol_ReadRawFile(Mapcontrol *self, int map_id)
 
 // BEGIN GENERATED STUBS (scripts/genstubs.py)
 #pragma warn - 8057
-bool Mapcontrol_ParseMapFile(Mapcontrol *self, MapContainer *map, int map_id)
+bool Mapcontrol_ParseMapFile(Mapcontrol *self, ChestItem *map, int map_id)
 {
     String map_buf;
     String local_c;
@@ -1604,7 +1604,7 @@ bool Mapcontrol::Mapcontrol_LoadMap(Mapcontrol *self, int map_id)
         delete[] buf;
         if (map_buf[1] != 'E' || map_buf[2] != 'M' || map_buf[3] != 'F')
             return false;
-        MapContainer map(map_id,
+        ChestItem map(map_id,
                          Mapcontrol::DecodeNumber(self, map_buf.SubString(0x26, 1)) + 1,
                          Mapcontrol::DecodeNumber(self, map_buf.SubString(0x27, 1)) + 1);
         map.rid1 = Mapcontrol::DecodeNumber(self, map_buf.SubString(4, 2));

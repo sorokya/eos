@@ -30,7 +30,7 @@ void DoorController::Tick(DoorController *self)
     if (ms / MS_PER_SECOND + days * SECONDS_PER_DAY > 1)
         elapsed = true;
 
-    for (vector<MapContainer>::iterator map_iter = self->map_control->maps.begin();
+    for (vector<ChestItem>::iterator map_iter = self->map_control->maps.begin();
          map_iter != self->map_control->maps.end();
          map_iter++)
     {

@@ -5,10 +5,10 @@
 
 #pragma package(smart_init)
 
-ChestItem::ChestItem()
+ItemObj::ItemObj()
 {
 }
 
-ChestItem::~ChestItem()
+ItemObj::~ItemObj()
 {
 }

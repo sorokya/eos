@@ -10,12 +10,15 @@
 #include "Mapwarp.h"
 #include "Npc.h"
 
-// Layout recovered from the reference (MapContainer unit, 0x487e84..0x488474). The
+// The map record. The name is ChestItem, not anything map-ish: it is the only
+// struct left to pair with the reference's unmatched by-value RTTI descriptor
+// `vector<ChestItem,allocator<ChestItem> > *`, which is Mapcontrol's map list.
+// Layout recovered from the reference (Map unit, 0x487e84..0x488474). The
 // constructor stores rid/width/height and the scalar flags, constructs the
 // vector and AnsiString members in declaration order, then resizes the
 // walkability bit array (0x130) to width*height*2 bits and clears the two
 // tile-spec lists. Every offset is pinned by the constructor/destructor stores.
-struct MapContainer
+struct ChestItem
 {
     unsigned short rid;                          // +0x00
     short rid1;                                  // +0x02
@@ -48,7 +51,7 @@ struct MapContainer
     vector<MapChest> chest_list;            // +0x9c
     vector<MapWarp> warp_list;              // +0xbc
     vector<Npc *> npc_list;                 // +0xdc
-    vector<ChestItem *> ground_items;       // +0xfc
+    vector<ItemObj *> ground_items;       // +0xfc
     int next_ground_item_id;                     // +0x11c
     short child_npc_id;                          // +0x120
     bool boss_alive;                             // +0x122
@@ -59,8 +62,8 @@ struct MapContainer
     int player_count;                            // +0x12c
     vector<bool> tile_bits;                 // +0x130
 
-    MapContainer(int map_id, int width, int height);
-    ~MapContainer();
+    ChestItem(int map_id, int width, int height);
+    ~ChestItem();
 };
 
 #endif

@@ -40,7 +40,7 @@ BENIGN_MISS = re.compile(r"\$bd[et]r?\$|\$bdt\$")
 # `@@Unit@Initialize` export). Map each such unit to the class-name prefix its
 # functions actually use.
 UNIT_CLASS_ALIASES = {
-    "Map": ["MapContainer"],
+    "Map": ["ChestItem"],
     "Mapwarp": ["MapWarp"],
     "Mapobject": ["MapObject"],
     "Mapchest": ["MapChest"],
@@ -53,7 +53,7 @@ UNIT_CLASS_ALIASES = {
     "Eventcontrol": ["EventController"],
     "Npccontrol": ["NpcController"],
     "Jukeboxcontrol": ["JukeBoxController"],
-    "Filecache": ["FileCache"],
+    "Filecache": ["FileCache", "TopPlayer", "TopGuild"],
     "Killcounters": ["KillCounters"],
     "Questtype": ["QuestType"],
     "Questcounter": ["QuestCounter"],
@@ -61,7 +61,7 @@ UNIT_CLASS_ALIASES = {
     "Questcounters": ["QuestCounters"],
     "Packets": ["Server"],
     "Banned": ["Asocketban"],
-    "Itemground": ["ChestItem"],
+    "Itemground": ["ItemObj"],
     "Learnitem": ["LearnItemVal"],
     "Npcdrop": ["NpcDropItem"],
     "Shopcraft": ["ShopCraftVal"],

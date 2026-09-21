@@ -67,7 +67,7 @@ String EventController::EncodeNumber(EventController *self, unsigned int value, 
 
 void EventController::Tick(EventController *self)
 {
-    for (MapContainer *map_iter = MapVector_Begin(self->map_control);
+    for (ChestItem *map_iter = MapVector_Begin(self->map_control);
          map_iter != MapVector_End(self->map_control);
          map_iter++)
     {

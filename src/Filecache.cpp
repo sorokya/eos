@@ -7,19 +7,19 @@
 
 #pragma package(smart_init)
 
-FilecacheEntry::FilecacheEntry()
+TopPlayer::TopPlayer()
 {
 }
 
-FilecacheEntry::~FilecacheEntry()
+TopPlayer::~TopPlayer()
 {
 }
 
-FilecacheEntryB::FilecacheEntryB()
+TopGuild::TopGuild()
 {
 }
 
-FilecacheEntryB::~FilecacheEntryB()
+TopGuild::~TopGuild()
 {
 }
 
@@ -70,7 +70,7 @@ void FileCache::LoadPlayerCache(FileCache *self)
     for (int i = 0; i < self->string_list->Count; i++)
     {
         self->field_0x54 = self->string_list->Strings[i];
-        FilecacheEntry *entry = new FilecacheEntry;
+        TopPlayer *entry = new TopPlayer;
         entry->privilege = StrToInt(NextToken(self));
         entry->name = NextToken(self);
         entry->title = NextToken(self);
@@ -94,7 +94,7 @@ void FileCache::LoadGuildCache(FileCache *self)
     for (int i = 0; i < self->string_list->Count; i++)
     {
         self->field_0x54 = self->string_list->Strings[i];
-        FilecacheEntryB *entry = new FilecacheEntryB;
+        TopGuild *entry = new TopGuild;
         entry->ident_guild = NextToken(self);
         entry->guild = NextToken(self);
         entry->exptotal = StrToInt(NextToken(self));
@@ -107,8 +107,8 @@ void FileCache::UpdatePlayerCache(FileCache *self, char *record)
 {
     if (self->field_0x58 < *(int *)(record + 0xc0) && *(int *)(record + 0x98) == 0)
     {
-        vector<FilecacheEntry *>::iterator it;
-        FilecacheEntry *last = 0;
+        vector<TopPlayer *>::iterator it;
+        TopPlayer *last = 0;
         bool found = false;
         int min_experience = 0x7ffffff8;
         for (it = self->pending_player_writes.begin();
@@ -157,7 +157,7 @@ void Database_FlushCache(FileCache *self)
     self->string_list->Clear();
     if (self->pending_player_writes.size() > 99)
     {
-        for (vector<FilecacheEntry *>::iterator it =
+        for (vector<TopPlayer *>::iterator it =
                  self->pending_player_writes.begin();
              it != self->pending_player_writes.end();
              it++)
@@ -175,7 +175,7 @@ void Database_FlushCache(FileCache *self)
     self->string_list->Clear();
     if (self->pending_guild_writes.size() > 99)
     {
-        for (vector<FilecacheEntryB *>::iterator it =
+        for (vector<TopGuild *>::iterator it =
                  self->pending_guild_writes.begin();
              it != self->pending_guild_writes.end();
              it++)

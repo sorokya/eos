@@ -4,7 +4,7 @@
 #include <vector.h>
 #include <Classes.hpp>
 
-class FilecacheEntry
+class TopPlayer
 {
   public:
     int privilege;
@@ -14,11 +14,11 @@ class FilecacheEntry
     int experience;
     int gender;
 
-    FilecacheEntry();
-    ~FilecacheEntry();
+    TopPlayer();
+    ~TopPlayer();
 };
 
-class FilecacheEntryB
+class TopGuild
 {
   public:
     String ident_guild;
@@ -27,8 +27,8 @@ class FilecacheEntryB
     int exphigh;
     int members;
 
-    FilecacheEntryB();
-    ~FilecacheEntryB();
+    TopGuild();
+    ~TopGuild();
 };
 
 class FileCache
@@ -39,8 +39,8 @@ class FileCache
     int accounts_count;
     int characters_count;
     int guilds_count;
-    vector<FilecacheEntry *> pending_player_writes;
-    vector<FilecacheEntryB *> pending_guild_writes;
+    vector<TopPlayer *> pending_player_writes;
+    vector<TopGuild *> pending_guild_writes;
     TStringList *string_list;
     String field_0x54;
     int field_0x58;

@@ -586,7 +586,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
     bool flag = true;
     npc_control->act_counter++;
     npc_control->regen_counter++;
-    for (MapContainer *map = MapVector_Begin(npc_control->map_control);
+    for (ChestItem *map = MapVector_Begin(npc_control->map_control);
          map != MapVector_End(npc_control->map_control);
          map++)
     {

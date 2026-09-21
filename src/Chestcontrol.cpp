@@ -28,7 +28,7 @@ ChestController::~ChestController()
 
 void ChestController::Tick(ChestController *self)
 {
-    MapContainer *map;
+    ChestItem *map;
     MapChest *chest;
     MapItem *item;
     int max_items;
