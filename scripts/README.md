@@ -72,6 +72,15 @@ produced.
   `units.tsv` order) and link `build/GameServer.exe`, then apply the timestamp
   normalization. `MAP=1` adds `ilink32 -s` and writes `build/GameServer.map`
   (the detailed segment map that `unitmap.py --map` consumes).
+  Environment knobs for link experiments — a full build is ~4 min, a relink
+  ~12 s, so use these when only the link line is under test:
+  - `LINK_ONLY=1` — skip the compiles and the `.rc`, reuse `build/obj`.
+  - `VLIB=...` — the library list (default `import32.lib cp32mt.lib vcl50.lib
+    vcldb50.lib vclbde50.lib`; **never** add `cw32mt.lib`, see AGENTS.md).
+  - `LPATH=...` — the `-L` search path (`Lib\Debug` must precede
+    `Lib\Release`; swapping them drops ~85 KB of `.text` and is wrong).
+  - `HEADOBJ=...` — the object(s) listed before the units, i.e. between
+    `c0w32.obj` and `Mainform.obj` (default: `Lib\Obj\sysinit.obj`).
 - **`build_asm.sh`** — emit a bcc32 `-S` listing for every unit into
   `build/<Unit>.asm` (one container run). Incremental: a unit is recompiled only
   when its `.cpp` or any header is newer than its listing (`FORCE=1` to rebuild
