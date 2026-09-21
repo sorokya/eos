@@ -465,8 +465,8 @@ void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
             quest->states.insert(quest->states.end(), self->field_0x2c);
             self->field_0x42 = 0;
             self->field_0x3a = 0;
+            return;
         }
-        return;
     }
 }
 

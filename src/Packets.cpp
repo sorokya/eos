@@ -7580,6 +7580,7 @@ void Player_EvaluateQuestRules(Server *server,
                         Player_ApplyQuestActions(server, player, tracker, true);
                         return;
                     }
+                    continue;
                 }
                 if ((*iter)->rule == 4)
                 {
@@ -7590,38 +7591,36 @@ void Player_EvaluateQuestRules(Server *server,
                         Player_ApplyQuestActions(server, player, tracker, true);
                         return;
                     }
+                    continue;
                 }
             }
             if ((*iter)->rule == 8)
             {
-                if (index <= 4)
+                if (index > 4)
+                    continue;
+                int a1 = (*iter)->args[0];
+                int a2 = (*iter)->args[1];
+                if (arg != a1)
+                    continue;
+                tracker->counters[index]++;
+                if (tracker->counters[index] >= a2)
                 {
-                    int a1 = (*iter)->args[0];
-                    int a2 = (*iter)->args[1];
-                    if (arg == a1)
-                    {
-                        tracker->counters[index]++;
-                        if (tracker->counters[index] >= a2)
-                        {
-                            tracker->state_index = *(short *)&(*iter)->goto_state_index;
-                            Player_ApplyQuestActions(server, player, tracker, true);
-                            return;
-                        }
-                    }
+                    tracker->state_index = *(short *)&(*iter)->goto_state_index;
+                    Player_ApplyQuestActions(server, player, tracker, true);
+                    return;
                 }
             }
             if ((*iter)->rule == 9)
             {
-                if (index <= 4)
+                if (index > 4)
+                    continue;
+                int a1 = (*iter)->args[0];
+                tracker->counters[index]++;
+                if (tracker->counters[index] >= a1)
                 {
-                    int a1 = (*iter)->args[0];
-                    tracker->counters[index]++;
-                    if (tracker->counters[index] >= a1)
-                    {
-                        tracker->state_index = *(short *)&(*iter)->goto_state_index;
-                        Player_ApplyQuestActions(server, player, tracker, true);
-                        return;
-                    }
+                    tracker->state_index = *(short *)&(*iter)->goto_state_index;
+                    Player_ApplyQuestActions(server, player, tracker, true);
+                    return;
                 }
             }
             if ((*iter)->rule == 10)

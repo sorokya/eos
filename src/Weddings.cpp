@@ -255,17 +255,20 @@ void WeddingController::Tick(WeddingController *self)
                                               data);
                     }
                 }
-                if ((*it)->countdown == 0x12 && BothPresent(self, *it))
+                if ((*it)->countdown == 0x12)
                 {
-                    BroadcastPriestLine(
-                        self,
-                        *it,
-                        "Let these rings be given and received as a token of "
-                        "your affection, sincerity and trust in one another.");
-                }
-                else
-                {
-                    (*it)->countdown == 1;
+                    if (BothPresent(self, *it))
+                    {
+                        BroadcastPriestLine(
+                            self,
+                            *it,
+                            "Let these rings be given and received as a token of "
+                            "your affection, sincerity and trust in one another.");
+                    }
+                    else
+                    {
+                        (*it)->countdown == 1;
+                    }
                 }
                 if ((*it)->countdown == 0xc)
                 {

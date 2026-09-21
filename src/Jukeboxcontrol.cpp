@@ -114,8 +114,8 @@ bool JukeBoxController::TryPlayTrack(JukeBoxController *self, int map_id, String
             it->active = 1;
             it->last_play = Now();
             it->track_name = track;
-            break;
         }
+        break;
     }
     return played;
 }
