@@ -36,8 +36,36 @@ def text_section(path):
 
 
 def mask_for(buf):
-    """1 = compare this byte, 0 = wildcard (part of an applied address)."""
+    """1 = compare this byte, 0 = wildcard (an applied relocation).
+
+    In a linked image both kinds of relocation have been applied and must be
+    wildcarded before comparing against an object:
+
+      * absolute dwords (any little-endian value that looks like an image
+        address), and
+      * the rel32 operand of a direct ``call``/``jmp``/``jcc`` (``e8``/``e9``/
+        ``0f 8x``), whose displacement is small and looks nothing like an
+        address.
+
+    Missing the second class made an earlier run report "no match" for a
+    region full of calls; it is the more important of the two.
+    """
     m = bytearray(b'\x01' * len(buf))
+    i = 0
+    while i < len(buf):
+        op = buf[i]
+        if op in (0xE8, 0xE9) and i + 5 <= len(buf):
+            for k in range(1, 5):
+                m[i + k] = 0
+            i += 5
+            continue
+        if op == 0x0F and i + 6 <= len(buf) and 0x80 <= buf[i + 1] <= 0x8F:
+            for k in range(2, 6):
+                m[i + k] = 0
+            i += 6
+            continue
+        i += 1
+    # absolute image addresses (any alignment)
     i = 0
     while i + 4 <= len(buf):
         v = struct.unpack_from('<I', buf, i)[0]
@@ -56,7 +84,7 @@ def main():
     ap.add_argument('--start', required=True)
     ap.add_argument('--end', required=True)
     ap.add_argument('--roots', nargs='*', default=['ref/Borland5', 'build'])
-    ap.add_argument('--min-anchor', type=int, default=10)
+    ap.add_argument('--min-anchor', type=int, default=6)
     args = ap.parse_args()
 
     d, tva, tro = text_section(args.exe)
@@ -88,7 +116,7 @@ def main():
 
     files = []
     for root in args.roots:
-        for ext in ('obj', 'lib'):
+        for ext in ('obj', 'OBJ', 'lib', 'LIB'):
             files += glob.glob(f'{root}/**/*.{ext}', recursive=True)
     print(f'searching {len(files)} files ...')
     found = []
