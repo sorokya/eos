@@ -1124,12 +1124,34 @@ They are recorded here so no future pass mistakes them for work:
   `member`/`player` comparisons and in `member->experience += exp` (reference
   loads the loop-derived value first; we load `player`/`exp` first). So a single
   whole-function allocator shift flips all 13, not a per-loop spelling.
-  - **Driver is loop2's String code, as register pressure.** Deleting the whole
+  - **Driver is loop2's String code, as register pressure — and the function
+    sits exactly ONE statement over the threshold.** Deleting the whole
     `if (levelup > 0)` stats block *or* the three `pkt.Insert` calls flips both
-    loops to the reference pattern; deleting one insert, the `Client_SendEncoded`
-    call, or `leveled = true;` does not (threshold effect). The reference has all
-    of it, so the shift is a bcc allocator artifact, not a missing/extra
-    statement.
+    loops to the reference pattern. Correcting an earlier note here: deleting a
+    *single* insert flips it too — verified for the third `pkt.Insert` and for
+    the fourth `stats.Insert`, either one on its own. Seven `X.Insert(
+    EO_EncodeNumber(...), X.Length() + 1)` statements are one too many; six give
+    the reference's order. The reference has all seven, so the shift is a bcc
+    artifact, not a missing/extra statement.
+  - **It is not the stack layout.** The flip tracks the statement count, not the
+    slot: `member` at `[ebp-100]` with six inserts is reference-order, while
+    `[ebp-96]` with seven is ours, and padding the frame with extra `int` locals
+    (member down to `[ebp-104]`) keeps our order. Frame size, slot assignment and
+    the EH marker stream are byte-identical to the reference either way. It is
+    also not a per-*file* counter: inserting another String-using function
+    immediately before `Party_ShareExp` changes nothing, and neither does source
+    line layout (collapsing the wrapped statements onto single lines).
+  - **bcc is source-order-sensitive in loop1 and saturated in loop2.** Swapping
+    the operands of loop1's `member->map_id == player->map_id` *does* swap the
+    emitted load order (and breaks the match, 13 -> 15). The same swap in loop2's
+    two comparisons changes nothing at all. That is the cleanest evidence that
+    the loop2 sites are not a spelling problem: the compiler has stopped
+    following the source there. It also gives a cheap probe for any future
+    attempt -- if loop1 stops responding to an operand swap, the state changed.
+  - **No compiler flag reaches it.** Beyond the flags already in CFLAGS:
+    `-3 -4 -5 -6`, `-r-`, `-O -Oc -Ov`, `-Vx -Ve -Vb -Vv`, `-b-`, `-K`, `-Ff`,
+    `-Z`, `-vi-` all leave the 13 untouched (`-vi` makes it far worse, which is
+    the expected confirmation that `-v`'s inline suppression is required).
   - **Probe matrix (~180 variants, all byte-preserving) leaves the 13 unchanged:**
     accumulate forms (`+=`, `= x + y`, `= y + x`), comparison operand swaps,
     `&&`-wrapper vs split `if` vs `continue`, positive guards, `for`/`while`/
@@ -1139,7 +1161,11 @@ They are recorded here so no future pass mistakes them for work:
     declaration-without-init + later assign, `register`/`const`/`volatile`,
     `sizeof` no-ops, unread locals at every scope, separate named locals, and
     `unsigned` field/element types. Only byte-*changing* edits flip the pattern
-    (e.g. adding a local), and those break the byte match.
+    (e.g. adding a local), and those break the byte match. This pass added:
+    `String pkt("")` / `String stats(expr)` direct-init (identical or worse),
+    `exp += exp / members` / `exp /= members` (much worse -- 298 mismatched, so
+    the `exp = exp / members` spelling is pinned), and rewriting loop2's guard as
+    a positive `&&` with the body nested (identical).
   - Frame, EH scope-marker stream, and ECT are byte-identical; `--strict-operands`
     is now clean (the else branch was corrected to call
     `Server_BroadcastToPartyOnMap` `0x463750`, the reference's callee, instead of
