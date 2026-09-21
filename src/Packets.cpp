@@ -5774,8 +5774,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (player->guild_rank_id > 2)
                 return true;
-            int use_id = EO_DecodeNumber(server, data.SubString(1, 2));
-            Player *target = Players::Players_GetById(server->players, use_id);
+            Player *target = Players::Players_GetById(
+                server->players, EO_DecodeNumber(server, data.SubString(1, 2)));
             if (target == NULL)
                 return true;
             if (target->guild_tag.Length() > 1)
@@ -6428,6 +6428,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Trainer)
                 return true;
+            int behavior_id = type_info.behavior_id;
             player->session_token = type_info.behavior_id;
             Client_SendEncoded(server,
                                player,
