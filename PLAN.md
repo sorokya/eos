@@ -1016,24 +1016,25 @@ Tracked so they are not mistaken for done:
     sites; **no `std::string`**; no embedded stubs. Risks: the five near-identical
     arm prologues (transcribe from a spec) and the action-numbering divergence
     against the Rust names. The shared `0x58b60c` skill/item singleton still needs
-    its type identified. **Progress: the `action == 1` arm is transcribed** and the
-    `action == 0x1f` arm's chunks 01-09 are written (`0x46ac32..0x46c86d`:
-    guards/decode, time/base, parameter decode, the player-target heal and
-    `skill_type==1` damage/element path, chunk08's death-notify +
-    `Recover/Player` packet + `Player_Respawn` + the NPC-branch loop setup, and
-    chunk09's NPC loop head with its `Server_BroadcastNearTile` reply). Per-chunk
-    `compare_asm.py` structural match (addresses canonicalized, `[ebp-N]`
-    wildcarded, EH scope markers exact) passes for chunks 01-08 and for chunk09
-    except the shared-return block placement, which depends on the still-unwritten
-    loop tail (chunks 10-15: NPC damage/element/reply, quest/exp, loop tail).
-    Ours is 1889 instructions / frame `-0x104` vs the reference's 4084 / `-0x2c0`;
-    `--stack-search` best aligned prefix is only 39, so the offset-based score is
-    not yet meaningful. `--strict-operands` reports 16 call differences that are
-    all positional offsets from the incomplete body; every chunk08/09 callee
-    (`NpcValues::GetType`, `Server_InViewRange`, `Refresh_BuildReply`,
-    `Server_BroadcastNearTile`, `Client_SendEncoded`, `Player::IsPartyMember`,
-    `Player_HpPercent`, `Player_Respawn`, `EO_EncodeNumber`, the AnsiString RTL)
-    was verified by name. Arm-1 callees remain
+    its type identified. **Progress: all 6 dispatch arms are written** (`1`,
+    `0x1e`/TargetGroup, `0x1f`, `0x21`/TargetSelf, `0xa`/Use, fall-through
+    `return 0`); the true end is `0x46ee3c` (the stored `0x46edd9` truncates the
+    tail). Frame `-0x2c0` and all 150 EH scope markers match exactly.
+    `compare_asm.py build/Packets.asm Spell_Execute
+    '@@Spell_Execute$qp6Serverp6Playerip17System@AnsiString' 0x46a9b0 0x46ee3c
+    --frame-wild --strict-operands` reports **32 hunks** (4079 ref / 4089 our
+    instructions), all floor: 23 are a `-156`/`-160` stack-slot swap between the
+    `Refresh_BuildReply` temporary and the NPC not-dead `reply` (bcc's allocator;
+    wrapping either in a block made it worse, 119-120 hunks), 2 are register
+    allocation (the `chase_target_id` reload, an `eax`/`ecx` mirror), and 7 are
+    compiler basic-block layout (the `map_type != 3` and `type_info.type >= 6`
+    early `return 1`s sit inline instead of at the reference's far shared tail,
+    and the pkt-block return then saves/restores `eax` instead of falling through
+    that tail). Fixed this pass: the bare block around the damage `pkt` (declaring
+    it in the `skill_type==1` scope moved its slot `-112` -> the reference's
+    `-104`; hunks 64 -> 32), `(unsigned short)(*iter)->boss > 0` at both `boss`
+    guards, and `(unsigned short)...->child_npc_id` (`movzx`, not `movsx`).
+    Arm-1 callees remain
     `Player_HasSpellId` `0x40cc80`, `Server_BroadcastNearby` `0x463f34`,
     `EO_EncodeNumber` `0x470b9c`, `EO_DecodeNumber` `0x470de8`,
     `SkillValues::GetCastTime` `0x4a5268`; `Now`/`DateTimeToTimeStamp` are the

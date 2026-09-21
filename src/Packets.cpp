@@ -12497,32 +12497,30 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                     Server_BroadcastToParty(
                         server, target, PacketAction_Agree, PacketFamily_Party, hp_pkt);
                 }
-                {
-                    String pkt = EO_EncodeNumber(server, caster->player_id, 2);
-                    pkt.Insert(EO_EncodeNumber(server, target->player_id, 2),
-                               pkt.Length() + 1);
-                    pkt.Insert(EO_EncodeNumber(server, damage, 3), pkt.Length() + 1);
-                    pkt.Insert(EO_EncodeNumber(server, caster->direction, 1),
-                               pkt.Length() + 1);
-                    pkt.Insert(EO_EncodeNumber(server, Player::HpPercent(target), 1),
-                               pkt.Length() + 1);
-                    if (target->hp < 1)
-                        pkt.Insert(EO_EncodeNumber(server, 1, 1), pkt.Length() + 1);
-                    else
-                        pkt.Insert(EO_EncodeNumber(server, 0, 1), pkt.Length() + 1);
-                    pkt.Insert(EO_EncodeNumber(server, spell_id, 2), pkt.Length() + 1);
-                    Server_BroadcastNearby(
-                        server, target, PacketAction_Admin, PacketFamily_Avatar, pkt);
-                    Client_SendEncoded(
-                        server, target, PacketAction_Admin, PacketFamily_Avatar, pkt);
-                    pkt = EO_EncodeNumber(server, target->hp, 2);
-                    pkt.Insert(EO_EncodeNumber(server, target->tp, 2), pkt.Length() + 1);
-                    pkt.Insert(EO_EncodeNumber(server, 0, 2), pkt.Length() + 1);
-                    Client_SendEncoded(
-                        server, target, PacketAction_Player, PacketFamily_Recover, pkt);
-                    if (target->hp < 1)
-                        Player_Respawn(server, target);
-                }
+                String pkt = EO_EncodeNumber(server, caster->player_id, 2);
+                pkt.Insert(EO_EncodeNumber(server, target->player_id, 2),
+                           pkt.Length() + 1);
+                pkt.Insert(EO_EncodeNumber(server, damage, 3), pkt.Length() + 1);
+                pkt.Insert(EO_EncodeNumber(server, caster->direction, 1),
+                           pkt.Length() + 1);
+                pkt.Insert(EO_EncodeNumber(server, Player::HpPercent(target), 1),
+                           pkt.Length() + 1);
+                if (target->hp < 1)
+                    pkt.Insert(EO_EncodeNumber(server, 1, 1), pkt.Length() + 1);
+                else
+                    pkt.Insert(EO_EncodeNumber(server, 0, 1), pkt.Length() + 1);
+                pkt.Insert(EO_EncodeNumber(server, spell_id, 2), pkt.Length() + 1);
+                Server_BroadcastNearby(
+                    server, target, PacketAction_Admin, PacketFamily_Avatar, pkt);
+                Client_SendEncoded(
+                    server, target, PacketAction_Admin, PacketFamily_Avatar, pkt);
+                pkt = EO_EncodeNumber(server, target->hp, 2);
+                pkt.Insert(EO_EncodeNumber(server, target->tp, 2), pkt.Length() + 1);
+                pkt.Insert(EO_EncodeNumber(server, 0, 2), pkt.Length() + 1);
+                Client_SendEncoded(
+                    server, target, PacketAction_Player, PacketFamily_Recover, pkt);
+                if (target->hp < 1)
+                    Player_Respawn(server, target);
                 return 1;
             }
             return 1;
@@ -12659,7 +12657,7 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                                            caster->element_resistances[6],
                                            (*iter)->element_weakness_damage_table[4]));
                 }
-                if ((*iter)->boss != 0)
+                if ((unsigned short)(*iter)->boss > 0)
                     Mapcontrol::Mapcontrol_AggroChildNpcs(server->map_control,
                                                           caster->map_id);
                 (*iter)->aggressive = true;
@@ -12691,16 +12689,17 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                     *(TTimeStamp *)&(*iter)->nDeath_ms = DateTimeToTimeStamp(now);
                     (*iter)->chase_target_id = -1;
                     (*iter)->alive = false;
-                    if ((*iter)->boss > 0 && Mapcontrol::Mapcontrol_KillChildNpcs(
-                                                 server->map_control, caster->map_id))
+                    if ((unsigned short)(*iter)->boss > 0 &&
+                        Mapcontrol::Mapcontrol_KillChildNpcs(server->map_control,
+                                                             caster->map_id))
                         Server_BroadcastToMap(
                             server,
                             caster->map_id,
                             PacketAction_Junk,
                             PacketFamily_Npc,
                             EO_EncodeNumber(server,
-                                            Mapcontrol_GetByIndex(server->map_control,
-                                                                  caster->map_id - 1)
+                                            (unsigned short)Mapcontrol_GetByIndex(
+                                                server->map_control, caster->map_id - 1)
                                                 ->child_npc_id,
                                             2));
                     String reply = EO_EncodeNumber(server, spell_id, 2);
