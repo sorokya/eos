@@ -95,56 +95,67 @@ def main():
     print(f'region {args.start}-{args.end}: {len(pat)} bytes; '
           f'{mask.count(0)} bytes wildcarded as addresses')
 
-    # longest wildcard-free run -> anchor
-    best = (0, 0)
+    # All maximal wildcard-free runs become anchors. Using only the longest one
+    # is fragile: linker padding at the region's start (or any single byte the
+    # object stores differently) makes that one anchor absent from the object
+    # even though the code is there, producing a false "no match".
+    runs = []
     i = 0
     while i < len(mask):
         if mask[i]:
             j = i
             while j < len(mask) and mask[j]:
                 j += 1
-            if j - i > best[0]:
-                best = (j - i, i)
+            if j - i >= args.min_anchor:
+                runs.append((j - i, i))
             i = j
         else:
             i += 1
-    alen, aoff = best
-    print(f'longest wildcard-free run: {alen} bytes at +{aoff}')
-    if alen < args.min_anchor:
-        raise SystemExit('anchor too short to search reliably')
-    anchor = pat[aoff:aoff + alen]
+    if not runs:
+        raise SystemExit('no wildcard-free anchor long enough to search')
+    runs.sort(reverse=True)
+    print(f'{len(runs)} anchor candidates, longest {runs[0][0]} bytes at +{runs[0][1]}')
 
     files = []
     for root in args.roots:
         for ext in ('obj', 'OBJ', 'lib', 'LIB'):
             files += glob.glob(f'{root}/**/*.{ext}', recursive=True)
     print(f'searching {len(files)} files ...')
-    found = []
-    for f in files:
-        try:
-            b = open(f, 'rb').read()
-        except Exception:
-            continue
-        st = 0
-        while True:
-            j = b.find(anchor, st)
-            if j < 0:
-                break
-            st = j + 1
-            p = j - aoff
-            if p < 0 or p + len(pat) > len(b):
+
+    # Score every anchor hit by how many unmasked bytes match, and report the
+    # best score per file. An exact full-region match is not required: the
+    # linked region can include linker padding at its start, so requiring the
+    # whole range would reject genuine hits.
+    total = sum(mask)
+    best = {}
+    for alen, aoff in runs:
+        anchor = pat[aoff:aoff + alen]
+        for f in files:
+            try:
+                b = open(f, 'rb').read()
+            except Exception:
                 continue
-            ok = True
-            for k in range(len(pat)):
-                if mask[k] and b[p + k] != pat[k]:
-                    ok = False
+            st = 0
+            while True:
+                j = b.find(anchor, st)
+                if j < 0:
                     break
-            if ok:
-                found.append((f, p))
-    for f, p in found:
-        print(f'  MATCH  {f}  at +{p}')
-    if not found:
-        print('  no match')
+                st = j + 1
+                # The linked region may be offset from the object's copy by
+                # linker padding, so slide the region start around the nominal
+                # position and keep the best-scoring alignment.
+                for d in range(-40, 41):
+                    p = j - aoff + d
+                    if p < 0 or p + len(pat) > len(b):
+                        continue
+                    ok = sum(1 for k in range(len(pat)) if not mask[k] or b[p + k] == pat[k])
+                    if ok > best.get(f, (0, 0, 0))[0]:
+                        best[f] = (ok, p, d)
+    if not best:
+        print('  no anchor hit anywhere')
+        return
+    for f, (ok, p, d) in sorted(best.items(), key=lambda kv: -kv[1][0])[:8]:
+        print(f'  {ok:4d}/{total} unmasked bytes match   {f}  (region at +{p}, slide {d:+d})')
 
 
 if __name__ == '__main__':
