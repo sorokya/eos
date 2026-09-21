@@ -7101,11 +7101,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
 }
 
 bool FUN_00462374(Server *server, Player *player, String data);
-void Server_BroadcastToMapExceptSelf(Server *server,
-                                     Player *player,
-                                     unsigned char action,
-                                     unsigned char family,
-                                     String data);
+void Server_BroadcastToPartyOnMap(Server *server,
+                                  Player *player,
+                                  unsigned char action,
+                                  unsigned char family,
+                                  String data);
 
 void Game_Tick(Server *server)
 {
@@ -9172,7 +9172,7 @@ int Party_ShareExp(Server *server, Player *player, int exp)
         Server_BroadcastToMap(
             server, player->map_id, PacketAction_TargetGroup, PacketFamily_Party, pkt);
     else
-        Server_BroadcastToMapExceptSelf(
+        Server_BroadcastToPartyOnMap(
             server, player, PacketAction_TargetGroup, PacketFamily_Party, pkt);
     return exp;
 }

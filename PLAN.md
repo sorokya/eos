@@ -1041,13 +1041,37 @@ Tracked so they are not mistaken for done:
 Two residues are proven to be bcc internals rather than source-form differences.
 They are recorded here so no future pass mistakes them for work:
 
-- **`Party_ShareExp`** (`0x46690c`, 14 mismatched). Every *mnemonic* matches in
-  order; the only differences are register/operand choices. Two structurally
-  identical loops receive *different* allocations in the reference
-  (`ecx/edx` then `edx/eax`), so no single loop-body spelling can flip both, and a
-  scratch probe matrix confirmed the mirror is driven by liveness rather than the
-  statement text. Fifteen probes plus the alias/operand sweeps leave it unchanged.
-  Frame delta is 0 — the locals are already right.
+- **`Party_ShareExp`** (`0x46690c`, 13 mismatched, 1198 B). Every *mnemonic*
+  matches in order; the only differences are register/operand choices, and the
+  reference loops are **not** structurally different (the earlier claim that they
+  receive different allocations is wrong): both reference loops are
+  *index-first* — loop1 `i→edx, player→ecx`, loop2 `i→eax, player→edx` — while
+  both of ours are *base-first* — loop1 `player→edx, i→ecx`, loop2
+  `player→eax, i→edx`. The same one-register shift appears in loop2's
+  `member`/`player` comparisons and in `member->experience += exp` (reference
+  loads the loop-derived value first; we load `player`/`exp` first). So a single
+  whole-function allocator shift flips all 13, not a per-loop spelling.
+  - **Driver is loop2's String code, as register pressure.** Deleting the whole
+    `if (levelup > 0)` stats block *or* the three `pkt.Insert` calls flips both
+    loops to the reference pattern; deleting one insert, the `Client_SendEncoded`
+    call, or `leveled = true;` does not (threshold effect). The reference has all
+    of it, so the shift is a bcc allocator artifact, not a missing/extra
+    statement.
+  - **Probe matrix (~180 variants, all byte-preserving) leaves the 13 unchanged:**
+    accumulate forms (`+=`, `= x + y`, `= y + x`), comparison operand swaps,
+    `&&`-wrapper vs split `if` vs `continue`, positive guards, `for`/`while`/
+    `do-while`, literal vs macro bound, `i++`/`++i`, `members++`/
+    `members = members + 1`, lookup spellings (`*(i + arr)`, `i[arr]`,
+    `(arr)[i]`), `String x = expr` vs `String x(expr)`, `bool`/`int` init forms,
+    declaration-without-init + later assign, `register`/`const`/`volatile`,
+    `sizeof` no-ops, unread locals at every scope, separate named locals, and
+    `unsigned` field/element types. Only byte-*changing* edits flip the pattern
+    (e.g. adding a local), and those break the byte match.
+  - Frame, EH scope-marker stream, and ECT are byte-identical; `--strict-operands`
+    is now clean (the else branch was corrected to call
+    `Server_BroadcastToPartyOnMap` `0x463750`, the reference's callee, instead of
+    an undefined `Server_BroadcastToMapExceptSelf`). Source order in the unit and
+    the enclosing function order do not change it either.
 - **The Mapcontrol loaders' re-arm marks** (`FUN_00482834` 1566/1572,
   `Mapcontrol_LoadMap` 1551/1552) — see the section above; the missing mark is the
   try-body scope terminator, emitted at any scale at a fixed offset, and its
