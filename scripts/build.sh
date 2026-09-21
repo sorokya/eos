@@ -13,7 +13,15 @@ UNITS_TSV="${UNITS_TSV:-analysis/target/units.tsv}"
 OUT="${OUT:-build/GameServer.exe}"
 MAP="${MAP:-}"
 CFLAGS="${CFLAGS:--D__CODEGUARD__ -v -Od -tWM}"
-VLIB="${VLIB:-import32.lib cw32mt.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib}"
+# A VCL application must link the *package* RTL (cp32mt.lib), not cw32mt.lib:
+# cw32mt.lib carries the stubbed-out crtlst_[iel].c versions of
+# ___CRTL_VCL_Init / ___CRTL_VCL_Exit / ___CRTL_VCLLIB_Linkage, while
+# cp32mt.lib carries the real crtlvcl.cpp.  With cw32mt.lib listed first the
+# stubs win, nothing ever references __InitVCL, vcle50.lib|VCLINIT is never
+# pulled, and with it nothing references @Sysinit@VclInit/VclExit -- so the
+# SysInit communals stay out of the image and the head after c0w32 is 56
+# bytes instead of the reference's 368.
+VLIB="${VLIB:-import32.lib cp32mt.lib vcl50.lib vcldb50.lib vclbde50.lib}"
 LINKFLAGS="${LINKFLAGS:--Tpe -aa -c -Gn -j -v}"
 MAPARG=""
 
@@ -27,12 +35,14 @@ mkdir -p build/obj
 {
   echo 'set -e'
   echo 'mkdir -p build/obj'
+  if [ -z "${LINK_ONLY:-}" ]; then
   for u in "${UNITS[@]}"; do
     echo "wine \"\$B\\Bin\\bcc32.exe\" $CFLAGS -c -obuild/obj/$u.obj src/$u.cpp"
   done
   echo "wine \"\$B\\Bin\\brcc32.exe\" -fo\"Z:\\work\\build\\GameServer.res\" res/GameServer.rc"
+  fi
   echo 'L="-L$BZ\Lib -L$BZ\Lib\Obj -L$BZ\Lib\Debug -L$BZ\Lib\Release"'
-  OBJS=" \"Z:\\borland\\Lib\\Obj\\sysinit.obj\"" 
+  OBJS="${HEADOBJ-" \"Z:\\borland\\Lib\\Obj\\sysinit.obj\""}" 
   for u in "${UNITS[@]}"; do
     OBJS+=" \"Z:\\work\\build\\obj\\$u.obj\""
   done
