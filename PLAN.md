@@ -136,20 +136,24 @@ strings and vtables correctly once the source matches.
   block is byte-identical (109,236 B vs the reference's 109,228) and the export
   order now matches 133/133. **Size residuals, measured at the last non-zero
   byte of each section** (raw sizes are `FileAlignment`-rounded and overstate the
-  difference): `.text` **+0x1FC (508 B)**, `.data` **+0x1D4 (468 B)**, `.rsrc`
-  **−0x238 (568 B)**, `.reloc` +0x3C. The `.text`/`.data` surpluses move together,
-  as extra compiler-emitted COMDATs contribute both code and RTTI/EH metadata.
+  difference): `.text` **+0x1FC (508 B)**, `.data` **+0x1D4 (468 B)**; `.rsrc` is
+  **resolved** (see Phase 3 -- byte-identical via the app-only `.res` and
+  injection). The `.text`/`.data` surpluses move together, as compiler-emitted
+  COMDATs contribute both code and RTTI/EH metadata. They are *not* extra
+  strings: `.data` holds 1088 printable strings against the reference's 1090, and
+  the few set differences are 1-byte boundary artifacts, so string content is not
+  the cause (and `-d`/merge-duplicate-strings over-merges: it drops `.data` raw to
+  `0x30400` vs the reference's `0x30c00`). `-Gn` and `-Ao` make no difference.
   Two tools settle what they are *not*: `scripts/libcompare.py` locates all 307 of
   our CODE modules in the reference (**absent=0** — we pull no module the
   reference lacks) and `scripts/objfuncs.py` does the same per function for one
   unit (`Npcvalue`: **found=87, absent=0** — the unit emits no function the
-  reference lacks). So the surplus is not an extra module or function; it is a
-  COMDAT *placement/size* difference (which side keeps a shared STL helper, plus
-  the alignment padding each module carries). `libcompare --sizes` points at
-  cp32mt's iostream/locale members (`allstl`, `ios`, `iostream`, `char`,
-  `charby`, `rwlocale`, `stdexcept`) as the cluster where ours is largest, but the
-  reference's per-member boundaries are inferred from our own module starts, so
-  treat it as a pointer, not a measurement.
+  reference lacks). So the surplus is a COMDAT *placement/size* difference (which
+  side keeps a shared STL helper, plus the alignment padding each module carries).
+  `libcompare --sizes` points at cp32mt's iostream/locale members (`allstl`,
+  `ios`, `iostream`, `char`, `charby`, `rwlocale`, `stdexcept`) as the cluster
+  where ours is largest, but the reference's per-member boundaries are inferred
+  from our own module starts, so treat it as a pointer, not a measurement.
   **Map caveat:** the detailed `ilink32 -s` map is truncated by a deterministic
   Wine fault (`Unhandled illegal instruction`) before the final ~2.4 KB of modules
   are written — with or without `-v`, and with a response file — so the map's last
