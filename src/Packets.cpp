@@ -11710,8 +11710,8 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                 return 1;
         }
         caster->direction = EO_DecodeNumber(server, (*data)[1]);
-        int offset_x = caster->x;
-        int offset_y = caster->y;
+        int offset_x = offset_x = caster->x;
+        int offset_y = offset_y = caster->y;
         int reach = 1;
         if (caster->direction > Direction_Right)
             return 1;
@@ -11874,8 +11874,8 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     return 1;
                 }
             }
-            offset_x = caster->x;
-            offset_y = caster->y;
+            offset_x = offset_x = caster->x;
+            offset_y = offset_y = caster->y;
         }
         for (int tile_step = 0; tile_step < reach; tile_step++)
         {

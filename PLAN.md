@@ -822,7 +822,7 @@ Tracked so they are not mistaken for done:
   function scored byte-exact. (Historical: it sat at 118 mismatched (221/281) with
   the drain/merge boundary as the residual, and the frame/band item was the
   missing post-loop drain.)
-  `Walk_Execute`, `Attack_Execute`, `Spell_Execute`, the reply builders, and
+  `Walk_Execute`, `Spell_Execute`, the reply builders, and
   `Player_HandlePacket` (deferred: one 226 KB function).
 - `Mapcontrol` `FUN_00482834` (`0x482834`) and `Mapcontrol_LoadMap` (`0x484e28`)
   — the loader. Matches the reference instruction-for-instruction through index
@@ -937,79 +937,33 @@ Tracked so they are not mistaken for done:
   `0x45961e`).
 - Packets volume reconnaissance (frames, dispatch arms, callees and risks, so the
   transcription passes do not rediscover them):
-  - `Attack_Execute` (`0x467980`) — frame `0x1c4`; 2 dispatch arms over
-    `action == 10` (else `return 0`) covering 8 regions with two nested loop pairs
-    (player sweep `0x467da9`/`0x468844`, NPC sweep `0x468897`/`0x46a87a`); 55
-    distinct callees over 428 sites; **no `std::string`** (AnsiString throughout);
-    no embedded stubs. Transcribe the BINARY, not the Rust: `attack.rs` uses a
+  - `Attack_Execute` (`0x467980`) — **byte-exact (2984/2984)**, true end
+    `0x46a990` (the stored `0x46a93f` truncates the epilogue at the `ret`; the
+    `0x46a990..0x46a9a0` bytes are a data constant and `Math_Abs` starts at
+    `0x46a9a0`). Frame `-0x1c4` exact; all 93 EH scope markers identical. 2 dispatch
+    arms over `action == 10` (else `return 0`) covering 8 regions with two nested
+    loop pairs (player sweep `0x467da9`/`0x468844`, NPC sweep
+    `0x468897`/`0x46a87a`); 55 distinct callees over 428 sites; **no `std::string`**
+    (AnsiString throughout); no embedded stubs. The `--frame-wild --strict-operands`
+    reading before the fix was **10 hunks** (2984 ref / 2980 our instructions,
+    aligned prefix 171): the whole instruction-count gap was **four missing stores**
+    — `offset_x = caster->x;` / `offset_y = caster->y;` are emitted **twice** at both
+    the declaration (`0x467c79`/`0x467c7f`, `0x467c97`/`0x467c9d`) and the
+    PK-branch reset (`0x468853`/`0x468859`, `0x468868`/`0x46886e`). bcc duplicates
+    the store only for a **chained self-assignment**, so the source is
+    `int offset_x = offset_x = caster->x;` (and the reset spelling); the six
+    remaining hunks were register-allocation mirrors downstream of the misalignment
+    and resolved with it. Transcribe the BINARY, not the Rust: `attack.rs` uses a
     cooldown of `< 48`, but the binary requires `elapsed >= 0x2c` (44) at
     `0x467b0d`. **`disasm.txt` desynchronises at `0x46797f`** — regenerate that
-    range from the image before trusting it. **Progress: prologue guards + dispatch
-    + cooldown written** (`caster->walk_tick = DateTimeToTimeStamp(Now()).Time`;
-    `map_id < 1` / `weight_max + 2 >= weight_current` guard `return 1`;
-    `action == 10`; `!logged_in -> 0`, `sitting || on_chair -> 1`,
-    `reader->Length() < 4 -> 0`; `SubString(3,2)` -> `EO_DecodeNumber` -> the
-    `elapsed = tick - last_client_walk_tick` / `> 0x7270e0` wrap to `0x2c` /
-    `elapsed < 0x2c -> 0` cooldown; then the `window = Now()/10 + 0x64` /
-    `sync_base_ahead` / `Math_Abs(...) > 0x320 -> 1` path). The player sweep
-    head is written (the `direction`-derived `offset_x`/`offset_y` target tile, then
-    `Players_Iter_Begin/End` with `map_id`/`x`/`y`/`Player_IsPartyMember` guards),
-    plus the start of the per-target body (`Combat_CalcHitRate(game_control,
-    caster->accuracy, target->evasion, 0.9, 1.6)` vs `RandRange(100)`, then
-    `Combat_CalcArmorPen(game_control, (min_damage+max_damage)/2, target->armor,
-    0.8, 0.9)`), then the damage roll (`scaled = (double)min_damage; if (scaled <
-    0.0) scaled = 0.0; scaled *= 1.2; scaled *= pen; damage =
-    (int)(scaled + (double)RandRange(max_damage - min_damage + 2)); if (damage < 1)
-    damage = 1;`), then the weapon-element branch (`if (caster->weapon_item_id
-    (+0x21c) > 0) { GetElement((*MAINFORM)->item_values, weapon_item_id,
-    &element); if (element == 1) damage = (int)((double)damage *
-    Combat_CalcElementMult(game_control, caster->element_resistances[1],
-    target->element_resistances[2], element, element2)); if (element == 2) ... [2]/[1]
-    ... }`; `element_resistances` is `short[7]` at `Player+0x160`, so `+0x162`/`+0x164`
-    are `[1]`/`[2]`). Then the health update (`if (target->direction ==
-    caster->direction) damage -= damage / 2; target->hp -= damage; if (target->hp >
-    target->max_hp) target->hp = target->max_hp; if (target->hp < 1) target->hp =
-    0;`). Then the start of the reply packet: `if (damage > 0 && (*iter)->in_party
-    (+0x2f8)) { String party_pkt = EO_EncodeNumber(server, (*iter)->player_id, 2);
-    String hp = Player_HpPercent((*iter), 1); party_pkt.Insert(hp, party_pkt.Length()
-    + 1); Server_BroadcastToParty(server, (*iter), 5, 0x18, party_pkt); }`. The rest
-    of the reply: the encode chain `EO_EncodeNumber(server, caster->player_id, 2)`
-    then `(*iter)->player_id` (2), `damage` (3), `caster->direction` (1) and
-    `Player_HpPercent((*iter), 1)`, each `Insert`ed at `Length()+1`. Still to write:
-    the break bytes and the `Server_BroadcastNearby` / `Client_SendEncoded` sends
-    (`0x468546`..`0x46882c`), the NPC sweep (`0x468897`/`0x46a87a`) and the reply
-    builders. The NPC sweep's local set was enumerated: 76 distinct `[ebp-N]`
-    slots, deepest `-0x1c4` (the frame), so the frame cannot complete until that
-    block's declarations exist. Its head re-derives the same `direction`-based
-    `offset_y (-0x158)` / `offset_x (-0x154)` pair and guards `if (offset_y < 0 ||
-    offset_x < 0)` into a `EO_EncodeNumber(server, caster->player_id, 2)` +
-    `String(reader[1])` 3-way concat reply, then `Server_BroadcastNearby(server,
-    caster, 8, 0xb, pkt); return 1;`. The main NPC loop (`0x4689e2`..`0x469fe2`,
-    1451 instructions, 316 locals) begins with a `Mapcontrol_GetByIndex(server->
-    map_control, caster->map_id - 1)` view-range test; `asm2cpp.py` renders it at
-    **Inverted guard fixed**: `if (caster->weight_max + 2 >= caster->weight_current)
-    return 1;` was backwards — the reference continues on `>=` and returns 1 on the
-    fall-through (`jge` to the continue), so it is now `<`; the same line in
-    `Spell_Execute` was fixed too. `Attack_Execute`'s `--stack-search` aligned prefix
-    moved **23 -> 56** (best delta `+0xe8`); `Spell_Execute` stayed at 14 (its `0x1f`
-    arm is the gap). **`DateTimeToTimeStamp` form fixed**: `*(TTimeStamp *)&caster->walk_tick =
-    DateTimeToTimeStamp(Now());` (was `.Time`, which forced a temporary and broke
-    the hidden-return destination); the same fix is in `Spell_Execute`. With
-    `--frame-wild` the aligned prefix moved 0 -> 15 (Attack) / 0 -> 14 (Spell);
-    the frame delta is `0x120` (Attack, `-0xa4` vs `-0x1c4`) and `0x27c` (Spell,
-    `-0x44` vs `-0x2c0`), i.e. the NPC loop's locals are still the gap. Note
-    `compare_asm.py` currently flags the `jnl`/`jnge` aliases as different at
-    `0x4679db`.
-    99.7% recognised (28 TODOs). **The `offset < 0` reply branch is now written**
-    (`String pkt = EO_EncodeNumber(server, caster->player_id, 2); String chr =
-    String(reader[1]); pkt = pkt + chr; Server_BroadcastNearby(server, caster, 8,
-    0xb, pkt); return 1;`); the main NPC loop remains a placeholder. `scripts/asm2cpp.py` drafts blocks into address-commented C++
-    (99.8% recognised here) and is the fastest way to start each block.
-    `Player_IsPartyMember`, `RandRange`, `Combat_CalcHitRate`, `Combat_CalcArmorPen`
-    are declared locally in `Packets.cpp`. Current frame `-0x48` vs the reference's
-    `-0x1c4`, so no instruction aligns yet. `Player_IsPartyMember` is declared
-    locally in `Packets.cpp`. Spec at `/tmp/attack_spec.md`,
-    listing `/tmp/attack_disasm.txt`.
+    range from the image before trusting it. Pinned forms: both damage calls target
+    `Combat_CalcArmorPen` (`0x4b12a8`); `element_resistances` is `short[7]` at
+    `Player+0x160` (target table `[2,1,6,3,4,5]`); the crit is
+    `damage += damage / 2`; the bounded damage block sits inside
+    `if (RandRange(100) < hit_rate)`. Only residual strict-operand label:
+    `0x46a083` calls the folded EH thunk `0x44f58c` (our `MapCoord::MapCoord` vs the
+    reference's aliased `std::allocator<PlayerInventory>` COMDAT name) — same
+    address, name-only.
   - `Spell_Execute` (`0x46a9b0`) — frame `0x2c0`; 6 dispatch arms for actions
     `1, 30, 31, 33, 10` (fall-through `return 0`; Rust names Request/TargetSelf/
     TargetOther/TargetGroup/Use) over ~10 regions and 2 loops; 54 callees over 597
