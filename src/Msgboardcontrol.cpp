@@ -1,4 +1,5 @@
 #include <vcl.h>
+#include <fstream.h>
 #pragma hdrstop
 
 #include "Msgboardcontrol.h"

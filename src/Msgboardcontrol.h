@@ -2,7 +2,6 @@
 #define MsgboardcontrolH
 
 #include <vector.h>
-#include <fstream.h>
 #include "Msgboard.h"
 
 // Recovered from the reference (MsgBoardController unit, 0x4ab128..0x4ae180).
