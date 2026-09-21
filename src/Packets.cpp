@@ -3358,19 +3358,19 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (item->element < 7)
                 player->element_resistances[item->element] += item->element_damage;
-            player->min_damage = item->min_damage;
-            player->max_damage = item->max_damage;
-            player->accuracy = item->accuracy;
-            player->evasion = item->evade;
-            player->armor = item->armor;
-            player->equip_bonus_hp = item->hp;
-            player->equip_bonus_tp = item->tp;
-            player->equip_strength_bonus = item->strength;
-            player->equip_wisdom_bonus = item->wisdom;
-            player->equip_intelligence_bonus = item->intelligence;
-            player->equip_agility_bonus = item->agility;
-            player->equip_constitution_bonus = item->constitution;
-            player->equip_charisma_bonus = item->charisma;
+            player->min_damage += item->min_damage;
+            player->max_damage += item->max_damage;
+            player->accuracy += item->accuracy;
+            player->evasion += item->evade;
+            player->armor += item->armor;
+            player->equip_bonus_hp += item->hp;
+            player->equip_bonus_tp += item->tp;
+            player->equip_strength_bonus += item->strength;
+            player->equip_wisdom_bonus += item->wisdom;
+            player->equip_intelligence_bonus += item->intelligence;
+            player->equip_agility_bonus += item->agility;
+            player->equip_constitution_bonus += item->constitution;
+            player->equip_charisma_bonus += item->charisma;
             Player::UpdateBaseStats(player);
             Player_CalculateStats(server, player);
             Player::CalculateHP_TP_SP(player);
@@ -3432,19 +3432,19 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 ItemValues::GetByIndex((*MAINFORM)->item_values, item_id - 1);
             if (item->element < 7)
                 player->element_resistances[item->element] -= item->element_damage;
-            player->min_damage = item->min_damage;
-            player->max_damage = item->max_damage;
-            player->accuracy = item->accuracy;
-            player->evasion = item->evade;
-            player->armor = item->armor;
-            player->equip_bonus_hp = item->hp;
-            player->equip_bonus_tp = item->tp;
-            player->equip_strength_bonus = item->strength;
-            player->equip_wisdom_bonus = item->wisdom;
-            player->equip_intelligence_bonus = item->intelligence;
-            player->equip_agility_bonus = item->agility;
-            player->equip_constitution_bonus = item->constitution;
-            player->equip_charisma_bonus = item->charisma;
+            player->min_damage -= item->min_damage;
+            player->max_damage -= item->max_damage;
+            player->accuracy -= item->accuracy;
+            player->evasion -= item->evade;
+            player->armor -= item->armor;
+            player->equip_bonus_hp -= item->hp;
+            player->equip_bonus_tp -= item->tp;
+            player->equip_strength_bonus -= item->strength;
+            player->equip_wisdom_bonus -= item->wisdom;
+            player->equip_intelligence_bonus -= item->intelligence;
+            player->equip_agility_bonus -= item->agility;
+            player->equip_constitution_bonus -= item->constitution;
+            player->equip_charisma_bonus -= item->charisma;
             Player::UpdateBaseStats(player);
             Player_CalculateStats(server, player);
             Player::CalculateHP_TP_SP(player);
@@ -4738,18 +4738,18 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 target->trade_accepted = 0;
                 player->trade_accepted = 0;
                 Client_SendEncoded(server,
-                                   player,
-                                   PacketAction_Close,
-                                   PacketFamily_Trade,
-                                   EO_EncodeNumber(server, target->player_id, 2));
-                Client_SendEncoded(server,
                                    target,
                                    PacketAction_Close,
                                    PacketFamily_Trade,
                                    EO_EncodeNumber(server, player->player_id, 2));
+                Client_SendEncoded(server,
+                                   player,
+                                   PacketAction_Close,
+                                   PacketFamily_Trade,
+                                   EO_EncodeNumber(server, target->player_id, 2));
                 return true;
             }
-            if ((int)player->trade_items.size() < 1)
+            if (player->trade_items.size() < 1)
             {
                 Client_SendEncoded(server,
                                    target,
@@ -4763,7 +4763,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, target->player_id, 2));
                 return true;
             }
-            if ((int)target->trade_items.size() < 1)
+            if (target->trade_items.size() < 1)
             {
                 Client_SendEncoded(server,
                                    target,
@@ -5655,7 +5655,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     EO_EncodeNumber(server, GuildReply_RecruiterWrongGuild, 2));
                 return true;
             }
-            if (target->guild_tag.LowerCase() != guild.LowerCase())
+            if (LowerCase(target->guild_tag) != LowerCase(guild))
             {
                 Client_SendEncoded(
                     server,
@@ -5695,10 +5695,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
             PacketReader_GetBreakString(server);
-            String tag_upper =
-                Mysqlcontrols::Db_SanitizeString(server->mysql_controls,
-                                                 PacketReader_GetBreakString(server))
-                    .UpperCase();
+            String tag_upper = AnsiUpperCase(Mysqlcontrols::Db_SanitizeString(
+                server->mysql_controls, PacketReader_GetBreakString(server)));
             String name = Mysqlcontrols::Db_SanitizeString(
                 server->mysql_controls, PacketReader_GetBreakString(server));
             String description = Mysqlcontrols::Db_SanitizeString(
@@ -5726,7 +5724,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             String tag_first = tag_upper[1];
             String name_first = name[1];
-            if (tag_first.LowerCase() != name_first.LowerCase())
+            if (LowerCase(tag_first) != LowerCase(name_first))
                 return true;
             if (tag_upper[1] == ' ' || tag_upper[2] == ' ')
                 return true;
@@ -5865,7 +5863,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             String tag_first = tag[1];
             String name_first = name[1];
-            if (tag_first.LowerCase() != name_first.LowerCase())
+            if (LowerCase(tag_first) != LowerCase(name_first))
             {
                 Client_SendEncoded(server,
                                    player,
