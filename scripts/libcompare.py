@@ -125,6 +125,9 @@ def main():
     ap.add_argument('--libs-only', action='store_true')
     ap.add_argument('--objs-only', action='store_true')
     ap.add_argument('--only-unmatched', action='store_true')
+    ap.add_argument('--sizes', action='store_true',
+                    help='report per-module size vs the reference member between '
+                         'its matched start and the next matched start')
     ap.add_argument('--threshold', type=float, default=0.98)
     args = ap.parse_args()
 
@@ -143,6 +146,7 @@ def main():
     n_found = n_partial = n_unver = n_absent = 0
     unmatched = []
     absent = []
+    located = []
     for m in mods:
         off, size = m['off'], m['size']
         if off < 0 or off + size > len(ours):
@@ -155,26 +159,52 @@ def main():
         res = locate(pat, mask, ref, min_len, threshold=args.threshold)
         if res is None:
             n_unver += 1
-            if not args.only_unmatched:
+            if not args.only_unmatched and not args.sizes:
                 print(f"  UNVER   {tag:44s} sz={size:6d} (all bytes wildcarded)")
             continue
         ratio, start, _, longest = res
+        if start >= 0 and longest >= min_len:
+            located.append((start, off, size, tag, ratio, longest))
         present = longest > 0
         if not present:
             n_absent += 1
             absent.append((size, tag, longest))
-            print(f"  ABSENT  {tag:44s} sz={size:6d} longest-run={longest}")
+            if not args.sizes:
+                print(f"  ABSENT  {tag:44s} sz={size:6d} longest-run={longest}")
         elif ratio >= args.threshold:
             n_found += 1
-            if not args.only_unmatched:
+            if not args.only_unmatched and not args.sizes:
                 print(f"  ok      {tag:44s} sz={size:6d} "
                       f"ref=0x{ref_rva + start + 0x400000:06x} ({ratio*100:.1f}%)")
         else:
             n_partial += 1
             unmatched.append((size, tag, ratio))
-            print(f"  PARTIAL {tag:44s} sz={size:6d} "
-                  f"ref=0x{ref_rva + start + 0x400000:06x} ({ratio*100:.1f}%, "
-                  f"run={longest})")
+            if not args.sizes:
+                print(f"  PARTIAL {tag:44s} sz={size:6d} "
+                      f"ref=0x{ref_rva + start + 0x400000:06x} ({ratio*100:.1f}%, "
+                      f"run={longest})")
+
+    if args.sizes:
+        located = [e for e in located if e[4] >= 0.99 and e[5] >= 16]
+        located.sort()
+        print("size deltas (our size - reference gap to the next matched module), "
+              "high-confidence matches only:\n")
+        size_rows = []
+        for i, (start, off, size, tag, ratio, run) in enumerate(located[:-1]):
+            nxt = located[i + 1][0]
+            ref_size = nxt - start
+            if ref_size <= 0 or ref_size > 4 * size + 4096:
+                continue
+            if abs(size - ref_size) > 2:
+                size_rows.append((size - ref_size, size, ref_size, tag, ratio))
+        size_rows.sort()
+        for delta, size, ref_size, tag, ratio in size_rows:
+            print(f"  {delta:+6d}  ours={size:6d} ref={ref_size:6d}  "
+                  f"({ratio*100:3.0f}%)  {tag}")
+        print(f"\nmodules with a size delta: {len(size_rows)}; "
+              f"sum(ours-ref) = {sum(r[0] for r in size_rows)} B "
+              f"(the reference has ~1 byte of padding per member)")
+        return 0
 
     print(f"\nfound={n_found} partial={n_partial} absent={n_absent} "
           f"unverifiable={n_unver}")
