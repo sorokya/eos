@@ -249,9 +249,18 @@ acceptable approaches, in order of preference:
    offset `0x208` for the reference; never a fixed `0x8`). It can also normalize
    the COFF characteristics word.
 
+The COFF header is not the only clock stamp: ilink32 also writes the current
+time into the `TimeDateStamp` of **every** `IMAGE_RESOURCE_DIRECTORY` in
+`.rsrc` (45 of them here; the reference carries `0x418F00E9` in all). Until
+this was normalized, two back-to-back relinks of identical objects produced
+different `.rsrc` bytes and different whole-file MD5s. `normalize_pe.py` now
+rewrites them by default (`--resource-timestamp=-1` opts out).
+
 The normalization step is implemented and verified: taking a copy of the
 reference with only the timestamp changed, `normalize_pe.py` restores the
-reference MD5 exactly. Whatever mechanism is chosen must be part of the
+reference MD5 exactly, and it is a byte-level no-op on the reference itself.
+Two successive `LINK_ONLY=1 scripts/build.sh` runs now produce identical
+files. Whatever mechanism is chosen must be part of the
 documented build, not a manual fix-up.
 
 ## Harness

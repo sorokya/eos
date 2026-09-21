@@ -407,8 +407,10 @@ Delivered:
   VCL+BDE link (`make sanity`) reproduces every reference header field (`0x010e`,
   subsystem, base, alignments, stack/heap) and the section order.
 - Deterministic timestamp: `normalize_pe.py` rewrites `TimeDateStamp` at
-  `e_lfanew + 8` (`0x208`); verified to restore the reference MD5 from a copy
-  differing only in that field. Clock control (`libfaketime`) remains an
+  `e_lfanew + 8` (`0x208`) **and** the `TimeDateStamp` of every
+  `IMAGE_RESOURCE_DIRECTORY` in `.rsrc` (ilink32 stamps those too, which made
+  back-to-back relinks differ); verified to restore the reference MD5 from a
+  copy differing only in those fields, and a no-op on the reference itself. Clock control (`libfaketime`) remains an
   alternative.
 
 Outstanding, carried into Phase 1: the exact library set/order and compiler
