@@ -91,6 +91,24 @@ imports, exports, resource tree). No `pip` packages required.
 - **`compare_functions.py FUNCTIONS_TSV REF CANDIDATE [--mask-reloc] [--list N]`**
   — per-function byte comparison using the Ghidra inventory; masks base-relocation
   words when layouts are not yet identical.
+- **`funcdiff.py [--ref] [--linked] [--inventory] [--unit U] [--function F]`**
+  — the whole-tree byte differential (`make funcdiff`). Masks only what the
+  *layout* moves — the four bytes of every base relocation and the 4-byte
+  displacement of a direct `call`/`jmp`/`jcc` — then asks whether each reference
+  function's remaining bytes appear anywhere in our image. It exists because
+  `make verify` / `compare_asm.py` canonicalise branch targets, so a function
+  whose relative branch lands elsewhere still reads `byte-exact`; this is what
+  found the `Weddings_Tick` inverted `jne`/`je`, `ParseToken`'s missing early
+  `return`, `Jukeboxcontrol_TryPlayTrack`'s misplaced `break` and
+  `Player_EvaluateQuestRules`'s `continue` chain. Three masking traps it avoids:
+  objdump's whole-image pass desynchronises on data in `.text` (so each function
+  is decoded from its own start — capstone when importable, else per-function
+  `objdump`), a relocation is a 4-byte slot but `pe.relocations()` reports only
+  its first byte (each slot is expanded), and Ghidra's `end` can truncate a final
+  `e8` displacement (decode 8 bytes past it). A function that matches only in a
+  different module is reported as *placed elsewhere* (byte-identical, layout
+  only). Exits non-zero when any reference function differs, so it can gate a
+  build.
 - **`normalize_pe.py PE [--timestamp V] [--characteristics V] [-o OUT]`** — the
   documented deterministic post-link step: rewrite the volatile `TimeDateStamp`
   (at `e_lfanew + 8`) and optionally the COFF characteristics word.

@@ -31,7 +31,7 @@ VLIB      ?= vcl50.lib vcldb50.lib vclbde50.lib import32.lib cp32mt.lib
 CLANG_FORMAT ?= clang-format
 SRC          := $(wildcard src/*.cpp src/*.h)
 
-.PHONY: image analyze extract units track unitmap functions struct layout libcompare disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
+.PHONY: image analyze extract units track unitmap functions funcdiff struct layout libcompare disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
 
 image:
 	docker build -t $(IMAGE) docker
@@ -68,6 +68,13 @@ unitmap:
 # Informational: differences are expected until reconstruction converges.
 functions:
 	-$(PYTHON) scripts/compare_functions.py analysis/ghidra/functions.tsv $(REF) build/GameServer.exe --mask-reloc
+
+# The whole-tree byte differential: every reference function whose bytes are not
+# found (masked) in our image. Unlike `functions`, it masks rel32 displacements
+# and decodes each function from its own start, so it sees the branch-target
+# differences `make verify` canonicalises away. Exits non-zero when any differ.
+funcdiff:
+	$(PYTHON) scripts/funcdiff.py
 
 # Structural comparison (imports/exports/relocations).
 struct:

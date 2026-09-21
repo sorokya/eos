@@ -346,6 +346,22 @@ documented build, not a manual fix-up.
   separately — the linker drops them, so the reference has no range for them.
   This is the whole-tree check; `compare_asm.py` remains the per-function tool.
 
+- `make funcdiff` (`scripts/funcdiff.py`) is the whole-tree byte differential: it
+  masks only what the layout moves (each base relocation's four bytes and the
+  4-byte displacement of a direct `call`/`jmp`/`jcc`) and asks whether each
+  reference function's remaining bytes appear in our image. `make verify` and
+  `compare_asm.py` canonicalise branch targets, so a function whose relative
+  branch lands elsewhere still reads `byte-exact` — this is the tool that finds
+  those (it located the `Weddings_Tick` inverted `jne`/`je`, `ParseToken`'s
+  missing early `return`, `Jukeboxcontrol_TryPlayTrack`'s misplaced `break` and
+  `Player_EvaluateQuestRules`'s `continue` chain). It decodes each function from
+  its own start (capstone when importable, else per-function `objdump`) because
+  objdump's whole-image pass desynchronises on data embedded in `.text`, expands
+  each relocation slot to all four bytes, and decodes 8 bytes past Ghidra's `end`
+  so a truncated final `e8` is seen. A function that matches only in another
+  module is reported as *placed elsewhere* (layout, not bytes). Exits non-zero
+  when any reference function differs.
+
 - `make format` applies the project style (`.clang-format`: Allman braces,
   4-space indent, right-aligned pointers, 90 columns) to `src/*.cpp` and
   `src/*.h`; `make format-check` is the non-mutating equivalent.
