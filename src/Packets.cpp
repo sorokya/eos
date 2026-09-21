@@ -1507,8 +1507,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    player,
                                    PacketAction_Player,
                                    PacketFamily_Character,
-                                   data.SubString(1, 4) +
-                                       EO_EncodeNumber(server, player->session_id, 2));
+                                   EO_EncodeNumber(server, player->session_id, 2) +
+                                       data.SubString(1, 4));
             }
             return true;
         }
@@ -2474,13 +2474,19 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->action_queue.insert(player->action_queue.end(), command);
             return true;
         }
-        if (player->action_queue.size() > 0)
+        else
         {
-            PlayerCommand command(family, action, data);
-            player->action_queue.insert(player->action_queue.end(), command);
-            return true;
+            if (player->action_queue.size() > 0)
+            {
+                PlayerCommand command(family, action, data);
+                player->action_queue.insert(player->action_queue.end(), command);
+                return true;
+            }
+            else
+            {
+                return Face_Execute(server, player, action, &data);
+            }
         }
-        return Face_Execute(server, player, action, &data);
     }
     if (family == PacketFamily_Players)
     {
@@ -2583,20 +2589,28 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         server, player, PacketAction_Player, PacketFamily_Sit, msg);
                     return true;
                 }
-                if (!player->on_chair)
+                else
                 {
-                    player->on_chair = 0;
-                    player->sitting = 0;
-                    String msg = EO_EncodeNumber(server, player->player_id, 2);
-                    msg.Insert(EO_EncodeNumber(server, player->x, 1), msg.Length() + 1);
-                    msg.Insert(EO_EncodeNumber(server, player->y, 1), msg.Length() + 1);
-                    Client_SendEncoded(
-                        server, player, PacketAction_Close, PacketFamily_Sit, msg);
-                    Server_BroadcastNearby(
-                        server, player, PacketAction_Remove, PacketFamily_Sit, msg);
-                    return true;
+                    if (!player->on_chair)
+                    {
+                        player->on_chair = 0;
+                        player->sitting = 0;
+                        String msg = EO_EncodeNumber(server, player->player_id, 2);
+                        msg.Insert(EO_EncodeNumber(server, player->x, 1),
+                                   msg.Length() + 1);
+                        msg.Insert(EO_EncodeNumber(server, player->y, 1),
+                                   msg.Length() + 1);
+                        Client_SendEncoded(
+                            server, player, PacketAction_Close, PacketFamily_Sit, msg);
+                        Server_BroadcastNearby(
+                            server, player, PacketAction_Remove, PacketFamily_Sit, msg);
+                        return true;
+                    }
+                    else
+                    {
+                        family = PacketFamily_Chair;
+                    }
                 }
-                family = PacketFamily_Chair;
             }
             else
             {
@@ -2629,13 +2643,19 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->action_queue.insert(player->action_queue.end(), command);
             return true;
         }
-        if (player->action_queue.size() > 0)
+        else
         {
-            PlayerCommand command(family, action, data);
-            player->action_queue.insert(player->action_queue.end(), command);
-            return true;
+            if (player->action_queue.size() > 0)
+            {
+                PlayerCommand command(family, action, data);
+                player->action_queue.insert(player->action_queue.end(), command);
+                return true;
+            }
+            else
+            {
+                return Chair_Execute(server, player, action, &data);
+            }
         }
-        return Chair_Execute(server, player, action, &data);
     }
     if (family == PacketFamily_Door && action == PacketAction_Open)
     {
@@ -3340,19 +3360,19 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, player->class_id, 1));
                 return true;
             }
-            if (item->level_requirement > player->level)
+            if (player->level < item->level_requirement)
                 return true;
-            if (item->strength_requirement > player->adj_strength)
+            if (player->adj_strength < item->strength_requirement)
                 return true;
-            if (item->intelligence_requirement > player->adj_intelligence)
+            if (player->adj_intelligence < item->intelligence_requirement)
                 return true;
-            if (item->wisdom_requirement > player->adj_wisdom)
+            if (player->adj_wisdom < item->wisdom_requirement)
                 return true;
-            if (item->agility_requirement > player->adj_agility)
+            if (player->adj_agility < item->agility_requirement)
                 return true;
-            if (item->constitution_requirement > player->adj_constitution)
+            if (player->adj_constitution < item->constitution_requirement)
                 return true;
-            if (item->charisma_requirement > player->adj_charisma)
+            if (player->adj_charisma < item->charisma_requirement)
                 return true;
             if (!Players::Player_EquipItem(server->players, player, item_id, slot))
                 return true;
@@ -5732,7 +5752,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             {
                 Banned::AddBan(
                     server->banned, player->remote_ip, player->hdid, (char)0, 0x3840);
-                return true;
+                return false;
             }
             Mysqlcontrols::Mysql_SubmitQuery(
                 server->mysql_controls,
