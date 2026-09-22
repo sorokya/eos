@@ -14,10 +14,19 @@ function's first line, which lands inside exactly one top-level `{...}` block of
 the source file.  That gives an exact source-block -> mangled-name map with no
 signature parsing.
 
-Definitions that the reference does not name (helpers the linker drops, compiler
-COMDATs) keep their position relative to the definition they follow.  Top-level
-chunks that are not function definitions (includes, globals, forward
-declarations) stay in their own slots and are never moved.
+Which of a block's names *is* the definition -- as opposed to a template
+instantiation or an RTL helper that merely carries its line numbers -- is
+decided by the **object's** COMDAT order (`orderdiff.object_orders`), not by a
+heuristic on the name: bcc32 emits a function and then the helpers it pulled in,
+so the first of a block's names to appear in the object is the definition
+itself.  Ranking by anything else (lowest line, lowest listing position, "looks
+author-written") mis-attributes blocks whose only reference-named symbol is a
+compiler COMDAT, and the plan then oscillates between two orders.
+
+Definitions the reference does not name (helpers the linker drops) keep their
+position relative to the definition they follow.  Top-level chunks that are not
+function definitions (includes, globals, forward declarations, type bodies,
+multi-line `#define`s) stay in their own slots and are never moved.
 
 Usage:
     scripts/reorder_unit.py Effectcontrol            # show the plan
@@ -33,9 +42,12 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+import orderdiff  # noqa: E402  (same directory)
 
 PROC_RE = re.compile(r'^(@[^\s]+)\s+proc\s+near\s*$')
 LINE_RE = re.compile(r'^\t\?debug L (\d+)')
+FILE_RE = re.compile(r'^\t\?debug\s+T\s+"([^"]+)"')
 
 
 def listing(unit, refresh):
@@ -44,50 +56,53 @@ def listing(unit, refresh):
     asm = os.path.join(ROOT, 'build', unit + '.asm')
     if refresh or not os.path.exists(asm) or os.path.getmtime(asm) < os.path.getmtime(src):
         cmd = ('wine "$B\\Bin\\bcc32.exe" -v -Od -tWM -k -S -obuild/%s.asm src/%s.cpp' % (unit, unit))
-        r = subprocess.run([os.path.join(HERE, 'borland.sh'), cmd],
-                           cwd=ROOT, capture_output=True, text=True)
-        if not os.path.exists(asm):
-            raise SystemExit('bcc32 -S failed for %s:\n%s' % (unit, r.stdout + r.stderr))
+        # bcc32 -S on a multi-megabyte listing faults under Wine now and then --
+        # the same intermittent fault scripts/build.sh documents for ilink32 -s.
+        # One retry clears it.
+        for attempt in (1, 2):
+            before = os.path.getmtime(asm) if os.path.exists(asm) else -1
+            r = subprocess.run([os.path.join(HERE, 'borland.sh'), cmd],
+                               cwd=ROOT, capture_output=True, text=True)
+            if os.path.exists(asm) and os.path.getmtime(asm) != before:
+                break
+        else:
+            out = '\n'.join(l for l in (r.stdout + r.stderr).splitlines()
+                             if 'XDG_RUNTIME_DIR' not in l and not l.startswith('Warning'))
+            raise SystemExit('bcc32 -S produced no listing for %s:\n%s' % (unit, out[-1500:]))
     return asm
 
 
-def name_lines(asm):
-    """mangled name -> (first source line, position in the listing).
+def name_lines(asm, src_name):
+    """mangled name -> the first line bcc32 recorded inside its body, but only
+    for functions whose provenance is this unit's own .cpp.
 
-    Within one source definition the name whose line is the *lowest* is the
-    definition itself (its signature); the compiler-generated COMDATs it pulled
-    in carry the line of the statement that needed them, which is further down.
-    The listing position is kept only as a tie-break.
+    `?debug L <line>` is relative to the file named by the last `?debug T`, and
+    bcc32 emits T only when the file *changes* -- so a template instantiation
+    pulled in from `Include/vector.h` carries line numbers from *that* file.
+    Treating them as .cpp lines maps helpers into arbitrary source blocks, which
+    is what made earlier ranking rules unstable. Anything not written in this
+    .cpp is left unmapped: it belongs to no block and cannot influence the order.
     """
     out = {}
     cur = None
-    seq = 0
+    here = True
     for line in open(asm, errors='replace'):
-        m = PROC_RE.match(line.rstrip('\n'))
+        line = line.rstrip('\n')
+        m = FILE_RE.match(line)
+        if m:
+            here = m.group(1).replace('\\', '/').endswith(src_name)
+            continue
+        m = PROC_RE.match(line)
         if m:
             cur = m.group(1).lstrip('@')
             continue
         if cur:
-            m = LINE_RE.match(line.rstrip('\n'))
+            m = LINE_RE.match(line)
             if m:
-                out.setdefault(cur, (int(m.group(1)), seq))
-                seq += 1
+                if here:
+                    out.setdefault(cur, int(m.group(1)))
                 cur = None
     return out
-
-
-# Names bcc32 generates rather than the unit's author: template instantiations
-# (they carry `%`) and members of the RTL/VCL namespaces. Within one source
-# definition these share the definition's line numbers, so they must not be
-# mistaken for the definition itself when deciding where the block belongs.
-LIB_NS = ('std@', '__rwstd@', 'System@', 'Sysutils@', 'Classes@', 'Forms@',
-          'Dialogs@', 'Scktcomp@', 'Controls@', 'Graphics@', 'Db@', 'Dbtables@',
-          'Inifiles@', 'Stdctrls@', 'Extctrls@', 'Comobj@', 'Typinfo@', 'Math@',
-          'Registry@', 'Syncobjs@', 'Appevnts@', 'Menus@', 'Variants@', '$b')
-
-
-def author_written(name):
-    return '%' not in name and not name.startswith(LIB_NS)
 
 
 def reference_order(unit, path):
@@ -103,6 +118,11 @@ def reference_order(unit, path):
 
 
 def chunks(path):
+    """chunks_of() for a file on disk; returns (lines, items)."""
+    return chunks_of(open(path).read())
+
+
+def chunks_of(text):
     """Split a .cpp into top-level items.
 
     A *definition* item is a brace-balanced top-level block plus the signature
@@ -110,7 +130,7 @@ def chunks(path):
     pragmas, globals, forward declarations, stray comments) is a separate item
     that never moves.  Line numbers are 1-based and inclusive.
     """
-    lines = open(path).read().split('\n')
+    lines = text.split('\n')
 
     def code(s):
         s = re.sub(r'\\.', '', s)
@@ -174,35 +194,49 @@ def chunks(path):
 def plan(unit, args):
     src = os.path.join(ROOT, 'src', unit + '.cpp')
     asm = listing(unit, args.refresh)
-    n2l = name_lines(asm)
+    n2l = name_lines(asm, unit + '.cpp')
+    objorder = orderdiff.object_orders([unit], args.refresh)[unit]
     ref = reference_order(unit, args.functions)
     lines, items = chunks(src)
     spans = [(a, b) for a, b, _ in items]
     movable = {i for i, (_, _, f) in enumerate(items) if f}
 
-    # source block index -> names defined in it
-    block_of = {}
-    for name, (ln, seq) in n2l.items():
+    # which block each name belongs to, by source line
+    home = {}
+    for name, ln in n2l.items():
         for idx, (a, b) in enumerate(spans):
             if a <= ln <= b and idx in movable:
-                block_of.setdefault(idx, []).append((ln, seq, name))
+                home[name] = idx
                 break
-    for idx in block_of:
-        block_of[idx].sort()
+
+    # A block's definition is the name whose recorded line is lowest -- that is
+    # its signature, while the helpers it pulled in carry the line of the
+    # statement that needed them, further down. Ties (a helper that landed on the
+    # signature line of a three-line function) go to whichever the *object*
+    # emits first, which is the definition: bcc32 emits a function and then its
+    # helpers. Using either signal alone mis-attributes some blocks and the plan
+    # then oscillates between two orders.
+    pos = {n: i for i, n in enumerate(objorder)}
+    block_of = {}
+    for name in objorder:
+        idx = home.get(name)
+        if idx is not None:
+            block_of.setdefault(idx, []).append(name)
+    own = {}
+    for idx, names in block_of.items():
+        own[idx] = min(names, key=lambda n: (n2l[n], pos[n]))
 
     rank = {n: i for i, n in enumerate(ref)}
     func_slots = sorted(movable)
-    # a block's key is the best (lowest) reference rank of the names it defines;
-    # blocks the reference does not name inherit the previous block's key so they
-    # stay put relative to it
+    # blocks the reference does not name inherit the previous block's key so
+    # they stay put relative to it
     keys = {}
     last = -1.0
     bump = 0
     for idx in func_slots:
-        named = [n for _, _, n in block_of.get(idx, []) if n in rank]
-        own = [n for n in named if author_written(n)] or named
-        if own:
-            last = float(rank[own[0]])
+        n = own.get(idx)
+        if n is not None and n in rank:
+            last = float(rank[n])
             bump = 0
             keys[idx] = last
         else:
@@ -210,6 +244,67 @@ def plan(unit, args):
             keys[idx] = last + bump / 1000.0
     order = sorted(func_slots, key=lambda i: (keys[i], i))
     return src, lines, spans, func_slots, order, block_of
+
+
+def declarations(lines, items):
+    """`<signature>;` for every free function defined here.
+
+    Moving definitions can put a free function's callers above it, which C++
+    will not accept. Declarations emit nothing, so adding one for every free
+    function in the unit is codegen-neutral and removes the ordering constraint
+    entirely. Member functions already have their declaration in the header.
+    """
+    out = []
+    for a, b, isdef in items:
+        if not isdef:
+            continue
+        sig = []
+        for k in range(a - 1, b):
+            t = lines[k]
+            if t.lstrip().startswith(('//', '#')):
+                continue
+            sig.append(t)
+            if '{' in t:
+                break
+        text = ' '.join(x.strip() for x in sig)
+        if '{' in text:
+            text = text[:text.index('{')]
+        text = ' '.join(text.split())
+        if not text or '::' in text:
+            continue
+        if text.startswith(('class ', 'struct ', 'enum ', 'union ', 'namespace ',
+                            'extern "C"', 'typedef ')):
+            continue
+        if not re.search(r'\w\s*\(', text):
+            continue
+        out.append(text + ';')
+    seen = set()
+    uniq = []
+    for d in out:
+        if d not in seen:
+            seen.add(d)
+            uniq.append(d)
+    return uniq
+
+
+def with_declarations(text, decls):
+    """Insert `decls` after `#pragma package(smart_init)` (or the last include),
+    replacing any identical statement already present in that preamble."""
+    lines = text.split('\n')
+    try:
+        at = lines.index('#pragma package(smart_init)')
+    except ValueError:
+        at = max((i for i, l in enumerate(lines) if l.startswith('#include')), default=0)
+    body = lines[at + 1:]
+    # drop declarations we are about to re-emit, wherever they sit above the
+    # first definition, so repeated runs do not pile up duplicates
+    want = set(decls)
+    kept = []
+    for l in body:
+        if l.strip() in want:
+            continue
+        kept.append(l)
+    return '\n'.join(lines[:at + 1] + [''] + decls + kept)
 
 
 def render(lines, spans, func_slots, order):
@@ -230,6 +325,8 @@ def main():
     ap.add_argument('unit', nargs='*')
     ap.add_argument('--all', action='store_true')
     ap.add_argument('--apply', action='store_true')
+    ap.add_argument('--no-declare', action='store_true',
+                    help='do not add forward declarations for free functions')
     ap.add_argument('--refresh', action='store_true', help='always recompile the -S listing')
     ap.add_argument('--functions', default=os.path.join(ROOT, 'analysis/target/functions.tsv'))
     args = ap.parse_args()
@@ -252,12 +349,18 @@ def main():
             continue
         if args.apply:
             text = '\n'.join(render(lines, spans, func_slots, order))
+            if not args.no_declare:
+                tlines, items = chunks_of(text)
+                decls = declarations(tlines, items)
+                if decls:
+                    text = with_declarations(text, decls)
+                    print('   %d forward declarations' % len(decls))
             open(src, 'w').write(text if text.endswith('\n') else text + '\n')
             print('   rewrote %s' % src)
         else:
             for a, b in zip(func_slots, order):
                 if a != b:
-                    print('   slot %d <- %s' % (a, ','.join(n for _, _, n in block_of.get(b, [(0, 0, '?')]))[:70]))
+                    print('   slot %d <- %s' % (a, ','.join(block_of.get(b, ['?']))[:70]))
     return 0
 
 

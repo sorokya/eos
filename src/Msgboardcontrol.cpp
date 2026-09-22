@@ -168,6 +168,15 @@ void MsgBoardController::AddPost(MsgBoardController *self,
     }
 }
 
+void MsgBoardController::SetPostLimit(vector<MsgBoard> *posts, unsigned int count)
+{
+    MsgBoard post;
+    if (posts->size() < count)
+        posts->insert(posts->end(), count - posts->size(), post);
+    else if (count < posts->size())
+        posts->erase(posts->begin() + count, posts->end());
+}
+
 String MsgBoardController::GetBoard(MsgBoardController *self, int board)
 {
     String result;
@@ -433,13 +442,4 @@ MsgBoardController::EncodeNumber(MsgBoardController *self, unsigned int value, i
     }
     String result(self->field_0x118, width);
     return result;
-}
-
-void MsgBoardController::SetPostLimit(vector<MsgBoard> *posts, unsigned int count)
-{
-    MsgBoard post;
-    if (posts->size() < count)
-        posts->insert(posts->end(), count - posts->size(), post);
-    else if (count < posts->size())
-        posts->erase(posts->begin() + count, posts->end());
 }

@@ -906,17 +906,41 @@ consequences: `Packets.cpp` needs forward declarations for its free functions
 once definitions move above their callers, and `Players.cpp`'s multi-line
 `#define`s had to be hoisted above the functions that expand them.
 
-Caveats worth knowing before continuing this work:
+**All 65 units now report zero moves**: every source definition sits where the
+reference put it. Two things got it there.
 
-- The tool ranks a definition by the reference position of the *author-written*
-  symbol it defines (template instantiations and RTL/VCL namespace members share
-  the definition's line numbers and must not be mistaken for it). For a few
-  units the only reference-named symbol in a definition is a compiler COMDAT and
-  the plan can oscillate between two orders — run it repeatedly and keep the
-  state that measures best.
-- The residual after several passes is mostly compiler-generated container
-  COMDATs, whose order follows the order of *statements* inside a function, not
-  the order of the functions; those cannot be fixed by moving definitions.
+- *The oscillation was a line-number bug, not an ambiguous ranking rule.*
+  `?debug L` is relative to the file named by the last `?debug T`, and bcc32
+  emits `T` only when the file *changes* — so a template instantiated from
+  `Include/vector.h` carries line numbers from *that* file. Reading them as
+  `.cpp` lines mapped helpers into arbitrary source blocks, and the plan flipped
+  between two orders depending on which helper landed where. Scoping the line
+  table to the unit's own `.cpp` makes every unit converge in one pass.
+- *The loop no longer needs a link.* `orderdiff --from-obj` reads the order from
+  the unit objects: bcc32 emits every COMDAT as an OMF communal and ilink32 lays
+  the module out in exactly that order (verified equal to the linked order for
+  Packets, 245 comparable functions). One unit is about four seconds and the
+  whole tree about a minute, against five minutes for a full build. The object
+  also carries COMDATs the linker later drops, so it reads three units more than
+  the linked view — iterate there, confirm in the linked one.
+
+That took `Mapcontrol` from 32,794 masked differing bytes to 492 and
+`Msgboardcontrol` from 4,162 to 1,574.
+
+**What the residual is.** `make orderdiff` still reports 20 units, but the count
+is not proportional to bytes: `Mapcontrol` shows 50 moved entries and costs 492
+bytes. Nearly all of the remainder is one unit — `Packets`, 177,979 of the
+191,852 masked application bytes — and it is *not* a definition-order problem:
+`reorder_unit.py` reports zero moves for it, and diffing the callees of the first
+function that diverges (`Server_RemovePlayer`, byte-exact and at its reference
+address) shows it calls exactly the same functions as the reference, only at
+different addresses. What differs is where bcc32 places the *helper* COMDATs a
+definition pulls in relative to the next definition: the reference emits
+`Mapcontrol_GetByIndex` and then `vector<MapItem>::size`, while we emit `size`,
+`end`, `begin` and the two `vector<Npc *>` accessors first and
+`Mapcontrol_GetByIndex` after them. Moving definitions cannot change that; it is
+driven by the order of *statements* inside the preceding functions, so the next
+step for `Packets` is a statement-level comparison rather than more reordering.
 
 ### Mainform emission order
 

@@ -380,13 +380,25 @@ documented build, not a manual fix-up.
   object defines them and bcc32 defines them in source order, so the reference's
   per-function addresses record the original source order. Reference order comes
   from `analysis/target/functions.tsv`, ours from the linked image's TD32 file
-  via `tdsfuncs.py`; functions are matched by mangled name. `scripts/reorder_unit.py`
-  is the companion that rewrites one unit's source into that order — it ties each
-  definition to its mangled name through the `?debug L` markers in the unit's
-  `bcc32 -S` listing, so no signature parsing is involved. Run it repeatedly and
-  keep the state that measures best: for a few units the ranking is ambiguous
-  (a definition whose only reference-named symbols are compiler COMDATs) and the
-  plan can oscillate between two orders.
+  via `tdsfuncs.py`; functions are matched by mangled name.
+  **`--from-obj` is the loop to iterate in**: it reads our order from the unit
+  *objects* rather than the linked TDS, so it needs no link — bcc32 emits every
+  COMDAT as an OMF communal and `ilink32` lays the module out in exactly that
+  order (verified equal). A single unit takes about four seconds and the whole
+  tree about a minute, against five minutes for a full build. Confirm in the
+  linked mode before believing a result, because an object also carries COMDATs
+  the linker later drops.
+  `scripts/reorder_unit.py` is the companion that rewrites one unit's source into
+  that order — it ties each definition to its mangled name through the `?debug L`
+  markers in the unit's `bcc32 -S` listing, so no signature parsing is involved.
+  Those line numbers must be scoped to the unit's own `.cpp`: `?debug L` is
+  relative to the last `?debug T`, which bcc32 emits only when the file *changes*,
+  so a template instantiated from `Include/vector.h` carries line numbers from
+  that file. Reading them as `.cpp` lines maps helpers into arbitrary source
+  blocks, and that — not the ranking rule — was what made earlier runs oscillate;
+  with it fixed every unit converges in a single pass. `--apply` also emits a
+  forward declaration for every free function in the unit, since moving
+  definitions can put a caller above its callee.
 
 - `make funcdiff` (`scripts/funcdiff.py`) is the whole-tree byte differential: it
   masks only what the layout moves (each base relocation's four bytes and the

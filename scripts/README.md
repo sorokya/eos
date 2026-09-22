@@ -109,8 +109,8 @@ imports, exports, resource tree). No `pip` packages required.
   different module is reported as *placed elsewhere* (byte-identical, layout
   only). Exits non-zero when any reference function differs, so it can gate a
   build.
-- **`orderdiff.py [--unit U] [--verbose]`** — the **within-module function
-  order**, reference vs rebuild (`make orderdiff`). `funcdiff` walks reference →
+- **`orderdiff.py [--unit U] [--from-obj] [--verbose]`** — the **within-module
+  function order**, reference vs rebuild (`make orderdiff`). `funcdiff` walks reference →
   rebuild and asks whether the bytes exist *somewhere*; `layoutdiff` compares
   module *starts*. Neither can see a reordering *inside* a module, yet that moves
   every byte of the module and every pointer into it. `ilink32` lays a module's
@@ -119,6 +119,15 @@ imports, exports, resource tree). No `pip` packages required.
   source order: reference order comes from `analysis/target/functions.tsv`, ours
   from the TD32 file via `tdsfuncs.py`, matched by mangled name. Exits non-zero
   when any unit's order differs.
+  `--from-obj` reads our order from the unit **objects** instead, which needs no
+  link at all: bcc32 emits each COMDAT as an OMF communal (`COMDEF ...
+  virtual(_TEXT)`, names kept mangled by `tdump -m`) and ilink32 lays the module
+  out in exactly that order — verified equal to the linked order. Every unit is
+  compiled and dumped in one container invocation, so the whole tree takes about
+  a minute and a single unit about four seconds, against five minutes for a full
+  build. Iterate in that mode; confirm in the linked one, because the object also
+  contains COMDATs the linker later drops (a copy an earlier object already
+  defines), which the object mode counts and the linked mode cannot see.
 - **`reorder_unit.py UNIT... [--all] [--apply] [--refresh]`** — rewrites one
   unit's source into that order. Each definition is tied to its mangled name
   through the `?debug L` markers in the unit's `bcc32 -S` listing (the first
@@ -129,10 +138,19 @@ imports, exports, resource tree). No `pip` packages required.
   reference position of the *author-written* symbol it defines; template
   instantiations and RTL/VCL namespace members share its line numbers and are
   ignored for that purpose. Where a definition's only reference-named symbols are
-  compiler COMDATs the plan can oscillate between two orders, so run it
-  repeatedly and keep the state that measures best. Moving definitions can make
-  a free function's callers precede it: add forward declarations (and hoist
-  macros) as `Packets.cpp` and `Players.cpp` needed.
+  compiler COMDATs. Which of a block's names *is* the definition is decided by
+  the lowest source line, ties broken by the object's emission order — and the
+  line numbers are scoped to the unit's own `.cpp`, because `?debug L` is
+  relative to the last `?debug T` and bcc32 emits `T` only when the file changes,
+  so a template pulled in from `Include/vector.h` carries line numbers from
+  *that* file. Reading those as `.cpp` lines maps helpers into arbitrary blocks
+  and was what made the plan oscillate between two orders; with it fixed every
+  unit converges in one pass. `--apply` also emits a forward declaration for
+  every free function in the unit (declarations are codegen-neutral, and moving
+  definitions can otherwise put a caller above its callee), and retries the `-S`
+  listing once, since bcc32 faults intermittently under Wine on multi-megabyte
+  listings. Multi-line `#define`s whose expansion is used by a moved definition
+  still have to be hoisted by hand, as `Players.cpp` needed.
 - **`tdsfuncs.py [TDS] [--seg-base A]`** — *our* linked function inventory
   (`make tdsfuncs`), read out of `build/GameServer.tds`: name, virtual address
   and exact COMDAT length for every linked function, template/RTL COMDATs

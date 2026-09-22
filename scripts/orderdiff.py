@@ -14,14 +14,22 @@ therefore record the original source order, and this script compares it against
 ours.
 
 Reference order comes from `analysis/target/functions.tsv` (make unitmap &&
-make track); our order comes from the linked image's TD32 debug file, via
-`tdsfuncs.py`, which names every COMDAT including the compiler-generated ones.
+make track). Our order has two sources, and they agree exactly:
+
+  * the linked image's TD32 debug file, via `tdsfuncs.py` -- the whole tree at
+    once, but it needs a full `scripts/build.sh` (minutes); and
+  * one unit's **object file**, via `--from-obj`. bcc32 emits each COMDAT as an
+    OMF communal (`COMDEF ... virtual(_TEXT)`) and `ilink32` lays a module out in
+    exactly that order, so a single `bcc32 -c` (seconds) answers the question for
+    that unit with no link at all. This is the loop to iterate in; run the linked
+    form to confirm.
+
 Functions are matched by mangled name, so only names present on both sides take
 part; a name only one side has is reported separately by `comdatdiff.py`.
 
 Usage:
-    MAP=1 scripts/build.sh
-    scripts/orderdiff.py [--unit Packets] [--verbose]
+    scripts/orderdiff.py --from-obj --unit Packets     # fast, one compile
+    MAP=1 scripts/build.sh && scripts/orderdiff.py     # whole tree, from the link
 
 Exits non-zero when any unit's order differs.
 """
@@ -30,11 +38,55 @@ import collections
 import csv
 import difflib
 import os
+import re
 import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
+
+
+COMDAT_RE = re.compile(r"^\s*Name:\s*\d+:\s*'([^']+)'\s+virtual\(_TEXT\)")
+
+
+def object_orders(units, refresh=False, cflags='-v -Od -tWM -k'):
+    """{unit: [mangled COMDAT name, ...]} in the order each object defines them,
+    which is the order ilink32 lays that module out in.
+
+    Every unit is compiled and dumped in **one** container invocation: the
+    round-trip costs seconds and doing it per unit dominates everything else.
+    `tdump -m` keeps the names mangled -- without it they come back demangled and
+    cannot be matched against the reference sheet.
+    """
+    script = []
+    for unit in units:
+        src = os.path.join(ROOT, 'src', unit + '.cpp')
+        obj = os.path.join(ROOT, 'build', 'obj', unit + '.obj')
+        if not os.path.exists(src):
+            raise SystemExit('no src/%s.cpp' % unit)
+        if refresh or not os.path.exists(obj) or os.path.getmtime(obj) < os.path.getmtime(src):
+            script.append('wine "$B\\Bin\\bcc32.exe" %s -c -obuild/obj/%s.obj src/%s.cpp '
+                          '>/dev/null 2>&1' % (cflags, unit, unit))
+    for unit in units:
+        script.append('echo "=== %s"' % unit)
+        script.append('wine "$B\\Bin\\tdump.exe" -m -q build/obj/%s.obj 2>/dev/null' % unit)
+    r = subprocess.run([os.path.join(HERE, 'borland.sh'), '\n'.join(script)],
+                       cwd=ROOT, capture_output=True, text=True)
+    out = {}
+    cur = None
+    for line in r.stdout.splitlines():
+        if line.startswith('=== '):
+            cur = line[4:].strip()
+            out[cur] = []
+            continue
+        m = COMDAT_RE.match(line)
+        if m and cur is not None:
+            out[cur].append(m.group(1).lstrip('@'))
+    missing = [u for u in units if not out.get(u)]
+    if missing:
+        raise SystemExit('no COMDAT records for: %s\n%s'
+                         % (', '.join(missing), (r.stdout + r.stderr)[-2000:]))
+    return out
 
 
 def reference_order(path):
@@ -76,10 +128,19 @@ def main():
     ap.add_argument('--tds', default=None, help='TD32 file (default: build/GameServer.tds)')
     ap.add_argument('--unit', action='append', help='restrict to these units')
     ap.add_argument('--verbose', action='store_true', help='print every moved function')
+    ap.add_argument('--from-obj', action='store_true',
+                    help='read our order from the unit objects instead of the linked TDS '
+                         '(one bcc32 -c per unit, no link)')
+    ap.add_argument('--refresh', action='store_true', help='recompile the objects first')
     args = ap.parse_args()
 
     ref = reference_order(args.functions)
-    ours = rebuild_order(args.tds)
+    if args.from_obj:
+        want = args.unit or sorted(
+            u for u in ref if os.path.exists(os.path.join(ROOT, 'src', u + '.cpp')))
+        ours = object_orders(want, args.refresh)
+    else:
+        ours = rebuild_order(args.tds)
 
     rows = []
     for unit in ref:
