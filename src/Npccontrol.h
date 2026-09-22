@@ -10,7 +10,6 @@
 #include "Server.h"
 #include "Settings.h"
 
-
 // The NPC runtime driver. Layout (sizeof 0x44) is pinned by the reference
 // constructor (0x4ae37c) stores and the destructor; the argument order is pinned
 // by the FormCreate call site. player_targets is a vector<Player*> and its
@@ -19,19 +18,22 @@
 class NpcController
 {
   public:
-    Settings *settings;        // +0x00
-    Mapcontrol *map_control;   // +0x04
-    Players *players;          // +0x08
-    Server *server;            // +0x0c
-    void *encode_scratch;      // +0x10 (operator new(8), base-253 encode buffer)
-    char player_targets_valid; // +0x14
-    char pad_0x15[3];          // +0x15
+    Settings *settings;              // +0x00
+    MapContainer *map_control;       // +0x04
+    Players *players;                // +0x08
+    Packets *server;                 // +0x0c
+    void *encode_scratch;            // +0x10 (operator new(8), base-253 encode buffer)
+    char player_targets_valid;       // +0x14
+    char pad_0x15[3];                // +0x15
     vector<Player *> player_targets; // +0x18
-    int act_counter;                      // +0x38
-    int talk_counter;                     // +0x3c
-    int regen_counter;                    // +0x40
+    int act_counter;                 // +0x38
+    int talk_counter;                // +0x3c
+    int regen_counter;               // +0x40
 
-    NpcController(Mapcontrol *map, Players *players, Server *server, Settings *settings);
+    NpcController(MapContainer *map,
+                  Players *players,
+                  Packets *server,
+                  Settings *settings);
     ~NpcController();
 
     static void NpcControl_Tick(NpcController *self);

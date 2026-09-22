@@ -7,7 +7,7 @@
 
 #pragma package(smart_init)
 
-Questengine::Questengine(Settings *settings)
+QuestContainer::QuestContainer(Settings *settings)
 {
     this->settings = settings;
     max_quests = Settings::GetMaxQuests(this->settings);
@@ -52,23 +52,25 @@ Questengine::Questengine(Settings *settings)
     LoadQuests(this);
 }
 
-Questengine::~Questengine()
+QuestContainer::~QuestContainer()
 {
 }
 
-void Questengine::RegisterAction(Questengine *self, int action_id, String name)
+void QuestContainer::RegisterAction(QuestContainer *self, int action_id, String name)
 {
     QuestType entry(action_id, name);
     self->action_names.insert(self->action_names.end(), entry);
 }
 
-void Questengine::RegisterCondition(Questengine *self, int condition_id, String name)
+void QuestContainer::RegisterCondition(QuestContainer *self,
+                                       int condition_id,
+                                       String name)
 {
     QuestType entry(condition_id, name);
     self->cond_names.insert(self->cond_names.end(), entry);
 }
 
-void Questengine::LoadQuests(Questengine *self)
+void QuestContainer::LoadQuests(QuestContainer *self)
 {
     self->quest_list.clear();
     for (int quest_id = 1; quest_id <= 0xfa00 && quest_id <= (int)self->max_quests;
@@ -76,7 +78,7 @@ void Questengine::LoadQuests(Questengine *self)
         LoadQuest(self, quest_id);
 }
 
-bool Questengine::LoadQuest(Questengine *self, int quest_id)
+bool QuestContainer::LoadQuest(QuestContainer *self, int quest_id)
 {
     String text;
     String unused_str;
@@ -286,7 +288,7 @@ bool Questengine::LoadQuest(Questengine *self, int quest_id)
     return true;
 }
 
-void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
+void QuestContainer::ParseToken(QuestContainer *self, Quest *quest, String token)
 {
     if (self->field_0x3a != 0)
     {
@@ -470,7 +472,7 @@ void Questengine::ParseToken(Questengine *self, Quest *quest, String token)
     }
 }
 
-QuestState *Questengine::GetState(Questengine *self, int quest_id, int state_index)
+QuestState *QuestContainer::GetState(QuestContainer *self, int quest_id, int state_index)
 {
     if (quest_id < 1 || self->quest_list.size() < (unsigned)quest_id)
         return NULL;
@@ -480,7 +482,7 @@ QuestState *Questengine::GetState(Questengine *self, int quest_id, int state_ind
     return self->quest_list[quest_id - 1]->states[state_index];
 }
 
-int Questengine::GetActionType(Questengine *self, String name)
+int QuestContainer::GetActionType(QuestContainer *self, String name)
 {
     if (name.Length() < 3)
         return 0;
@@ -495,7 +497,7 @@ int Questengine::GetActionType(Questengine *self, String name)
     return 0;
 }
 
-int Questengine::GetConditionType(Questengine *self, String name)
+int QuestContainer::GetConditionType(QuestContainer *self, String name)
 {
     if (name.Length() < 3)
         return 0;
@@ -510,7 +512,7 @@ int Questengine::GetConditionType(Questengine *self, String name)
     return 0;
 }
 
-int Questengine::ParseInt(Questengine *self, String token)
+int QuestContainer::ParseInt(QuestContainer *self, String token)
 {
     for (int i = 1; i <= token.Length(); i++)
     {
@@ -520,7 +522,7 @@ int Questengine::ParseInt(Questengine *self, String token)
     return StrToInt(token);
 }
 
-String Questengine::EncodeNumber(Questengine *self, unsigned int value, int width)
+String QuestContainer::EncodeNumber(QuestContainer *self, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -558,29 +560,31 @@ String Questengine::EncodeNumber(Questengine *self, unsigned int value, int widt
     return encoded_str;
 }
 
-int Questengine::GetQuestVersion(Questengine *self, int quest_id)
+int QuestContainer::GetQuestVersion(QuestContainer *self, int quest_id)
 {
     if (quest_id < 1 || self->quest_list.size() < (unsigned)quest_id)
         return 0;
     return self->quest_list[quest_id - 1]->version;
 }
 
-char Questengine::GetQuestLoaded(Questengine *self, int quest_id)
+char QuestContainer::GetQuestLoaded(QuestContainer *self, int quest_id)
 {
     if (quest_id < 1 || self->quest_list.size() < (unsigned)quest_id)
         return 0;
     return self->quest_list[quest_id - 1]->loaded;
 }
 
-String Questengine::GetQuestName(Questengine *self, int quest_id)
+String QuestContainer::GetQuestName(QuestContainer *self, int quest_id)
 {
     if (quest_id < 1 || self->quest_list.size() < (unsigned)quest_id)
         return "";
     return self->quest_list[quest_id - 1]->name;
 }
 
-String
-Questengine::GetActionData(Questengine *self, int quest_id, int state_index, int arg)
+String QuestContainer::GetActionData(QuestContainer *self,
+                                     int quest_id,
+                                     int state_index,
+                                     int arg)
 {
     QuestState *state = GetState(self, quest_id, state_index);
     if (state == NULL)
@@ -600,8 +604,10 @@ Questengine::GetActionData(Questengine *self, int quest_id, int state_index, int
     return data;
 }
 
-String
-Questengine::GetActionData2(Questengine *self, int quest_id, int state_index, int arg)
+String QuestContainer::GetActionData2(QuestContainer *self,
+                                      int quest_id,
+                                      int state_index,
+                                      int arg)
 {
     QuestState *state = GetState(self, quest_id, state_index);
     if (state == NULL)
@@ -631,10 +637,10 @@ Questengine::GetActionData2(Questengine *self, int quest_id, int state_index, in
     return data;
 }
 
-int Questengine::GetRuleValue(Questengine *self,
-                              int quest_id,
-                              int state_index,
-                              int rule_type)
+int QuestContainer::GetRuleValue(QuestContainer *self,
+                                 int quest_id,
+                                 int state_index,
+                                 int rule_type)
 {
     QuestState *state = GetState(self, quest_id, state_index);
     if (state == NULL)
@@ -651,10 +657,10 @@ int Questengine::GetRuleValue(Questengine *self,
     return -1;
 }
 
-int Questengine::GetRuleValue2(Questengine *self,
-                               int quest_id,
-                               int state_index,
-                               int rule_type)
+int QuestContainer::GetRuleValue2(QuestContainer *self,
+                                  int quest_id,
+                                  int state_index,
+                                  int rule_type)
 {
     QuestState *state = GetState(self, quest_id, state_index);
     if (state == NULL)

@@ -5,11 +5,11 @@
 
 #pragma package(smart_init)
 
-WeaponmapEntry::WeaponmapEntry()
+WeaponMapper::WeaponMapper()
 {
 }
 
-WeaponmapEntry::~WeaponmapEntry()
+WeaponMapper::~WeaponMapper()
 {
 }
 

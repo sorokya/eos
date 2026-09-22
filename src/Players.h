@@ -14,39 +14,36 @@
 // validation range for incoming socket handles.
 #define SOCKET_HANDLE_MAX 100000
 
-class Server;
+class Packets;
 class Players;
 
 String Character_BuildSaveQuery(Players *self, Player *player, int flags);
 int RandRange(int max);
-Player **Players_Iter_Begin(Players *self);
-Player **Players_Iter_End(Players *self);
 
 // Player manager. Layout recovered from the reference (Players unit,
 // 0x407948..0x410de4): a vector<Player *> at +0, the 100000-entry
-// socket-handle index at +0x20, the Settings/Mysqlcontrols back-references at
+// socket-handle index at +0x20, the Settings/mySQLdb back-references at
 // +0x61aa0/+0x61aa4, the removal/dirty flag at +0x61aa8, the idle-timeout
 // counter at +0x61aac and the stat total at +0x61ab0. sizeof is 0x61ab4.
 class Players
 {
   public:
-    vector<Player *> players;    // +0x00000
+    vector<Player *> players;         // +0x00000
     Player *by_id[SOCKET_HANDLE_MAX]; // +0x00020
     Settings *settings;               // +0x61aa0
-    Mysqlcontrols *mysql_controls;    // +0x61aa4
+    mySQLdb *mysql_controls;          // +0x61aa4
     char dirty;                       // +0x61aa8
     char pad_0x61aa9[3];              // +0x61aa9
     int idle_timeout;                 // +0x61aac
     int stat_total;                   // +0x61ab0
 
-    Players(Settings *settings, Mysqlcontrols *mysql_controls);
+    Players(Settings *settings, mySQLdb *mysql_controls);
     ~Players();
 
     static void Players_Tick(Players *self);
     static bool Players_Add(Players *self, TCustomWinSocket *socket);
     static void Players_MarkRemoving(Players *self, TCustomWinSocket *socket);
     static void Players_Remove(Players *self, TCustomWinSocket *socket);
-    static int Players_ActiveCount(Players *self);
     static bool Players_IsPlayerAt(Players *self, int map_id, int x, int y);
     static bool CharName_Validate(Players *self, Player *player, String name);
     static bool Player_HasKeyItem(Players *self, Player *player, int key_item_id);

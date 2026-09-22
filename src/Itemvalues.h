@@ -4,37 +4,7 @@
 #include <vector.h>
 #include <Classes.hpp>
 #include "Itemvalue.h"
-
-// Two-int result records returned by value from the EIF accessors that expose a
-// pair of fields (element id/power, scroll spec2/spec3). The reference calls an
-// empty user constructor on the local at entry (the folded EH-frame-only
-// constructor at 0x44f58c) and then moves the record to the caller's return slot
-// with a single memcpy-style copy; bcc32 emits that copy only when the two
-// fields sit in one anonymous aggregate member (multiple scalar members yield a
-// different, member-wise copy).
-struct ItemElement
-{
-    struct
-    {
-        int element;
-        int element_damage;
-    };
-    ItemElement()
-    {
-    }
-};
-
-struct ItemSpecXY
-{
-    struct
-    {
-        int spec2;
-        int spec3;
-    };
-    ItemSpecXY()
-    {
-    }
-};
+#include "Protocol.h"
 
 // The item table (EIF). Layout recovered from the reference constructor
 // (0x47826c); sizeof(vector<ItemValue*>) is 32 and the member extent runs

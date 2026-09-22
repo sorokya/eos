@@ -7,19 +7,18 @@
 #include "Server.h"
 #include "Settings.h"
 
-
 class ChestController
 {
   public:
     char *encode_scratch;
     Settings *settings;
-    Mapcontrol *map_control;
+    MapContainer *map_control;
     Players *players;
-    Server *server;
+    Packets *server;
 
-    ChestController(Mapcontrol *map_control,
+    ChestController(MapContainer *map_control,
                     Players *players,
-                    Server *server,
+                    Packets *server,
                     Settings *settings);
     ~ChestController();
 

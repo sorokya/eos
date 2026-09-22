@@ -11,13 +11,13 @@
 //     parameter is not referenced by the body.
 // Member semantics are not yet established; the layout is pinned only to the
 // observed size of 8 bytes.
-struct WeaponmapEntry
+struct WeaponMapper
 {
     int field_0x0;
     int field_0x4;
 
-    WeaponmapEntry();
-    ~WeaponmapEntry();
+    WeaponMapper();
+    ~WeaponMapper();
 };
 
 bool Combat_IsRangedWeapon(void *unused, int doll_graphic_id);

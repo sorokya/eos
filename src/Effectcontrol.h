@@ -7,7 +7,6 @@
 #include "Players.h"
 #include "Server.h"
 
-
 class EffectController
 {
   public:
@@ -17,13 +16,13 @@ class EffectController
     int nBroadcast_gate;
     char *pEncode_scratch;
     Settings *settings;
-    Mapcontrol *map_control;
+    MapContainer *map_control;
     Players *players;
-    Server *server;
+    Packets *server;
 
-    EffectController(Mapcontrol *map_control,
+    EffectController(MapContainer *map_control,
                      Players *players,
-                     Server *server,
+                     Packets *server,
                      Settings *settings);
     ~EffectController();
 

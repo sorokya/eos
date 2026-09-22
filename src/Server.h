@@ -17,19 +17,19 @@
 // The application core. Layout recovered from the reference server constructor
 // (Packets unit, 0x41670c) and the per-tick loop. sizeof is 0xc8, pinned by the
 // `operator new(0xc8)` in Mainform's FormCreate.
-class Server
+class Packets
 {
   public:
     int state_0x00;                // +0x00
     int state_0x04;                // +0x04
     TStringList *wordfilter;       // +0x08
-    WeaponmapEntry *weapon_map;    // +0x0c
+    WeaponMapper *weapon_map;      // +0x0c
     Players *players;              // +0x10
-    Mysqlcontrols *mysql_controls; // +0x14
+    mySQLdb *mysql_controls;       // +0x14
     Logins *logins;                // +0x18
     Banned *banned;                // +0x1c
-    Questengine *quest_engine;     // +0x20
-    Mapcontrol *map_control;       // +0x24
+    QuestContainer *quest_engine;  // +0x20
+    MapContainer *map_control;     // +0x24
     Settings *settings;            // +0x28
     KillCounters *kill_counters;   // +0x2c
     QuestCounters *quest_counters; // +0x30
@@ -65,16 +65,16 @@ class Server
     int cheat_offset_y;            // +0xc0
     int pad_0xc4;                  // +0xc4
 
-    Server(Mapcontrol *map_control,
-           Questengine *quest_engine,
-           Players *players,
-           Settings *settings,
-           Mysqlcontrols *mysql_controls,
-           Logins *logins,
-           int version_patch,
-           int version_minor,
-           int version_major);
-    ~Server();
+    Packets(MapContainer *map_control,
+            QuestContainer *quest_engine,
+            Players *players,
+            Settings *settings,
+            mySQLdb *mysql_controls,
+            Logins *logins,
+            int version_patch,
+            int version_minor,
+            int version_major);
+    ~Packets();
 };
 
 #endif

@@ -10,7 +10,7 @@
 
 #pragma package(smart_init)
 
-extern void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result);
+extern void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result);
 
 __fastcall MySQLthread::MySQLthread(TSession *session_,
                                     TDatabase *database_,
@@ -91,6 +91,6 @@ void __fastcall MySQLthread::Execute()
 
 void __fastcall MySQLthread::OnResult()
 {
-    Server *server = Mainform_GetServer(GUI);
+    Packets *server = Mainform_GetServer(GUI);
     MysqlCallback_Dispatch(server, task);
 }

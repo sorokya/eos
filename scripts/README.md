@@ -109,6 +109,33 @@ imports, exports, resource tree). No `pip` packages required.
   different module is reported as *placed elsewhere* (byte-identical, layout
   only). Exits non-zero when any reference function differs, so it can gate a
   build.
+- **`tdsfuncs.py [TDS] [--seg-base A]`** — *our* linked function inventory
+  (`make tdsfuncs`), read out of `build/GameServer.tds`: name, virtual address
+  and exact COMDAT length for every linked function, template/RTL COMDATs
+  included. The reference is stripped but the rebuild is not, and that asymmetry
+  is what makes a rebuild→reference differential possible at all. Reads the TD32
+  `AlignSym` subsections (`S_GPROC32`/`S_LPROC32`); Delphi modules emit the same
+  records with empty names, which are kept because the address and length are
+  what the byte differential needs. (`tdsinfo.py` reads the module table from the
+  same file.)
+- **`comdatdiff.py [--module I] [--unit U] [--body VA:LEN]`** — the opposite
+  direction from `funcdiff` (`make comdatdiff`): COMDATs *we* emit that the
+  reference does not have in that module. bcc32 emits every function as a
+  COMDAT and `ilink32` keeps the copy from the **first object that defines
+  one**, so which translation unit odr-uses a template member is observable in
+  the layout — and a hand-written helper with the same body as a container
+  accessor is a redundant second copy of it. It groups `tdsfuncs.py`'s inventory
+  by *masked* body (relocation slots and direct-branch displacements zeroed, so
+  byte-identical instantiations of different types fall together) and compares
+  masked occurrence counts per module against the reference. A count mismatch is
+  an exact per-module byte surplus or deficit; the *identity* of a byte-identical
+  body cannot be resolved by counting, so both sides' names and addresses are
+  printed. `--body VA:LEN` lists every masked copy of one body in both images —
+  that is how `Players_ActiveCount`/`vector<Player*>::size`,
+  `Mysqlcontrols::Free`/`~Mysqlcontrols`, `Mapcontrol_GetCount`/
+  `vector<ChestItem>::size` and the nine two-int pair constructors were each
+  shown to be one function in the reference. Exits non-zero on any mismatch.
+  See PLAN.md, "COMDAT ownership".
 - **`normalize_pe.py PE [--timestamp V] [--characteristics V] [-o OUT]`** — the
   documented deterministic post-link step: rewrite the volatile `TimeDateStamp`
   (at `e_lfanew + 8`) and optionally the COFF characteristics word.

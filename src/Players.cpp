@@ -20,7 +20,7 @@ int RandRange(int max)
     return (max ? (int)(_lrand() % max) : 0);
 }
 
-Players::Players(Settings *settings, Mysqlcontrols *mysql_controls)
+Players::Players(Settings *settings, mySQLdb *mysql_controls)
 {
     idle_timeout = 0;
     stat_total = 0;
@@ -33,11 +33,6 @@ Players::Players(Settings *settings, Mysqlcontrols *mysql_controls)
 
 Players::~Players()
 {
-}
-
-int Players::Players_ActiveCount(Players *self)
-{
-    return self->players.end() - self->players.begin();
 }
 
 bool Players::Players_Add(Players *self, TCustomWinSocket *socket)
@@ -73,7 +68,7 @@ void Players::Players_MarkRemoving(Players *self, TCustomWinSocket *socket)
 
 int Players::Players_GetActiveCount(Players *self)
 {
-    return Players_ActiveCount(self);
+    return self->players.size();
 }
 
 int Players::Players_GetIdleTimeout(Players *self)
@@ -227,8 +222,8 @@ void Players::Player_LevelUp(Players *self, Player *player)
 int Players::Player_TryLevelUp(Players *self, Player *player)
 {
     int new_level = 0;
-    while ((int)player->experience >= Gamecontrol::Exp_RequiredForLevel(
-                                          (*MAINFORM)->game_control, player->level + 1))
+    while ((int)player->experience >=
+           Game::Exp_RequiredForLevel((*MAINFORM)->game_control, player->level + 1))
     {
         Player_LevelUp(self, player);
         new_level = player->level;
@@ -607,9 +602,9 @@ void Players::Players_Remove(Players *self, TCustomWinSocket *socket)
         {
             if (self->idle_timeout > 0)
                 self->idle_timeout = self->idle_timeout - 1;
-            Mysqlcontrols::Mysql_ExecDirect(self->mysql_controls,
-                                            player->account_ident,
-                                            Character_BuildSaveQuery(self, player, 0));
+            mySQLdb::Mysql_ExecDirect(self->mysql_controls,
+                                      player->account_ident,
+                                      Character_BuildSaveQuery(self, player, 0));
             player->trade_items.clear();
             player->inventory.clear();
             player->bank.clear();
@@ -865,7 +860,7 @@ void Players::Players_Tick(Players *self)
             if ((*iter)->fast_action == 0)
                 continue;
         }
-        Server *server = Mainform_GetServer(*MAINFORM);
+        Packets *server = Mainform_GetServer(*MAINFORM);
         (*iter)->flush_queue = 0;
         (*iter)->fast_action = 0;
         if ((*iter)->action_queue[0].family == PacketFamily_Walk)
@@ -1138,4 +1133,3 @@ void Players::Player_ClearSpells(Players *self, Player *player)
 {
     player->spells.clear();
 }
-

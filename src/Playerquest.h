@@ -12,7 +12,7 @@
 // state_index/counters/done are the fields the quest engine reads:
 // Player_EvaluateQuestRules (0x4597c0) writes counters[rule_index] and
 // state_index, and Player_FireQuestTriggers (0x459708) erases an entry once
-// done is set. `version` is the value of Questengine::GetQuestVersion for the
+// done is set. `version` is the value of QuestContainer::GetQuestVersion for the
 // quest at tracker creation (0x44825e passes FUN_0053b2ec, whose body matches
 // GetQuestVersion returning Quest::version at +8); Character_BuildSaveQuery
 // (0x4097df) persists it alongside state_index and counters.

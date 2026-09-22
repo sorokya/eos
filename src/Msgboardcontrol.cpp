@@ -443,4 +443,3 @@ void MsgBoardController::SaveBoards(MsgBoardController *self)
     file << lengths.c_str();
     file.close();
 }
-

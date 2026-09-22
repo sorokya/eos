@@ -7,30 +7,29 @@
 
 #pragma package(smart_init)
 
-Banned::Banned(Mysqlcontrols *db_handle)
+Banned::Banned(mySQLdb *db_handle)
 {
     ban_list = new TList;
     this->db_handle = db_handle;
-    Mysqlcontrols::Query(
-        this->db_handle,
-        "SELECT bandate, permanent, ipaddress, serial_h FROM endl_banlist");
-    if (Mysqlcontrols::GetResultCount(this->db_handle) > 0)
+    mySQLdb::Query(this->db_handle,
+                   "SELECT bandate, permanent, ipaddress, serial_h FROM endl_banlist");
+    if (mySQLdb::GetResultCount(this->db_handle) > 0)
     {
-        while (!Mysqlcontrols::ResultAtEnd(this->db_handle))
+        while (!mySQLdb::ResultAtEnd(this->db_handle))
         {
-            if ((unsigned)Mysqlcontrols::Db_GetInt(this->db_handle, "permanent") > 0)
+            if ((unsigned)mySQLdb::Db_GetInt(this->db_handle, "permanent") > 0)
                 AddBan(this,
-                       Mysqlcontrols::Db_GetString(this->db_handle, "ipaddress"),
-                       Mysqlcontrols::Db_GetString(this->db_handle, "serial_h"),
+                       mySQLdb::Db_GetString(this->db_handle, "ipaddress"),
+                       mySQLdb::Db_GetString(this->db_handle, "serial_h"),
                        true,
                        0x2ee);
             else
                 AddBan(this,
-                       Mysqlcontrols::Db_GetString(this->db_handle, "ipaddress"),
-                       Mysqlcontrols::Db_GetString(this->db_handle, "serial_h"),
+                       mySQLdb::Db_GetString(this->db_handle, "ipaddress"),
+                       mySQLdb::Db_GetString(this->db_handle, "serial_h"),
                        false,
                        0x2ee);
-            Mysqlcontrols::NextResultRecord(this->db_handle);
+            mySQLdb::NextResultRecord(this->db_handle);
         }
     }
 }

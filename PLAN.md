@@ -791,6 +791,208 @@ cross-unit template bodies, they are excluded from the hand-written denominator
 instead. No sound *exclusion* of the RTL/header rows would be possible without
 their proofs above; no artificial `auto`-style catch-all is used.
 
+## Current section-level status
+
+Measured on a clean `scripts/build.sh` (content = last non-zero byte of the raw
+section), reference vs rebuild:
+
+| section | reference | rebuild | delta |
+| --- | --- | --- | --- |
+| `.text` | 1,414,336 | 1,414,320 | **-16** |
+| `.data` | 199,507 | 199,491 | **-16** |
+| `.tls` | — | — | byte-identical |
+| `.rsrc` | — | — | byte-identical |
+| `.reloc` | 75,316 | 75,308 | -8 |
+
+`.reloc` is a derived quantity: its size follows how the `.text`/`.data` content
+falls across 4 KB relocation blocks, so it moves on its own and is not an
+independent signal. At the start of this pass the figures were `.text` +548,
+`.data` +48, `.reloc` +32.
+
+Per-module (`unitmap.py --pe --stubs` paired index-for-index with
+`analysis/target/modules.tsv`), only three ranges still differ:
+
+- **Mainform -32.** No COMDAT count mismatch and the type-name multiset matches
+  (the only string difference left is `MainForm` vs our `Mainform`, same
+  length). The module carries ~8.7 KB of embedded data the function walk cannot
+  identify (VCL class records, property tables, vtables), so the remaining 32
+  bytes are inside that. `.data` shows the same class of difference: the
+  reference's Mainform `.data` contribution starts with EH/RTTI tables where
+  ours starts with the string literals, i.e. an intra-module *emission order*
+  difference, which is the next thing to characterise.
+- **Mapchest -4.** Seven functions on both sides, identical bodies, no count
+  mismatch; a 4-byte descriptor/padding difference.
+- **library tail +20** (everything after the last unit module, `0x541e84`
+  onward). A library-member difference, not a source one.
+
+`make verify` is 499/499 and `make funcdiff` reports one differing reference
+function (`Party_ShareExp`, a byte difference at the same size).
+
+## COMDAT ownership: what the residual `.text` size difference was made of
+
+The rebuild's `.text` was 548 content bytes too large, `.data` 48 too large and
+`.reloc` 32 too large, and the surplus was distributed across twelve module
+ranges with no obvious cause.  All of it turned out to be **COMDAT ownership**:
+bcc32 emits every function as a COMDAT, `ilink32` keeps the copy from the
+*first* object that defines one, so *which translation unit odr-uses a template
+member* is observable in the linked layout -- and a hand-written helper that
+happens to have the same body as a container accessor is a second, redundant
+copy of it.
+
+### The tools that made it visible
+
+`funcdiff.py` only walks reference -> rebuild, so it cannot see code we emit and
+the reference does not have, and it never looks at the bytes *between* Ghidra's
+function ranges.  Two new tools invert it:
+
+- `scripts/tdsfuncs.py` (`make tdsfuncs`) reads our own linked inventory out of
+  `build/GameServer.tds` -- name, virtual address and exact COMDAT length for all
+  ~6,450 linked functions, template/RTL COMDATs included.  The reference is
+  stripped; the *rebuild* is not, and that asymmetry is the whole lever.
+- `scripts/comdatdiff.py` (`make comdatdiff`) groups that inventory by masked
+  body and compares the masked occurrence count per module against the
+  reference.  A count mismatch is a per-module byte surplus/deficit; the
+  identity of a byte-identical body cannot be resolved by counting, so it prints
+  every name and address on both sides.  `--body VA:LEN` locates one body in
+  both images (this is how each duplicate pair was identified).
+
+### What it found (each verified by rebuild + `make verify`)
+
+1. **Two wrong long-double literals** (a real byte bug, not a size bug).  The
+   `scaled *= 1.2L` in `Attack_Execute`/`Spell_Execute` (four sites) is `0.01L`
+   in the reference: the 10-byte x87 constants at `0x46a994`/`0x46ee40` decode to
+   `0.01`, ours decoded to `1.2`.  `funcdiff` could not see this because the
+   constant pool sits *outside* Ghidra's function ranges, and `compare_asm.py`
+   cannot because `fld tbyte ptr [addr]` is address-canonicalised.  Semantically
+   it is right too -- the multiplier scales a 0..100 armour-penetration
+   percentage.
+2. **`-D__CODEGUARD__` was wrong** -- see AGENTS.md "Compiler flags".  Dropping it
+   moves `AnsiString::Length` (30 B) and both `GetRec` COMDATs out of
+   `vcle50.lib|DSTRING` and into Mainform, where the reference has them
+   (`0x40243c`, `0x4039c4`).
+3. **The nine "two-int pair" records are ONE type in the reference.**
+   `MapCoord`, `ItemStack`, `ItemElement`, `ItemSpecXY`, `NpcTypeInfo`,
+   `NpcDropInfo`, `SkillDamage`, `SkillElement` and `ShopCraftIngredient` were
+   reconstructed as nine distinct structs, each with an empty user constructor
+   and an anonymous aggregate member, so bcc32 emitted nine 33-byte frame-only
+   constructor COMDATs.  Mapping each of our call sites into the reference shows
+   **every one of them calls `0x44f58c`** -- a single constructor, in Packets.
+   (The four-int `GroundItemInfo` has its own, `0x487c14` in Mapcontrol, which is
+   the control: distinct layouts do get distinct constructors.)  They are now one
+   type in `src/Protocol.h` -- `MapCoord`, whose spelling is already baked into
+   mangled parameter lists -- carrying a union of anonymous structs, one per
+   accessor's reading of the two slots.  The union of *anonymous structs* is
+   required: two bare anonymous unions change the return-slot copy (21 vs 22
+   instructions), the nested form is byte-identical.  None of the nine names
+   appears anywhere in either image, so the merge invents nothing observable.
+   This alone was `-288` `.text` and `-64` `.data`.
+4. **`vector<NpcDropItem>::clear/erase/copy` belong to Npcvalues, not Npcvalue.**
+   The reference has them at `0x4a87a0`/`0x4a87c4`/`0x4a8820`, inside
+   **Npcvalues**, while their only caller is Npcvalue's two `NpcValue`
+   constructors.  `ilink32` takes the first *definition*, so Npcvalues.obj must
+   define them -- yet nothing in the reference's Npcvalues calls them, which can
+   only happen if that translation unit contains an *unreferenced* function that
+   clears a `vector<NpcDropItem>` (the linker then drops the function and keeps
+   its COMDATs).  `NpcValues::ClearDrops` is that function; it is
+   `value->drops.clear();`, nothing calls it, it costs zero bytes, and it moves
+   all three COMDATs to the reference's module.  Its name/body are not
+   recoverable -- only its *effect* is observable -- and `verify_units.py`
+   whitelists it the same way it whitelists dropped deleting destructors.
+5. **`Players_ActiveCount` is `vector<Player*>::size()`.**  Written by hand as
+   `players.end() - players.begin()`, it is byte-identical to the container's
+   own `size()`, and the reference's Players module holds exactly one copy of
+   that body.  Removed; the call sites are `self->players.size()`.
+6. **`Mysqlcontrols::Free` is the deleting destructor.**  Its body is
+   `if (self && (flags & 1)) operator delete(self)`, byte-identical to
+   `Mysqlcontrols::~Mysqlcontrols` (which bcc32 generates in exactly that shape),
+   and the reference has one copy, not two.  `Mainform`'s
+   `Mysqlcontrols::Free(mysql_controls, 3)` is `delete mysql_controls;`.
+7. **Packets' ten raw container accessors are the container accessors.**
+   `MapVector_Begin/End`, `Mapcontrol_Iter_Front`, `Map_NpcIter_Begin/End`,
+   `GroundItemPtrVector_Begin/Count`, `PtrVector_GetEnd` and
+   `Players_Iter_Begin/End` were written as `*(T**)((char *)p + 4|8)` reads, and
+   `Mapcontrol_GetCount` as `maps.end() - maps.begin()`.  Each is byte-identical
+   to a `vector<T>::begin`/`end`/`size` COMDAT that we *also* emit, and the
+   global counts show exactly four begin-shaped, four end-shaped, one 38-byte and
+   one 36-byte body too many -- i.e. exactly these ten.  Writing the container
+   calls instead both removes the duplicates and makes Packets.obj the owner of
+   the accessor COMDATs, which is where the reference has them
+   (`vector<ChestItem>::size` at `0x417630`, its `begin`/`end` at
+   `0x417654`/`0x417660`/`0x41766c`, `vector<ItemObj*>::begin` at `0x45de08`).
+   Note the signedness: the reference's callers of `0x417630` use `jl`, so the
+   count is consumed as `int` -- write `(int)map_control->maps.size()`.
+
+### Method, for the next one of these
+
+The residual is a *per-module* question, so the order is: `make comdatdiff` to
+get the module and the body length; `comdatdiff.py --body VA:LEN` to list every
+copy in both images with names; then, for a body whose identity is ambiguous
+(all the 11-byte accessors are byte-identical), map a *caller* into the
+reference by masked body match and read the reference's call target -- that is
+the only way to learn which module the reference put a given COMDAT in.  The
+counting is exact; the naming is not.
+
+## The RTTI type-descriptor name oracle (`.text`, not just `vector<...>`)
+
+bcc32 writes the **spelled** type name into every `__tpdsc__` it emits, and
+those descriptors sit *inside* `.text`, between functions.  That makes the
+reference's own class names directly readable, and it makes a wrong
+reconstructed name a byte *and* a size difference (the descriptor is
+`dd size; dw flags; dw ?; dd base; db name,0`, so its length tracks the name).
+AGENTS.md already recorded this for the `vector<X>` container descriptors; the
+same table covers plain classes, and the procedure generalises to a one-line
+diff of the NUL-terminated ASCII in `.text`:
+
+```py
+re.finditer(rb'[ -~]{4,}\x00', text)      # on both images, then diff the multisets
+```
+
+Everything below came out of that diff.  Each row is proven: the string exists
+in the reference and not in ours, our replacement exists in ours and not in the
+reference, and the descriptors sit in the same module in the same order with
+the same field-count words.
+
+| ours (invented) | reference (proven) | where the descriptor lives |
+| --- | --- | --- |
+| `Logins::ReservedName` | `Asocketvip` | Logins |
+| `Logins::LoginEntry` | `Asocketblock` | Logins |
+| `Gamecontrol` | `Game` | Mainform |
+| `Mapcontrol` | `MapContainer` | Mainform |
+| `Mysqlcontrols` | `mySQLdb` | Mainform |
+| `Newscontrol` | `NewsTopics` | Mainform |
+| `Questengine` | `QuestContainer` | Mainform |
+| `Serial` | `SerialKey` | Mainform |
+| `Server` | `Packets` | Mainform |
+| `WeaponmapEntry` | `WeaponMapper` | Packets |
+
+Two notes on the Logins pair: the descriptors carry **no `Logins::` prefix**, so
+the records are at namespace scope, not nested; and the field-count word in each
+class descriptor (3 vs 2) pairs `Asocketvip` with the two-`String` record and
+`Asocketblock` with the `String`+`int` one.  Correcting just those two closed
+the Logins module's +32 exactly.
+
+`scripts/verify_units.py`'s `UNIT_CLASS_ALIASES` must gain every rename or the
+unit's functions silently stop being scored (`Serial` -> `SerialKey`,
+`Mapcontrol` -> `MapContainer`, ...).
+
+### Still open from the same diff
+
+- **`MainForm` / `MySQLthread`.**  These are not `__tpdsc__` names but the
+  *unit* string in the VCL class-registration record
+  (`db 4,'TGUI' ... db 8,'MainForm'`).  The reference has `MainForm` and
+  `MySQLthread` where we emit `Mainform` and `Mysqlthread` -- the same case as
+  the file base name.  The `@@Unit@Initialize` export is Pascal-normalised
+  (first letter upper, rest lower), which is why the export table says
+  `@@Mainform@Initialize` / `@@Mysqlthread@Initialize` for both spellings.  The
+  implication is that the original files are `MainForm.cpp` and
+  `MySQLthread.cpp`; changing ours means teaching `build.sh`/`units.tsv` that
+  the file base and the export name differ in case.  Two bytes each, no size
+  change.
+- The diff also lists VCL/Delphi property-name strings that differ
+  (`EOutOfResources`, `TFrame`, `TMenuItem`, `ParentShowHint`, ...).  Those are
+  library modules, so they are a *library-member* difference, not a source one;
+  do not chase them before the application modules are clean.
+
 ## Known-unconverged functions
 
 Tracked so they are not mistaken for done:

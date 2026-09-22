@@ -32,7 +32,7 @@ class mySQLtask
 
 // The shared job queue (RTTI type name `mySQLbuffer`, class descriptor at
 // 0x5807.. referencing the deleting destructor 0x533b10). sizeof is 0x30,
-// pinned by the `operator new(0x30)` in the Mysqlcontrols constructor:
+// pinned by the `operator new(0x30)` in the mySQLdb constructor:
 //   +0x00 TCriticalSection *        thread
 //   +0x04 vector<mySQLtask *>  job_queue  (32 bytes, +0x04..+0x24)
 //   +0x24 int                       last_player_id
@@ -41,11 +41,11 @@ class mySQLtask
 class mySQLbuffer
 {
   public:
-    TCriticalSection *thread;           // +0x00
+    TCriticalSection *thread;      // +0x00
     vector<mySQLtask *> job_queue; // +0x04
-    int last_player_id;                 // +0x24
-    int field_0x28;                     // +0x28
-    int field_0x2c;                     // +0x2c
+    int last_player_id;            // +0x24
+    int field_0x28;                // +0x28
+    int field_0x2c;                // +0x2c
 
     mySQLbuffer();
     ~mySQLbuffer();

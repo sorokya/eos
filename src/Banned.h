@@ -5,7 +5,6 @@
 #include <SysUtils.hpp>
 #include "Mysqlcontrols.h"
 
-
 // Ban record stored in the Banned manager's list. RTTI type name is
 // `Asocketban` (reference type table at 0x52ca98, sizeof 0x1c, deleting
 // destructor 0x52cae8 which clears the String at +0). Layout recovered from the
@@ -33,13 +32,13 @@ class Asocketban
 class Banned
 {
   public:
-    Mysqlcontrols *db_handle; // +0x00
-    TList *ban_list;          // +0x04
-    int field_0x8;            // +0x08
-    unsigned char field_0xc;  // +0x0c
-    char pad_0xd[3];          // +0x0d
+    mySQLdb *db_handle;      // +0x00
+    TList *ban_list;         // +0x04
+    int field_0x8;           // +0x08
+    unsigned char field_0xc; // +0x0c
+    char pad_0xd[3];         // +0x0d
 
-    Banned(Mysqlcontrols *db_handle);
+    Banned(mySQLdb *db_handle);
     ~Banned();
 
     static void

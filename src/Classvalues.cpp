@@ -177,4 +177,3 @@ bool ClassValues::ClassMatches(ClassValues *self, int class_id, int class_requir
     }
     return false;
 }
-

@@ -6,15 +6,15 @@
 
 #pragma package(smart_init)
 
-Gamecontrol::Gamecontrol()
+Game::Game()
 {
 }
 
-Gamecontrol::~Gamecontrol()
+Game::~Game()
 {
 }
 
-int Gamecontrol::Exp_RequiredForLevel(Gamecontrol *self, int level)
+int Game::Exp_RequiredForLevel(Game *self, int level)
 {
     int required_exp = 0;
     if (level > 0)
@@ -22,10 +22,7 @@ int Gamecontrol::Exp_RequiredForLevel(Gamecontrol *self, int level)
     return required_exp;
 }
 
-int Gamecontrol::Combat_CalcArmorPen(Gamecontrol *self,
-                                     int avg_dmg,
-                                     int armor,
-                                     double factor)
+int Game::Combat_CalcArmorPen(Game *self, int avg_dmg, int armor, double factor)
 {
     double result = 50;
     if (avg_dmg < armor)
@@ -57,10 +54,7 @@ int Gamecontrol::Combat_CalcArmorPen(Gamecontrol *self,
     return (int)result;
 }
 
-int Gamecontrol::Combat_CalcHitRate(Gamecontrol *self,
-                                    int accuracy,
-                                    int evade,
-                                    double factor)
+int Game::Combat_CalcHitRate(Game *self, int accuracy, int evade, double factor)
 {
     double result = 50;
     if (accuracy < evade)
@@ -92,10 +86,10 @@ int Gamecontrol::Combat_CalcHitRate(Gamecontrol *self,
     return (int)result;
 }
 
-double Gamecontrol::Combat_CalcElementMult(Gamecontrol *self,
-                                           MapCoord coord,
-                                           short atk_power,
-                                           short target_value)
+double Game::Combat_CalcElementMult(Game *self,
+                                    MapCoord coord,
+                                    short atk_power,
+                                    short target_value)
 {
     double result = 1;
     if (coord.x > Element_None)
@@ -110,7 +104,7 @@ double Gamecontrol::Combat_CalcElementMult(Gamecontrol *self,
     return result;
 }
 
-int Gamecontrol::Combat_ElementScore(Gamecontrol *self, int atk_power, int target_value)
+int Game::Combat_ElementScore(Game *self, int atk_power, int target_value)
 {
     if (atk_power > 100)
         atk_power = 100;

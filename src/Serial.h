@@ -12,7 +12,7 @@
 //  20  AnsiString   reg_name
 //  24  bool         valid
 //  28  int          counter
-struct Serial
+struct SerialKey
 {
     TStringList *ini_file;
     String key_base;
@@ -23,21 +23,21 @@ struct Serial
     bool valid;
     int counter;
 
-    Serial();
-    ~Serial();
+    SerialKey();
+    ~SerialKey();
 
-    static int GetCounter(Serial *self);
-    static void SetCounter(Serial *self, int value);
-    static bool IsValid(Serial *self);
-    static String GetKeyBaseCopy(Serial *self);
-    static String GetUnlockCode(Serial *self);
-    static String GetRegName(Serial *self);
-    static String GetDisplayCode(Serial *self);
-    static void SetIniPath(Serial *self, String path);
-    static void ReloadIni(Serial *self);
-    static String ReadKey(Serial *self, String key, String default_value);
-    static String DecodeString(Serial *self, String src);
-    static void Validate(Serial *self);
+    static int GetCounter(SerialKey *self);
+    static void SetCounter(SerialKey *self, int value);
+    static bool IsValid(SerialKey *self);
+    static String GetKeyBaseCopy(SerialKey *self);
+    static String GetUnlockCode(SerialKey *self);
+    static String GetRegName(SerialKey *self);
+    static String GetDisplayCode(SerialKey *self);
+    static void SetIniPath(SerialKey *self, String path);
+    static void ReloadIni(SerialKey *self);
+    static String ReadKey(SerialKey *self, String key, String default_value);
+    static String DecodeString(SerialKey *self, String src);
+    static void Validate(SerialKey *self);
 };
 
 #endif

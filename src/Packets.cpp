@@ -64,7 +64,7 @@
 #define FREE_FROM_JAIL_X 9
 #define FREE_FROM_JAIL_Y 0xb
 
-bool Player_HandlePacket(Server *server, Player *player, String data)
+bool Player_HandlePacket(Packets *server, Player *player, String data)
 {
     Server_AddReceivedBytes(server, data.Length());
     if (data.Length() < 4)
@@ -136,7 +136,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         if (action == PacketAction_Use || action == PacketAction_Player ||
             action == PacketAction_Report)
         {
-            Mysqlcontrols::NormalizePlayerText(server->mysql_controls, data);
+            mySQLdb::NormalizePlayerText(server->mysql_controls, data);
             String seq = EO_EncodeNumber(server, player->player_id, 2);
             seq.Insert(data, seq.Length() + 1);
             if (data[1] == '#')
@@ -254,7 +254,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             coords.x++;
                         if (player->direction == Direction_Down)
                             coords.y++;
-                        if (!Mapcontrol::Mapcontrol_IsTileClear(
+                        if (!MapContainer::Mapcontrol_IsTileClear(
                                 server->map_control, player->map_id, coords.x, coords.y))
                         {
                             coords.x = player->x;
@@ -319,10 +319,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 coords.x++;
                             if (target->direction == Direction_Down)
                                 coords.y++;
-                            if (!Mapcontrol::Mapcontrol_IsTileClear(server->map_control,
-                                                                    target->map_id,
-                                                                    coords.x,
-                                                                    coords.y))
+                            if (!MapContainer::Mapcontrol_IsTileClear(server->map_control,
+                                                                      target->map_id,
+                                                                      coords.x,
+                                                                      coords.y))
                             {
                                 coords.x = target->x;
                                 coords.y = target->y;
@@ -354,14 +354,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                 coords.y += coords.y / 2;
                             if (coords.y <= target->y)
                                 coords.y = coords.y / 2;
-                            if (!Mapcontrol::Mapcontrol_IsTileClear(server->map_control,
-                                                                    target->map_id,
-                                                                    coords.x,
-                                                                    coords.y))
+                            if (!MapContainer::Mapcontrol_IsTileClear(server->map_control,
+                                                                      target->map_id,
+                                                                      coords.x,
+                                                                      coords.y))
                             {
                                 coords.x = 2;
                                 coords.y = 2;
-                                if (!Mapcontrol::Mapcontrol_IsTileClear(
+                                if (!MapContainer::Mapcontrol_IsTileClear(
                                         server->map_control,
                                         target->map_id,
                                         coords.x,
@@ -679,7 +679,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                            target->hdid,
                                            (char)0,
                                            200);
-                            Mysqlcontrols::Mysql_ExecDirect(
+                            mySQLdb::Mysql_ExecDirect(
                                 server->mysql_controls,
                                 target->account_ident,
                                 "UPDATE endl_accounts SET banned = 1 WHERE ident = " +
@@ -724,12 +724,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                            target->hdid,
                                            (char)0,
                                            200);
-                            Mysqlcontrols::Mysql_ExecDirect(
+                            mySQLdb::Mysql_ExecDirect(
                                 server->mysql_controls,
                                 target->account_ident,
                                 "UPDATE endl_accounts SET banned = 1 WHERE ident = " +
                                     IntToStr((unsigned int)target->account_ident));
-                            Mysqlcontrols::Mysql_ExecDirect(
+                            mySQLdb::Mysql_ExecDirect(
                                 server->mysql_controls,
                                 target->account_ident,
                                 "INSERT INTO endl_banlist "
@@ -981,7 +981,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     }
                     if (command == "guilds")
                     {
-                        Mysqlcontrols::Mysql_SubmitQuery(
+                        mySQLdb::Mysql_SubmitQuery(
                             server->mysql_controls,
                             0x53,
                             player->player_id,
@@ -1027,8 +1027,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         PacketReader_Init(
                             server, data.SubString(4, seq.Length() - 4), '.');
                         int map_id = StrToInt(PacketReader_GetBreakString(server));
-                        if (map_id > 0 && map_id < (unsigned int)Mapcontrol_GetCount(
-                                                       server->map_control))
+                        if (map_id > 0 &&
+                            map_id < (unsigned int)(int)server->map_control->maps.size())
                         {
                             MapCoord coords;
                             coords.x =
@@ -1066,7 +1066,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             if (data.Length() < 1)
                 return false;
-            Mysqlcontrols::NormalizePlayerText(server->mysql_controls, data);
+            mySQLdb::NormalizePlayerText(server->mysql_controls, data);
             if (!player->in_party)
                 return true;
             String out = EO_EncodeNumber(server, player->player_id, 2);
@@ -1085,7 +1085,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         {
             if (data.Length() < 1)
                 return false;
-            Mysqlcontrols::NormalizePlayerText(server->mysql_controls, data);
+            mySQLdb::NormalizePlayerText(server->mysql_controls, data);
             if (player->guild_tag.Length() < 2)
                 return false;
             String out = player->name;
@@ -1105,7 +1105,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         {
             if (data.Length() < 0)
                 return false;
-            Mysqlcontrols::NormalizePlayerText(server->mysql_controls, data);
+            mySQLdb::NormalizePlayerText(server->mysql_controls, data);
             PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
             String name = PacketReader_GetBreakString(server);
             String message = PacketReader_GetBreakString(server);
@@ -1161,7 +1161,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         {
             if (data.Length() < 1)
                 return true;
-            Mysqlcontrols::NormalizePlayerText(server->mysql_controls, data);
+            mySQLdb::NormalizePlayerText(server->mysql_controls, data);
             if (Settings::GetWorldCommunication(server->settings) == 0)
             {
                 String out = "Server";
@@ -1175,7 +1175,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             if (player->field_0x378 < 1 && player->admin_level < AdminLevel_Spy)
                 return true;
-            if (!Mysqlcontrols::IsAsciiText(server->mysql_controls, data))
+            if (!mySQLdb::IsAsciiText(server->mysql_controls, data))
                 return true;
             if (AnsiPos("elebot.org for a", data) > 0)
             {
@@ -1212,7 +1212,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             if (data.Length() < 0)
                 return false;
-            Mysqlcontrols::NormalizePlayerText(server->mysql_controls, data);
+            mySQLdb::NormalizePlayerText(server->mysql_controls, data);
             String out = player->name;
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             out.Insert(data, out.Length() + 1);
@@ -1232,7 +1232,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             if (data.Length() < 1)
                 return true;
-            Mysqlcontrols::NormalizePlayerText(server->mysql_controls, data);
+            mySQLdb::NormalizePlayerText(server->mysql_controls, data);
             if (Settings::GetWorldCommunication(server->settings) == 0)
                 return true;
             if (AnsiPos("elebot", data) > 0)
@@ -1368,11 +1368,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             return false;
         }
         PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
-        String account = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
-        String password = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
-        Mysqlcontrols::Mysql_SubmitQuery(
+        String account = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                    PacketReader_GetBreakString(server));
+        String password = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                     PacketReader_GetBreakString(server));
+        mySQLdb::Mysql_SubmitQuery(
             server->mysql_controls,
             0x40,
             player->player_id,
@@ -1390,7 +1390,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         {
             if (!player->account_logged_in)
                 return false;
-            Mysqlcontrols::Mysql_SubmitQuery(
+            mySQLdb::Mysql_SubmitQuery(
                 server->mysql_controls,
                 0x42,
                 player->player_id,
@@ -1431,7 +1431,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (player->account_create_cooldown > 4)
                 return true;
             player->account_create_cooldown = 6;
-            Mysqlcontrols::Mysql_SubmitQuery(
+            mySQLdb::Mysql_SubmitQuery(
                 server->mysql_controls,
                 0x43,
                 player->player_id,
@@ -1440,7 +1440,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 "SELECT ident, account, DECODE(password,'eoeokeyendl') as password, "
                 "type, signup, serial_c, serial_h, ipaddress, banned FROM "
                 "endl_accounts WHERE account = '" +
-                    Mysqlcontrols::Db_SanitizeString(server->mysql_controls, data) +
+                    mySQLdb::Db_SanitizeString(server->mysql_controls, data) +
                     "' LIMIT 1");
             return true;
         }
@@ -1452,9 +1452,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
             PacketReader_GetBreakString(server);
-            String account = Mysqlcontrols::Db_SanitizeString(
+            String account = mySQLdb::Db_SanitizeString(
                 server->mysql_controls, PacketReader_GetBreakString(server));
-            Mysqlcontrols::Mysql_SubmitQuery(
+            mySQLdb::Mysql_SubmitQuery(
                 server->mysql_controls,
                 0x44,
                 player->player_id,
@@ -1492,7 +1492,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return false;
             player->session_id = RandRange(0xc350) + 0x2710;
             int character_id = EO_DecodeNumber(server, data.SubString(3, 4));
-            Mysqlcontrols::Mysql_ExecDirect(
+            mySQLdb::Mysql_ExecDirect(
                 server->mysql_controls,
                 player->account_ident,
                 "DELETE FROM endl_characters WHERE ident = " + IntToStr(character_id) +
@@ -1608,7 +1608,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             int hair_style = EO_DecodeNumber(server, data.SubString(5, 2));
             int hair_color = EO_DecodeNumber(server, data.SubString(7, 2));
             int skin = EO_DecodeNumber(server, data.SubString(9, 2));
-            String name = Mysqlcontrols::Db_SanitizeString(
+            String name = mySQLdb::Db_SanitizeString(
                 server->mysql_controls,
                 PacketReader_GetBreakStringAt(
                     server, 2, data, EO_GetBreakByte(server, EO_BREAK_BYTE)));
@@ -1642,13 +1642,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     EO_EncodeNumber(server, CharacterReply_NotApproved, 2) + "NO");
                 return true;
             }
-            if (!Mysqlcontrols::IsAlphabeticText(server->mysql_controls, name))
+            if (!mySQLdb::IsAlphabeticText(server->mysql_controls, name))
             {
                 Banned::AddBan(
                     server->banned, player->remote_ip, player->hdid, (bool)0, 0x3840);
                 return false;
             }
-            Mysqlcontrols::Mysql_SubmitQuery(
+            mySQLdb::Mysql_SubmitQuery(
                 server->mysql_controls,
                 0x45,
                 player->player_id,
@@ -1692,7 +1692,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     continue;
                 Player *slot = player->character_slots[i];
                 if (slot->map_id < 1 ||
-                    (unsigned int)Mapcontrol_GetCount(server->map_control) <=
+                    (unsigned int)(int)server->map_control->maps.size() <=
                         (unsigned int)slot->map_id)
                     return false;
                 if (slot->character_id != selected_id)
@@ -1910,15 +1910,15 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 player->guild_rank_id = slot->guild_rank_id;
                 player->account_id = slot->account_id;
                 player->name = slot->name;
-                player->partner_name = Mysqlcontrols::Mysql_SanitizeString(
+                player->partner_name = mySQLdb::Mysql_SanitizeString(
                     server->mysql_controls, slot->partner_name, false);
-                player->guild_tag = Mysqlcontrols::Mysql_SanitizeString(
+                player->guild_tag = mySQLdb::Mysql_SanitizeString(
                     server->mysql_controls, slot->guild_tag, true);
-                player->title = Mysqlcontrols::Mysql_SanitizeString(
+                player->title = mySQLdb::Mysql_SanitizeString(
                     server->mysql_controls, slot->title, false);
-                player->guild_name = Mysqlcontrols::Mysql_SanitizeString(
+                player->guild_name = mySQLdb::Mysql_SanitizeString(
                     server->mysql_controls, slot->guild_name, false);
-                player->guild_rank_name = Mysqlcontrols::Mysql_SanitizeString(
+                player->guild_rank_name = mySQLdb::Mysql_SanitizeString(
                     server->mysql_controls, slot->guild_rank_name, false);
                 player->experience = slot->experience;
                 player->level = slot->level;
@@ -2140,8 +2140,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                     StrToInt(PacketReader_GetBreakString(server));
                                 int version =
                                     StrToInt(PacketReader_GetBreakString(server));
-                                if (Questengine::GetQuestVersion(server->quest_engine,
-                                                                 quest_id) == version)
+                                if (QuestContainer::GetQuestVersion(server->quest_engine,
+                                                                    quest_id) == version)
                                 {
                                     PlayerQuest quest(quest_id, state_index, version);
                                     quest.counters[0] = (short)StrToInt(
@@ -2214,7 +2214,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (player->map_id == 0)
                 return false;
-            if (!Mysqlcontrols::IsAlphabeticText(server->mysql_controls, player->name) &&
+            if (!mySQLdb::IsAlphabeticText(server->mysql_controls, player->name) &&
                 player->name != "vult-r")
                 return false;
             player->map_has_quakes =
@@ -2229,14 +2229,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->map_has_spikes =
                 Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                     ->has_spikes;
-            Mapcontrol::Mapcontrol_IncPlayerCount(server->map_control, player->map_id);
+            MapContainer::Mapcontrol_IncPlayerCount(server->map_control, player->map_id);
             String out = EO_EncodeNumber(server, 2, 2);
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             out.Insert(Settings::GetJoinMessage(server->settings), out.Length() + 1);
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             for (int n = 0; n < 8; n++)
             {
-                out.Insert(Newscontrol::Get((*MAINFORM)->news_control, n),
+                out.Insert(NewsTopics::Get((*MAINFORM)->news_control, n),
                            out.Length() + 1);
                 out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             }
@@ -2273,7 +2273,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 server, player, PacketAction_Agree, PacketFamily_Players, out);
             player->logged_in = 1;
             player->session_id = RandRange(0xc350) + 0x2710;
-            Mysqlcontrols::Mysql_ExecDirect(
+            mySQLdb::Mysql_ExecDirect(
                 server->mysql_controls,
                 player->account_ident,
                 "UPDATE endl_characters SET online = 1 WHERE ident = " +
@@ -2640,13 +2640,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
         {
             String encoded = EO_EncodeNumber(server, coord.x, 1);
             encoded.Insert(EO_EncodeNumber(server, coord.y, 2), encoded.Length() + 1);
-            int warp = Mapcontrol::Mapcontrol_GetWarpDoorAt(
+            int warp = MapContainer::Mapcontrol_GetWarpDoorAt(
                 server->map_control, player->map_id, coord);
             if (warp > 0)
             {
                 if (Players::Player_HasKeyItem(server->players, player, warp))
                 {
-                    if (Mapcontrol::Mapcontrol_ToggleDoor(
+                    if (MapContainer::Mapcontrol_ToggleDoor(
                             server->map_control, player->map_id, coord.x, coord.y))
                         Server_BroadcastNearTile(server,
                                                  -0xd,
@@ -2666,7 +2666,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 }
                 return true;
             }
-            if (Mapcontrol::Mapcontrol_ToggleDoor(
+            if (MapContainer::Mapcontrol_ToggleDoor(
                     server->map_control, player->map_id, coord.x, coord.y))
                 Server_BroadcastNearTile(server,
                                          -0xd,
@@ -2918,8 +2918,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     ItemValues::GetScrollMap((*MAINFORM)->item_values, item_id);
                 ItemSpecXY spec =
                     ItemValues::GetSpecXY((*MAINFORM)->item_values, item_id);
-                if (scroll_map < 1 ||
-                    Mapcontrol_GetCount(server->map_control) < scroll_map)
+                if (scroll_map < 1 || (int)server->map_control->maps.size() < scroll_map)
                 {
                     if (scroll_map == 0 && spec.spec2 == 0 && spec.spec3 == 0)
                     {
@@ -2981,9 +2980,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 x = player->x;
                 y = player->y;
             }
-            if (GroundItemPtrVector_Count(
-                    &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                         ->ground_items) > 0x3e7)
+            if (Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                    ->ground_items.size() > 0x3e7)
                 return true;
             if (!Coords_IsWithinTwo(server, player->x, player->y, x, y))
                 return true;
@@ -3002,14 +3000,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             }
             int ground_index =
-                Mapcontrol::Mapcontrol_AddGroundItem(server->map_control,
-                                                     player->map_id,
-                                                     item_id,
-                                                     x,
-                                                     y,
-                                                     player->item_change_count,
-                                                     player->account_ident,
-                                                     6);
+                MapContainer::Mapcontrol_AddGroundItem(server->map_control,
+                                                       player->map_id,
+                                                       item_id,
+                                                       x,
+                                                       y,
+                                                       player->item_change_count,
+                                                       player->account_ident,
+                                                       6);
             if (ground_index < 0)
                 return true;
             player->weight_current -=
@@ -3171,8 +3169,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 player->map_has_hp_drain = false;
                 player->map_has_tp_drain = false;
                 player->map_has_spikes = false;
-                Mapcontrol::Mapcontrol_DecPlayerCount(server->map_control,
-                                                      player->map_id);
+                MapContainer::Mapcontrol_DecPlayerCount(server->map_control,
+                                                        player->map_id);
             }
             player->map_switch_pending = true;
             player->target_map = player->map_id;
@@ -3230,8 +3228,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     PacketFamily_Avatar,
                     EO_EncodeNumber(server, player->player_id, 2) +
                         EO_EncodeNumber(server, player->warp_state, 1));
-                Mapcontrol::Mapcontrol_DecPlayerCount(server->map_control,
-                                                      player->map_id);
+                MapContainer::Mapcontrol_DecPlayerCount(server->map_control,
+                                                        player->map_id);
             }
             int saved_state = player->warp_state;
             player->map_id = player->warp_map;
@@ -3265,7 +3263,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             player->map_has_spikes =
                 Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
                     ->has_spikes;
-            Mapcontrol::Mapcontrol_IncPlayerCount(server->map_control, player->map_id);
+            MapContainer::Mapcontrol_IncPlayerCount(server->map_control, player->map_id);
             String out = EO_GetBreakByte(server, EO_BREAK_BYTE);
             out.Insert(Player_SerializeAvatar(server, player, saved_state),
                        out.Length() + 1);
@@ -3512,7 +3510,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             int slot = EO_DecodeNumber(server, data.SubString(3, 2));
             if (!Coords_IsAdjacent(server, coords.x, coords.y, player->x, player->y))
                 return true;
-            ItemStack stack = Mapcontrol::Mapcontrol_TakeChestItem(
+            ItemStack stack = MapContainer::Mapcontrol_TakeChestItem(
                 server->map_control, player->map_id, coords, slot);
             if (stack.id < 1)
                 return true;
@@ -3554,7 +3552,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if ((unsigned int)amount > 10000000)
                 return true;
-            int slot_count = Mapcontrol::Mapcontrol_GetChestSlotCount(
+            int slot_count = MapContainer::Mapcontrol_GetChestSlotCount(
                 server->map_control, player->map_id, coords);
             if (slot_count < 0 || slot_count > 4)
             {
@@ -3584,11 +3582,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 weight = 250;
             if (weight_max > 250)
                 weight_max = 250;
-            Mapcontrol::Mapcontrol_AddChestItem(server->map_control,
-                                                player->map_id,
-                                                coords,
-                                                item_id,
-                                                player->item_change_count);
+            MapContainer::Mapcontrol_AddChestItem(server->map_control,
+                                                  player->map_id,
+                                                  coords,
+                                                  item_id,
+                                                  player->item_change_count);
             String item_str = Mapcontrol_BuildChestItemsString(
                 server->map_control, player->map_id, coords);
             Server_BroadcastAdjacent(
@@ -5208,12 +5206,11 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (!Players::Player_RemoveItem(server->players, player, 1, gold))
                 return true;
-            Mysqlcontrols::Mysql_ExecDirect(server->mysql_controls,
-                                            0,
-                                            "UPDATE endl_guilds SET money = money + " +
-                                                IntToStr(player->item_change_count) +
-                                                " WHERE tag = '" + player->guild_tag +
-                                                "'");
+            mySQLdb::Mysql_ExecDirect(server->mysql_controls,
+                                      0,
+                                      "UPDATE endl_guilds SET money = money + " +
+                                          IntToStr(player->item_change_count) +
+                                          " WHERE tag = '" + player->guild_tag + "'");
             Client_SendEncoded(server,
                                player,
                                PacketAction_Buy,
@@ -5248,14 +5245,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             if (player->guild_rank_id != 1)
                 return true;
             String rank_field = "rank" + IntToStr(rank);
-            Mysqlcontrols::Mysql_SubmitQuery(server->mysql_controls,
-                                             0x47,
-                                             player->player_id,
-                                             player->query_id,
-                                             data,
-                                             "SELECT " + rank_field +
-                                                 " FROM endl_guilds WHERE tag = '" +
-                                                 player->guild_tag + "' LIMIT 1");
+            mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
+                                       0x47,
+                                       player->player_id,
+                                       player->query_id,
+                                       data,
+                                       "SELECT " + rank_field +
+                                           " FROM endl_guilds WHERE tag = '" +
+                                           player->guild_tag + "' LIMIT 1");
             return true;
         }
         if (action == PacketAction_Kick)
@@ -5284,7 +5281,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             Player *member = Players::Players_FindByName(server->players, member_name);
             if (member == NULL)
             {
-                Mysqlcontrols::Mysql_SubmitQuery(
+                mySQLdb::Mysql_SubmitQuery(
                     server->mysql_controls,
                     0x49,
                     player->player_id,
@@ -5354,13 +5351,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (info_type == GuildInfoType_Description)
             {
-                Mysqlcontrols::Mysql_ExecDirect(server->mysql_controls,
-                                                0,
-                                                "UPDATE endl_guilds SET description = '" +
-                                                    Mysqlcontrols::Mysql_SanitizeString(
-                                                        server->mysql_controls, rest, 0) +
-                                                    "' WHERE tag = '" +
-                                                    player->guild_tag + "'");
+                mySQLdb::Mysql_ExecDirect(
+                    server->mysql_controls,
+                    0,
+                    "UPDATE endl_guilds SET description = '" +
+                        mySQLdb::Mysql_SanitizeString(server->mysql_controls, rest, 0) +
+                        "' WHERE tag = '" + player->guild_tag + "'");
                 Client_SendEncoded(server,
                                    player,
                                    PacketAction_Reply,
@@ -5372,71 +5368,71 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             {
                 PacketReader_Init(server, rest, EO_GetBreakByte(server, EO_BREAK_BYTE));
                 String out = "UPDATE endl_guilds SET ";
-                out.Insert("rank1 = '" +
-                               Mysqlcontrols::Mysql_SanitizeString(
-                                   server->mysql_controls,
-                                   PacketReader_GetBreakString(server),
-                                   0) +
-                               "',",
-                           out.Length() + 1);
-                out.Insert("rank2 = '" +
-                               Mysqlcontrols::Mysql_SanitizeString(
-                                   server->mysql_controls,
-                                   PacketReader_GetBreakString(server),
-                                   0) +
-                               "',",
-                           out.Length() + 1);
-                out.Insert("rank3 = '" +
-                               Mysqlcontrols::Mysql_SanitizeString(
-                                   server->mysql_controls,
-                                   PacketReader_GetBreakString(server),
-                                   0) +
-                               "',",
-                           out.Length() + 1);
-                out.Insert("rank4 = '" +
-                               Mysqlcontrols::Mysql_SanitizeString(
-                                   server->mysql_controls,
-                                   PacketReader_GetBreakString(server),
-                                   0) +
-                               "',",
-                           out.Length() + 1);
-                out.Insert("rank5 = '" +
-                               Mysqlcontrols::Mysql_SanitizeString(
-                                   server->mysql_controls,
-                                   PacketReader_GetBreakString(server),
-                                   0) +
-                               "',",
-                           out.Length() + 1);
-                out.Insert("rank6 = '" +
-                               Mysqlcontrols::Mysql_SanitizeString(
-                                   server->mysql_controls,
-                                   PacketReader_GetBreakString(server),
-                                   0) +
-                               "',",
-                           out.Length() + 1);
-                out.Insert("rank7 = '" +
-                               Mysqlcontrols::Mysql_SanitizeString(
-                                   server->mysql_controls,
-                                   PacketReader_GetBreakString(server),
-                                   0) +
-                               "',",
-                           out.Length() + 1);
-                out.Insert("rank8 = '" +
-                               Mysqlcontrols::Mysql_SanitizeString(
-                                   server->mysql_controls,
-                                   PacketReader_GetBreakString(server),
-                                   0) +
-                               "',",
-                           out.Length() + 1);
-                out.Insert("rank9 = '" +
-                               Mysqlcontrols::Mysql_SanitizeString(
-                                   server->mysql_controls,
-                                   PacketReader_GetBreakString(server),
-                                   0) +
-                               "' ",
-                           out.Length() + 1);
+                out.Insert(
+                    "rank1 = '" +
+                        mySQLdb::Mysql_SanitizeString(server->mysql_controls,
+                                                      PacketReader_GetBreakString(server),
+                                                      0) +
+                        "',",
+                    out.Length() + 1);
+                out.Insert(
+                    "rank2 = '" +
+                        mySQLdb::Mysql_SanitizeString(server->mysql_controls,
+                                                      PacketReader_GetBreakString(server),
+                                                      0) +
+                        "',",
+                    out.Length() + 1);
+                out.Insert(
+                    "rank3 = '" +
+                        mySQLdb::Mysql_SanitizeString(server->mysql_controls,
+                                                      PacketReader_GetBreakString(server),
+                                                      0) +
+                        "',",
+                    out.Length() + 1);
+                out.Insert(
+                    "rank4 = '" +
+                        mySQLdb::Mysql_SanitizeString(server->mysql_controls,
+                                                      PacketReader_GetBreakString(server),
+                                                      0) +
+                        "',",
+                    out.Length() + 1);
+                out.Insert(
+                    "rank5 = '" +
+                        mySQLdb::Mysql_SanitizeString(server->mysql_controls,
+                                                      PacketReader_GetBreakString(server),
+                                                      0) +
+                        "',",
+                    out.Length() + 1);
+                out.Insert(
+                    "rank6 = '" +
+                        mySQLdb::Mysql_SanitizeString(server->mysql_controls,
+                                                      PacketReader_GetBreakString(server),
+                                                      0) +
+                        "',",
+                    out.Length() + 1);
+                out.Insert(
+                    "rank7 = '" +
+                        mySQLdb::Mysql_SanitizeString(server->mysql_controls,
+                                                      PacketReader_GetBreakString(server),
+                                                      0) +
+                        "',",
+                    out.Length() + 1);
+                out.Insert(
+                    "rank8 = '" +
+                        mySQLdb::Mysql_SanitizeString(server->mysql_controls,
+                                                      PacketReader_GetBreakString(server),
+                                                      0) +
+                        "',",
+                    out.Length() + 1);
+                out.Insert(
+                    "rank9 = '" +
+                        mySQLdb::Mysql_SanitizeString(server->mysql_controls,
+                                                      PacketReader_GetBreakString(server),
+                                                      0) +
+                        "' ",
+                    out.Length() + 1);
                 out.Insert("WHERE tag = '" + player->guild_tag + "'", out.Length() + 1);
-                Mysqlcontrols::Mysql_ExecDirect(server->mysql_controls, 0, out);
+                mySQLdb::Mysql_ExecDirect(server->mysql_controls, 0, out);
                 Client_SendEncoded(server,
                                    player,
                                    PacketAction_Reply,
@@ -5470,7 +5466,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             {
                 if (player->guild_rank_id != 1)
                     return true;
-                Mysqlcontrols::Mysql_SubmitQuery(
+                mySQLdb::Mysql_SubmitQuery(
                     server->mysql_controls,
                     0x4a,
                     player->player_id,
@@ -5482,7 +5478,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (info_type == GuildInfoType_Ranks)
             {
-                Mysqlcontrols::Mysql_SubmitQuery(
+                mySQLdb::Mysql_SubmitQuery(
                     server->mysql_controls,
                     0x4b,
                     player->player_id,
@@ -5495,14 +5491,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             }
             if (info_type == GuildInfoType_Bank)
             {
-                Mysqlcontrols::Mysql_SubmitQuery(
-                    server->mysql_controls,
-                    0x4c,
-                    player->player_id,
-                    player->query_id,
-                    data,
-                    "SELECT money FROM endl_guilds WHERE tag = '" + player->guild_tag +
-                        "' LIMIT 1");
+                mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
+                                           0x4c,
+                                           player->player_id,
+                                           player->query_id,
+                                           data,
+                                           "SELECT money FROM endl_guilds WHERE tag = '" +
+                                               player->guild_tag + "' LIMIT 1");
             }
             return true;
         }
@@ -5524,7 +5519,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, GuildReply_Busy, 2));
                 return true;
             }
-            String guild = Mysqlcontrols::Db_SanitizeString(
+            String guild = mySQLdb::Db_SanitizeString(
                 server->mysql_controls, data.SubString(5, data.Length() - 4));
             if (guild.Length() < 2)
                 return true;
@@ -5533,12 +5528,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             String query = "SELECT ident_rank, name, rank FROM endl_characters WHERE "
                            "ident_guild = '" +
                            guild + "' ORDER BY ident_rank, name LIMIT 100";
-            Mysqlcontrols::Mysql_SubmitQuery(server->mysql_controls,
-                                             0x4d,
-                                             player->player_id,
-                                             player->query_id,
-                                             data,
-                                             query);
+            mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
+                                       0x4d,
+                                       player->player_id,
+                                       player->query_id,
+                                       data,
+                                       query);
             return true;
         }
         if (action == PacketAction_Report)
@@ -5559,7 +5554,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, GuildReply_Busy, 2));
                 return true;
             }
-            String guild = Mysqlcontrols::Db_SanitizeString(
+            String guild = mySQLdb::Db_SanitizeString(
                 server->mysql_controls, data.SubString(5, data.Length() - 4));
             if (guild.Length() < 2)
                 return true;
@@ -5567,12 +5562,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             String query =
                 "SELECT * FROM endl_guilds WHERE tag = '" + guild + "' LIMIT 1";
-            Mysqlcontrols::Mysql_SubmitQuery(server->mysql_controls,
-                                             0x4e,
-                                             player->player_id,
-                                             player->query_id,
-                                             data,
-                                             query);
+            mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
+                                       0x4e,
+                                       player->player_id,
+                                       player->query_id,
+                                       data,
+                                       query);
             return true;
         }
         if (action == PacketAction_Remove)
@@ -5602,9 +5597,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
             PacketReader_GetBreakString(server);
-            String guild = Mysqlcontrols::Db_SanitizeString(
+            String guild = mySQLdb::Db_SanitizeString(
                 server->mysql_controls, PacketReader_GetBreakString(server));
-            String recruiter = Mysqlcontrols::Db_SanitizeString(
+            String recruiter = mySQLdb::Db_SanitizeString(
                 server->mysql_controls, PacketReader_GetBreakString(server));
             if (player->guild_tag.Length() > 1)
             {
@@ -5686,15 +5681,15 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
             PacketReader_GetBreakString(server);
-            String tag_upper = AnsiUpperCase(Mysqlcontrols::Db_SanitizeString(
+            String tag_upper = AnsiUpperCase(mySQLdb::Db_SanitizeString(
                 server->mysql_controls, PacketReader_GetBreakString(server)));
-            String name = Mysqlcontrols::Db_SanitizeString(
+            String name = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                     PacketReader_GetBreakString(server));
+            String description = mySQLdb::Db_SanitizeString(
                 server->mysql_controls, PacketReader_GetBreakString(server));
-            String description = Mysqlcontrols::Db_SanitizeString(
-                server->mysql_controls, PacketReader_GetBreakString(server));
-            name = Mysqlcontrols::Mysql_SanitizeString(server->mysql_controls, name, 0);
+            name = mySQLdb::Mysql_SanitizeString(server->mysql_controls, name, 0);
             tag_upper =
-                Mysqlcontrols::Mysql_SanitizeString(server->mysql_controls, tag_upper, 1);
+                mySQLdb::Mysql_SanitizeString(server->mysql_controls, tag_upper, 1);
             if (tag_upper.Length() < 2 || tag_upper.Length() > 3)
                 return true;
             if (name.Length() < 4 || name.Length() > 0x18)
@@ -5719,20 +5714,20 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (tag_upper[1] == ' ' || tag_upper[2] == ' ')
                 return true;
-            if (!Mysqlcontrols::IsAlphabeticText(server->mysql_controls, tag_upper))
+            if (!mySQLdb::IsAlphabeticText(server->mysql_controls, tag_upper))
             {
                 Banned::AddBan(
                     server->banned, player->remote_ip, player->hdid, (char)0, 0x3840);
                 return false;
             }
-            Mysqlcontrols::Mysql_SubmitQuery(
-                server->mysql_controls,
-                0x51,
-                player->player_id,
-                player->query_id,
-                data,
-                "SELECT name FROM endl_guilds WHERE name = '" + name + "' OR tag = '" +
-                    tag_upper + "' LIMIT 1");
+            mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
+                                       0x51,
+                                       player->player_id,
+                                       player->query_id,
+                                       data,
+                                       "SELECT name FROM endl_guilds WHERE name = '" +
+                                           name + "' OR tag = '" + tag_upper +
+                                           "' LIMIT 1");
             return true;
         }
         if (action == PacketAction_Use)
@@ -5755,13 +5750,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             if (player->name != target->field_0x8c)
                 return true;
-            Mysqlcontrols::Mysql_SubmitQuery(server->mysql_controls,
-                                             0x52,
-                                             player->player_id,
-                                             player->query_id,
-                                             data,
-                                             "SELECT * FROM endl_guilds WHERE tag = '" +
-                                                 player->guild_tag + "' LIMIT 1");
+            mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
+                                       0x52,
+                                       player->player_id,
+                                       player->query_id,
+                                       data,
+                                       "SELECT * FROM endl_guilds WHERE tag = '" +
+                                           player->guild_tag + "' LIMIT 1");
             return true;
         }
         if (action == PacketAction_Accept)
@@ -5820,10 +5815,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
             PacketReader_GetBreakString(server);
-            String tag = Mysqlcontrols::Db_SanitizeString(
-                server->mysql_controls, PacketReader_GetBreakString(server));
-            String name = Mysqlcontrols::Db_SanitizeString(
-                server->mysql_controls, PacketReader_GetBreakString(server));
+            String tag = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                    PacketReader_GetBreakString(server));
+            String name = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                     PacketReader_GetBreakString(server));
             if (tag.Length() < 2 || tag.Length() > 3)
                 return true;
             if (name.Length() < 4 || name.Length() > 0x18)
@@ -5890,14 +5885,13 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                    EO_EncodeNumber(server, GuildReply_Busy, 2));
                 return true;
             }
-            Mysqlcontrols::Mysql_SubmitQuery(
-                server->mysql_controls,
-                0x50,
-                player->player_id,
-                player->query_id,
-                data,
-                "SELECT name FROM endl_guilds WHERE name = '" + name + "' OR tag = '" +
-                    tag + "' LIMIT 1");
+            mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
+                                       0x50,
+                                       player->player_id,
+                                       player->query_id,
+                                       data,
+                                       "SELECT name FROM endl_guilds WHERE name = '" +
+                                           name + "' OR tag = '" + tag + "' LIMIT 1");
             return true;
         }
         if (action == PacketAction_Open)
@@ -5946,12 +5940,12 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                      iter != player->quest_trackers.end();
                      iter++)
                 {
-                    QuestState *state = Questengine::GetState(
+                    QuestState *state = QuestContainer::GetState(
                         server->quest_engine, iter->quest_id, iter->state_index);
                     if (state != NULL)
                     {
-                        out.Insert(Questengine::GetQuestName(server->quest_engine,
-                                                             iter->quest_id),
+                        out.Insert(QuestContainer::GetQuestName(server->quest_engine,
+                                                                iter->quest_id),
                                    out.Length() + 1);
                         out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                    out.Length() + 1);
@@ -5994,9 +5988,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                      iter != player->quest_history.end();
                      iter++)
                 {
-                    out.Insert(
-                        Questengine::GetQuestName(server->quest_engine, iter->quest_id),
-                        out.Length() + 1);
+                    out.Insert(QuestContainer::GetQuestName(server->quest_engine,
+                                                            iter->quest_id),
+                               out.Length() + 1);
                     out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
                 }
                 Client_SendEncoded(
@@ -6034,10 +6028,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     continue;
                 int value = -1;
                 if (type == 1)
-                    value = Questengine::GetRuleValue(
+                    value = QuestContainer::GetRuleValue(
                         server->quest_engine, iter->quest_id, iter->state_index, rule);
                 if (type == 2)
-                    value = Questengine::GetRuleValue2(
+                    value = QuestContainer::GetRuleValue2(
                         server->quest_engine, iter->quest_id, iter->state_index, arg);
                 if (value < 0)
                     continue;
@@ -6051,7 +6045,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 if (player->map_id <= 0)
                     break;
                 {
-                    String out = Questengine::GetActionData2(
+                    String out = QuestContainer::GetActionData2(
                         server->quest_engine, iter->quest_id, iter->state_index, rule);
                     if (out.Length() < 1)
                         break;
@@ -6059,9 +6053,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     player->session_token = RandRange(0x7530) + SESSION_BASE_QUEST;
                     player->field_0x80 = rule;
                     out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), 1);
-                    out.Insert(
-                        Questengine::GetQuestName(server->quest_engine, iter->quest_id),
-                        1);
+                    out.Insert(QuestContainer::GetQuestName(server->quest_engine,
+                                                            iter->quest_id),
+                               1);
                     out.Insert(EO_EncodeNumber(server, iter->quest_id, 2), 1);
                     out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), 1);
                     out.Insert(EO_EncodeNumber(server, player->session_token, 2), 1);
@@ -6095,7 +6089,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
             NpcTypeInfo type_info = NpcValues::GetType((*MAINFORM)->npc_values, npc_id);
             if (type_info.type != NpcType_Quest)
                 return true;
-            if (Questengine::GetQuestLoaded(server->quest_engine, type_info.behavior_id))
+            if (QuestContainer::GetQuestLoaded(server->quest_engine,
+                                               type_info.behavior_id))
             {
                 bool found = true;
                 PlayerQuest *iter;
@@ -6117,8 +6112,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     }
                 if (found && player->quest_trackers.size() < 10)
                 {
-                    int version = Questengine::GetQuestVersion(server->quest_engine,
-                                                               type_info.behavior_id);
+                    int version = QuestContainer::GetQuestVersion(server->quest_engine,
+                                                                  type_info.behavior_id);
                     PlayerQuest tracker(type_info.behavior_id, 0, version);
                     player->quest_trackers.insert(player->quest_trackers.end(), tracker);
                 }
@@ -6139,10 +6134,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                         if (Mapcontrol_TryTakeQuestCooldown(server->map_control,
                                                             player->map_id))
                         {
-                            name = Questengine::GetActionData(server->quest_engine,
-                                                              iter->quest_id,
-                                                              iter->state_index,
-                                                              type_info.behavior_id);
+                            name = QuestContainer::GetActionData(server->quest_engine,
+                                                                 iter->quest_id,
+                                                                 iter->state_index,
+                                                                 type_info.behavior_id);
                             if (name.Length() > 0)
                             {
                                 name.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), 1);
@@ -6159,10 +6154,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     }
                     if (out.Length() == 0)
                     {
-                        out = Questengine::GetActionData2(server->quest_engine,
-                                                          iter->quest_id,
-                                                          iter->state_index,
-                                                          type_info.behavior_id);
+                        out = QuestContainer::GetActionData2(server->quest_engine,
+                                                             iter->quest_id,
+                                                             iter->state_index,
+                                                             type_info.behavior_id);
                         if (out.Length() > 0)
                         {
                             player->session_id = RandRange(0xc350) + 0x2710;
@@ -6181,8 +6176,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                                            payload.Length() + 1);
                             payload.Insert(EO_EncodeNumber(server, iter->quest_id, 2),
                                            payload.Length() + 1);
-                            payload.Insert(Questengine::GetQuestName(server->quest_engine,
-                                                                     iter->quest_id),
+                            payload.Insert(QuestContainer::GetQuestName(
+                                               server->quest_engine, iter->quest_id),
                                            payload.Length() + 1);
                             payload.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                            payload.Length() + 1);
@@ -6193,15 +6188,15 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                     {
                         if (quest_filter != 0)
                             continue;
-                        if (Questengine::GetActionData2(server->quest_engine,
-                                                        iter->quest_id,
-                                                        iter->state_index,
-                                                        type_info.behavior_id) != "")
+                        if (QuestContainer::GetActionData2(server->quest_engine,
+                                                           iter->quest_id,
+                                                           iter->state_index,
+                                                           type_info.behavior_id) != "")
                         {
                             payload.Insert(EO_EncodeNumber(server, iter->quest_id, 2),
                                            payload.Length() + 1);
-                            payload.Insert(Questengine::GetQuestName(server->quest_engine,
-                                                                     iter->quest_id),
+                            payload.Insert(QuestContainer::GetQuestName(
+                                               server->quest_engine, iter->quest_id),
                                            payload.Length() + 1);
                             payload.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                            payload.Length() + 1);
@@ -6502,11 +6497,10 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
             PacketReader_GetBreakString(server);
-            String name = Mysqlcontrols::Db_SanitizeString(
-                server->mysql_controls, PacketReader_GetBreakString(server));
+            String name = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                     PacketReader_GetBreakString(server));
             name = LowerCase(name);
-            name =
-                Mysqlcontrols::Mysql_SanitizeString(server->mysql_controls, name, false);
+            name = mySQLdb::Mysql_SanitizeString(server->mysql_controls, name, false);
             if (name.Length() < 4)
                 return false;
             if (subtype == 1)
@@ -6604,7 +6598,7 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                             EO_EncodeNumber(server, MarriageReply_NotEnoughGold, 2));
                         return true;
                     }
-                    Mysqlcontrols::Mysql_ExecDirect(
+                    mySQLdb::Mysql_ExecDirect(
                         server->mysql_controls,
                         player->account_ident,
                         "UPDATE endl_characters SET partner = 'DV-' WHERE name = '" +
@@ -6726,8 +6720,8 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                 return true;
             PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
             PacketReader_GetBreakString(server);
-            String name = Mysqlcontrols::Db_SanitizeString(
-                server->mysql_controls, PacketReader_GetBreakString(server));
+            String name = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                     PacketReader_GetBreakString(server));
             if (name.Length() < 4 || name.Length() > 0x18)
                 return true;
             Player *target = Players::Players_FindByName(server->players, name);
@@ -6924,11 +6918,9 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
                            out.Length() + 1);
                 TTimeStamp now = DateTimeToTimeStamp(Now());
                 int date_delta =
-                    now.Date -
-                    Mysqlcontrols::Server_GetUptime(server->mysql_controls).Date;
+                    now.Date - mySQLdb::Server_GetUptime(server->mysql_controls).Date;
                 int time_delta =
-                    now.Time -
-                    Mysqlcontrols::Server_GetUptime(server->mysql_controls).Time;
+                    now.Time - mySQLdb::Server_GetUptime(server->mysql_controls).Time;
                 int minutes = date_delta * 1440 + time_delta / 60000;
                 out.Insert(EO_EncodeNumber(server, minutes, 4), out.Length() + 1);
                 out.Insert(
@@ -7070,14 +7062,14 @@ bool Player_HandlePacket(Server *server, Player *player, String data)
     return false;
 }
 
-bool FUN_00462374(Server *server, Player *player, String data);
-void Server_BroadcastToPartyOnMap(Server *server,
+bool FUN_00462374(Packets *server, Player *player, String data);
+void Server_BroadcastToPartyOnMap(Packets *server,
                                   Player *player,
                                   unsigned char action,
                                   unsigned char family,
                                   String data);
 
-void Game_Tick(Server *server)
+void Game_Tick(Packets *server)
 {
     server->ticks++;
     server->hangup_gate = 0;
@@ -7094,8 +7086,8 @@ void Game_Tick(Server *server)
         server->ticks = 0;
     if (server->ticks % 10 == 0)
     {
-        for (Player **player = Players_Iter_Begin(server->players);
-             Players_Iter_End(server->players) != player;
+        for (Player **player = server->players->players.begin();
+             server->players->players.end() != player;
              player++)
         {
             if ((*player)->logged_in)
@@ -7168,7 +7160,7 @@ void Game_Tick(Server *server)
                         (*player)->hangup_ticks)
                 {
                     if (!(*player)->removing)
-                        Mysqlcontrols::Mysql_ExecDirect(
+                        mySQLdb::Mysql_ExecDirect(
                             server->mysql_controls,
                             (*player)->account_ident,
                             Character_BuildSaveQuery(server->players, *player, 1));
@@ -7188,9 +7180,8 @@ void Game_Tick(Server *server)
             if ((*player)->account_create_cooldown > 0)
                 (*player)->account_create_cooldown--;
         }
-        if (server->shutting_down != 0 &&
-            (unsigned int)Players::Players_ActiveCount(server->players) < 1 &&
-            Mysqlcontrols::Database_CanReconnect(server->mysql_controls))
+        if (server->shutting_down != 0 && server->players->players.size() < 1 &&
+            mySQLdb::Database_CanReconnect(server->mysql_controls))
         {
             Database_FlushCache(server->mysql_controls->file_cache);
             KillCounters::Save(server->kill_counters);
@@ -7218,15 +7209,15 @@ void Game_Tick(Server *server)
     }
 }
 
-Server::Server(Mapcontrol *map_control,
-               Questengine *quest_engine,
-               Players *players,
-               Settings *settings,
-               Mysqlcontrols *mysql_controls,
-               Logins *logins,
-               int version_patch,
-               int version_minor,
-               int version_major)
+Packets::Packets(MapContainer *map_control,
+                 QuestContainer *quest_engine,
+                 Players *players,
+                 Settings *settings,
+                 mySQLdb *mysql_controls,
+                 Logins *logins,
+                 int version_patch,
+                 int version_minor,
+                 int version_major)
 {
     encode_buffer = (char *)operator new(8);
     packet_buffer = (char *)operator new(65000);
@@ -7235,7 +7226,7 @@ Server::Server(Mapcontrol *map_control,
     start_time = Now();
     online_names_ttl = 0;
     online_list_ttl = 0;
-    weapon_map = new WeaponmapEntry();
+    weapon_map = new WeaponMapper();
     banned = new Banned(mysql_controls);
     kill_counters = new KillCounters();
     quest_counters = new QuestCounters();
@@ -7245,12 +7236,12 @@ Server::Server(Mapcontrol *map_control,
     this->logins = logins;
     this->mysql_controls = mysql_controls;
     this->settings = settings;
-    Mysqlcontrols::Query(this->mysql_controls, "SELECT * FROM endl_wordfilter");
+    mySQLdb::Query(this->mysql_controls, "SELECT * FROM endl_wordfilter");
     wordfilter = new TStringList;
-    while (!Mysqlcontrols::ResultAtEnd(this->mysql_controls))
+    while (!mySQLdb::ResultAtEnd(this->mysql_controls))
     {
-        wordfilter->Add(Mysqlcontrols::Db_GetString(this->mysql_controls, "word"));
-        Mysqlcontrols::NextResultRecord(this->mysql_controls);
+        wordfilter->Add(mySQLdb::Db_GetString(this->mysql_controls, "word"));
+        mySQLdb::NextResultRecord(this->mysql_controls);
     }
     Connection_Ping(this);
     this->version_patch = version_patch;
@@ -7271,73 +7262,18 @@ Server::Server(Mapcontrol *map_control,
     cheat_offset_y = 0;
 }
 
-Server::~Server()
+Packets::~Packets()
 {
 }
 
-// The reference helpers are the out-of-line copies of `vector<T>::begin`/
-// `end`; `-v` keeps them as calls, so the bodies reduce to the vector's start
-// and finish pointers. `Mapcontrol::maps` is the vector at +0x00, whose
-// `_M_start`/`_M_finish` land at +0x04/+0x08 (pinned by Mapcontrol_GetCount's
-// end-minus-begin over 0x160 and by the type's constructor).
-ChestItem *MapVector_Begin(Mapcontrol *map_control)
+// `MapContainer::maps` is the vector at +0x00, whose start/finish pointers land
+// at +0x04/+0x08. `-v` keeps `vector<T>::begin`/`end`/`size` as out-of-line
+// COMDAT calls, which is why the reference's helpers here are just those
+// accessors: writing them by hand emitted a second, byte-identical copy of
+// each (see PLAN.md, "COMDAT ownership").
+ChestItem *Mapcontrol_GetByIndex(MapContainer *map_control, int index)
 {
-    return *(ChestItem **)((char *)map_control + 0x04);
-}
-
-ChestItem *MapVector_End(Mapcontrol *map_control)
-{
-    return *(ChestItem **)((char *)map_control + 0x08);
-}
-
-int Mapcontrol_GetCount(Mapcontrol *map_control)
-{
-    return map_control->maps.end() - map_control->maps.begin();
-}
-
-ChestItem *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index)
-{
-    return MapVector_Begin(map_control) + index;
-}
-
-ChestItem *Mapcontrol_Iter_Front(Mapcontrol *map_control)
-{
-    return *(ChestItem **)((char *)map_control + 0x04);
-}
-
-void *Map_NpcIter_Begin(void *npc_list)
-{
-    return *(void **)((char *)npc_list + 0x04);
-}
-
-void *Map_NpcIter_End(void *npc_list)
-{
-    return *(void **)((char *)npc_list + 0x08);
-}
-
-void *GroundItemPtrVector_Begin(void *list)
-{
-    return *(void **)((char *)list + 0x04);
-}
-
-Player **Players_Iter_Begin(Players *self)
-{
-    return *(Player ***)((char *)self + 0x04);
-}
-
-Player **Players_Iter_End(Players *self)
-{
-    return *(Player ***)((char *)self + 0x08);
-}
-
-void *PtrVector_GetEnd(void *list)
-{
-    return *(void **)((char *)list + 0x08);
-}
-
-unsigned int GroundItemPtrVector_Count(void *list)
-{
-    return (void **)PtrVector_GetEnd(list) - (void **)GroundItemPtrVector_Begin(list);
+    return map_control->maps.begin() + index;
 }
 
 int Math_Abs(int value)
@@ -7345,14 +7281,14 @@ int Math_Abs(int value)
     return __abs__(value);
 }
 
-bool Login_CheckConnectionThreshold(Server *server)
+bool Login_CheckConnectionThreshold(Packets *server)
 {
-    if (Mysqlcontrols::Db_GetActiveConnectionCount(server->mysql_controls) > 0x14)
+    if (mySQLdb::Db_GetActiveConnectionCount(server->mysql_controls) > 0x14)
         return true;
     return false;
 }
 
-void Client_SendRaw(Server *server, Player *client, String data, int break_byte)
+void Client_SendRaw(Packets *server, Player *client, String data, int break_byte)
 {
     FILE *fp;
     if (data.Length() > 62000)
@@ -7380,7 +7316,7 @@ void Client_SendRaw(Server *server, Player *client, String data, int break_byte)
     client->socket->SendText(built);
 }
 
-bool Face_Execute(Server *server, Player *player, int action, String *data)
+bool Face_Execute(Packets *server, Player *player, int action, String *data)
 {
     *(TTimeStamp *)&player->walk_tick = DateTimeToTimeStamp(Now());
     if (action == PacketAction_Player)
@@ -7403,7 +7339,7 @@ bool Face_Execute(Server *server, Player *player, int action, String *data)
     return false;
 }
 
-bool Chair_Execute(Server *server, Player *player, int action, String *data)
+bool Chair_Execute(Packets *server, Player *player, int action, String *data)
 {
     *(TTimeStamp *)&player->walk_tick = DateTimeToTimeStamp(Now());
     if (action == PacketAction_Request)
@@ -7424,9 +7360,9 @@ bool Chair_Execute(Server *server, Player *player, int action, String *data)
             if (Players::Players_IsPlayerAt(server->players, player->map_id, x, y))
                 return true;
             if (player->map_id < 1 ||
-                Mapcontrol_GetCount(server->map_control) < player->map_id)
+                (int)server->map_control->maps.size() < player->map_id)
                 return true;
-            int spec = Mapcontrol::Mapcontrol_GetTileSpec(
+            int spec = MapContainer::Mapcontrol_GetTileSpec(
                 server->map_control, player->map_id, x, y);
             if (spec >= 0 && spec <= 6)
             {
@@ -7532,7 +7468,7 @@ bool Chair_Execute(Server *server, Player *player, int action, String *data)
     return false;
 }
 
-void Player_EvaluateQuestRules(Server *server,
+void Player_EvaluateQuestRules(Packets *server,
                                Player *player,
                                PlayerQuest *tracker,
                                QuestState *state,
@@ -7651,7 +7587,7 @@ void Player_EvaluateQuestRules(Server *server,
     }
 }
 
-void Player_Warp(Server *server,
+void Player_Warp(Packets *server,
                  Player *player,
                  int target_map,
                  MapCoord coords,
@@ -7660,7 +7596,7 @@ void Player_Warp(Server *server,
 {
     if (target_map == 0x50 || target_map == 0x51)
         return;
-    if (target_map < 1 && Mapcontrol_GetCount(server->map_control) < target_map)
+    if (target_map < 1 && (int)server->map_control->maps.size() < target_map)
         return;
     if (Mapcontrol_GetByIndex(server->map_control, target_map - 1)->width < 1 ||
         Mapcontrol_GetByIndex(server->map_control, target_map - 1)->height < 1)
@@ -7694,7 +7630,7 @@ void Player_Warp(Server *server,
             player->map_has_hp_drain = false;
             player->map_has_tp_drain = false;
             player->map_has_spikes = false;
-            Mapcontrol::Mapcontrol_DecPlayerCount(server->map_control, player->map_id);
+            MapContainer::Mapcontrol_DecPlayerCount(server->map_control, player->map_id);
         }
         player->map_id = 0;
         player->x = 0;
@@ -7747,12 +7683,12 @@ void Player_Warp(Server *server,
     }
 }
 
-void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value)
+void Player_FireQuestTriggers(Packets *server, Player *player, int state_index, int value)
 {
     for (PlayerQuest *iter = player->quest_trackers.begin();
          iter != player->quest_trackers.end();)
     {
-        QuestState *state = Questengine::GetState(
+        QuestState *state = QuestContainer::GetState(
             server->quest_engine, iter->quest_id, iter->state_index);
         if (state == NULL)
         {
@@ -7769,24 +7705,25 @@ void Player_FireQuestTriggers(Server *server, Player *player, int state_index, i
     }
 }
 
-bool Player_CheckIdleWarp(Server *server, Player *player, int x, int y)
+bool Player_CheckIdleWarp(Packets *server, Player *player, int x, int y)
 {
-    if (Mapcontrol::Mapcontrol_IsTileWalkable(server->map_control, player->map_id, x, y))
+    if (MapContainer::Mapcontrol_IsTileWalkable(
+            server->map_control, player->map_id, x, y))
     {
         MapCoord coords;
         coords.x = x;
         coords.y = y;
-        if (Mapcontrol::Mapcontrol_GetWarpDoorAt(
+        if (MapContainer::Mapcontrol_GetWarpDoorAt(
                 server->map_control, player->map_id, coords) < 2)
         {
             MapCoord dest;
-            int target_map = Mapcontrol::Mapcontrol_GetWarpMap(
+            int target_map = MapContainer::Mapcontrol_GetWarpMap(
                 server->map_control, player->map_id, x, y);
-            int level_req = Mapcontrol::Mapcontrol_GetWarpLevelReq(
+            int level_req = MapContainer::Mapcontrol_GetWarpLevelReq(
                 server->map_control, player->map_id, x, y);
-            dest.x = Mapcontrol::Mapcontrol_GetWarpX(
+            dest.x = MapContainer::Mapcontrol_GetWarpX(
                 server->map_control, player->map_id, x, y);
-            dest.y = Mapcontrol::Mapcontrol_GetWarpY(
+            dest.y = MapContainer::Mapcontrol_GetWarpY(
                 server->map_control, player->map_id, x, y);
             if (player->level < level_req)
                 return false;
@@ -7798,7 +7735,7 @@ bool Player_CheckIdleWarp(Server *server, Player *player, int x, int y)
     return false;
 }
 
-void Player_CalculateStats(Server *server, Player *player)
+void Player_CalculateStats(Packets *server, Player *player)
 {
     if (player->class_id < 1)
         return;
@@ -7870,7 +7807,7 @@ void Player_CalculateStats(Server *server, Player *player)
     player->armor = player->armor + player->class_armor;
 }
 
-void Player_ApplyEquipmentBonuses(Server *server, Player *player)
+void Player_ApplyEquipmentBonuses(Packets *server, Player *player)
 {
     player->equip_bonus_hp = 0;
     player->equip_bonus_tp = 0;
@@ -8408,14 +8345,14 @@ void Player_ApplyEquipmentBonuses(Server *server, Player *player)
     return;
 }
 
-String Server_BuildOnlineList(Server *server)
+String Server_BuildOnlineList(Packets *server)
 {
     if (server->online_list_ttl < 1)
     {
         String list = EO_GetBreakByte(server, EO_BREAK_BYTE);
         int count = 0;
-        for (Player **iter = Players_Iter_Begin(server->players);
-             iter != Players_Iter_End(server->players);
+        for (Player **iter = server->players->players.begin();
+             iter != server->players->players.end();
              iter++)
         {
             if ((*iter)->logged_in && !(*iter)->hide_online)
@@ -8478,15 +8415,15 @@ String Server_BuildOnlineList(Server *server)
     }
 }
 
-String Refresh_BuildReply(Server *server, Player *player)
+String Refresh_BuildReply(Packets *server, Player *player)
 {
     String data = EO_GetBreakByte(server, EO_BREAK_BYTE);
     int count = 0;
     Player **iter;
     try
     {
-        for (iter = Players_Iter_Begin(server->players);
-             iter != Players_Iter_End(server->players);
+        for (iter = server->players->players.begin();
+             iter != server->players->players.end();
              iter++)
         {
             if ((*iter)->map_id == player->map_id &&
@@ -8560,16 +8497,14 @@ String Refresh_BuildReply(Server *server, Player *player)
         }
         data.Insert(EO_EncodeNumber(server, count, 1), 1);
         Npc **niter;
-        if (player->map_id > 0 &&
-            player->map_id <= Mapcontrol_GetCount(server->map_control))
+        if (player->map_id > 0 && player->map_id <= (int)server->map_control->maps.size())
         {
-            for (niter = (Npc **)Map_NpcIter_Begin(
-                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                          ->npc_list);
+            for (niter = (Npc **)Mapcontrol_GetByIndex(server->map_control,
+                                                       player->map_id - 1)
+                             ->npc_list.begin();
                  niter !=
-                 (Npc **)Map_NpcIter_End(
-                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                          ->npc_list);
+                 (Npc **)Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
+                     ->npc_list.end();
                  niter++)
             {
                 if ((*niter)->alive &&
@@ -8608,16 +8543,14 @@ String Refresh_BuildReply(Server *server, Player *player)
         }
         data.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), data.Length() + 1);
         ItemObj **iiter;
-        if (player->map_id > 0 &&
-            player->map_id <= Mapcontrol_GetCount(server->map_control))
+        if (player->map_id > 0 && player->map_id <= (int)server->map_control->maps.size())
         {
-            for (iiter = (ItemObj **)GroundItemPtrVector_Begin(
-                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                          ->ground_items);
-                 iiter !=
-                 (ItemObj **)PtrVector_GetEnd(
-                     &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                          ->ground_items);
+            for (iiter = (ItemObj **)Mapcontrol_GetByIndex(server->map_control,
+                                                           player->map_id - 1)
+                             ->ground_items.begin();
+                 iiter != (ItemObj **)Mapcontrol_GetByIndex(server->map_control,
+                                                            player->map_id - 1)
+                              ->ground_items.end();
                  iiter++)
             {
                 if (Server_InViewRange(
@@ -8644,7 +8577,7 @@ String Refresh_BuildReply(Server *server, Player *player)
     return data;
 }
 
-String Paperdoll_BuildReply(Server *server, Player *player)
+String Paperdoll_BuildReply(Packets *server, Player *player)
 {
     String data = "";
     try
@@ -8720,7 +8653,7 @@ String Paperdoll_BuildReply(Server *server, Player *player)
     return data;
 }
 
-String Player_SerializePaperdoll(Server *server, Player *player)
+String Player_SerializePaperdoll(Packets *server, Player *player)
 {
     String out = "";
     try
@@ -8769,7 +8702,7 @@ String Player_SerializePaperdoll(Server *server, Player *player)
         out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
         for (it = player->quest_history.begin(); it != player->quest_history.end(); it++)
         {
-            out.Insert(Questengine::GetQuestName(server->quest_engine, it->quest_id),
+            out.Insert(QuestContainer::GetQuestName(server->quest_engine, it->quest_id),
                        out.Length() + 1);
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
         }
@@ -8780,7 +8713,7 @@ String Player_SerializePaperdoll(Server *server, Player *player)
     return out;
 }
 
-String Player_SerializeAvatar(Server *server, Player *player, int arg)
+String Player_SerializeAvatar(Packets *server, Player *player, int arg)
 {
     String out = player->name;
     out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
@@ -8848,7 +8781,7 @@ String Player_SerializeAvatar(Server *server, Player *player, int arg)
     return out;
 }
 
-String Walk_BuildReply(Server *server, Player *player)
+String Walk_BuildReply(Packets *server, Player *player)
 {
     String buf = "";
     try
@@ -8856,8 +8789,8 @@ String Walk_BuildReply(Server *server, Player *player)
         Player **iter;
         Npc **niter;
         ItemObj **iiter;
-        for (iter = Players_Iter_Begin(server->players);
-             iter != Players_Iter_End(server->players);
+        for (iter = server->players->players.begin();
+             iter != server->players->players.end();
              iter++)
         {
             if ((*iter)->map_id == player->map_id)
@@ -8871,15 +8804,14 @@ String Walk_BuildReply(Server *server, Player *player)
         buf.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), buf.Length() + 1);
         if (player->map_id > 0)
         {
-            if (player->map_id <= Mapcontrol_GetCount(server->map_control))
+            if (player->map_id <= (int)server->map_control->maps.size())
             {
-                for (niter = (Npc **)Map_NpcIter_Begin(
-                         &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                              ->npc_list);
-                     niter !=
-                     (Npc **)Map_NpcIter_End(
-                         &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                              ->npc_list);
+                for (niter = (Npc **)Mapcontrol_GetByIndex(server->map_control,
+                                                           player->map_id - 1)
+                                 ->npc_list.begin();
+                     niter != (Npc **)Mapcontrol_GetByIndex(server->map_control,
+                                                            player->map_id - 1)
+                                  ->npc_list.end();
                      niter++)
                 {
                     if (Server_InViewRing(
@@ -8892,15 +8824,14 @@ String Walk_BuildReply(Server *server, Player *player)
         buf.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), buf.Length() + 1);
         if (player->map_id > 0)
         {
-            if (player->map_id <= Mapcontrol_GetCount(server->map_control))
+            if (player->map_id <= (int)server->map_control->maps.size())
             {
-                for (iiter = (ItemObj **)GroundItemPtrVector_Begin(
-                         &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                              ->ground_items);
-                     iiter !=
-                     (ItemObj **)PtrVector_GetEnd(
-                         &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                              ->ground_items);
+                for (iiter = (ItemObj **)Mapcontrol_GetByIndex(server->map_control,
+                                                               player->map_id - 1)
+                                 ->ground_items.begin();
+                     iiter != (ItemObj **)Mapcontrol_GetByIndex(server->map_control,
+                                                                player->map_id - 1)
+                                  ->ground_items.end();
                      iiter++)
                 {
                     if (Server_InItemViewRing(
@@ -8928,12 +8859,12 @@ String Walk_BuildReply(Server *server, Player *player)
     return buf;
 }
 
-String Message_BuildServerStatus(Server *server)
+String Message_BuildServerStatus(Packets *server)
 {
     String names = EO_GetBreakByte(server, EO_BREAK_BYTE);
     int count = 0;
-    for (Player **iter = Players_Iter_Begin(server->players);
-         iter != Players_Iter_End(server->players);
+    for (Player **iter = server->players->players.begin();
+         iter != server->players->players.end();
          iter++)
     {
         if ((*iter)->logged_in && !(*iter)->hide_online)
@@ -8956,14 +8887,14 @@ String Message_BuildServerStatus(Server *server)
     return names;
 }
 
-String Server_BuildOnlineNames(Server *server)
+String Server_BuildOnlineNames(Packets *server)
 {
     if (server->online_names_ttl < 1)
     {
         String names = EO_GetBreakByte(server, EO_BREAK_BYTE);
         int count = 0;
-        for (Player **iter = Players_Iter_Begin(server->players);
-             iter != Players_Iter_End(server->players);
+        for (Player **iter = server->players->players.begin();
+             iter != server->players->players.end();
              iter++)
         {
             if ((*iter)->logged_in && !(*iter)->hide_online)
@@ -8987,7 +8918,7 @@ String Server_BuildOnlineNames(Server *server)
     }
 }
 
-String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index)
+String NpcRange_Lookup(Packets *server, Player *player, unsigned int npc_index)
 {
     String fragment = "";
     Npc **iter;
@@ -8995,15 +8926,14 @@ String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index)
     {
         if (player->map_id > 0)
         {
-            if (player->map_id <= Mapcontrol_GetCount(server->map_control))
+            if (player->map_id <= (int)server->map_control->maps.size())
             {
-                for (iter = (Npc **)Map_NpcIter_Begin(
-                         &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                              ->npc_list);
-                     iter !=
-                     (Npc **)Map_NpcIter_End(
-                         &Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                              ->npc_list);
+                for (iter = (Npc **)Mapcontrol_GetByIndex(server->map_control,
+                                                          player->map_id - 1)
+                                ->npc_list.begin();
+                     iter != (Npc **)Mapcontrol_GetByIndex(server->map_control,
+                                                           player->map_id - 1)
+                                 ->npc_list.end();
                      iter++)
                 {
                     if ((*iter)->index == npc_index && (*iter)->alive)
@@ -9048,7 +8978,7 @@ String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index)
     return fragment;
 }
 
-String Party_EncodeMemberList(Server *server, Player *player)
+String Party_EncodeMemberList(Packets *server, Player *player)
 {
     if (!player->in_party)
         return "";
@@ -9073,10 +9003,10 @@ String Party_EncodeMemberList(Server *server, Player *player)
     return s;
 }
 
-void Server_SyncMapHazardFlags(Server *server, int map_id)
+void Server_SyncMapHazardFlags(Packets *server, int map_id)
 {
-    for (Player **iter = Players_Iter_Begin(server->players);
-         iter != Players_Iter_End(server->players);
+    for (Player **iter = server->players->players.begin();
+         iter != server->players->players.end();
          iter++)
     {
         if ((*iter)->map_id == map_id)
@@ -9093,7 +9023,7 @@ void Server_SyncMapHazardFlags(Server *server, int map_id)
     }
 }
 
-int Party_ShareExp(Server *server, Player *player, int exp)
+int Party_ShareExp(Packets *server, Player *player, int exp)
 {
     if (!player->in_party)
         return exp;
@@ -9154,7 +9084,7 @@ int Party_ShareExp(Server *server, Player *player, int exp)
     return exp;
 }
 
-void Player_Respawn(Server *server, Player *player)
+void Player_Respawn(Packets *server, Player *player)
 {
     MapCoord coords;
     int map_id =
@@ -9182,7 +9112,7 @@ void Player_Respawn(Server *server, Player *player)
     Player_Warp(server, player, map_id, coords, WarpEffect_None, true);
 }
 
-void Server_BroadcastToPartyExceptSelf(Server *server,
+void Server_BroadcastToPartyExceptSelf(Packets *server,
                                        Player *player,
                                        unsigned char action,
                                        unsigned char family,
@@ -9200,7 +9130,7 @@ void Server_BroadcastToPartyExceptSelf(Server *server,
     }
 }
 
-void Server_BroadcastToParty(Server *server,
+void Server_BroadcastToParty(Packets *server,
                              Player *player,
                              unsigned char action,
                              unsigned char family,
@@ -9214,15 +9144,15 @@ void Server_BroadcastToParty(Server *server,
     }
 }
 
-void Guild_BroadcastToAll(Server *server,
+void Guild_BroadcastToAll(Packets *server,
                           Player *player,
                           unsigned char action,
                           unsigned char family,
                           String data)
 {
     Player **player_iter;
-    for (player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->guild_tag == player->guild_tag)
@@ -9236,7 +9166,7 @@ void Guild_BroadcastToAll(Server *server,
     }
 }
 
-void Server_BroadcastAdjacent(Server *server,
+void Server_BroadcastAdjacent(Packets *server,
                               Player *player,
                               MapCoord coords,
                               unsigned char action,
@@ -9244,8 +9174,8 @@ void Server_BroadcastAdjacent(Server *server,
                               String data)
 {
     Player **player_iter;
-    for (player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->map_id == player->map_id &&
@@ -9258,7 +9188,7 @@ void Server_BroadcastAdjacent(Server *server,
     }
 }
 
-void Server_BroadcastNearTile(Server *server,
+void Server_BroadcastNearTile(Packets *server,
                               int skip_id,
                               int map_id,
                               MapCoord coord,
@@ -9267,8 +9197,8 @@ void Server_BroadcastNearTile(Server *server,
                               String data)
 {
     Player **player_iter;
-    for (player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->map_id == map_id && (*player_iter)->player_id != skip_id &&
@@ -9280,14 +9210,14 @@ void Server_BroadcastNearTile(Server *server,
     }
 }
 
-void Admin_BroadcastToAll(Server *server,
+void Admin_BroadcastToAll(Packets *server,
                           unsigned char action,
                           unsigned char family,
                           String data)
 {
     Player **player_iter;
-    for (player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->admin_level > AdminLevel_Player && (*player_iter)->logged_in)
@@ -9295,15 +9225,15 @@ void Admin_BroadcastToAll(Server *server,
     }
 }
 
-void Admin_ReportToGMs(Server *server,
+void Admin_ReportToGMs(Packets *server,
                        Player *player,
                        unsigned char action,
                        unsigned char family,
                        String data)
 {
     Player **player_iter;
-    for (player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->global_chat && (*player_iter)->logged_in &&
@@ -9312,15 +9242,15 @@ void Admin_ReportToGMs(Server *server,
     }
 }
 
-void Admin_BroadcastToAdmins(Server *server,
+void Admin_BroadcastToAdmins(Packets *server,
                              Player *player,
                              unsigned char action,
                              unsigned char family,
                              String data)
 {
     Player **player_iter;
-    for (player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->logged_in && (*player_iter)->player_id != player->player_id)
@@ -9328,7 +9258,7 @@ void Admin_BroadcastToAdmins(Server *server,
     }
 }
 
-void Server_BroadcastToPartyOnMap(Server *server,
+void Server_BroadcastToPartyOnMap(Packets *server,
                                   Player *player,
                                   unsigned char action,
                                   unsigned char family,
@@ -9343,10 +9273,10 @@ void Server_BroadcastToPartyOnMap(Server *server,
 }
 
 void Server_BroadcastToMapAndAdmins(
-    Server *server, int map_id, unsigned char action, unsigned char family, String data)
+    Packets *server, int map_id, unsigned char action, unsigned char family, String data)
 {
-    for (Player **player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (Player **player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->map_id == map_id ||
@@ -9358,14 +9288,14 @@ void Server_BroadcastToMapAndAdmins(
     }
 }
 
-void Admin_BroadcastToOtherAdmins(Server *server,
+void Admin_BroadcastToOtherAdmins(Packets *server,
                                   Player *player,
                                   unsigned char action,
                                   unsigned char family,
                                   String data)
 {
-    for (Player **player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (Player **player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->admin_level > AdminLevel_Player &&
@@ -9374,13 +9304,13 @@ void Admin_BroadcastToOtherAdmins(Server *server,
     }
 }
 
-void Server_BroadcastToAll(Server *server,
+void Server_BroadcastToAll(Packets *server,
                            unsigned char action,
                            unsigned char family,
                            String data)
 {
-    for (Player **player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (Player **player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->logged_in)
@@ -9388,10 +9318,10 @@ void Server_BroadcastToAll(Server *server,
     }
 }
 
-void Talk_PlayerWhisper(Server *server, int map_id, String message, int break_byte)
+void Talk_PlayerWhisper(Packets *server, int map_id, String message, int break_byte)
 {
-    for (Player **player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (Player **player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->map_id == map_id && (*player_iter)->logged_in &&
@@ -9407,15 +9337,15 @@ void Talk_PlayerWhisper(Server *server, int map_id, String message, int break_by
     }
 }
 
-void Server_BroadcastNearby(Server *server,
+void Server_BroadcastNearby(Packets *server,
                             Player *player,
                             unsigned char action,
                             unsigned char family,
                             String data)
 {
     Player **player_iter;
-    for (player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->map_id == player->map_id &&
@@ -9429,11 +9359,11 @@ void Server_BroadcastNearby(Server *server,
 }
 
 void Server_BroadcastToMap(
-    Server *server, int map_id, unsigned char action, unsigned char family, String data)
+    Packets *server, int map_id, unsigned char action, unsigned char family, String data)
 {
     Player **player_iter;
-    for (player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((*player_iter)->map_id == map_id && (*player_iter)->logged_in)
@@ -9441,12 +9371,12 @@ void Server_BroadcastToMap(
     }
 }
 
-void Server_Shutdown(Server *server)
+void Server_Shutdown(Packets *server)
 {
     Server_BroadcastToAll(server, PacketAction_Close, PacketFamily_Message, "r");
     Players::Players_MarkDirty(server->players);
-    for (Player **player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (Player **player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
         (*player_iter)->removing = 1;
     server->shutting_down = 1;
@@ -9454,7 +9384,7 @@ void Server_Shutdown(Server *server)
 
 void FUN_00470584();
 
-void Connection_Ping(Server *server)
+void Connection_Ping(Packets *server)
 {
     FUN_00470584();
     bool found = false;
@@ -9478,8 +9408,8 @@ void Connection_Ping(Server *server)
     String encoded = EO_EncodeNumber(server, sum, 2);
     encoded.Insert(EO_EncodeNumber(server, value2, 1), encoded.Length() + 1);
     Player **player_iter;
-    for (player_iter = Players_Iter_Begin(server->players);
-         player_iter != Players_Iter_End(server->players);
+    for (player_iter = server->players->players.begin();
+         player_iter != server->players->players.end();
          player_iter++)
     {
         if ((unsigned char)(*player_iter)->ping_timeout > 1)
@@ -9499,7 +9429,7 @@ void Connection_Ping(Server *server)
     }
 }
 
-void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data)
+void Server_ClientRead(Packets *server, TCustomWinSocket *socket, String data)
 {
     if (server->players->by_id[socket->SocketHandle] == NULL)
     {
@@ -9556,7 +9486,7 @@ void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data)
     }
 }
 
-String EO_EncodeNumber(Server *server, unsigned int value, int width)
+String EO_EncodeNumber(Packets *server, unsigned int value, int width)
 {
     int rem;
     char c;
@@ -9594,7 +9524,7 @@ String EO_EncodeNumber(Server *server, unsigned int value, int width)
     return result;
 }
 
-int EO_DecodeNumber(Server *self, String data)
+int EO_DecodeNumber(Packets *self, String data)
 {
     int result = 0;
     try
@@ -9624,21 +9554,21 @@ int EO_DecodeNumber(Server *self, String data)
     return result;
 }
 
-int EO_DecodeByte(Server *self, char value)
+int EO_DecodeByte(Packets *self, char value)
 {
     char c = value;
     int result = (unsigned char)c;
     return result;
 }
 
-char EO_GetBreakByte(Server *self, int value)
+char EO_GetBreakByte(Packets *self, int value)
 {
     char c = value;
     char result = c;
     return result;
 }
 
-void PacketReader_Init(Server *reader, String data, unsigned char break_byte)
+void PacketReader_Init(Packets *reader, String data, unsigned char break_byte)
 {
     reader->reader_pos = 1;
     reader->reader_data = data;
@@ -9646,7 +9576,7 @@ void PacketReader_Init(Server *reader, String data, unsigned char break_byte)
     reader->reader_break_byte = break_byte;
 }
 
-String PacketReader_GetBreakString(Server *reader)
+String PacketReader_GetBreakString(Packets *reader)
 {
     String result = "";
     try
@@ -9677,7 +9607,7 @@ String PacketReader_GetBreakString(Server *reader)
 }
 
 String
-PacketReader_GetBreakStringAt(Server *reader, int end, String break_str, char append)
+PacketReader_GetBreakStringAt(Packets *reader, int end, String break_str, char append)
 {
     String result = "";
     try
@@ -9707,7 +9637,7 @@ PacketReader_GetBreakStringAt(Server *reader, int end, String break_str, char ap
     return result;
 }
 
-bool CharName_CheckUnique(Server *server, String name)
+bool CharName_CheckUnique(Packets *server, String name)
 {
     for (int i = 0; i < server->wordfilter->Count; i++)
     {
@@ -9727,7 +9657,7 @@ bool CharName_CheckUnique(Server *server, String name)
     return true;
 }
 
-unsigned int Server_DecodePacketLength(Server *self, String data)
+unsigned int Server_DecodePacketLength(Packets *self, String data)
 {
     int result = 0;
     try
@@ -9753,7 +9683,7 @@ unsigned int Server_DecodePacketLength(Server *self, String data)
     return result;
 }
 
-bool Coords_IsAdjacent(Server *self, int x1, int y1, int x2, int y2)
+bool Coords_IsAdjacent(Packets *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -9767,7 +9697,7 @@ bool Coords_IsAdjacent(Server *self, int x1, int y1, int x2, int y2)
     return result;
 }
 
-bool Server_InViewRange(Server *self, int x1, int y1, int x2, int y2)
+bool Server_InViewRange(Packets *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -9789,7 +9719,7 @@ bool Server_InViewRange(Server *self, int x1, int y1, int x2, int y2)
     return result;
 }
 
-bool Server_InViewRing(Server *self, int x1, int y1, int x2, int y2)
+bool Server_InViewRing(Packets *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -9811,7 +9741,7 @@ bool Server_InViewRing(Server *self, int x1, int y1, int x2, int y2)
     return result;
 }
 
-bool Server_InViewRangeReverse(Server *self, int x1, int y1, int x2, int y2)
+bool Server_InViewRangeReverse(Packets *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -9833,7 +9763,7 @@ bool Server_InViewRangeReverse(Server *self, int x1, int y1, int x2, int y2)
     return result;
 }
 
-bool Server_InItemViewRing(Server *self, int x1, int y1, int x2, int y2)
+bool Server_InItemViewRing(Packets *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -9847,7 +9777,7 @@ bool Server_InItemViewRing(Server *self, int x1, int y1, int x2, int y2)
     return result;
 }
 
-void Server_RemovePlayer(Server *server, TCustomWinSocket *socket)
+void Server_RemovePlayer(Packets *server, TCustomWinSocket *socket)
 {
     if (server->players->by_id[socket->SocketHandle] != 0)
     {
@@ -9898,7 +9828,7 @@ void Server_RemovePlayer(Server *server, TCustomWinSocket *socket)
                 player->on_chair = false;
                 player->sitting = false;
             }
-            Mapcontrol::Mapcontrol_DecPlayerCount(server->map_control, player->map_id);
+            MapContainer::Mapcontrol_DecPlayerCount(server->map_control, player->map_id);
         }
         if (player->map_switch_pending)
         {
@@ -9907,7 +9837,7 @@ void Server_RemovePlayer(Server *server, TCustomWinSocket *socket)
             player->y = player->target_y;
         }
         if (player->x > 250 || player->y > 250 || player->map_id < 1 ||
-            (unsigned)Mapcontrol_GetCount(server->map_control) < (unsigned)player->map_id)
+            (unsigned)(int)server->map_control->maps.size() < (unsigned)player->map_id)
         {
             player->map_id = InnValues::GetSpawnMap(
                 (*MAINFORM)->inn_values, player->home_id, player->level);
@@ -9928,25 +9858,33 @@ void Server_RemovePlayer(Server *server, TCustomWinSocket *socket)
     }
 }
 
-int FUN_0044f97c(Mapcontrol *map_control)
+// Two unidentified element-count helpers (reference `0x44f97c` / `0x44f9bc`).
+// The bodies are an `end() - begin()` over a 4-byte element type, emitted as two
+// out-of-line accessor calls plus the signed divide-by-4 sequence; the container
+// each one counts is NOT identified, so the type here is only a stand-in that
+// reproduces the shape. It must be a pointer vector Packets already owns the
+// accessors for -- using `MapContainer::maps` instead makes Packets.obj define
+// `vector<ChestItem>::end()`, which the reference keeps in MapContainer
+// (`0x47ecd4`); see PLAN.md, "COMDAT ownership".
+int FUN_0044f97c(MapContainer *map_control)
 {
-    return ((char *)MapVector_End(map_control) -
-            (char *)Mapcontrol_Iter_Front(map_control)) /
-           4;
+    vector<Npc *> *list = (vector<Npc *> *)map_control;
+    return list->end() - list->begin();
 }
-int FUN_0044f9bc(Mapcontrol *map_control)
+int FUN_0044f9bc(MapContainer *map_control)
 {
-    return ((char *)map_control->maps.end() - (char *)Map_NpcIter_Begin(map_control)) / 4;
+    vector<ItemObj *> *list = (vector<ItemObj *> *)map_control;
+    return list->end() - list->begin();
 }
-String Account_DecodePassword(Server *server, String value);
-String Account_EncodePassword(Server *server, String value);
-void Login_SendCharacterList(Server *server,
+String Account_DecodePassword(Packets *server, String value);
+String Account_EncodePassword(Packets *server, String value);
+void Login_SendCharacterList(Packets *server,
                              Player *player,
                              PacketAction action,
                              PacketFamily family,
                              String data);
 
-void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
+void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
 {
     Player *player = Players::Players_GetById(server->players, query_result->player_id);
     if (player == NULL)
@@ -9957,10 +9895,10 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
     {
         PacketReader_Init(
             server, query_result->data, EO_GetBreakByte(server, EO_BREAK_BYTE));
-        String account = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
-        String password = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
+        String account = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                    PacketReader_GetBreakString(server));
+        String password = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                     PacketReader_GetBreakString(server));
         if ((*MAINFORM)->myquery->RecordCount < 1)
         {
             Client_SendEncoded(server,
@@ -9972,7 +9910,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         }
         if (password !=
             Account_DecodePassword(
-                server, Mysqlcontrols::Db_GetString(server->mysql_controls, "password")))
+                server, mySQLdb::Db_GetString(server->mysql_controls, "password")))
         {
             Client_SendEncoded(server,
                                player,
@@ -9982,7 +9920,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                                    "NO");
             return;
         }
-        if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls, "banned") > 0)
+        if ((unsigned int)mySQLdb::Db_GetInt(server->mysql_controls, "banned") > 0)
         {
             Client_SendEncoded(server,
                                player,
@@ -9992,11 +9930,10 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             player->removing = true;
             return;
         }
-        int ident = Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident");
-        String account_name =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "account");
-        String account_type = Mysqlcontrols::Db_GetString(server->mysql_controls, "type");
-        if (Mysqlcontrols::IsTaskPending(server->mysql_controls, ident))
+        int ident = mySQLdb::Db_GetInt(server->mysql_controls, "ident");
+        String account_name = mySQLdb::Db_GetString(server->mysql_controls, "account");
+        String account_type = mySQLdb::Db_GetString(server->mysql_controls, "type");
+        if (mySQLdb::IsTaskPending(server->mysql_controls, ident))
         {
             Client_SendEncoded(server,
                                player,
@@ -10037,12 +9974,12 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         }
         player->account_logged_in = true;
         TDateTime now = Now();
-        Mysqlcontrols::Mysql_ExecDirect_FromCallback(
-            server->mysql_controls,
-            player->account_ident,
-            "UPDATE endl_accounts SET lastvisit = '" + now.DateString() +
-                "' WHERE ident = " + IntToStr(ident));
-        Mysqlcontrols::Mysql_SubmitQuery_FromCallback(
+        mySQLdb::Mysql_ExecDirect_FromCallback(server->mysql_controls,
+                                               player->account_ident,
+                                               "UPDATE endl_accounts SET lastvisit = '" +
+                                                   now.DateString() +
+                                                   "' WHERE ident = " + IntToStr(ident));
+        mySQLdb::Mysql_SubmitQuery_FromCallback(
             server->mysql_controls,
             0x41,
             player->player_id,
@@ -10077,7 +10014,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         int hair_modal = EO_DecodeNumber(server, query_result->data.SubString(5, 2));
         int hair_color = EO_DecodeNumber(server, query_result->data.SubString(7, 2));
         int skin_color = EO_DecodeNumber(server, query_result->data.SubString(9, 2));
-        String name = Mysqlcontrols::Db_SanitizeString(
+        String name = mySQLdb::Db_SanitizeString(
             server->mysql_controls,
             PacketReader_GetBreakStringAt(
                 server, 2, query_result->data, EO_GetBreakByte(server, EO_BREAK_BYTE)));
@@ -10099,9 +10036,9 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         sql = sql + IntToStr(Settings::GetStartX(server->settings)) + ",";
         sql = sql + IntToStr(Settings::GetStartY(server->settings)) + ",";
         sql = sql + "10,10,10,10,20,0,0)";
-        Mysqlcontrols::Mysql_ExecDirect_FromCallback(
+        mySQLdb::Mysql_ExecDirect_FromCallback(
             server->mysql_controls, player->account_ident, sql);
-        Mysqlcontrols::Mysql_SubmitQuery_FromCallback(
+        mySQLdb::Mysql_SubmitQuery_FromCallback(
             server->mysql_controls,
             0x46,
             player->player_id,
@@ -10154,8 +10091,8 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             server, query_result->data, EO_GetBreakByte(server, EO_BREAK_BYTE));
         PacketReader_GetBreakString(server);
         int code = EO_DecodeNumber(server, query_result->data.SubString(1, 2));
-        String account = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
+        String account = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                    PacketReader_GetBreakString(server));
         if (player->session_id != code)
         {
             player->removing = true;
@@ -10164,18 +10101,18 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         if (player->account_create_cooldown > 4)
             return;
         player->account_create_cooldown = 6;
-        String password = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
-        String realname = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
-        String location = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
-        String email = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
-        String serial_c = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
-        String serial_h = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
+        String password = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                     PacketReader_GetBreakString(server));
+        String realname = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                     PacketReader_GetBreakString(server));
+        String location = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                     PacketReader_GetBreakString(server));
+        String email = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                  PacketReader_GetBreakString(server));
+        String serial_c = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                     PacketReader_GetBreakString(server));
+        String serial_h = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                     PacketReader_GetBreakString(server));
         TDateTime now = Now();
         String sql = "INSERT INTO endl_accounts (account, password, realname, location, "
                      "email,  signup, lastvisit, serial_c, serial_h , ipaddress, banned) "
@@ -10192,7 +10129,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         sql = sql + "'" + serial_h + "',";
         sql = sql + "'" + player->socket->RemoteAddress + "',";
         sql = sql + "0)";
-        Mysqlcontrols::Mysql_ExecDirect(server->mysql_controls, 0, sql);
+        mySQLdb::Mysql_ExecDirect(server->mysql_controls, 0, sql);
         Client_SendEncoded(server,
                            player,
                            PacketAction_Reply,
@@ -10206,11 +10143,11 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
     {
         PacketReader_Init(
             server, query_result->data, EO_GetBreakByte(server, EO_BREAK_BYTE));
-        String account = Mysqlcontrols::Db_SanitizeString(
+        String account = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                    PacketReader_GetBreakString(server));
+        String old_password = mySQLdb::Db_SanitizeString(
             server->mysql_controls, PacketReader_GetBreakString(server));
-        String old_password = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
-        String new_password = Mysqlcontrols::Db_SanitizeString(
+        String new_password = mySQLdb::Db_SanitizeString(
             server->mysql_controls, PacketReader_GetBreakString(server));
         if ((*MAINFORM)->myquery->RecordCount < 1)
         {
@@ -10218,10 +10155,9 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             return;
         }
         if (Account_DecodePassword(
-                server,
-                Mysqlcontrols::Db_GetString(server->mysql_controls, "password")) !=
+                server, mySQLdb::Db_GetString(server->mysql_controls, "password")) !=
                 old_password ||
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "account") != account)
+            mySQLdb::Db_GetString(server->mysql_controls, "account") != account)
         {
             Client_SendEncoded(server,
                                player,
@@ -10236,13 +10172,12 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                            PacketAction_Reply,
                            PacketFamily_Account,
                            EO_EncodeNumber(server, AccountReply_Changed, 2) + "OK");
-        Mysqlcontrols::Mysql_ExecDirect(
-            server->mysql_controls,
-            player->account_ident,
-            "UPDATE endl_accounts SET password = ENCODE('" +
-                Account_EncodePassword(server, new_password) +
-                "','eoeokeyendl') WHERE ident = " +
-                IntToStr((unsigned int)player->account_ident));
+        mySQLdb::Mysql_ExecDirect(server->mysql_controls,
+                                  player->account_ident,
+                                  "UPDATE endl_accounts SET password = ENCODE('" +
+                                      Account_EncodePassword(server, new_password) +
+                                      "','eoeokeyendl') WHERE ident = " +
+                                      IntToStr((unsigned int)player->account_ident));
         return;
     }
     if (query_result->query_id == 0x47)
@@ -10253,15 +10188,14 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         String char_name =
             query_result->data.SubString(6, query_result->data.Length() - 5);
         String rank_label = "rank" + IntToStr(token);
-        String rank_value =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, rank_label);
+        String rank_value = mySQLdb::Db_GetString(server->mysql_controls, rank_label);
         Player *target = Players::Players_FindByName(server->players, char_name);
-        rank_value = Mysqlcontrols::Mysql_SanitizeString(
-            server->mysql_controls, rank_value, false);
+        rank_value =
+            mySQLdb::Mysql_SanitizeString(server->mysql_controls, rank_value, false);
         if (target == NULL)
         {
             player->field_0x14 = rank_value;
-            Mysqlcontrols::Mysql_SubmitQuery_FromCallback(
+            mySQLdb::Mysql_SubmitQuery_FromCallback(
                 server->mysql_controls,
                 0x48,
                 player->player_id,
@@ -10311,8 +10245,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         int token = EO_DecodeNumber(server, query_result->data.SubString(5, 1));
         String char_name =
             query_result->data.SubString(6, query_result->data.Length() - 5);
-        if (AnsiLowerCase(
-                Mysqlcontrols::Db_GetString(server->mysql_controls, "ident_guild")) !=
+        if (AnsiLowerCase(mySQLdb::Db_GetString(server->mysql_controls, "ident_guild")) !=
             AnsiLowerCase(player->guild_tag))
         {
             Client_SendEncoded(server,
@@ -10322,8 +10255,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                                EO_EncodeNumber(server, GuildReply_RankingNotMember, 2));
             return;
         }
-        if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls,
-                                                   "ident_rank") == 1)
+        if ((unsigned int)mySQLdb::Db_GetInt(server->mysql_controls, "ident_rank") == 1)
         {
             Client_SendEncoded(server,
                                player,
@@ -10332,7 +10264,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                                EO_EncodeNumber(server, GuildReply_RankingLeader, 2));
             return;
         }
-        Mysqlcontrols::Mysql_ExecDirect_FromCallback(
+        mySQLdb::Mysql_ExecDirect_FromCallback(
             server->mysql_controls,
             player->account_ident,
             "UPDATE endl_characters SET ident_rank = " + IntToStr(token) + ", rank = '" +
@@ -10349,8 +10281,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
     {
         if ((*MAINFORM)->myquery->RecordCount < 1)
             return;
-        if (AnsiLowerCase(
-                Mysqlcontrols::Db_GetString(server->mysql_controls, "ident_guild")) !=
+        if (AnsiLowerCase(mySQLdb::Db_GetString(server->mysql_controls, "ident_guild")) !=
             AnsiLowerCase(player->guild_tag))
         {
             Client_SendEncoded(server,
@@ -10360,8 +10291,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
                                EO_EncodeNumber(server, GuildReply_RemoveLeader, 2));
             return;
         }
-        if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls,
-                                                   "ident_rank") == 1)
+        if ((unsigned int)mySQLdb::Db_GetInt(server->mysql_controls, "ident_rank") == 1)
         {
             Client_SendEncoded(server,
                                player,
@@ -10372,7 +10302,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         }
         String char_name =
             query_result->data.SubString(5, query_result->data.Length() - 4);
-        Mysqlcontrols::Mysql_ExecDirect_FromCallback(
+        mySQLdb::Mysql_ExecDirect_FromCallback(
             server->mysql_controls,
             player->account_ident,
             "UPDATE endl_characters SET ident_guild = '0', ident_rank = 9, "
@@ -10389,8 +10319,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
     {
         if ((*MAINFORM)->myquery->RecordCount < 1)
             return;
-        String description =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "description");
+        String description = mySQLdb::Db_GetString(server->mysql_controls, "description");
         if (description.Length() == 0)
             description = " ";
         Client_SendEncoded(
@@ -10401,30 +10330,30 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
     {
         if ((*MAINFORM)->myquery->RecordCount < 1)
             return;
-        String ranks = Mysqlcontrols::Db_GetString(server->mysql_controls, "rank1");
+        String ranks = mySQLdb::Db_GetString(server->mysql_controls, "rank1");
         ranks.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), ranks.Length() + 1);
-        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank2"),
+        ranks.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank2"),
                      ranks.Length() + 1);
         ranks.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), ranks.Length() + 1);
-        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank3"),
+        ranks.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank3"),
                      ranks.Length() + 1);
         ranks.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), ranks.Length() + 1);
-        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank4"),
+        ranks.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank4"),
                      ranks.Length() + 1);
         ranks.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), ranks.Length() + 1);
-        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank5"),
+        ranks.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank5"),
                      ranks.Length() + 1);
         ranks.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), ranks.Length() + 1);
-        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank6"),
+        ranks.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank6"),
                      ranks.Length() + 1);
         ranks.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), ranks.Length() + 1);
-        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank7"),
+        ranks.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank7"),
                      ranks.Length() + 1);
         ranks.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), ranks.Length() + 1);
-        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank8"),
+        ranks.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank8"),
                      ranks.Length() + 1);
         ranks.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), ranks.Length() + 1);
-        ranks.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank9"),
+        ranks.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank9"),
                      ranks.Length() + 1);
         ranks.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), ranks.Length() + 1);
         Client_SendEncoded(server, player, PacketAction_Rank, PacketFamily_Guild, ranks);
@@ -10440,7 +10369,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             PacketAction_Sell,
             PacketFamily_Guild,
             EO_EncodeNumber(
-                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "money"), 4));
+                server, mySQLdb::Db_GetInt(server->mysql_controls, "money"), 4));
         return;
     }
     if (query_result->query_id == 0x4d)
@@ -10458,16 +10387,15 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         list.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), list.Length() + 1);
         while (!(*MAINFORM)->myquery->Eof)
         {
-            list.Insert(EO_EncodeNumber(server,
-                                        Mysqlcontrols::Db_GetInt(server->mysql_controls,
-                                                                 "ident_rank"),
-                                        1),
+            list.Insert(
+                EO_EncodeNumber(
+                    server, mySQLdb::Db_GetInt(server->mysql_controls, "ident_rank"), 1),
+                list.Length() + 1);
+            list.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), list.Length() + 1);
+            list.Insert(mySQLdb::Db_GetString(server->mysql_controls, "name"),
                         list.Length() + 1);
             list.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), list.Length() + 1);
-            list.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "name"),
-                        list.Length() + 1);
-            list.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), list.Length() + 1);
-            list.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "rank"),
+            list.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank"),
                         list.Length() + 1);
             list.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), list.Length() + 1);
             (*MAINFORM)->myquery->Next();
@@ -10487,8 +10415,8 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             return;
         }
         String type = "bankrupt";
-        int money = Mysqlcontrols::Db_GetInt(server->mysql_controls, "money");
-        String tag = Mysqlcontrols::Db_GetString(server->mysql_controls, "tag");
+        int money = mySQLdb::Db_GetInt(server->mysql_controls, "money");
+        String tag = mySQLdb::Db_GetString(server->mysql_controls, "tag");
         if (money >= 0x7d0)
             type = "poor";
         if (money >= 0x2710)
@@ -10497,73 +10425,62 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             type = "wealthy";
         if (money >= 0x186a0)
             type = "very wealthy";
-        player->field_0x14 = Mysqlcontrols::Db_GetString(server->mysql_controls, "name");
+        player->field_0x14 = mySQLdb::Db_GetString(server->mysql_controls, "name");
+        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "tag"),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "signup"),
+                                  player->field_0x14.Length() + 1);
         player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                   player->field_0x14.Length() + 1);
         player->field_0x14.Insert(
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "tag"),
-            player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "signup"),
-            player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "description"),
+            mySQLdb::Db_GetString(server->mysql_controls, "description"),
             player->field_0x14.Length() + 1);
         player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                   player->field_0x14.Length() + 1);
         player->field_0x14.Insert(type, player->field_0x14.Length() + 1);
         player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                   player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank1"),
-            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank1"),
+                                  player->field_0x14.Length() + 1);
         player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                   player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank2"),
-            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank2"),
+                                  player->field_0x14.Length() + 1);
         player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                   player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank3"),
-            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank3"),
+                                  player->field_0x14.Length() + 1);
         player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                   player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank4"),
-            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank4"),
+                                  player->field_0x14.Length() + 1);
         player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                   player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank5"),
-            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank5"),
+                                  player->field_0x14.Length() + 1);
         player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                   player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank6"),
-            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank6"),
+                                  player->field_0x14.Length() + 1);
         player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                   player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank7"),
-            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank7"),
+                                  player->field_0x14.Length() + 1);
         player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                   player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank8"),
-            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank8"),
+                                  player->field_0x14.Length() + 1);
         player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                   player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank9"),
-            player->field_0x14.Length() + 1);
+        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank9"),
+                                  player->field_0x14.Length() + 1);
         player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                   player->field_0x14.Length() + 1);
-        Mysqlcontrols::Mysql_SubmitQuery_FromCallback(
+        mySQLdb::Mysql_SubmitQuery_FromCallback(
             server->mysql_controls,
             0x4f,
             player->player_id,
@@ -10583,26 +10500,26 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         {
             player->field_0x14.Insert(
                 EO_EncodeNumber(
-                    server, Mysqlcontrols::GetResultCount(server->mysql_controls), 2),
+                    server, mySQLdb::GetResultCount(server->mysql_controls), 2),
                 player->field_0x14.Length() + 1);
             player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                       player->field_0x14.Length() + 1);
-            while (!Mysqlcontrols::ResultAtEnd(server->mysql_controls))
+            while (!mySQLdb::ResultAtEnd(server->mysql_controls))
             {
                 player->field_0x14.Insert(
                     EO_EncodeNumber(
                         server,
-                        Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident_rank"),
+                        mySQLdb::Db_GetInt(server->mysql_controls, "ident_rank"),
                         1),
                     player->field_0x14.Length() + 1);
                 player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                           player->field_0x14.Length() + 1);
                 player->field_0x14.Insert(
-                    Mysqlcontrols::Db_GetString(server->mysql_controls, "name"),
+                    mySQLdb::Db_GetString(server->mysql_controls, "name"),
                     player->field_0x14.Length() + 1);
                 player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
                                           player->field_0x14.Length() + 1);
-                Mysqlcontrols::NextResultRecord(server->mysql_controls);
+                mySQLdb::NextResultRecord(server->mysql_controls);
             }
         }
         Client_SendEncoded(
@@ -10611,7 +10528,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
     }
     if (query_result->query_id == 0x50)
     {
-        if (Mysqlcontrols::GetResultCount(server->mysql_controls) > 0)
+        if (mySQLdb::GetResultCount(server->mysql_controls) > 0)
         {
             Client_SendEncoded(server,
                                player,
@@ -10623,10 +10540,10 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         PacketReader_Init(
             server, query_result->data, EO_GetBreakByte(server, EO_BREAK_BYTE));
         PacketReader_GetBreakString(server);
-        String guild = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
-        String name = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
+        String guild = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                  PacketReader_GetBreakString(server));
+        String name = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                 PacketReader_GetBreakString(server));
         player->guild_inviter_id = player->player_id;
         Client_SendEncoded(server,
                            player,
@@ -10657,11 +10574,11 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         PacketReader_Init(
             server, query_result->data, EO_GetBreakByte(server, EO_BREAK_BYTE));
         PacketReader_GetBreakString(server);
-        String tag = AnsiUpperCase(Mysqlcontrols::Db_SanitizeString(
+        String tag = AnsiUpperCase(mySQLdb::Db_SanitizeString(
             server->mysql_controls, PacketReader_GetBreakString(server)));
-        String name = Mysqlcontrols::Db_SanitizeString(
-            server->mysql_controls, PacketReader_GetBreakString(server));
-        String description = Mysqlcontrols::Db_SanitizeString(
+        String name = mySQLdb::Db_SanitizeString(server->mysql_controls,
+                                                 PacketReader_GetBreakString(server));
+        String description = mySQLdb::Db_SanitizeString(
             server->mysql_controls, PacketReader_GetBreakString(server));
         player->guild_tag = tag;
         player->guild_name = name;
@@ -10670,10 +10587,9 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         player->guild_rank_id = 1;
         Players::Players_GuildSetMemberInfo(server->players, player, name, tag);
         TDateTime now = Now();
-        tag = Mysqlcontrols::Db_SanitizeString(server->mysql_controls, tag);
-        name = Mysqlcontrols::Db_SanitizeString(server->mysql_controls, name);
-        description =
-            Mysqlcontrols::Db_SanitizeString(server->mysql_controls, description);
+        tag = mySQLdb::Db_SanitizeString(server->mysql_controls, tag);
+        name = mySQLdb::Db_SanitizeString(server->mysql_controls, name);
+        description = mySQLdb::Db_SanitizeString(server->mysql_controls, description);
         String sql = "INSERT INTO endl_guilds (tag, name, description, money, signup, "
                      "rank1, rank2 ) VALUES (";
         sql = sql + "'" + AnsiUpperCase(tag) + "',";
@@ -10683,7 +10599,7 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
         sql = sql + "'" + now.DateString() + "',";
         sql = sql + "'Leader',";
         sql = sql + "'Recruiter')";
-        Mysqlcontrols::Mysql_ExecDirect_FromCallback(server->mysql_controls, 0, sql);
+        mySQLdb::Mysql_ExecDirect_FromCallback(server->mysql_controls, 0, sql);
         if (tag.Length() == 2)
             tag = tag + " ";
         String msg = EO_EncodeNumber(server, player->player_id, 2);
@@ -10715,19 +10631,17 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             return;
         if (other->map_id != player->map_id)
             return;
-        if (AnsiLowerCase(Mysqlcontrols::Db_GetString(server->mysql_controls, "tag")) ==
+        if (AnsiLowerCase(mySQLdb::Db_GetString(server->mysql_controls, "tag")) ==
             AnsiLowerCase(other->guild_tag))
             return;
-        if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls, "money") <
-            0x3e8)
+        if ((unsigned int)mySQLdb::Db_GetInt(server->mysql_controls, "money") < 0x3e8)
             return;
-        String tag = Mysqlcontrols::Db_GetString(server->mysql_controls, "tag");
-        String name = Mysqlcontrols::Db_GetString(server->mysql_controls, "name");
-        String rank9 = Mysqlcontrols::Db_GetString(server->mysql_controls, "rank9");
+        String tag = mySQLdb::Db_GetString(server->mysql_controls, "tag");
+        String name = mySQLdb::Db_GetString(server->mysql_controls, "name");
+        String rank9 = mySQLdb::Db_GetString(server->mysql_controls, "rank9");
         int money =
-            (unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls, "money") -
-            0x3e8;
-        Mysqlcontrols::Mysql_ExecDirect_FromCallback(
+            (unsigned int)mySQLdb::Db_GetInt(server->mysql_controls, "money") - 0x3e8;
+        mySQLdb::Mysql_ExecDirect_FromCallback(
             server->mysql_controls,
             0,
             "UPDATE endl_guilds SET money = " + IntToStr(money) + " WHERE tag = '" +
@@ -10764,10 +10678,10 @@ void MysqlCallback_Dispatch(Server *server, mySQLtask *query_result)
             it = server->mysql_controls->file_cache->pending_guild_writes.erase(it);
             delete entry;
         }
-        Mysqlcontrols::LoadCachedGuilds(server->mysql_controls);
+        mySQLdb::LoadCachedGuilds(server->mysql_controls);
     }
 }
-void Player_ApplyQuestActions(Server *server,
+void Player_ApplyQuestActions(Packets *server,
                               Player *player,
                               PlayerQuest *tracker,
                               bool repeat)
@@ -10776,7 +10690,7 @@ void Player_ApplyQuestActions(Server *server,
     {
         for (int i = 0; i < 5; i++)
             tracker->counters[i] = 0;
-        QuestState *state = Questengine::GetState(
+        QuestState *state = QuestContainer::GetState(
             server->quest_engine, tracker->quest_id, tracker->state_index);
         if (state == 0)
         {
@@ -11014,12 +10928,15 @@ void Player_ApplyQuestActions(Server *server,
     if (repeat)
         Player_FireQuestTriggers(server, player, 0x190, 0);
 }
-void Login_SendCharacterList(
-    Server *server, Player *player, PacketAction action, PacketFamily family, String data)
+void Login_SendCharacterList(Packets *server,
+                             Player *player,
+                             PacketAction action,
+                             PacketFamily family,
+                             String data)
 {
     (*MAINFORM)->myquery->Open();
     data.Insert(
-        EO_EncodeNumber(server, Mysqlcontrols::GetResultCount(server->mysql_controls), 1),
+        EO_EncodeNumber(server, mySQLdb::GetResultCount(server->mysql_controls), 1),
         data.Length() + 1);
     data.Insert(EO_EncodeNumber(server, 0, 1), data.Length() + 1);
     data.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), data.Length() + 1);
@@ -11039,99 +10956,86 @@ void Login_SendCharacterList(
     {
         Player *newplayer = new Player(player->socket);
         newplayer->player_id = *(int *)((char *)player->socket + 4);
-        newplayer->character_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident");
+        newplayer->character_id = mySQLdb::Db_GetInt(server->mysql_controls, "ident");
         newplayer->account_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident_account");
-        newplayer->class_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident_class");
+            mySQLdb::Db_GetInt(server->mysql_controls, "ident_account");
+        newplayer->class_id = mySQLdb::Db_GetInt(server->mysql_controls, "ident_class");
         newplayer->guild_rank_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident_rank");
+            mySQLdb::Db_GetInt(server->mysql_controls, "ident_rank");
         newplayer->guild_tag =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "ident_guild");
-        newplayer->home_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "citizenship");
-        newplayer->name = Mysqlcontrols::Db_GetString(server->mysql_controls, "name");
+            mySQLdb::Db_GetString(server->mysql_controls, "ident_guild");
+        newplayer->home_id = mySQLdb::Db_GetInt(server->mysql_controls, "citizenship");
+        newplayer->name = mySQLdb::Db_GetString(server->mysql_controls, "name");
         newplayer->partner_name =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "partner");
-        newplayer->title = Mysqlcontrols::Db_GetString(server->mysql_controls, "title");
-        newplayer->guild_name =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "guild");
+            mySQLdb::Db_GetString(server->mysql_controls, "partner");
+        newplayer->title = mySQLdb::Db_GetString(server->mysql_controls, "title");
+        newplayer->guild_name = mySQLdb::Db_GetString(server->mysql_controls, "guild");
         newplayer->guild_rank_name =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "rank");
-        newplayer->experience =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "experience");
-        newplayer->level = Mysqlcontrols::Db_GetInt(server->mysql_controls, "level");
-        newplayer->signup = Mysqlcontrols::Db_GetString(server->mysql_controls, "signup");
-        newplayer->gender = Mysqlcontrols::Db_GetInt(server->mysql_controls, "gender");
-        newplayer->hair_style =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "hairmodal");
-        newplayer->hair_color =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "haircolor");
-        newplayer->skin = Mysqlcontrols::Db_GetInt(server->mysql_controls, "skincolor");
-        newplayer->map_id = Mysqlcontrols::Db_GetInt(server->mysql_controls, "nav_map");
-        newplayer->x = Mysqlcontrols::Db_GetInt(server->mysql_controls, "nav_x");
-        newplayer->y = Mysqlcontrols::Db_GetInt(server->mysql_controls, "nav_y");
+            mySQLdb::Db_GetString(server->mysql_controls, "rank");
+        newplayer->experience = mySQLdb::Db_GetInt(server->mysql_controls, "experience");
+        newplayer->level = mySQLdb::Db_GetInt(server->mysql_controls, "level");
+        newplayer->signup = mySQLdb::Db_GetString(server->mysql_controls, "signup");
+        newplayer->gender = mySQLdb::Db_GetInt(server->mysql_controls, "gender");
+        newplayer->hair_style = mySQLdb::Db_GetInt(server->mysql_controls, "hairmodal");
+        newplayer->hair_color = mySQLdb::Db_GetInt(server->mysql_controls, "haircolor");
+        newplayer->skin = mySQLdb::Db_GetInt(server->mysql_controls, "skincolor");
+        newplayer->map_id = mySQLdb::Db_GetInt(server->mysql_controls, "nav_map");
+        newplayer->x = mySQLdb::Db_GetInt(server->mysql_controls, "nav_x");
+        newplayer->y = mySQLdb::Db_GetInt(server->mysql_controls, "nav_y");
         newplayer->direction =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "nav_direction");
-        newplayer->base_hp = Mysqlcontrols::Db_GetInt(server->mysql_controls, "hp_max");
-        newplayer->hp = Mysqlcontrols::Db_GetInt(server->mysql_controls, "hp_now");
-        newplayer->base_tp = Mysqlcontrols::Db_GetInt(server->mysql_controls, "mp_max");
-        newplayer->tp = Mysqlcontrols::Db_GetInt(server->mysql_controls, "mp_now");
-        newplayer->base_sp = Mysqlcontrols::Db_GetInt(server->mysql_controls, "sp_max");
-        newplayer->usage = Mysqlcontrols::Db_GetInt(server->mysql_controls, "clientusge");
-        newplayer->money_bank =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "money_bank");
+            mySQLdb::Db_GetInt(server->mysql_controls, "nav_direction");
+        newplayer->base_hp = mySQLdb::Db_GetInt(server->mysql_controls, "hp_max");
+        newplayer->hp = mySQLdb::Db_GetInt(server->mysql_controls, "hp_now");
+        newplayer->base_tp = mySQLdb::Db_GetInt(server->mysql_controls, "mp_max");
+        newplayer->tp = mySQLdb::Db_GetInt(server->mysql_controls, "mp_now");
+        newplayer->base_sp = mySQLdb::Db_GetInt(server->mysql_controls, "sp_max");
+        newplayer->usage = mySQLdb::Db_GetInt(server->mysql_controls, "clientusge");
+        newplayer->money_bank = mySQLdb::Db_GetInt(server->mysql_controls, "money_bank");
         newplayer->locker_bank =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "locker_bank");
+            mySQLdb::Db_GetInt(server->mysql_controls, "locker_bank");
         newplayer->stat_points =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_points");
+            mySQLdb::Db_GetInt(server->mysql_controls, "stat_points");
         newplayer->skill_points =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "skill_points");
-        newplayer->karma =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "alignment_good");
+            mySQLdb::Db_GetInt(server->mysql_controls, "skill_points");
+        newplayer->karma = mySQLdb::Db_GetInt(server->mysql_controls, "alignment_good");
         newplayer->base_strength =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_strenght");
+            mySQLdb::Db_GetInt(server->mysql_controls, "stat_strenght");
         newplayer->base_wisdom =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_wisdom");
+            mySQLdb::Db_GetInt(server->mysql_controls, "stat_wisdom");
         newplayer->base_intelligence =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_intelligence");
+            mySQLdb::Db_GetInt(server->mysql_controls, "stat_intelligence");
         newplayer->base_agility =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_agility");
+            mySQLdb::Db_GetInt(server->mysql_controls, "stat_agility");
         newplayer->base_constitution =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_constitution");
+            mySQLdb::Db_GetInt(server->mysql_controls, "stat_constitution");
         newplayer->base_charisma =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "stat_charisma");
-        newplayer->boots_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_boots");
+            mySQLdb::Db_GetInt(server->mysql_controls, "stat_charisma");
+        newplayer->boots_item_id = mySQLdb::Db_GetInt(server->mysql_controls, "eq_boots");
         newplayer->accessory_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_pants");
+            mySQLdb::Db_GetInt(server->mysql_controls, "eq_pants");
         newplayer->gloves_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_gloves");
-        newplayer->armor_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_armor");
-        newplayer->belt_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_belt");
+            mySQLdb::Db_GetInt(server->mysql_controls, "eq_gloves");
+        newplayer->armor_item_id = mySQLdb::Db_GetInt(server->mysql_controls, "eq_armor");
+        newplayer->belt_item_id = mySQLdb::Db_GetInt(server->mysql_controls, "eq_belt");
         newplayer->necklace_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_necklage");
-        newplayer->hat_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_hat");
+            mySQLdb::Db_GetInt(server->mysql_controls, "eq_necklage");
+        newplayer->hat_item_id = mySQLdb::Db_GetInt(server->mysql_controls, "eq_hat");
         newplayer->shield_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_shield");
+            mySQLdb::Db_GetInt(server->mysql_controls, "eq_shield");
         newplayer->weapon_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_weapon");
+            mySQLdb::Db_GetInt(server->mysql_controls, "eq_weapon");
         newplayer->ring1_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_ring_l");
+            mySQLdb::Db_GetInt(server->mysql_controls, "eq_ring_l");
         newplayer->ring2_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_ring_r");
+            mySQLdb::Db_GetInt(server->mysql_controls, "eq_ring_r");
         newplayer->armlet1_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_armlet_l");
+            mySQLdb::Db_GetInt(server->mysql_controls, "eq_armlet_l");
         newplayer->armlet2_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_armlet_r");
+            mySQLdb::Db_GetInt(server->mysql_controls, "eq_armlet_r");
         newplayer->bracer1_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_bracer_l");
+            mySQLdb::Db_GetInt(server->mysql_controls, "eq_bracer_l");
         newplayer->bracer2_item_id =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_bracer_r");
+            mySQLdb::Db_GetInt(server->mysql_controls, "eq_bracer_r");
 
         for (int k = 0; k < 7; k++)
             newplayer->element_resistances[k] = 0;
@@ -11153,28 +11057,23 @@ void Login_SendCharacterList(
         newplayer->on_chair = 0;
         newplayer->sitting = 0;
 
-        if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls, "sitting") ==
-            1)
+        if ((unsigned int)mySQLdb::Db_GetInt(server->mysql_controls, "sitting") == 1)
             newplayer->on_chair = 1;
-        if ((unsigned int)Mysqlcontrols::Db_GetInt(server->mysql_controls, "sitting") ==
-            2)
+        if ((unsigned int)mySQLdb::Db_GetInt(server->mysql_controls, "sitting") == 2)
             newplayer->sitting = 1;
-        newplayer->admin_level =
-            Mysqlcontrols::Db_GetInt(server->mysql_controls, "privilege");
+        newplayer->admin_level = mySQLdb::Db_GetInt(server->mysql_controls, "privilege");
         newplayer->quest_cache =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "questcache");
+            mySQLdb::Db_GetString(server->mysql_controls, "questcache");
         newplayer->quest_blob =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "questblob") +
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "questblob2");
-        newplayer->invblob1 =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob") +
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob2");
-        newplayer->invblob2 =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob3") +
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "invblob4");
+            mySQLdb::Db_GetString(server->mysql_controls, "questblob") +
+            mySQLdb::Db_GetString(server->mysql_controls, "questblob2");
+        newplayer->invblob1 = mySQLdb::Db_GetString(server->mysql_controls, "invblob") +
+                              mySQLdb::Db_GetString(server->mysql_controls, "invblob2");
+        newplayer->invblob2 = mySQLdb::Db_GetString(server->mysql_controls, "invblob3") +
+                              mySQLdb::Db_GetString(server->mysql_controls, "invblob4");
         newplayer->skillblob =
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "skillblob") +
-            Mysqlcontrols::Db_GetString(server->mysql_controls, "skillblob2");
+            mySQLdb::Db_GetString(server->mysql_controls, "skillblob") +
+            mySQLdb::Db_GetString(server->mysql_controls, "skillblob2");
 
         if (i < 3)
         {
@@ -11182,72 +11081,69 @@ void Login_SendCharacterList(
             i++;
         }
 
-        data.Insert(Mysqlcontrols::Db_GetString(server->mysql_controls, "name"),
+        data.Insert(mySQLdb::Db_GetString(server->mysql_controls, "name"),
                     data.Length() + 1);
         data.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), data.Length() + 1);
-        data.Insert(
-            EO_EncodeNumber(
-                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "ident"), 4),
-            data.Length() + 1);
-        data.Insert(
-            EO_EncodeNumber(
-                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "level"), 1),
-            data.Length() + 1);
-        data.Insert(
-            EO_EncodeNumber(
-                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "gender"), 1),
-            data.Length() + 1);
-        data.Insert(
-            EO_EncodeNumber(
-                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "hairmodal"), 1),
-            data.Length() + 1);
-        data.Insert(
-            EO_EncodeNumber(
-                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "haircolor"), 1),
-            data.Length() + 1);
-        data.Insert(
-            EO_EncodeNumber(
-                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "skincolor"), 1),
-            data.Length() + 1);
-        data.Insert(
-            EO_EncodeNumber(
-                server, Mysqlcontrols::Db_GetInt(server->mysql_controls, "privilege"), 1),
-            data.Length() + 1);
         data.Insert(EO_EncodeNumber(
-                        server,
-                        ItemValues::GetSpec1ForTypes(
-                            (*MAINFORM)->item_values,
-                            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_boots")),
-                        2),
+                        server, mySQLdb::Db_GetInt(server->mysql_controls, "ident"), 4),
                     data.Length() + 1);
         data.Insert(EO_EncodeNumber(
-                        server,
-                        ItemValues::GetSpec1ForTypes(
-                            (*MAINFORM)->item_values,
-                            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_armor")),
-                        2),
+                        server, mySQLdb::Db_GetInt(server->mysql_controls, "level"), 1),
                     data.Length() + 1);
         data.Insert(EO_EncodeNumber(
-                        server,
-                        ItemValues::GetSpec1ForTypes(
-                            (*MAINFORM)->item_values,
-                            Mysqlcontrols::Db_GetInt(server->mysql_controls, "eq_hat")),
-                        2),
+                        server, mySQLdb::Db_GetInt(server->mysql_controls, "gender"), 1),
                     data.Length() + 1);
-        data.Insert(EO_EncodeNumber(server,
-                                    ItemValues::GetSpec1ForTypes(
-                                        (*MAINFORM)->item_values,
-                                        Mysqlcontrols::Db_GetInt(server->mysql_controls,
-                                                                 "eq_shield")),
-                                    2),
-                    data.Length() + 1);
-        data.Insert(EO_EncodeNumber(server,
-                                    ItemValues::GetSpec1ForTypes(
-                                        (*MAINFORM)->item_values,
-                                        Mysqlcontrols::Db_GetInt(server->mysql_controls,
-                                                                 "eq_weapon")),
-                                    2),
-                    data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(
+                server, mySQLdb::Db_GetInt(server->mysql_controls, "hairmodal"), 1),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(
+                server, mySQLdb::Db_GetInt(server->mysql_controls, "haircolor"), 1),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(
+                server, mySQLdb::Db_GetInt(server->mysql_controls, "skincolor"), 1),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(
+                server, mySQLdb::Db_GetInt(server->mysql_controls, "privilege"), 1),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(server,
+                            ItemValues::GetSpec1ForTypes(
+                                (*MAINFORM)->item_values,
+                                mySQLdb::Db_GetInt(server->mysql_controls, "eq_boots")),
+                            2),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(server,
+                            ItemValues::GetSpec1ForTypes(
+                                (*MAINFORM)->item_values,
+                                mySQLdb::Db_GetInt(server->mysql_controls, "eq_armor")),
+                            2),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(server,
+                            ItemValues::GetSpec1ForTypes(
+                                (*MAINFORM)->item_values,
+                                mySQLdb::Db_GetInt(server->mysql_controls, "eq_hat")),
+                            2),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(server,
+                            ItemValues::GetSpec1ForTypes(
+                                (*MAINFORM)->item_values,
+                                mySQLdb::Db_GetInt(server->mysql_controls, "eq_shield")),
+                            2),
+            data.Length() + 1);
+        data.Insert(
+            EO_EncodeNumber(server,
+                            ItemValues::GetSpec1ForTypes(
+                                (*MAINFORM)->item_values,
+                                mySQLdb::Db_GetInt(server->mysql_controls, "eq_weapon")),
+                            2),
+            data.Length() + 1);
         data.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), data.Length() + 1);
 
         (*MAINFORM)->myquery->Next();
@@ -11255,7 +11151,7 @@ void Login_SendCharacterList(
 
     Client_SendEncoded(server, player, action, family, data);
 }
-String Server_BuildInitOkReply(Server *server, Player *player)
+String Server_BuildInitOkReply(Packets *server, Player *player)
 {
     int total = server->ping_history[0] + 0x0d;
     int major = total / 7;
@@ -11274,7 +11170,7 @@ String Server_BuildInitOkReply(Server *server, Player *player)
     out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
     return out;
 }
-String Server_BuildInitVersionReply(Server *server)
+String Server_BuildInitVersionReply(Packets *server)
 {
     String out = EO_GetBreakByte(server, EO_BREAK_BYTE);
     out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
@@ -11285,7 +11181,7 @@ String Server_BuildInitVersionReply(Server *server)
     out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
     return out;
 }
-String Server_BuildInitBanReply(Server *server)
+String Server_BuildInitBanReply(Packets *server)
 {
     String out = EO_GetBreakByte(server, EO_BREAK_BYTE);
     out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
@@ -11298,7 +11194,7 @@ String Server_BuildInitBanReply(Server *server)
     return out;
 }
 int FUN_00470598(int a0, int value);
-bool FUN_00462374(Server *server, Player *player, String data)
+bool FUN_00462374(Packets *server, Player *player, String data)
 {
     if (data.Length() > 8 && data.Length() < 0x2a)
     {
@@ -11352,7 +11248,7 @@ bool FUN_00462374(Server *server, Player *player, String data)
     Logins::AddLogin(server->logins, player->remote_ip);
     return false;
 }
-void Client_SendEncoded(Server *server,
+void Client_SendEncoded(Packets *server,
                         Player *player,
                         unsigned char action,
                         unsigned char family,
@@ -11398,7 +11294,7 @@ void Client_SendEncoded(Server *server,
         player->socket->SendText(out);
     }
 }
-bool Attack_Execute(Server *server, Player *caster, int action, String *data)
+bool Attack_Execute(Packets *server, Player *caster, int action, String *data)
 {
     *(TTimeStamp *)&caster->walk_tick = DateTimeToTimeStamp(Now());
     if (caster->map_id < 1)
@@ -11472,8 +11368,8 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                 if (caster->direction == Direction_Right)
                     offset_x++;
                 Player **iter;
-                for (iter = Players_Iter_Begin(server->players);
-                     iter != Players_Iter_End(server->players);
+                for (iter = server->players->players.begin();
+                     iter != server->players->players.end();
                      iter++)
                 {
                     if ((*iter)->map_id != caster->map_id)
@@ -11485,14 +11381,13 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     if (Player::IsPartyMember(caster, (*iter)->player_id))
                         continue;
                     int damage = 0;
-                    int hit_rate =
-                        Gamecontrol::Combat_CalcHitRate((*MAINFORM)->game_control,
-                                                        caster->accuracy,
-                                                        (*iter)->evasion,
-                                                        0.9);
+                    int hit_rate = Game::Combat_CalcHitRate((*MAINFORM)->game_control,
+                                                            caster->accuracy,
+                                                            (*iter)->evasion,
+                                                            0.9);
                     if (RandRange(100) < hit_rate)
                     {
-                        hit_rate = Gamecontrol::Combat_CalcArmorPen(
+                        hit_rate = Game::Combat_CalcArmorPen(
                             (*MAINFORM)->game_control,
                             (caster->min_damage + caster->max_damage) / 2,
                             (*iter)->armor,
@@ -11500,7 +11395,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                         double scaled = (double)(int)caster->min_damage;
                         if (scaled < 1.0)
                             scaled = 1.0;
-                        scaled *= 1.2L;
+                        scaled *= 0.01L;
                         scaled *= (double)hit_rate;
                         scaled += (double)RandRange(caster->max_damage -
                                                     caster->min_damage + 2);
@@ -11515,42 +11410,42 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                         element.element_damage = 0;
                         if (element.element == 1)
                             damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
+                                           Game::Combat_CalcElementMult(
                                                (*MAINFORM)->game_control,
                                                *(MapCoord *)&element,
                                                caster->element_resistances[1],
                                                (*iter)->element_resistances[2]));
                         if (element.element == 2)
                             damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
+                                           Game::Combat_CalcElementMult(
                                                (*MAINFORM)->game_control,
                                                *(MapCoord *)&element,
                                                caster->element_resistances[2],
                                                (*iter)->element_resistances[1]));
                         if (element.element == 3)
                             damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
+                                           Game::Combat_CalcElementMult(
                                                (*MAINFORM)->game_control,
                                                *(MapCoord *)&element,
                                                caster->element_resistances[3],
                                                (*iter)->element_resistances[6]));
                         if (element.element == 4)
                             damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
+                                           Game::Combat_CalcElementMult(
                                                (*MAINFORM)->game_control,
                                                *(MapCoord *)&element,
                                                caster->element_resistances[4],
                                                (*iter)->element_resistances[3]));
                         if (element.element == 5)
                             damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
+                                           Game::Combat_CalcElementMult(
                                                (*MAINFORM)->game_control,
                                                *(MapCoord *)&element,
                                                caster->element_resistances[5],
                                                (*iter)->element_resistances[4]));
                         if (element.element == 6)
                             damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
+                                           Game::Combat_CalcElementMult(
                                                (*MAINFORM)->game_control,
                                                *(MapCoord *)&element,
                                                caster->element_resistances[6],
@@ -11625,7 +11520,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     server, caster, PacketAction_Player, PacketFamily_Attack, pkt);
                 return 1;
             }
-            if (!Mapcontrol::Mapcontrol_IsTileClear(
+            if (!MapContainer::Mapcontrol_IsTileClear(
                     server->map_control, caster->map_id, offset_x, offset_y))
             {
                 String pkt = EO_EncodeNumber(server, caster->player_id, 2);
@@ -11635,13 +11530,12 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                 return 1;
             }
             Npc **npc_iter;
-            for (npc_iter = (Npc **)Map_NpcIter_Begin(
-                     &Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
-                          ->npc_list);
+            for (npc_iter = (Npc **)Mapcontrol_GetByIndex(server->map_control,
+                                                          caster->map_id - 1)
+                                ->npc_list.begin();
                  npc_iter !=
-                 (Npc **)Map_NpcIter_End(
-                     &Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
-                          ->npc_list);
+                 (Npc **)Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
+                     ->npc_list.end();
                  npc_iter++)
             {
                 if ((*npc_iter)->x != offset_x)
@@ -11673,11 +11567,11 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     return 1;
                 }
                 int damage = 0;
-                int hit_rate = Gamecontrol::Combat_CalcHitRate(
+                int hit_rate = Game::Combat_CalcHitRate(
                     (*MAINFORM)->game_control, caster->accuracy, (*npc_iter)->evade, 0.9);
                 if (RandRange(100) < hit_rate)
                 {
-                    hit_rate = Gamecontrol::Combat_CalcArmorPen(
+                    hit_rate = Game::Combat_CalcArmorPen(
                         (*MAINFORM)->game_control,
                         (caster->min_damage + caster->max_damage) / 2,
                         (*npc_iter)->armor,
@@ -11685,7 +11579,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     double scaled = (double)(int)caster->min_damage;
                     if (scaled < 1.0)
                         scaled = 1.0;
-                    scaled *= 1.2L;
+                    scaled *= 0.01L;
                     scaled *= (double)hit_rate;
                     scaled +=
                         (double)RandRange(caster->max_damage - caster->min_damage + 2);
@@ -11701,7 +11595,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     if (element.element == 1)
                         damage =
                             (int)((double)damage *
-                                  Gamecontrol::Combat_CalcElementMult(
+                                  Game::Combat_CalcElementMult(
                                       (*MAINFORM)->game_control,
                                       *(MapCoord *)&element,
                                       caster->element_resistances[1],
@@ -11709,7 +11603,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     if (element.element == 2)
                         damage =
                             (int)((double)damage *
-                                  Gamecontrol::Combat_CalcElementMult(
+                                  Game::Combat_CalcElementMult(
                                       (*MAINFORM)->game_control,
                                       *(MapCoord *)&element,
                                       caster->element_resistances[2],
@@ -11717,7 +11611,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     if (element.element == 3)
                         damage =
                             (int)((double)damage *
-                                  Gamecontrol::Combat_CalcElementMult(
+                                  Game::Combat_CalcElementMult(
                                       (*MAINFORM)->game_control,
                                       *(MapCoord *)&element,
                                       caster->element_resistances[3],
@@ -11725,7 +11619,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     if (element.element == 4)
                         damage =
                             (int)((double)damage *
-                                  Gamecontrol::Combat_CalcElementMult(
+                                  Game::Combat_CalcElementMult(
                                       (*MAINFORM)->game_control,
                                       *(MapCoord *)&element,
                                       caster->element_resistances[4],
@@ -11733,7 +11627,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     if (element.element == 5)
                         damage =
                             (int)((double)damage *
-                                  Gamecontrol::Combat_CalcElementMult(
+                                  Game::Combat_CalcElementMult(
                                       (*MAINFORM)->game_control,
                                       *(MapCoord *)&element,
                                       caster->element_resistances[5],
@@ -11741,7 +11635,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     if (element.element == 6)
                         damage =
                             (int)((double)damage *
-                                  Gamecontrol::Combat_CalcElementMult(
+                                  Game::Combat_CalcElementMult(
                                       (*MAINFORM)->game_control,
                                       *(MapCoord *)&element,
                                       caster->element_resistances[6],
@@ -11752,11 +11646,11 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     (*npc_iter)->hp == (*npc_iter)->max_hp)
                     damage += damage / 2;
                 if ((unsigned short)(*npc_iter)->boss > 0)
-                    Mapcontrol::Mapcontrol_AggroChildNpcs(server->map_control,
-                                                          caster->map_id);
+                    MapContainer::Mapcontrol_AggroChildNpcs(server->map_control,
+                                                            caster->map_id);
                 (*npc_iter)->aggressive = true;
                 (*npc_iter)->nLeash_timer = (short)(RandRange(0x32) + 100);
-                if (Mapcontrol::Mapcontrol_CountNpcsChasingPlayer(
+                if (MapContainer::Mapcontrol_CountNpcsChasingPlayer(
                         server->map_control, caster->map_id, caster->player_id) < 2 &&
                     type_info.behavior_id == 0)
                     (*npc_iter)->chase_target_id = caster->player_id;
@@ -11771,7 +11665,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     int drop_result = 0;
                     exp = Party_ShareExp(server, caster, exp);
                     if ((*npc_iter)->wDrop_item_id > 0 && (*npc_iter)->wDrop_amount > 0)
-                        drop_result = Mapcontrol::Mapcontrol_AddGroundItem(
+                        drop_result = MapContainer::Mapcontrol_AddGroundItem(
                             server->map_control,
                             caster->map_id,
                             (*npc_iter)->wDrop_item_id,
@@ -11785,8 +11679,8 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
                     (*npc_iter)->chase_target_id = -1;
                     (*npc_iter)->alive = false;
                     if ((unsigned short)(*npc_iter)->boss > 0 &&
-                        Mapcontrol::Mapcontrol_KillChildNpcs(server->map_control,
-                                                             caster->map_id))
+                        MapContainer::Mapcontrol_KillChildNpcs(server->map_control,
+                                                               caster->map_id))
                         Server_BroadcastToMap(
                             server,
                             caster->map_id,
@@ -11992,7 +11886,7 @@ bool Attack_Execute(Server *server, Player *caster, int action, String *data)
     }
     return 0;
 }
-bool Spell_Execute(Server *server, Player *caster, int action, String *data)
+bool Spell_Execute(Packets *server, Player *caster, int action, String *data)
 {
     *(TTimeStamp *)&caster->walk_tick = DateTimeToTimeStamp(Now());
     if (caster->map_id < 1)
@@ -12142,26 +12036,24 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                     if (Player::IsPartyMember(caster, target->player_id))
                         return 1;
                     int damage = 0;
-                    int hit_rate =
-                        Gamecontrol::Combat_CalcArmorPen((*MAINFORM)->game_control,
-                                                         caster->accuracy,
-                                                         target->evasion,
-                                                         0.9);
+                    int hit_rate = Game::Combat_CalcArmorPen((*MAINFORM)->game_control,
+                                                             caster->accuracy,
+                                                             target->evasion,
+                                                             0.9);
                     if (RandRange(100) < hit_rate)
                     {
                         SkillDamage dmg =
                             SkillValues::GetDamage((*MAINFORM)->skill_values, spell_id);
                         int min_total = caster->min_damage + dmg.min_damage;
                         int max_total = caster->max_damage + dmg.max_damage;
-                        hit_rate =
-                            Gamecontrol::Combat_CalcArmorPen((*MAINFORM)->game_control,
+                        hit_rate = Game::Combat_CalcArmorPen((*MAINFORM)->game_control,
                                                              (min_total + max_total) / 2,
                                                              target->armor,
                                                              0.8);
                         double scaled = (double)min_total;
                         if (scaled < 1.0)
                             scaled = 1.0;
-                        scaled *= 1.2L;
+                        scaled *= 0.01L;
                         scaled *= (double)hit_rate;
                         scaled += (double)RandRange(max_total - min_total + 2);
                         damage = (int)scaled;
@@ -12174,42 +12066,42 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                             SkillValues::GetElement((*MAINFORM)->skill_values, spell_id);
                         if (element.element == 1)
                             damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
+                                           Game::Combat_CalcElementMult(
                                                (*MAINFORM)->game_control,
                                                *(MapCoord *)&element,
                                                caster->element_resistances[1],
                                                target->element_resistances[2]));
                         if (element.element == 2)
                             damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
+                                           Game::Combat_CalcElementMult(
                                                (*MAINFORM)->game_control,
                                                *(MapCoord *)&element,
                                                caster->element_resistances[2],
                                                target->element_resistances[1]));
                         if (element.element == 3)
                             damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
+                                           Game::Combat_CalcElementMult(
                                                (*MAINFORM)->game_control,
                                                *(MapCoord *)&element,
                                                caster->element_resistances[3],
                                                target->element_resistances[6]));
                         if (element.element == 4)
                             damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
+                                           Game::Combat_CalcElementMult(
                                                (*MAINFORM)->game_control,
                                                *(MapCoord *)&element,
                                                caster->element_resistances[4],
                                                target->element_resistances[3]));
                         if (element.element == 5)
                             damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
+                                           Game::Combat_CalcElementMult(
                                                (*MAINFORM)->game_control,
                                                *(MapCoord *)&element,
                                                caster->element_resistances[5],
                                                target->element_resistances[4]));
                         if (element.element == 6)
                             damage = (int)((double)damage *
-                                           Gamecontrol::Combat_CalcElementMult(
+                                           Game::Combat_CalcElementMult(
                                                (*MAINFORM)->game_control,
                                                *(MapCoord *)&element,
                                                caster->element_resistances[6],
@@ -12264,13 +12156,12 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
         if (spell_target == SpellTargetType_Npc)
         {
             Npc **iter;
-            for (iter = (Npc **)Map_NpcIter_Begin(
-                     &Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
-                          ->npc_list);
+            for (iter = (Npc **)Mapcontrol_GetByIndex(server->map_control,
+                                                      caster->map_id - 1)
+                            ->npc_list.begin();
                  iter !=
-                 (Npc **)Map_NpcIter_End(
-                     &Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
-                          ->npc_list);
+                 (Npc **)Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
+                     ->npc_list.end();
                  iter++)
             {
                 if ((*iter)->index != target_id)
@@ -12323,7 +12214,7 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                         return 1;
                     }
                     int damage = 0;
-                    int hit_rate = Gamecontrol::Combat_CalcArmorPen(
+                    int hit_rate = Game::Combat_CalcArmorPen(
                         (*MAINFORM)->game_control, caster->accuracy, (*iter)->evade, 0.9);
                     if (RandRange(100) < hit_rate)
                     {
@@ -12331,15 +12222,14 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                             SkillValues::GetDamage((*MAINFORM)->skill_values, spell_id);
                         int min_total = caster->min_damage + dmg.min_damage;
                         int max_total = caster->max_damage + dmg.max_damage;
-                        hit_rate =
-                            Gamecontrol::Combat_CalcArmorPen((*MAINFORM)->game_control,
+                        hit_rate = Game::Combat_CalcArmorPen((*MAINFORM)->game_control,
                                                              (min_total + max_total) / 2,
                                                              (*iter)->armor,
                                                              0.8);
                         double scaled = (double)min_total;
                         if (scaled < 1.0)
                             scaled = 1.0;
-                        scaled *= 1.2L;
+                        scaled *= 0.01L;
                         scaled *= (double)hit_rate;
                         scaled += (double)RandRange(max_total - min_total + 2);
                         damage = (int)scaled;
@@ -12353,7 +12243,7 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                         if (element.element == 1)
                             damage =
                                 (int)((double)damage *
-                                      Gamecontrol::Combat_CalcElementMult(
+                                      Game::Combat_CalcElementMult(
                                           (*MAINFORM)->game_control,
                                           *(MapCoord *)&element,
                                           caster->element_resistances[1],
@@ -12361,7 +12251,7 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                         if (element.element == 2)
                             damage =
                                 (int)((double)damage *
-                                      Gamecontrol::Combat_CalcElementMult(
+                                      Game::Combat_CalcElementMult(
                                           (*MAINFORM)->game_control,
                                           *(MapCoord *)&element,
                                           caster->element_resistances[2],
@@ -12369,7 +12259,7 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                         if (element.element == 3)
                             damage =
                                 (int)((double)damage *
-                                      Gamecontrol::Combat_CalcElementMult(
+                                      Game::Combat_CalcElementMult(
                                           (*MAINFORM)->game_control,
                                           *(MapCoord *)&element,
                                           caster->element_resistances[3],
@@ -12377,7 +12267,7 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                         if (element.element == 4)
                             damage =
                                 (int)((double)damage *
-                                      Gamecontrol::Combat_CalcElementMult(
+                                      Game::Combat_CalcElementMult(
                                           (*MAINFORM)->game_control,
                                           *(MapCoord *)&element,
                                           caster->element_resistances[4],
@@ -12385,7 +12275,7 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                         if (element.element == 5)
                             damage =
                                 (int)((double)damage *
-                                      Gamecontrol::Combat_CalcElementMult(
+                                      Game::Combat_CalcElementMult(
                                           (*MAINFORM)->game_control,
                                           *(MapCoord *)&element,
                                           caster->element_resistances[5],
@@ -12393,18 +12283,18 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                         if (element.element == 6)
                             damage =
                                 (int)((double)damage *
-                                      Gamecontrol::Combat_CalcElementMult(
+                                      Game::Combat_CalcElementMult(
                                           (*MAINFORM)->game_control,
                                           *(MapCoord *)&element,
                                           caster->element_resistances[6],
                                           (*iter)->element_weakness_damage_table[4]));
                     }
                     if ((unsigned short)(*iter)->boss > 0)
-                        Mapcontrol::Mapcontrol_AggroChildNpcs(server->map_control,
-                                                              caster->map_id);
+                        MapContainer::Mapcontrol_AggroChildNpcs(server->map_control,
+                                                                caster->map_id);
                     (*iter)->aggressive = true;
                     (*iter)->nLeash_timer = (short)(RandRange(0x32) + 100);
-                    if (Mapcontrol::Mapcontrol_CountNpcsChasingPlayer(
+                    if (MapContainer::Mapcontrol_CountNpcsChasingPlayer(
                             server->map_control, caster->map_id, caster->player_id) < 2 &&
                         type_info.behavior_id == 0)
                         (*iter)->chase_target_id = caster->player_id;
@@ -12418,7 +12308,7 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                         int drop_item = 0;
                         exp = Party_ShareExp(server, caster, exp);
                         if ((*iter)->wDrop_item_id > 0 && (*iter)->wDrop_amount > 0)
-                            drop_item = Mapcontrol::Mapcontrol_AddGroundItem(
+                            drop_item = MapContainer::Mapcontrol_AddGroundItem(
                                 server->map_control,
                                 caster->map_id,
                                 (*iter)->wDrop_item_id,
@@ -12432,8 +12322,8 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
                         (*iter)->chase_target_id = -1;
                         (*iter)->alive = false;
                         if ((unsigned short)(*iter)->boss > 0 &&
-                            Mapcontrol::Mapcontrol_KillChildNpcs(server->map_control,
-                                                                 caster->map_id))
+                            MapContainer::Mapcontrol_KillChildNpcs(server->map_control,
+                                                                   caster->map_id))
                             Server_BroadcastToMap(
                                 server,
                                 caster->map_id,
@@ -12691,7 +12581,7 @@ bool Spell_Execute(Server *server, Player *caster, int action, String *data)
     }
     return 0;
 }
-bool Walk_Execute(Server *server, Player *player, int action, String *data)
+bool Walk_Execute(Packets *server, Player *player, int action, String *data)
 {
     *(TTimeStamp *)&player->walk_tick = DateTimeToTimeStamp(Now());
     if (player->map_id < 1)
@@ -12790,7 +12680,7 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
         target_x = player->x + 1;
         target_y = player->y;
     }
-    if (Mapcontrol::Mapcontrol_IsOccupied(
+    if (MapContainer::Mapcontrol_IsOccupied(
             server->map_control, player->map_id, target_x, target_y) &&
         action == PacketAction_Player)
         return true;
@@ -12817,7 +12707,7 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
             player->last_pass_ms = now;
             if (elapsed < 7)
                 return true;
-            if (Mapcontrol::Mapcontrol_GetTileSpec(
+            if (MapContainer::Mapcontrol_GetTileSpec(
                     server->map_control, player->map_id, target_x, target_y) ==
                 MapTileSpec_Reserved31)
             {
@@ -12830,7 +12720,7 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
             }
         }
     }
-    int walkable = Mapcontrol::Mapcontrol_IsWalkableNPC(
+    int walkable = MapContainer::Mapcontrol_IsWalkableNPC(
         server->map_control, player->map_id, target_x, target_y, 1);
     if (walkable == 0 || (walkable == 1 && action == PacketAction_Admin))
     {
@@ -12850,7 +12740,7 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
             server, player, PacketAction_Player, PacketFamily_Walk, walk);
         if (player->map_has_spikes)
         {
-            unsigned int spec = Mapcontrol::Mapcontrol_GetTileSpec(
+            unsigned int spec = MapContainer::Mapcontrol_GetTileSpec(
                 server->map_control, player->map_id, player->x, player->y);
             if (spec == MapTileSpec_TimedSpikes || spec == MapTileSpec_Spikes)
             {
@@ -12889,17 +12779,17 @@ bool Walk_Execute(Server *server, Player *player, int action, String *data)
     }
     if (walkable == 2)
     {
-        int target_map = Mapcontrol::Mapcontrol_GetWarpMap(
+        int target_map = MapContainer::Mapcontrol_GetWarpMap(
             server->map_control, player->map_id, target_x, target_y);
-        int level_req = Mapcontrol::Mapcontrol_GetWarpLevelReq(
+        int level_req = MapContainer::Mapcontrol_GetWarpLevelReq(
             server->map_control, player->map_id, target_x, target_y);
-        int warp_x = Mapcontrol::Mapcontrol_GetWarpX(
+        int warp_x = MapContainer::Mapcontrol_GetWarpX(
             server->map_control, player->map_id, target_x, target_y);
-        int warp_y = Mapcontrol::Mapcontrol_GetWarpY(
+        int warp_y = MapContainer::Mapcontrol_GetWarpY(
             server->map_control, player->map_id, target_x, target_y);
         if (player->level < level_req)
             return true;
-        if (target_map > 0 && target_map <= Mapcontrol_GetCount(server->map_control))
+        if (target_map > 0 && target_map <= (int)server->map_control->maps.size())
         {
             if (Mapcontrol_GetByIndex(server->map_control, target_map - 1)->width < 1 ||
                 Mapcontrol_GetByIndex(server->map_control, target_map - 1)->height < 1)
@@ -12981,7 +12871,7 @@ int FUN_00470598(int a0, int value)
     value = a3 + value + 0x1b138;
     return value;
 }
-String Account_DecodePassword(Server *server, String value)
+String Account_DecodePassword(Packets *server, String value)
 {
     String reversed = "";
     String result = "";
@@ -13026,7 +12916,7 @@ String Account_DecodePassword(Server *server, String value)
     }
     return result;
 }
-String Account_EncodePassword(Server *server, String value)
+String Account_EncodePassword(Packets *server, String value)
 {
     String reversed = "";
     String result = "";
@@ -13071,7 +12961,7 @@ String Account_EncodePassword(Server *server, String value)
     }
     return result;
 }
-String EO_Encode_Interleave(Server *server, int multiple, char *begin, char *end)
+String EO_Encode_Interleave(Packets *server, int multiple, char *begin, char *end)
 {
     int len = 0;
     try
@@ -13122,7 +13012,7 @@ String EO_Encode_Interleave(Server *server, int multiple, char *begin, char *end
     String data(server->packet_buffer, len);
     return data;
 }
-String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *end)
+String EO_Decode_Deinterleave(Packets *server, int multiple, char *begin, char *end)
 {
     int len = 0;
     if (multiple > 0)
@@ -13183,7 +13073,7 @@ String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *e
     return data;
 }
 
-void Server_AddSentBytes(Server *server, int value)
+void Server_AddSentBytes(Packets *server, int value)
 {
     server->sent_bytes += value;
     while (server->sent_bytes > 0x3ff)
@@ -13197,7 +13087,7 @@ void Server_AddSentBytes(Server *server, int value)
         server->sent_kilobytes -= BYTES_PER_KB;
     }
 }
-void Server_AddReceivedBytes(Server *server, int value)
+void Server_AddReceivedBytes(Packets *server, int value)
 {
     server->received_bytes += value;
     while (server->received_bytes > 0x3ff)
@@ -13211,7 +13101,7 @@ void Server_AddReceivedBytes(Server *server, int value)
         server->received_kilobytes -= BYTES_PER_KB;
     }
 }
-bool Coords_IsWithinTwo(Server *self, int x1, int y1, int x2, int y2)
+bool Coords_IsWithinTwo(Packets *self, int x1, int y1, int x2, int y2)
 {
     bool result = false;
     int dx = x2 - x1;
@@ -13224,7 +13114,7 @@ bool Coords_IsWithinTwo(Server *self, int x1, int y1, int x2, int y2)
         result = true;
     return result;
 }
-String Server_FormatSentTraffic(Server *server)
+String Server_FormatSentTraffic(Packets *server)
 {
     if (server->sent_megabytes > 0)
         return IntToStr(server->sent_megabytes) + "." +
@@ -13234,7 +13124,7 @@ String Server_FormatSentTraffic(Server *server)
                IntToStr(server->sent_bytes / 0x67).SubString(1, 2) + " Kb";
     return "n/a";
 }
-String Server_FormatReceivedTraffic(Server *server)
+String Server_FormatReceivedTraffic(Packets *server)
 {
     if (server->received_megabytes > 0)
         return IntToStr(server->received_megabytes) + "." +
@@ -13244,7 +13134,7 @@ String Server_FormatReceivedTraffic(Server *server)
                IntToStr(server->received_bytes / 0x67).SubString(1, 2) + " Kb";
     return "n/a";
 }
-bool Server_TickOncePerFiveSeconds(Server *server)
+bool Server_TickOncePerFiveSeconds(Packets *server)
 {
     TTimeStamp stamp = DateTimeToTimeStamp(server->start_time);
     TTimeStamp now = DateTimeToTimeStamp(Now());
@@ -13258,7 +13148,7 @@ bool Server_TickOncePerFiveSeconds(Server *server)
     }
     return false;
 }
-void Server_AppendChatLog(Server *server, String message)
+void Server_AppendChatLog(Packets *server, String message)
 {
     String line = DateToStr(Now());
     line.Insert(" ", line.Length() + 1);

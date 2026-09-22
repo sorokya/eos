@@ -12,7 +12,7 @@
 #define SERIAL_ENC_STR_PUB_DVF001_EVF "g)hq@oA9W;B=X/Bq"
 #define SERIAL_ENC_STR_NOT_LICENCED "i:j1h<d3 +^1"
 
-Serial::Serial()
+SerialKey::SerialKey()
 {
     counter = 10;
     ini_file = new TStringList;
@@ -34,41 +34,41 @@ Serial::Serial()
     ReloadIni(this);
 }
 
-Serial::~Serial()
+SerialKey::~SerialKey()
 {
 }
 
-int Serial::GetCounter(Serial *self)
+int SerialKey::GetCounter(SerialKey *self)
 {
     return self->counter;
 }
 
-void Serial::SetCounter(Serial *self, int value)
+void SerialKey::SetCounter(SerialKey *self, int value)
 {
     self->counter = value;
 }
 
-bool Serial::IsValid(Serial *self)
+bool SerialKey::IsValid(SerialKey *self)
 {
     return self->valid;
 }
 
-String Serial::GetKeyBaseCopy(Serial *self)
+String SerialKey::GetKeyBaseCopy(SerialKey *self)
 {
     return self->key_base_copy;
 }
 
-String Serial::GetUnlockCode(Serial *self)
+String SerialKey::GetUnlockCode(SerialKey *self)
 {
     return self->unlock_code;
 }
 
-String Serial::GetRegName(Serial *self)
+String SerialKey::GetRegName(SerialKey *self)
 {
     return self->reg_name;
 }
 
-void Serial::SetIniPath(Serial *self, String path)
+void SerialKey::SetIniPath(SerialKey *self, String path)
 {
     self->ini_file->Clear();
 
@@ -110,12 +110,12 @@ void Serial::SetIniPath(Serial *self, String path)
     }
 }
 
-void Serial::ReloadIni(Serial *self)
+void SerialKey::ReloadIni(SerialKey *self)
 {
     self->ini_file->Clear();
 }
 
-String Serial::ReadKey(Serial *self, String key, String default_value)
+String SerialKey::ReadKey(SerialKey *self, String key, String default_value)
 {
     String result = default_value;
     if (self->ini_file->Count >= 1)
@@ -169,7 +169,7 @@ String Serial::ReadKey(Serial *self, String key, String default_value)
     return result;
 }
 
-String Serial::DecodeString(Serial *self, String src)
+String SerialKey::DecodeString(SerialKey *self, String src)
 {
     String rev = "";
     String result = "";
@@ -219,7 +219,7 @@ String Serial::DecodeString(Serial *self, String src)
     return result;
 }
 
-void Serial::Validate(Serial *self)
+void SerialKey::Validate(SerialKey *self)
 {
     bool stage1_passed = false;
     self->valid = false;
@@ -302,7 +302,7 @@ void Serial::Validate(Serial *self)
     }
 }
 
-String Serial::GetDisplayCode(Serial *self)
+String SerialKey::GetDisplayCode(SerialKey *self)
 {
     String result = DecodeString(self, SERIAL_ENC_STR_NOT_LICENCED);
     if (self->serial_code.Length() >= 1 && self->valid != 0)

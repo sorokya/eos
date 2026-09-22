@@ -24,6 +24,11 @@ NpcValues::~NpcValues()
 {
 }
 
+void NpcValues::ClearDrops(NpcValue *value)
+{
+    value->drops.clear();
+}
+
 void NpcValues::LoadNpcs(NpcValues *self)
 {
     if (self->loaded == 0)
@@ -480,4 +485,3 @@ int NpcValues::DecodeNumber(String value)
     }
     return result;
 }
-

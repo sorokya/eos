@@ -8,9 +8,8 @@
 #include "Questtype.h"
 #include "Settings.h"
 
-
 // Layout recovered from the reference constructor (0x537ae0), the parser
-// (0x5397c8) and the quest accessors; sizeof(Questengine) is 0x94.
+// (0x5397c8) and the quest accessors; sizeof(QuestContainer) is 0x94.
 //   +0x00 unsigned short              max_quests
 //   +0x04 vector<Quest *>        quest_list
 //   +0x24 Settings *                  settings
@@ -33,7 +32,7 @@
 //   +0x52 char                        field_0x52
 //   +0x54 vector<QuestType>      action_names
 //   +0x74 vector<QuestType>      cond_names
-class Questengine
+class QuestContainer
 {
   public:
     unsigned short max_quests;
@@ -63,30 +62,30 @@ class Questengine
     vector<QuestType> action_names;
     vector<QuestType> cond_names;
 
-    Questengine(Settings *settings);
-    ~Questengine();
+    QuestContainer(Settings *settings);
+    ~QuestContainer();
 
-    static void LoadQuests(Questengine *self);
-    static bool LoadQuest(Questengine *self, int quest_id);
-    static void ParseToken(Questengine *self, Quest *quest, String token);
-    static QuestState *GetState(Questengine *self, int quest_id, int state_index);
-    static void RegisterAction(Questengine *self, int action_id, String name);
-    static void RegisterCondition(Questengine *self, int condition_id, String name);
-    static String EncodeNumber(Questengine *self, unsigned int value, int width);
-    static int GetActionType(Questengine *self, String name);
-    static int GetConditionType(Questengine *self, String name);
-    static int ParseInt(Questengine *self, String token);
-    static int GetQuestVersion(Questengine *self, int quest_id);
-    static char GetQuestLoaded(Questengine *self, int quest_id);
-    static String GetQuestName(Questengine *self, int quest_id);
+    static void LoadQuests(QuestContainer *self);
+    static bool LoadQuest(QuestContainer *self, int quest_id);
+    static void ParseToken(QuestContainer *self, Quest *quest, String token);
+    static QuestState *GetState(QuestContainer *self, int quest_id, int state_index);
+    static void RegisterAction(QuestContainer *self, int action_id, String name);
+    static void RegisterCondition(QuestContainer *self, int condition_id, String name);
+    static String EncodeNumber(QuestContainer *self, unsigned int value, int width);
+    static int GetActionType(QuestContainer *self, String name);
+    static int GetConditionType(QuestContainer *self, String name);
+    static int ParseInt(QuestContainer *self, String token);
+    static int GetQuestVersion(QuestContainer *self, int quest_id);
+    static char GetQuestLoaded(QuestContainer *self, int quest_id);
+    static String GetQuestName(QuestContainer *self, int quest_id);
     static String
-    GetActionData(Questengine *self, int quest_id, int state_index, int arg);
+    GetActionData(QuestContainer *self, int quest_id, int state_index, int arg);
     static String
-    GetActionData2(Questengine *self, int quest_id, int state_index, int arg);
+    GetActionData2(QuestContainer *self, int quest_id, int state_index, int arg);
     static int
-    GetRuleValue(Questengine *self, int quest_id, int state_index, int rule_type);
+    GetRuleValue(QuestContainer *self, int quest_id, int state_index, int rule_type);
     static int
-    GetRuleValue2(Questengine *self, int quest_id, int state_index, int rule_type);
+    GetRuleValue2(QuestContainer *self, int quest_id, int state_index, int rule_type);
 };
 
 #endif

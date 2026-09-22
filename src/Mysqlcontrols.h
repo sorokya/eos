@@ -11,7 +11,7 @@
 #include "Mysqlthread.h"
 #include "Filecache.h"
 
-// Mysqlcontrols is the DB layer root (0x28 bytes). Layout from the reference
+// mySQLdb is the DB layer root (0x28 bytes). Layout from the reference
 // constructor 0x474668 and the status refresh 0x4762c8:
 //   +0x00 FileCache *    file_cache
 //   +0x04 TTimeStamp     last_query_time
@@ -21,7 +21,7 @@
 //   +0x1c int            exec_error_count
 //   +0x20 mySQLbuffer *  thread_queue
 //   +0x24 MySQLthread *  worker_thread
-class Mysqlcontrols
+class mySQLdb
 {
   public:
     FileCache *file_cache;      // +0x00
@@ -33,57 +33,54 @@ class Mysqlcontrols
     mySQLbuffer *thread_queue;  // +0x20
     MySQLthread *worker_thread; // +0x24
 
-    Mysqlcontrols();
-    ~Mysqlcontrols();
+    mySQLdb();
+    ~mySQLdb();
 
-    static void Free(Mysqlcontrols *self, unsigned char free_flags);
-    static bool TestConnection(Mysqlcontrols *self);
+    static bool TestConnection(mySQLdb *self);
     static void
-    Connect(Mysqlcontrols *self, int version_major, int version_minor, int version_patch);
+    Connect(mySQLdb *self, int version_major, int version_minor, int version_patch);
 
-    static void LoadCachedPlayers(Mysqlcontrols *self);
-    static void LoadCachedGuilds(Mysqlcontrols *self);
-    static void UpdateServerStatus(Mysqlcontrols *self,
+    static void LoadCachedPlayers(mySQLdb *self);
+    static void LoadCachedGuilds(mySQLdb *self);
+    static void UpdateServerStatus(mySQLdb *self,
                                    int refresh_seconds,
                                    int connections,
                                    int players,
                                    int most,
                                    String upload,
                                    String download);
-    static String Db_GetString(Mysqlcontrols *self, String label);
-    static int Db_GetInt(Mysqlcontrols *self, String label);
-    static void NextResultRecord(Mysqlcontrols *self);
-    static bool ResultAtEnd(Mysqlcontrols *self);
-    static int GetResultCount(Mysqlcontrols *self);
-    static bool Mysql_SubmitQuery(Mysqlcontrols *self,
+    static String Db_GetString(mySQLdb *self, String label);
+    static int Db_GetInt(mySQLdb *self, String label);
+    static void NextResultRecord(mySQLdb *self);
+    static bool ResultAtEnd(mySQLdb *self);
+    static int GetResultCount(mySQLdb *self);
+    static bool Mysql_SubmitQuery(mySQLdb *self,
                                   int query_id,
                                   int player_id,
                                   int expected_query_id,
                                   String data,
                                   String query_text);
-    static bool Mysql_SubmitQuery_FromCallback(Mysqlcontrols *self,
+    static bool Mysql_SubmitQuery_FromCallback(mySQLdb *self,
                                                int query_id,
                                                int player_id,
                                                int expected_query_id,
                                                String data,
                                                String query_text);
-    static bool Query(Mysqlcontrols *self, String query);
+    static bool Query(mySQLdb *self, String query);
+    static bool Mysql_ExecDirect(mySQLdb *self, int expected_query_id, String query);
     static bool
-    Mysql_ExecDirect(Mysqlcontrols *self, int expected_query_id, String query);
-    static bool Mysql_ExecDirect_FromCallback(Mysqlcontrols *self,
-                                              int expected_query_id,
-                                              String query);
-    static bool ExecDrop(Mysqlcontrols *self, String query);
-    static unsigned int Db_GetActiveConnectionCount(Mysqlcontrols *self);
-    static bool Database_CanReconnect(Mysqlcontrols *self);
-    static bool IsTaskPending(Mysqlcontrols *self, int player_id);
-    static bool IsAsciiText(Mysqlcontrols *self, String value);
-    static bool IsAlphabeticText(Mysqlcontrols *self, String value);
-    static String Mysql_SanitizeString(Mysqlcontrols *self, String value, bool uppercase);
-    static String Db_SanitizeString(Mysqlcontrols *self, String value);
-    static void NormalizePlayerText(Mysqlcontrols *self, String &message);
-    static TTimeStamp Server_GetUptime(Mysqlcontrols *self);
-    static String DecodeString(Mysqlcontrols *self, String value);
+    Mysql_ExecDirect_FromCallback(mySQLdb *self, int expected_query_id, String query);
+    static bool ExecDrop(mySQLdb *self, String query);
+    static unsigned int Db_GetActiveConnectionCount(mySQLdb *self);
+    static bool Database_CanReconnect(mySQLdb *self);
+    static bool IsTaskPending(mySQLdb *self, int player_id);
+    static bool IsAsciiText(mySQLdb *self, String value);
+    static bool IsAlphabeticText(mySQLdb *self, String value);
+    static String Mysql_SanitizeString(mySQLdb *self, String value, bool uppercase);
+    static String Db_SanitizeString(mySQLdb *self, String value);
+    static void NormalizePlayerText(mySQLdb *self, String &message);
+    static TTimeStamp Server_GetUptime(mySQLdb *self);
+    static String DecodeString(mySQLdb *self, String value);
 };
 
 #endif

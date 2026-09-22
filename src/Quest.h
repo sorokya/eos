@@ -6,7 +6,7 @@
 #include "Queststate.h"
 
 // Layout recovered from the reference constructor (0x5376c0), the deleting
-// destructor (0x5378a4) and the Questengine parser (0x5397c8); the class name is
+// destructor (0x5378a4) and the QuestContainer parser (0x5397c8); the class name is
 // the RTTI type name.
 //
 // Quest (0x34): int quest_id (+0), String name (+4), int version (+8),

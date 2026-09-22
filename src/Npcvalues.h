@@ -4,39 +4,9 @@
 #include <Classes.hpp>
 #include <vector.h>
 #include "Npcvalue.h"
+#include "Protocol.h"
 
 int RandRange(int max);
-
-// The two-int result returned by NpcValues::GetType: {npc_type, behavior_id}. The
-// reference calls an empty user constructor on the local at entry (the folded
-// EH-frame-only constructor at 0x44f58c) before storing -1 in both fields, then
-// returns it in the caller's return slot; the same shape the Itemvalues pair
-// records use.
-struct NpcTypeInfo
-{
-    struct
-    {
-        int type;
-        int behavior_id;
-    };
-    NpcTypeInfo()
-    {
-    }
-};
-
-// The two-int result returned by Npc_GetDrop: {item_id, amount}. Same empty
-// user constructor / by-value return shape as NpcTypeInfo.
-struct NpcDropInfo
-{
-    struct
-    {
-        int item_id;
-        int amount;
-    };
-    NpcDropInfo()
-    {
-    }
-};
 
 // The npc table (ENF/EDF/ETF). Layout recovered from the reference constructor
 // (0x4a5420) and the parsers/accessors:
@@ -72,6 +42,13 @@ class NpcValues
 
     int DecodeNumber(String value);
 
+    // Unreferenced in the reference image, but its translation unit is what
+    // defines the vector<NpcDropItem> clear/erase/copy COMDATs: the reference
+    // places them in Npcvalues (0x4a87a0/0x4a87c4/0x4a8820) while its only
+    // caller is Npcvalue's NpcValue constructors, so Npcvalues.obj must define
+    // them too and win the COMDAT. That requires a drops.clear() in this unit
+    // that nothing calls -- the linker then drops the function itself.
+    static void ClearDrops(NpcValue *value);
     static void LoadNpcs(NpcValues *self);
     static void LoadDrops(NpcValues *self);
     static void LoadTalk(NpcValues *self);

@@ -106,7 +106,7 @@ String FUN_00403080(TGUI *self, String key_base, String display_code, String unl
 extern TGUI *GUI;
 TGUI **MAINFORM = &GUI;
 
-Server *Mainform_GetServer(TGUI *form)
+Packets *Mainform_GetServer(TGUI *form)
 {
     return form->server_ctrl;
 }
@@ -205,19 +205,19 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     fprintf(boot, "%s", s.c_str());
     fclose(boot);
 
-    mysql_controls = new Mysqlcontrols();
-    if (!Mysqlcontrols::TestConnection(mysql_controls))
+    mysql_controls = new mySQLdb();
+    if (!mySQLdb::TestConnection(mysql_controls))
     {
         MessageDlg(
             "No mysql database was found (115)", mtError, TMsgDlgButtons() << mbOK, 0);
-        Mysqlcontrols::Free(mysql_controls, 3);
+        delete mysql_controls;
         Application->Terminate();
     }
 
     settings = new Settings();
-    serial = new Serial();
-    Mysqlcontrols::Connect(mysql_controls, version_patch, version_minor, version_major);
-    Serial::SetCounter(serial, 100);
+    serial = new SerialKey();
+    mySQLdb::Connect(mysql_controls, version_patch, version_minor, version_major);
+    SerialKey::SetCounter(serial, 100);
 
     item_values = new ItemValues();
     npc_values = new NpcValues();
@@ -226,21 +226,21 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     shop_values = new ShopValues();
     inn_values = new InnValues();
     class_values = new ClassValues();
-    news_control = new Newscontrol();
+    news_control = new NewsTopics();
     jukebox_control = new JukeBoxController();
     players = new Players(settings, mysql_controls);
-    map_control = new Mapcontrol(settings);
-    quest_engine = new Questengine(settings);
+    map_control = new MapContainer(settings);
+    quest_engine = new QuestContainer(settings);
     logins = new Logins(mysql_controls);
-    server_ctrl = new Server(map_control,
-                             quest_engine,
-                             players,
-                             settings,
-                             mysql_controls,
-                             logins,
-                             version_patch,
-                             version_minor,
-                             version_major);
+    server_ctrl = new Packets(map_control,
+                              quest_engine,
+                              players,
+                              settings,
+                              mysql_controls,
+                              logins,
+                              version_patch,
+                              version_minor,
+                              version_major);
     npc_control = new NpcController(map_control, players, server_ctrl, settings);
     chest_control = new ChestController(map_control, players, server_ctrl, settings);
     effect_control = new EffectController(map_control, players, server_ctrl, settings);
@@ -248,7 +248,7 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     weddings = new WeddingController(players, server_ctrl);
     door_control = new DoorController(map_control);
     msgboard_control = new MsgBoardController();
-    game_control = new Gamecontrol();
+    game_control = new Game();
 
     Mapcontrol_AddArenaSpawn(map_control, 0x2e, 0xb, 0x2c, 0xc, 0x18);
     Mapcontrol_AddArenaSpawn(map_control, 0x2e, 0xd, 0x2c, 0xc, 0x11);
@@ -260,10 +260,10 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     Mapcontrol_AddArenaSpawn(map_control, 0x2e, 0x19, 0x2c, 0x18, 0xa);
     Mapcontrol_AddArenaSpawn(map_control, 0x89, 0x11, 9, 0xe, 0xa);
     Mapcontrol_AddArenaSpawn(map_control, 0x89, 0x11, 0xb, 6, 0xa);
-    Mapcontrol::Mapcontrol_SetArenaBlock(map_control, 0x89, 2);
+    MapContainer::Mapcontrol_SetArenaBlock(map_control, 0x89, 2);
     Mapcontrol_AddArenaSpawn(map_control, 0x8a, 0x11, 9, 0xe, 0xa);
     Mapcontrol_AddArenaSpawn(map_control, 0x8a, 0x11, 0xb, 6, 0xa);
-    Mapcontrol::Mapcontrol_SetArenaBlock(map_control, 0x8a, 2);
+    MapContainer::Mapcontrol_SetArenaBlock(map_control, 0x8a, 2);
     Mapcontrol_AddArenaSpawn(map_control, 0xb7, 0x12, 0x27, 0x10, 0xc);
     Mapcontrol_AddArenaSpawn(map_control, 0xb7, 0x14, 0x27, 0x10, 0x1c);
     Mapcontrol_AddArenaSpawn(map_control, 0xb7, 0x16, 0x27, 0x16, 0x14);
@@ -275,7 +275,7 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     Mapcontrol_AddArenaSpawn(map_control, 0xb8, 0x18, 0x27, 0x1c, 0x1c);
     Mapcontrol_AddArenaSpawn(map_control, 0xb8, 0x1a, 0x27, 0x1c, 0xc);
 
-    if (Serial::IsValid(serial))
+    if (SerialKey::IsValid(serial))
     {
         server->Port = Settings::GetPort(settings);
         try
@@ -287,7 +287,7 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
             Application->Terminate();
         }
     }
-    if (Serial::GetCounter(serial) > 20)
+    if (SerialKey::GetCounter(serial) > 20)
     {
         tick_counter = 0;
         timer->Interval = 10;
@@ -317,21 +317,20 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
         ChestController::Tick(chest_control);
     if (tick_counter % 1000 == 0)
     {
-        Mysqlcontrols::UpdateServerStatus(mysql_controls,
-                                          Settings::GetRefreshSeconds(settings),
-                                          server->Socket->ActiveConnections,
-                                          Players::Players_GetIdleTimeout(players),
-                                          Players::Players_GetStatTotal(players),
-                                          Server_FormatSentTraffic(server_ctrl),
-                                          Server_FormatReceivedTraffic(server_ctrl));
+        mySQLdb::UpdateServerStatus(mysql_controls,
+                                    Settings::GetRefreshSeconds(settings),
+                                    server->Socket->ActiveConnections,
+                                    Players::Players_GetIdleTimeout(players),
+                                    Players::Players_GetStatTotal(players),
+                                    Server_FormatSentTraffic(server_ctrl),
+                                    Server_FormatReceivedTraffic(server_ctrl));
         if (Visible)
         {
             String s = IntToStr(server->Socket->ActiveConnections) + " con / ";
             s.Insert(IntToStr(Players::Players_GetIdleTimeout(players)) + " players",
                      s.Length() + 1);
             panel_buffer->Caption =
-                IntToStr(Mysqlcontrols::Db_GetActiveConnectionCount(mysql_controls)) +
-                " sql";
+                IntToStr(mySQLdb::Db_GetActiveConnectionCount(mysql_controls)) + " sql";
             panel_send->Caption = Server_FormatSentTraffic(server_ctrl);
             panel_received->Caption = Server_FormatReceivedTraffic(server_ctrl);
             panel_connections->Caption = s;
@@ -339,7 +338,7 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
     }
     if (tick_counter % 10000 == 0)
     {
-        if (Serial::GetCounter(serial) < 20)
+        if (SerialKey::GetCounter(serial) < 20)
             server->Active = false;
     }
     if (tick_counter > 100000)
@@ -347,10 +346,10 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
         if (Players::Players_GetActiveCount(players) > 1)
         {
             String expected = FUN_00403080(this,
-                                           Serial::GetKeyBaseCopy(serial),
-                                           Serial::GetDisplayCode(serial),
-                                           Serial::GetUnlockCode(serial));
-            if (Serial::GetRegName(serial) != expected)
+                                           SerialKey::GetKeyBaseCopy(serial),
+                                           SerialKey::GetDisplayCode(serial),
+                                           SerialKey::GetUnlockCode(serial));
+            if (SerialKey::GetRegName(serial) != expected)
                 server->Active = false;
         }
         tick_counter = 0;

@@ -5,16 +5,16 @@
 
 // Layout recovered from the reference (offsets in bytes):
 //   0  TStringList *ini_file
-struct Newscontrol
+struct NewsTopics
 {
     TStringList *ini_file;
 
-    Newscontrol();
-    ~Newscontrol();
+    NewsTopics();
+    ~NewsTopics();
 
-    static void LoadNews(Newscontrol *self);
-    static void LoadFile(Newscontrol *self, String file_name);
-    static String Get(Newscontrol *self, int index);
+    static void LoadNews(NewsTopics *self);
+    static void LoadFile(NewsTopics *self, String file_name);
+    static String Get(NewsTopics *self, int index);
 };
 
 #endif

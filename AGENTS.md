@@ -220,6 +220,18 @@ qualification and the class names the reconstruction chooses change `.text`:
   `ChestItem`.
   `scripts/coverage.py` plus a `vector<...>` string diff of the two images is
   the whole procedure.
+- The oracle is **not limited to containers**: bcc32 emits a `__tpdsc__` for
+  every class it needs RTTI for, those descriptors live *inside* `.text*, and
+  the name is spelled in full. Diff *all* the NUL-terminated ASCII in `.text`
+  (`re.finditer(rb'[ -~]{4,}\x00', text)`) between the two images and the
+  leftovers on each side are reconstructed class names that are wrong. That is
+  how `Logins::ReservedName`/`Logins::LoginEntry` were shown to be `Asocketvip`
+  and `Asocketblock` at namespace scope (their 32 surplus bytes were the whole
+  of that module's size difference), and how `Gamecontrol`/`Mapcontrol`/
+  `Mysqlcontrols`/`Newscontrol`/`Questengine`/`Serial`/`Server`/`WeaponmapEntry`
+  were shown to be `Game`/`MapContainer`/`mySQLdb`/`NewsTopics`/
+  `QuestContainer`/`SerialKey`/`Packets`/`WeaponMapper`. See PLAN.md, "The RTTI
+  type-descriptor name oracle".
 
 When you rename a reconstructed class, update `UNIT_CLASS_ALIASES` in
 `scripts/verify_units.py` or its functions silently stop being scored.
@@ -229,11 +241,19 @@ When you rename a reconstructed class, update `UNIT_CLASS_ALIASES` in
 Five flags are required for byte fidelity, all passed by `scripts/build.sh`
 and `make unit`/`unit-asm` (`CFLAGS`):
 
-- **`-D__CODEGUARD__`** (CodeGuard compile-time checks). Without it bcc32 inlines
-  the `dstring.h` methods; with it they become out-of-line RTL calls
-  (`@@System@AnsiString@Length$xqqrv`). The reference has 1,726 such calls and
-  zero inline length reads. It affects only `dstring.h`, `stdio.h`, `stdlib.h`
-  and adds no CodeGuard runtime imports (no `cg32.dll` in the reference).
+- **`-D__CODEGUARD__` must NOT be defined** (corrected; it was in `CFLAGS` until
+  the COMDAT-ownership pass). `-v` already stops inline expansion, so the 1,726
+  `@@System@AnsiString@Length$xqqrv` *call sites* are identical either way -- the
+  flag changes only where the callee comes from. `dstring.h` guards the inline
+  bodies of `GetRec()`/`Length()` with `#if !defined(__CODEGUARD__)`, so with the
+  flag our objects merely *reference* them and the link resolves them from
+  `vcle50.lib|DSTRING` (compiled with optimisation: `this` cached in `ebx`, 28
+  bytes). The reference's `Length` is at `0x40243c` **inside Mainform**, is 30
+  bytes, and spills `this` to `[ebp-4]` -- the `-Od` shape, i.e. compiled from the
+  application's own translation unit. Dropping the flag reproduces it exactly
+  (`Length` 30 B and both `GetRec` COMDATs move into Mainform, `+52` bytes there)
+  and changes nothing else: no source in `src/` uses `atoi`, `ferror`, `feof`,
+  `fileno`, `getc` or `putc`, which are the only other things the macro touches.
 - **`-v`** (source-level debug info). Per the RAD documentation, debug info also
   changes C++ inline expansion: with `-v` bcc32 does **not** expand inline
   functions, so trivial RTL methods (such as the `AnsiString()` default

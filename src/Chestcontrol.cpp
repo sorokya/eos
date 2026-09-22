@@ -10,9 +10,9 @@
 
 #pragma package(smart_init)
 
-ChestController::ChestController(Mapcontrol *map_control,
+ChestController::ChestController(MapContainer *map_control,
                                  Players *players,
-                                 Server *server,
+                                 Packets *server,
                                  Settings *settings)
 {
     encode_scratch = (char *)operator new(8);
@@ -37,8 +37,7 @@ void ChestController::Tick(ChestController *self)
     MapChest *chest_iter;
     MapItem *item_iter;
 
-    for (map = MapVector_Begin(self->map_control);
-         MapVector_End(self->map_control) != map;
+    for (map = self->map_control->maps.begin(); self->map_control->maps.end() != map;
          map++)
     {
         map->chests_dirty = 0;
@@ -94,7 +93,7 @@ void ChestController::Tick(ChestController *self)
          player_iter++)
     {
         if ((*player_iter)->logged_in != 0 && (*player_iter)->map_id > 0 &&
-            (*player_iter)->map_id <= Mapcontrol_GetCount(self->map_control) &&
+            (*player_iter)->map_id <= (int)self->map_control->maps.size() &&
             Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
                     ->chests_dirty != 0)
         {

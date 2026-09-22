@@ -11,7 +11,7 @@ REF       ?= GameServer.exe
 # (__CODEGUARD__), source-level debug info (-v, which also disables C++ inline
 # expansion), no optimization (-Od), the multithreaded RTL target (-tWM) and
 # standard stack frames (-k). Keep this in sync with scripts/build.sh.
-CFLAGS    ?= -D__CODEGUARD__ -v -Od -tWM -k
+CFLAGS    ?= -v -Od -tWM -k
 
 # Parallel compile jobs for `make verify` (empty = the container's CPU count).
 JOBS      ?=
@@ -31,7 +31,7 @@ VLIB      ?= vcl50.lib vcldb50.lib vclbde50.lib import32.lib cp32mt.lib
 CLANG_FORMAT ?= clang-format
 SRC          := $(wildcard src/*.cpp src/*.h)
 
-.PHONY: image analyze extract units track unitmap functions funcdiff struct layout libcompare disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
+.PHONY: image analyze extract units track unitmap functions funcdiff comdatdiff tdsfuncs struct layout libcompare disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
 
 image:
 	docker build -t $(IMAGE) docker
@@ -75,6 +75,17 @@ functions:
 # differences `make verify` canonicalises away. Exits non-zero when any differ.
 funcdiff:
 	$(PYTHON) scripts/funcdiff.py
+
+# The opposite direction: COMDATs *we* emit that the reference does not have in
+# that module. `funcdiff` walks reference -> rebuild and so cannot see a surplus
+# or a misplaced COMDAT; this reads our own linked inventory out of the TDS and
+# compares masked body counts per module. Exits non-zero on any mismatch.
+comdatdiff:
+	$(PYTHON) scripts/comdatdiff.py
+
+# Our linked function inventory (name, VA, exact COMDAT length) from the TDS.
+tdsfuncs:
+	$(PYTHON) scripts/tdsfuncs.py
 
 # Structural comparison (imports/exports/relocations).
 struct:

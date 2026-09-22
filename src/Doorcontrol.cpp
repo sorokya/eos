@@ -11,7 +11,7 @@
 
 #pragma package(smart_init)
 
-DoorController::DoorController(Mapcontrol *map_control)
+DoorController::DoorController(MapContainer *map_control)
 {
     this->map_control = map_control;
 }

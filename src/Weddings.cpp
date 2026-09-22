@@ -13,7 +13,7 @@
 
 #pragma package(smart_init)
 
-WeddingController::WeddingController(Players *players, Server *server)
+WeddingController::WeddingController(Players *players, Packets *server)
 {
     encode_scratch = new char[8];
     this->players = players;

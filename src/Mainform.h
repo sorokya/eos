@@ -69,12 +69,12 @@ class TGUI : public TForm
 
   public:
     Settings *settings;                   // +0x2f8
-    Serial *serial;                       // +0x2fc
-    Mapcontrol *map_control;              // +0x300
-    Mysqlcontrols *mysql_controls;        // +0x304
+    SerialKey *serial;                    // +0x2fc
+    MapContainer *map_control;            // +0x300
+    mySQLdb *mysql_controls;              // +0x304
     Players *players;                     // +0x308
     Logins *logins;                       // +0x30c
-    Server *server_ctrl;                  // +0x310
+    Packets *server_ctrl;                 // +0x310
     NpcController *npc_control;           // +0x314
     ChestController *chest_control;       // +0x318
     DoorController *door_control;         // +0x31c
@@ -94,9 +94,9 @@ class TGUI : public TForm
     MsgBoardController *msgboard_control; // +0x354
     JukeBoxController *jukebox_control;   // +0x358
     WeddingController *weddings;          // +0x35c
-    Questengine *quest_engine;            // +0x360
-    Newscontrol *news_control;            // +0x364
-    Gamecontrol *game_control;            // +0x368
+    QuestContainer *quest_engine;         // +0x360
+    NewsTopics *news_control;             // +0x364
+    Game *game_control;                   // +0x368
     int field_0x36c;                      // +0x36c
     int field_0x370;                      // +0x370
     int field_0x374;                      // +0x374
@@ -107,6 +107,6 @@ class TGUI : public TForm
 extern PACKAGE TGUI *GUI;
 extern TGUI **MAINFORM;
 
-Server *Mainform_GetServer(TGUI *form);
+Packets *Mainform_GetServer(TGUI *form);
 
 #endif

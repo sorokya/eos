@@ -5,22 +5,22 @@
 
 #pragma package(smart_init)
 
-Newscontrol::Newscontrol()
+NewsTopics::NewsTopics()
 {
     ini_file = new TStringList;
     LoadNews(this);
 }
 
-Newscontrol::~Newscontrol()
+NewsTopics::~NewsTopics()
 {
 }
 
-void Newscontrol::LoadNews(Newscontrol *self)
+void NewsTopics::LoadNews(NewsTopics *self)
 {
     LoadFile(self, "./config/news.ini");
 }
 
-String Newscontrol::Get(Newscontrol *self, int index)
+String NewsTopics::Get(NewsTopics *self, int index)
 {
     String result = "";
     if (index < self->ini_file->Count)
@@ -28,7 +28,7 @@ String Newscontrol::Get(Newscontrol *self, int index)
     return result;
 }
 
-void Newscontrol::LoadFile(Newscontrol *self, String file_name)
+void NewsTopics::LoadFile(NewsTopics *self, String file_name)
 {
     self->ini_file->Clear();
 

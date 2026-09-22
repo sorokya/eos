@@ -33,7 +33,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # Deleting destructors (`$bdtr`) are COMDATs: when nothing `delete`s the class,
 # ilink32 drops them, so no reference range exists. Absence is expected and the
 # link output is unaffected; other missing functions are real failures.
-BENIGN_MISS = re.compile(r"\$bd[et]r?\$|\$bdt\$")
+#
+# `NpcValues::ClearDrops` is the same case for a different reason: the reference
+# has no range for it either, because nothing calls it there.  It is only in the
+# reconstruction because its translation unit has to *define* the
+# vector<NpcDropItem> clear/erase/copy COMDATs -- the reference places them in
+# Npcvalues (0x4a87a0/0x4a87c4/0x4a8820) while their only caller lives in
+# Npcvalue, so Npcvalues.obj must define and win them.  See PLAN.md.
+BENIGN_MISS = re.compile(r"\$bd[et]r?\$|\$bdt\$|@NpcValues@ClearDrops\$")
 
 # A unit's C++ class name is fixed by the RTTI type-name table in the reference,
 # which need not match the unit's file base name (that base is fixed by the
@@ -59,15 +66,22 @@ UNIT_CLASS_ALIASES = {
     "Questcounter": ["QuestCounter"],
     "Questcounterlist": ["QuestCounterList"],
     "Questcounters": ["QuestCounters"],
-    "Packets": ["Server"],
+    "Packets": ["Packets"],
     "Banned": ["Asocketban"],
     "Itemground": ["ItemObj"],
     "Learnitem": ["LearnItemVal"],
     "Npcdrop": ["NpcDropItem"],
     "Shopcraft": ["ShopCraftVal"],
     "Shopitem": ["ShopItemVal"],
-    "Weaponmap": ["WeaponmapEntry"],
+    "Weaponmap": ["WeaponMapper"],
     "Weddings": ["Wedding", "WeddingController"],
+    "Gamecontrol": ["Game"],
+    "Mapcontrol": ["MapContainer"],
+    "Mysqlcontrols": ["mySQLdb"],
+    "Newscontrol": ["NewsTopics"],
+    "Questengine": ["QuestContainer"],
+    "Serial": ["SerialKey"],
+    "Logins": ["Asocketvip", "Asocketblock"],
 }
 
 

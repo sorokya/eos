@@ -3,33 +3,7 @@
 
 #include <vector.h>
 #include "Skillvalue.h"
-
-// Two-int return values of the Get* accessors below. The names are not
-// recoverable from the reference (they do not appear in mangles or RTTI); the
-// layouts are fixed by the accessors' stores.
-struct SkillDamage
-{
-    struct
-    {
-        int min_damage;
-        int max_damage;
-    };
-    SkillDamage()
-    {
-    }
-};
-
-struct SkillElement
-{
-    struct
-    {
-        int element;
-        int element_power;
-    };
-    SkillElement()
-    {
-    }
-};
+#include "Protocol.h"
 
 // The skill table (ESF). Layout recovered from the reference constructor
 // (0x4a3018) and the parser/accessors: sizeof(vector<SkillValue>) is 32 and

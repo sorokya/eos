@@ -636,4 +636,70 @@ enum SkillTargetType
 #define SECONDS_PER_DAY 0x15180
 #define MS_PER_SECOND 1000
 
+// The two-int record every by-value pair accessor returns.  In the reference
+// there is exactly ONE such type: the frame-only empty constructor at 0x44f58c
+// (emitted by Packets, the first unit that default-constructs one) is the call
+// target of every one of these sites -- MapContainer's coordinate/stack pairs,
+// Itemvalues' element and spec pairs, Skillvalues' damage and element pairs,
+// Npcvalues' type and drop pairs and Shopvalues' craft ingredients all call it.
+// Distinct reconstructed structs would each emit their own constructor COMDAT
+// (33 bytes apiece, in a different module), which is how the duplication was
+// found.  The field names are not recoverable; the union keeps each accessor's
+// reading of the two slots legible.  The fields must sit in one anonymous
+// aggregate member: bcc32 emits the single memcpy-style move to the caller's
+// return slot only then (two plain scalar members yield a member-wise copy).
+struct MapCoord
+{
+    union
+    {
+        struct
+        {
+            int x;
+            int y;
+        };
+        struct
+        {
+            int element;
+            int element_damage;
+        };
+        struct
+        {
+            int spec2;
+            int spec3;
+        };
+        struct
+        {
+            int type;
+            int behavior_id;
+        };
+        struct
+        {
+            int item_id;
+            int amount;
+        };
+        struct
+        {
+            int min_damage;
+            int max_damage;
+        };
+        struct
+        {
+            int id;
+            int element_power;
+        };
+    };
+    MapCoord()
+    {
+    }
+};
+
+typedef MapCoord ItemStack;
+typedef MapCoord ItemElement;
+typedef MapCoord ItemSpecXY;
+typedef MapCoord NpcTypeInfo;
+typedef MapCoord NpcDropInfo;
+typedef MapCoord SkillDamage;
+typedef MapCoord SkillElement;
+typedef MapCoord ShopCraftIngredient;
+
 #endif

@@ -11,9 +11,9 @@
 
 #pragma package(smart_init)
 
-EventController::EventController(Mapcontrol *map_control,
+EventController::EventController(MapContainer *map_control,
                                  Players *players,
-                                 Server *server,
+                                 Packets *server,
                                  Settings *settings)
 {
     pEncode_scratch = (char *)operator new(8);
@@ -67,8 +67,8 @@ String EventController::EncodeNumber(EventController *self, unsigned int value, 
 
 void EventController::Tick(EventController *self)
 {
-    for (ChestItem *map_iter = MapVector_Begin(self->map_control);
-         map_iter != MapVector_End(self->map_control);
+    for (ChestItem *map_iter = self->map_control->maps.begin();
+         map_iter != self->map_control->maps.end();
          map_iter++)
     {
         if (map_iter->quest_cooldown > 0)

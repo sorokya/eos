@@ -14,104 +14,93 @@
 
 #include "Server.h"
 
-
 // Cross-unit operations this unit defines as free functions; the controllers
 // and Mainform reference these exact mangled names.
-ChestItem *MapVector_Begin(Mapcontrol *map_control);
-ChestItem *MapVector_End(Mapcontrol *map_control);
-int Mapcontrol_GetCount(Mapcontrol *map_control);
-ChestItem *Mapcontrol_GetByIndex(Mapcontrol *map_control, int index);
-void Game_Tick(Server *server);
-void Server_ClientRead(Server *server, TCustomWinSocket *socket, String data);
-void Server_Shutdown(Server *server);
-void Server_RemovePlayer(Server *server, TCustomWinSocket *socket);
-String Server_FormatSentTraffic(Server *server);
-String Server_FormatReceivedTraffic(Server *server);
-bool Player_HandlePacket(Server *server, Player *player, String data);
-void Player_CalculateStats(Server *server, Player *player);
-String Player_SerializeAvatar(Server *server, Player *player, int arg);
-String Player_SerializePaperdoll(Server *server, Player *player);
-void Client_SendRaw(Server *server, Player *client, String data, int break_byte);
-void Client_SendEncoded(Server *server,
+ChestItem *Mapcontrol_GetByIndex(MapContainer *map_control, int index);
+void Game_Tick(Packets *server);
+void Server_ClientRead(Packets *server, TCustomWinSocket *socket, String data);
+void Server_Shutdown(Packets *server);
+void Server_RemovePlayer(Packets *server, TCustomWinSocket *socket);
+String Server_FormatSentTraffic(Packets *server);
+String Server_FormatReceivedTraffic(Packets *server);
+bool Player_HandlePacket(Packets *server, Player *player, String data);
+void Player_CalculateStats(Packets *server, Player *player);
+String Player_SerializeAvatar(Packets *server, Player *player, int arg);
+String Player_SerializePaperdoll(Packets *server, Player *player);
+void Client_SendRaw(Packets *server, Player *client, String data, int break_byte);
+void Client_SendEncoded(Packets *server,
                         Player *player,
                         unsigned char action,
                         unsigned char family,
                         String data);
-bool Walk_Execute(Server *server, Player *player, int action, String *data);
-bool Attack_Execute(Server *server, Player *caster, int action, String *data);
-bool Spell_Execute(Server *server, Player *caster, int action, String *data);
-bool Face_Execute(Server *server, Player *player, int action, String *data);
-bool Chair_Execute(Server *server, Player *player, int action, String *data);
-bool Player_CheckIdleWarp(Server *server, Player *player, int x, int y);
-void Player_Respawn(Server *server, Player *player);
-void Player_Warp(Server *server,
+bool Walk_Execute(Packets *server, Player *player, int action, String *data);
+bool Attack_Execute(Packets *server, Player *caster, int action, String *data);
+bool Spell_Execute(Packets *server, Player *caster, int action, String *data);
+bool Face_Execute(Packets *server, Player *player, int action, String *data);
+bool Chair_Execute(Packets *server, Player *player, int action, String *data);
+bool Player_CheckIdleWarp(Packets *server, Player *player, int x, int y);
+void Player_Respawn(Packets *server, Player *player);
+void Player_Warp(Packets *server,
                  Player *player,
                  int target_map,
                  MapCoord coords,
                  int warp_effect,
                  bool do_leave);
-void Server_BroadcastToPartyExceptSelf(Server *server,
+void Server_BroadcastToPartyExceptSelf(Packets *server,
                                        Player *player,
                                        unsigned char action,
                                        unsigned char family,
                                        String data);
-void Server_BroadcastToParty(Server *server,
+void Server_BroadcastToParty(Packets *server,
                              Player *player,
                              unsigned char action,
                              unsigned char family,
                              String data);
-void Guild_BroadcastToAll(Server *server,
+void Guild_BroadcastToAll(Packets *server,
                           Player *player,
                           unsigned char action,
                           unsigned char family,
                           String data);
-void Server_BroadcastAdjacent(Server *server,
+void Server_BroadcastAdjacent(Packets *server,
                               Player *player,
                               MapCoord coords,
                               unsigned char action,
                               unsigned char family,
                               String data);
-void Server_BroadcastNearTile(Server *server,
+void Server_BroadcastNearTile(Packets *server,
                               int skip_id,
                               int map_id,
                               MapCoord coord,
                               unsigned char action,
                               unsigned char family,
                               String data);
-void Admin_BroadcastToAll(Server *server,
+void Admin_BroadcastToAll(Packets *server,
                           unsigned char action,
                           unsigned char family,
                           String data);
-void Admin_ReportToGMs(Server *server,
+void Admin_ReportToGMs(Packets *server,
                        Player *player,
                        unsigned char action,
                        unsigned char family,
                        String data);
-void Admin_BroadcastToAdmins(Server *server,
+void Admin_BroadcastToAdmins(Packets *server,
                              Player *player,
                              unsigned char action,
                              unsigned char family,
                              String data);
-void Server_BroadcastNearby(Server *server,
+void Server_BroadcastNearby(Packets *server,
                             Player *player,
                             unsigned char action,
                             unsigned char family,
                             String data);
 void Server_BroadcastToMap(
-    Server *server, int map_id, unsigned char action, unsigned char family, String data);
+    Packets *server, int map_id, unsigned char action, unsigned char family, String data);
 
 int Math_Abs(int value);
 
-ChestItem *Mapcontrol_Iter_Front(Mapcontrol *map_control);
-void *Map_NpcIter_Begin(void *npc_list);
-void *Map_NpcIter_End(void *npc_list);
-void *GroundItemPtrVector_Begin(void *list);
-void *PtrVector_GetEnd(void *list);
-unsigned int GroundItemPtrVector_Count(void *list);
-
-String EO_EncodeNumber(Server *server, unsigned int value, int width);
-String EO_Encode_Interleave(Server *server, int multiple, char *begin, char *end);
-String EO_Decode_Deinterleave(Server *server, int multiple, char *begin, char *end);
+String EO_EncodeNumber(Packets *server, unsigned int value, int width);
+String EO_Encode_Interleave(Packets *server, int multiple, char *begin, char *end);
+String EO_Decode_Deinterleave(Packets *server, int multiple, char *begin, char *end);
 
 struct EOEncodedObj
 {
@@ -126,51 +115,54 @@ struct EOEncodedObj
 
 int FUN_0044f73c(void *range);
 int FUN_0044f710(void *range);
-int EO_DecodeNumber(Server *self, String data);
-int EO_DecodeByte(Server *self, char value);
-char EO_GetBreakByte(Server *self, int value);
-unsigned int Server_DecodePacketLength(Server *self, String data);
-bool Login_CheckConnectionThreshold(Server *server);
-void Connection_Ping(Server *server);
-void PacketReader_Init(Server *reader, String data, unsigned char break_byte);
-String PacketReader_GetBreakString(Server *reader);
+int EO_DecodeNumber(Packets *self, String data);
+int EO_DecodeByte(Packets *self, char value);
+char EO_GetBreakByte(Packets *self, int value);
+unsigned int Server_DecodePacketLength(Packets *self, String data);
+bool Login_CheckConnectionThreshold(Packets *server);
+void Connection_Ping(Packets *server);
+void PacketReader_Init(Packets *reader, String data, unsigned char break_byte);
+String PacketReader_GetBreakString(Packets *reader);
 String
-PacketReader_GetBreakStringAt(Server *reader, int end, String break_str, char append);
-bool CharName_CheckUnique(Server *server, String name);
+PacketReader_GetBreakStringAt(Packets *reader, int end, String break_str, char append);
+bool CharName_CheckUnique(Packets *server, String name);
 
-bool Coords_IsAdjacent(Server *self, int x1, int y1, int x2, int y2);
-bool Server_InViewRange(Server *self, int x1, int y1, int x2, int y2);
-bool Server_InViewRing(Server *self, int x1, int y1, int x2, int y2);
-bool Server_InViewRangeReverse(Server *self, int x1, int y1, int x2, int y2);
-bool Server_InItemViewRing(Server *self, int x1, int y1, int x2, int y2);
+bool Coords_IsAdjacent(Packets *self, int x1, int y1, int x2, int y2);
+bool Server_InViewRange(Packets *self, int x1, int y1, int x2, int y2);
+bool Server_InViewRing(Packets *self, int x1, int y1, int x2, int y2);
+bool Server_InViewRangeReverse(Packets *self, int x1, int y1, int x2, int y2);
+bool Server_InItemViewRing(Packets *self, int x1, int y1, int x2, int y2);
 
-void Server_AddReceivedBytes(Server *server, int value);
-void Server_AddSentBytes(Server *server, int value);
-bool Coords_IsWithinTwo(Server *self, int x1, int y1, int x2, int y2);
-String NpcRange_Lookup(Server *server, Player *player, unsigned int npc_index);
-void Player_FireQuestTriggers(Server *server, Player *player, int state_index, int value);
+void Server_AddReceivedBytes(Packets *server, int value);
+void Server_AddSentBytes(Packets *server, int value);
+bool Coords_IsWithinTwo(Packets *self, int x1, int y1, int x2, int y2);
+String NpcRange_Lookup(Packets *server, Player *player, unsigned int npc_index);
+void Player_FireQuestTriggers(Packets *server,
+                              Player *player,
+                              int state_index,
+                              int value);
 void Server_BroadcastToMapAndAdmins(
-    Server *server, int map_id, unsigned char action, unsigned char family, String data);
-void Admin_BroadcastToOtherAdmins(Server *server,
+    Packets *server, int map_id, unsigned char action, unsigned char family, String data);
+void Admin_BroadcastToOtherAdmins(Packets *server,
                                   Player *player,
                                   unsigned char action,
                                   unsigned char family,
                                   String data);
-void Server_BroadcastToAll(Server *server,
+void Server_BroadcastToAll(Packets *server,
                            unsigned char action,
                            unsigned char family,
                            String data);
-void Server_SyncMapHazardFlags(Server *server, int map_id);
-void Server_AppendChatLog(Server *server, String message);
-void Talk_PlayerWhisper(Server *server, int map_id, String message, int break_byte);
-String Server_BuildOnlineNames(Server *server);
-String Server_BuildOnlineList(Server *server);
-String Refresh_BuildReply(Server *server, Player *player);
-String Party_EncodeMemberList(Server *server, Player *player);
-bool Server_TickOncePerFiveSeconds(Server *server);
-String Message_BuildServerStatus(Server *server);
-String Paperdoll_BuildReply(Server *server, Player *player);
-void Player_ApplyQuestActions(Server *server,
+void Server_SyncMapHazardFlags(Packets *server, int map_id);
+void Server_AppendChatLog(Packets *server, String message);
+void Talk_PlayerWhisper(Packets *server, int map_id, String message, int break_byte);
+String Server_BuildOnlineNames(Packets *server);
+String Server_BuildOnlineList(Packets *server);
+String Refresh_BuildReply(Packets *server, Player *player);
+String Party_EncodeMemberList(Packets *server, Player *player);
+bool Server_TickOncePerFiveSeconds(Packets *server);
+String Message_BuildServerStatus(Packets *server);
+String Paperdoll_BuildReply(Packets *server, Player *player);
+void Player_ApplyQuestActions(Packets *server,
                               Player *player,
                               PlayerQuest *tracker,
                               bool repeat);

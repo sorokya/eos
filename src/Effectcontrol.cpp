@@ -10,9 +10,9 @@
 
 #pragma package(smart_init)
 
-EffectController::EffectController(Mapcontrol *map_control,
+EffectController::EffectController(MapContainer *map_control,
                                    Players *players,
-                                   Server *server,
+                                   Packets *server,
                                    Settings *settings)
 {
     pEncode_scratch = (char *)operator new(8);
@@ -170,10 +170,11 @@ void EffectController::Tick(EffectController *self)
 
         if ((*player_iter)->map_has_spikes != 0)
         {
-            unsigned int spec = Mapcontrol::Mapcontrol_GetTileSpec(self->map_control,
-                                                                   (*player_iter)->map_id,
-                                                                   (*player_iter)->x,
-                                                                   (*player_iter)->y);
+            unsigned int spec =
+                MapContainer::Mapcontrol_GetTileSpec(self->map_control,
+                                                     (*player_iter)->map_id,
+                                                     (*player_iter)->x,
+                                                     (*player_iter)->y);
             if (spec == 0x21 || spec == 0x22)
             {
                 if ((*player_iter)->hp > 0)

@@ -484,4 +484,3 @@ char Settings::ReadIniBool(Settings *self, String key, char default_value)
     }
     return result;
 }
-

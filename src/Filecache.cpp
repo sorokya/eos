@@ -157,8 +157,7 @@ void Database_FlushCache(FileCache *self)
     self->string_list->Clear();
     if (self->pending_player_writes.size() > 99)
     {
-        for (vector<TopPlayer *>::iterator it =
-                 self->pending_player_writes.begin();
+        for (vector<TopPlayer *>::iterator it = self->pending_player_writes.begin();
              it != self->pending_player_writes.end();
              it++)
         {
@@ -175,8 +174,7 @@ void Database_FlushCache(FileCache *self)
     self->string_list->Clear();
     if (self->pending_guild_writes.size() > 99)
     {
-        for (vector<TopGuild *>::iterator it =
-                 self->pending_guild_writes.begin();
+        for (vector<TopGuild *>::iterator it = self->pending_guild_writes.begin();
              it != self->pending_guild_writes.end();
              it++)
         {

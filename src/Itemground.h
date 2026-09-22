@@ -14,7 +14,7 @@
 // the one unmatched *pointer* descriptor is
 // `vector<ItemObj *,allocator<ItemObj *> > *` and the ground-item list is the
 // only vector of pointers left for it. (The one unmatched *by-value*
-// descriptor, `vector<ChestItem,...>`, pairs with Mapcontrol's map list, so
+// descriptor, `vector<ChestItem,...>`, pairs with MapContainer's map list, so
 // the original really did name the map record struct ChestItem -- see Map.h.)
 struct ItemObj
 {

@@ -13,9 +13,9 @@
 
 #pragma package(smart_init)
 
-NpcController::NpcController(Mapcontrol *map,
+NpcController::NpcController(MapContainer *map,
                              Players *players,
-                             Server *server,
+                             Packets *server,
                              Settings *settings)
 {
     encode_scratch = operator new(8);
@@ -72,8 +72,8 @@ bool NpcController::Npc_DoMove(NpcController *self, int map_id, int x, int y)
     if (self->player_targets_valid == 0)
     {
         self->player_targets.clear();
-        for (Player **it = Players_Iter_Begin(self->players);
-             it != Players_Iter_End(self->players);
+        for (Player **it = self->players->players.begin();
+             it != self->players->players.end();
              it++)
         {
             if ((*it)->logged_in && (*it)->map_id == map_id)
@@ -103,10 +103,10 @@ void NpcController::Npc_Wander(
     {
         if (npc->y < map_h)
         {
-            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
+            if (MapContainer::Mapcontrol_IsWalkableNPC(
                     self->map_control, map_id, npc->x, npc->y + 1, 0) == 0)
             {
-                if (!Mapcontrol::Mapcontrol_IsOccupied(
+                if (!MapContainer::Mapcontrol_IsOccupied(
                         self->map_control, map_id, npc->x, npc->y + 1))
                 {
                     if (!Npc_DoMove(self, map_id, npc->x, npc->y + 1))
@@ -124,10 +124,10 @@ void NpcController::Npc_Wander(
     {
         if (npc->x >= 1)
         {
-            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
+            if (MapContainer::Mapcontrol_IsWalkableNPC(
                     self->map_control, map_id, npc->x - 1, npc->y, 0) == 0)
             {
-                if (!Mapcontrol::Mapcontrol_IsOccupied(
+                if (!MapContainer::Mapcontrol_IsOccupied(
                         self->map_control, map_id, npc->x - 1, npc->y))
                 {
                     if (!Npc_DoMove(self, map_id, npc->x - 1, npc->y))
@@ -145,10 +145,10 @@ void NpcController::Npc_Wander(
     {
         if (npc->y >= 1)
         {
-            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
+            if (MapContainer::Mapcontrol_IsWalkableNPC(
                     self->map_control, map_id, npc->x, npc->y - 1, 0) == 0)
             {
-                if (!Mapcontrol::Mapcontrol_IsOccupied(
+                if (!MapContainer::Mapcontrol_IsOccupied(
                         self->map_control, map_id, npc->x, npc->y - 1))
                 {
                     if (!Npc_DoMove(self, map_id, npc->x, npc->y - 1))
@@ -164,10 +164,10 @@ void NpcController::Npc_Wander(
     }
     else if (npc->nAttack_dir == Direction_Right && npc->x < map_w)
     {
-        if (Mapcontrol::Mapcontrol_IsWalkableNPC(
+        if (MapContainer::Mapcontrol_IsWalkableNPC(
                 self->map_control, map_id, npc->x + 1, npc->y, 0) == 0)
         {
-            if (!Mapcontrol::Mapcontrol_IsOccupied(
+            if (!MapContainer::Mapcontrol_IsOccupied(
                     self->map_control, map_id, npc->x + 1, npc->y))
             {
                 if (!Npc_DoMove(self, map_id, npc->x + 1, npc->y))
@@ -186,8 +186,8 @@ int NpcController::Npc_ValidateMove(NpcController *self, int map_id, int x, int 
     if (self->player_targets_valid == 0)
     {
         self->player_targets.clear();
-        for (Player **it = Players_Iter_Begin(self->players);
-             it != Players_Iter_End(self->players);
+        for (Player **it = self->players->players.begin();
+             it != self->players->players.end();
              it++)
         {
             if ((*it)->logged_in && (*it)->map_id == map_id)
@@ -244,15 +244,14 @@ String NpcController::EncodeNumber(NpcController *self, unsigned int value, int 
 
 bool NpcController::Npc_AttackPlayer(NpcController *mc, Npc *npc, Player *player)
 {
-    int accuracy = Gamecontrol::Combat_CalcArmorPen(
+    int accuracy = Game::Combat_CalcArmorPen(
         (*MAINFORM)->game_control, npc->accuracy, player->evasion, 0.9);
     int damage = 0;
     if (player->on_chair != false || player->sitting != false)
         accuracy = 100;
     if (RandRange(100) < accuracy)
     {
-        accuracy =
-            Gamecontrol::Combat_CalcArmorPen((*MAINFORM)->game_control,
+        accuracy = Game::Combat_CalcArmorPen((*MAINFORM)->game_control,
                                              (npc->min_damage + npc->max_damage) / 2,
                                              player->armor,
                                              0.8);
@@ -272,37 +271,37 @@ bool NpcController::Npc_AttackPlayer(NpcController *mc, Npc *npc, Player *player
         element.x = npc->element_weakness;
         element.y = 0;
         if (element.x == 1)
-            damage = (int)(damage * Gamecontrol::Combat_CalcElementMult(
+            damage = (int)(damage * Game::Combat_CalcElementMult(
                                         (*MAINFORM)->game_control,
                                         element,
                                         npc->element_weakness_damage_table[0],
                                         player->element_resistances[2]));
         if (element.x == 2)
-            damage = (int)(damage * Gamecontrol::Combat_CalcElementMult(
+            damage = (int)(damage * Game::Combat_CalcElementMult(
                                         (*MAINFORM)->game_control,
                                         element,
                                         npc->element_weakness_damage_table[1],
                                         player->element_resistances[1]));
         if (element.x == 3)
-            damage = (int)(damage * Gamecontrol::Combat_CalcElementMult(
+            damage = (int)(damage * Game::Combat_CalcElementMult(
                                         (*MAINFORM)->game_control,
                                         element,
                                         npc->element_weakness_damage_table[2],
                                         player->element_resistances[6]));
         if (element.x == 4)
-            damage = (int)(damage * Gamecontrol::Combat_CalcElementMult(
+            damage = (int)(damage * Game::Combat_CalcElementMult(
                                         (*MAINFORM)->game_control,
                                         element,
                                         npc->element_weakness_damage_table[3],
                                         player->element_resistances[3]));
         if (element.x == 5)
-            damage = (int)(damage * Gamecontrol::Combat_CalcElementMult(
+            damage = (int)(damage * Game::Combat_CalcElementMult(
                                         (*MAINFORM)->game_control,
                                         element,
                                         npc->element_weakness_damage_table[4],
                                         player->element_resistances[4]));
         if (element.x == 6)
-            damage = (int)(damage * Gamecontrol::Combat_CalcElementMult(
+            damage = (int)(damage * Game::Combat_CalcElementMult(
                                         (*MAINFORM)->game_control,
                                         element,
                                         npc->element_weakness_damage_table[5],
@@ -464,10 +463,10 @@ void NpcController::Npc_ChaseTarget(
                 continue;
             if (npc->x == npc->nStuck_pos && npc->y + 1 == *(int *)&npc->pad_0x90)
                 continue;
-            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
+            if (MapContainer::Mapcontrol_IsWalkableNPC(
                     mc->map_control, map_id, npc->x, npc->y + 1, 0) != 0)
                 continue;
-            if (Mapcontrol::Mapcontrol_IsOccupied(
+            if (MapContainer::Mapcontrol_IsOccupied(
                     mc->map_control, map_id, npc->x, npc->y + 1))
                 continue;
             int player_id = Npc_ValidateMove(mc, map_id, npc->x, npc->y + 1);
@@ -494,10 +493,10 @@ void NpcController::Npc_ChaseTarget(
                 continue;
             if (npc->x - 1 == npc->nStuck_pos && npc->y == *(int *)&npc->pad_0x90)
                 continue;
-            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
+            if (MapContainer::Mapcontrol_IsWalkableNPC(
                     mc->map_control, map_id, npc->x - 1, npc->y, 0) != 0)
                 continue;
-            if (Mapcontrol::Mapcontrol_IsOccupied(
+            if (MapContainer::Mapcontrol_IsOccupied(
                     mc->map_control, map_id, npc->x - 1, npc->y))
                 continue;
             int player_id = Npc_ValidateMove(mc, map_id, npc->x - 1, npc->y);
@@ -524,10 +523,10 @@ void NpcController::Npc_ChaseTarget(
                 continue;
             if (npc->x == npc->nStuck_pos && npc->y - 1 == *(int *)&npc->pad_0x90)
                 continue;
-            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
+            if (MapContainer::Mapcontrol_IsWalkableNPC(
                     mc->map_control, map_id, npc->x, npc->y - 1, 0) != 0)
                 continue;
-            if (Mapcontrol::Mapcontrol_IsOccupied(
+            if (MapContainer::Mapcontrol_IsOccupied(
                     mc->map_control, map_id, npc->x, npc->y - 1))
                 continue;
             int player_id = Npc_ValidateMove(mc, map_id, npc->x, npc->y - 1);
@@ -554,10 +553,10 @@ void NpcController::Npc_ChaseTarget(
                 continue;
             if (npc->x + 1 == npc->nStuck_pos && npc->y == *(int *)&npc->pad_0x90)
                 continue;
-            if (Mapcontrol::Mapcontrol_IsWalkableNPC(
+            if (MapContainer::Mapcontrol_IsWalkableNPC(
                     mc->map_control, map_id, npc->x + 1, npc->y, 0) != 0)
                 continue;
-            if (Mapcontrol::Mapcontrol_IsOccupied(
+            if (MapContainer::Mapcontrol_IsOccupied(
                     mc->map_control, map_id, npc->x + 1, npc->y))
                 continue;
             int player_id = Npc_ValidateMove(mc, map_id, npc->x + 1, npc->y);
@@ -586,14 +585,14 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
     bool flag = true;
     npc_control->act_counter++;
     npc_control->regen_counter++;
-    for (ChestItem *map = MapVector_Begin(npc_control->map_control);
-         map != MapVector_End(npc_control->map_control);
+    for (ChestItem *map = npc_control->map_control->maps.begin();
+         map != npc_control->map_control->maps.end();
          map++)
     {
         map->npc_dirty = 0;
         npc_control->player_targets_valid = 0;
-        for (Npc **npc = (Npc **)Map_NpcIter_Begin(&map->npc_list);
-             npc != (Npc **)Map_NpcIter_End(&map->npc_list);
+        for (Npc **npc = (Npc **)map->npc_list.begin();
+             npc != (Npc **)map->npc_list.end();
              npc++)
         {
             if ((*npc)->alive == false)
@@ -616,7 +615,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                             sx = RandRange(5) + (*npc)->wSpawn_x - 2;
                             sy = RandRange(5) + (*npc)->wSpawn_y - 2;
                         }
-                        if (!Mapcontrol::Mapcontrol_IsTileClear(
+                        if (!MapContainer::Mapcontrol_IsTileClear(
                                 npc_control->map_control, map->rid, sx, sy))
                         {
                             (*npc)->spawn_time = (*npc)->spawn_time + 1;
@@ -789,8 +788,8 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                                     {
                                         npc_control->player_targets.clear();
                                         for (Player **it =
-                                                 Players_Iter_Begin(npc_control->players);
-                                             it != Players_Iter_End(npc_control->players);
+                                                 npc_control->players->players.begin();
+                                             it != npc_control->players->players.end();
                                              it++)
                                         {
                                             if ((*it)->logged_in != false &&
@@ -912,12 +911,12 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
     if (0x1c2 < npc_control->regen_counter)
         npc_control->regen_counter = 0;
     Player **player;
-    for (player = Players_Iter_Begin(npc_control->players);
-         player != Players_Iter_End(npc_control->players);
+    for (player = npc_control->players->players.begin();
+         player != npc_control->players->players.end();
          player++)
     {
         if ((*player)->logged_in != false && 0 < (*player)->map_id &&
-            (*player)->map_id <= Mapcontrol_GetCount(npc_control->map_control) &&
+            (*player)->map_id <= (int)npc_control->map_control->maps.size() &&
             Mapcontrol_GetByIndex(npc_control->map_control, (*player)->map_id - 1)
                     ->npc_dirty != 0)
         {
@@ -926,14 +925,12 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
                 String pos = "";
                 String talk = "";
                 String attack = "";
-                Npc **npc2 = (Npc **)Map_NpcIter_Begin(
-                    &Mapcontrol_GetByIndex(npc_control->map_control,
-                                           (*player)->map_id - 1)
-                         ->npc_list);
-                while ((Npc **)Map_NpcIter_End(
-                           &Mapcontrol_GetByIndex(npc_control->map_control,
-                                                  (*player)->map_id - 1)
-                                ->npc_list) != npc2)
+                Npc **npc2 = (Npc **)Mapcontrol_GetByIndex(npc_control->map_control,
+                                                           (*player)->map_id - 1)
+                                 ->npc_list.begin();
+                while ((Npc **)Mapcontrol_GetByIndex(npc_control->map_control,
+                                                     (*player)->map_id - 1)
+                           ->npc_list.end() != npc2)
                 {
                     if ((*npc2)->pos_pending != 0 &&
                         Npc_IsWithinRange(npc_control,
@@ -1001,15 +998,14 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
     }
     if (flag != false)
         return;
-    for (player = Players_Iter_Begin(npc_control->players);
-         player != Players_Iter_End(npc_control->players);
+    for (player = npc_control->players->players.begin();
+         player != npc_control->players->players.end();
          player++)
     {
         if ((*player)->logged_in != false && 0 < (*player)->map_id &&
-            (*player)->map_id <= Mapcontrol_GetCount(npc_control->map_control) &&
+            (*player)->map_id <= (int)npc_control->map_control->maps.size() &&
             (*player)->dead != false)
             Player_Respawn(npc_control->server, *player);
     }
     return;
 }
-
