@@ -6,6 +6,16 @@
 
 #pragma package(smart_init)
 
+ClassValues::ClassValues()
+{
+    field_0x18 = operator new(8);
+    field_0x3c = -1;
+    loaded = 0;
+    file_id = 0;
+    string_list = new TStringList;
+    LoadClasses(this);
+}
+
 ClassValues::~ClassValues()
 {
 }
@@ -38,7 +48,7 @@ void ClassValues::LoadClasses(ClassValues *self)
                 buf = new char[size + 1];
                 FileRead(file_handle, buf, size);
                 FileClose(file_handle);
-                data += buf;
+                data = buf;
                 data.SetLength(size);
                 delete[] buf;
                 if (data[1] != 'E' || data[2] != 'C' || data[3] != 'F')
@@ -85,13 +95,6 @@ void ClassValues::LoadClasses(ClassValues *self)
     }
 }
 
-ClassValue ClassValues::GetByIndex(ClassValues *self, int index)
-{
-    if (index < 0 || (unsigned)index > self->record_list.size() - 1)
-        index = 0;
-    return self->record_list[index];
-}
-
 void ClassValues::AddClass(ClassValues *self,
                            int id,
                            int parent_type,
@@ -117,14 +120,24 @@ void ClassValues::AddClass(ClassValues *self,
     self->record_list.insert(self->record_list.end(), v);
 }
 
-ClassValues::ClassValues()
+bool ClassValues::ClassMatches(ClassValues *self, int class_id, int class_requirement)
 {
-    field_0x18 = operator new(8);
-    field_0x3c = -1;
-    loaded = 0;
-    file_id = 0;
-    string_list = new TStringList;
-    LoadClasses(this);
+    if (class_requirement == 0)
+        return true;
+    while (class_id > 0)
+    {
+        if (class_id == class_requirement)
+            return true;
+        class_id = self->record_list[class_id - 1].parent_type;
+    }
+    return false;
+}
+
+ClassValue ClassValues::GetByIndex(ClassValues *self, int index)
+{
+    if (index < 0 || (unsigned)index > self->record_list.size() - 1)
+        index = 0;
+    return self->record_list[index];
 }
 
 int ClassValues::GetCount()
@@ -163,17 +176,4 @@ int ClassValues::DecodeNumber(String value)
         result = 0;
     }
     return result;
-}
-
-bool ClassValues::ClassMatches(ClassValues *self, int class_id, int class_requirement)
-{
-    if (class_requirement == 0)
-        return true;
-    while (class_id > 0)
-    {
-        if (class_id == class_requirement)
-            return true;
-        class_id = self->record_list[class_id - 1].parent_type;
-    }
-    return false;
 }

@@ -7,22 +7,6 @@
 
 #pragma package(smart_init)
 
-TopPlayer::TopPlayer()
-{
-}
-
-TopPlayer::~TopPlayer()
-{
-}
-
-TopGuild::TopGuild()
-{
-}
-
-TopGuild::~TopGuild()
-{
-}
-
 FileCache::FileCache()
 {
     dirty = 0;
@@ -44,62 +28,6 @@ void FileCache::CheckCacheFile(FileCache *self)
     {
         self->dirty = 1;
         remove(path.c_str());
-    }
-}
-
-String FileCache::NextToken(FileCache *self)
-{
-    int pos = self->field_0x54.Pos(";");
-    if (pos < 1)
-        return self->field_0x54;
-    String result = self->field_0x54.SubString(1, pos - 1);
-    self->field_0x54.Delete(1, pos);
-    return result;
-}
-
-void FileCache::LoadPlayerCache(FileCache *self)
-{
-    self->string_list->Clear();
-    try
-    {
-        self->string_list->LoadFromFile("./cache/players.chk");
-    }
-    catch (...)
-    {
-    }
-    for (int i = 0; i < self->string_list->Count; i++)
-    {
-        self->field_0x54 = self->string_list->Strings[i];
-        TopPlayer *entry = new TopPlayer;
-        entry->privilege = StrToInt(NextToken(self));
-        entry->name = NextToken(self);
-        entry->title = NextToken(self);
-        entry->level = StrToInt(NextToken(self));
-        entry->experience = StrToInt(NextToken(self));
-        entry->gender = StrToInt(NextToken(self));
-        self->pending_player_writes.insert(self->pending_player_writes.end(), entry);
-    }
-}
-
-void FileCache::LoadGuildCache(FileCache *self)
-{
-    self->string_list->Clear();
-    try
-    {
-        self->string_list->LoadFromFile("./cache/guilds.chk");
-    }
-    catch (...)
-    {
-    }
-    for (int i = 0; i < self->string_list->Count; i++)
-    {
-        self->field_0x54 = self->string_list->Strings[i];
-        TopGuild *entry = new TopGuild;
-        entry->ident_guild = NextToken(self);
-        entry->guild = NextToken(self);
-        entry->exptotal = StrToInt(NextToken(self));
-        entry->members = StrToInt(NextToken(self));
-        self->pending_guild_writes.insert(self->pending_guild_writes.end(), entry);
     }
 }
 
@@ -152,6 +80,62 @@ void FileCache::UpdatePlayerCache(FileCache *self, char *record)
     }
 }
 
+void FileCache::LoadPlayerCache(FileCache *self)
+{
+    self->string_list->Clear();
+    try
+    {
+        self->string_list->LoadFromFile("./cache/players.chk");
+    }
+    catch (...)
+    {
+    }
+    for (int i = 0; i < self->string_list->Count; i++)
+    {
+        self->field_0x54 = self->string_list->Strings[i];
+        TopPlayer *entry = new TopPlayer;
+        entry->privilege = StrToInt(NextToken(self));
+        entry->name = NextToken(self);
+        entry->title = NextToken(self);
+        entry->level = StrToInt(NextToken(self));
+        entry->experience = StrToInt(NextToken(self));
+        entry->gender = StrToInt(NextToken(self));
+        self->pending_player_writes.insert(self->pending_player_writes.end(), entry);
+    }
+}
+
+void FileCache::LoadGuildCache(FileCache *self)
+{
+    self->string_list->Clear();
+    try
+    {
+        self->string_list->LoadFromFile("./cache/guilds.chk");
+    }
+    catch (...)
+    {
+    }
+    for (int i = 0; i < self->string_list->Count; i++)
+    {
+        self->field_0x54 = self->string_list->Strings[i];
+        TopGuild *entry = new TopGuild;
+        entry->ident_guild = NextToken(self);
+        entry->guild = NextToken(self);
+        entry->exptotal = StrToInt(NextToken(self));
+        entry->members = StrToInt(NextToken(self));
+        self->pending_guild_writes.insert(self->pending_guild_writes.end(), entry);
+    }
+}
+
+String FileCache::NextToken(FileCache *self)
+{
+    int pos = self->field_0x54.Pos(";");
+    if (pos < 1)
+        return self->field_0x54;
+    String result = self->field_0x54.SubString(1, pos - 1);
+    self->field_0x54.Delete(1, pos);
+    return result;
+}
+
 void Database_FlushCache(FileCache *self)
 {
     self->string_list->Clear();
@@ -188,4 +172,20 @@ void Database_FlushCache(FileCache *self)
     }
     FILE *fp = fopen("./cache/cacheok.chk", "wb");
     fclose(fp);
+}
+
+TopPlayer::TopPlayer()
+{
+}
+
+TopPlayer::~TopPlayer()
+{
+}
+
+TopGuild::TopGuild()
+{
+}
+
+TopGuild::~TopGuild()
+{
 }

@@ -28,14 +28,14 @@ ChestController::~ChestController()
 
 void ChestController::Tick(ChestController *self)
 {
-    ChestItem *map;
+    MapItem *map;
     MapChest *chest;
-    MapItem *item;
+    ChestItem *item;
     int max_items;
     int item_index;
     Player **player_iter;
     MapChest *chest_iter;
-    MapItem *item_iter;
+    ChestItem *item_iter;
 
     for (map = self->map_control->maps.begin(); self->map_control->maps.end() != map;
          map++)

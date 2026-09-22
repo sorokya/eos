@@ -29,43 +29,13 @@ SerialKey::SerialKey()
     SetIniPath(this, DecodeString(this, SERIAL_ENC_STR_PUB_DVF001_EVF));
 
     if (ini_file->Text.Length() >= 12)
-        reg_name += ini_file->Text.SubString(1, 12);
+        reg_name = ini_file->Text.SubString(1, 12);
 
     ReloadIni(this);
 }
 
 SerialKey::~SerialKey()
 {
-}
-
-int SerialKey::GetCounter(SerialKey *self)
-{
-    return self->counter;
-}
-
-void SerialKey::SetCounter(SerialKey *self, int value)
-{
-    self->counter = value;
-}
-
-bool SerialKey::IsValid(SerialKey *self)
-{
-    return self->valid;
-}
-
-String SerialKey::GetKeyBaseCopy(SerialKey *self)
-{
-    return self->key_base_copy;
-}
-
-String SerialKey::GetUnlockCode(SerialKey *self)
-{
-    return self->unlock_code;
-}
-
-String SerialKey::GetRegName(SerialKey *self)
-{
-    return self->reg_name;
 }
 
 void SerialKey::SetIniPath(SerialKey *self, String path)
@@ -108,11 +78,6 @@ void SerialKey::SetIniPath(SerialKey *self, String path)
     catch (...)
     {
     }
-}
-
-void SerialKey::ReloadIni(SerialKey *self)
-{
-    self->ini_file->Clear();
 }
 
 String SerialKey::ReadKey(SerialKey *self, String key, String default_value)
@@ -169,54 +134,37 @@ String SerialKey::ReadKey(SerialKey *self, String key, String default_value)
     return result;
 }
 
-String SerialKey::DecodeString(SerialKey *self, String src)
+void SerialKey::ReloadIni(SerialKey *self)
 {
-    String rev = "";
-    String result = "";
-    int parity = (src.Length() + 1) % 2;
-    for (int i = src.Length(); i >= 1; i--)
-        rev = rev + src[i];
-    for (int i = 1; i <= src.Length(); i++)
-    {
-        char ch = rev[i];
-        unsigned char c = ch;
-        int u = c;
-        if (i % 2 == parity)
-        {
-            if (0x22 <= u && u <= 0x7d)
-            {
-                u = 0x7d - u + 0x22;
-                c = u;
-                ch = c;
-                result = result + String(ch);
-            }
-            else
-                result = result + String(rev[i]);
-        }
-        else
-        {
-            bool done = false;
-            if (0x22 <= u && u <= 0x4f)
-            {
-                done = true;
-                u = 0x4f - u + 0x22;
-                c = u;
-                ch = c;
-                result = result + String(ch);
-            }
-            if (0x50 <= u && u <= 0x7d)
-            {
-                done = true;
-                u = 0x7d - u + 0x50;
-                c = u;
-                ch = c;
-                result = result + String(ch);
-            }
-            if (!done)
-                result = result + String(rev[i]);
-        }
-    }
+    self->ini_file->Clear();
+}
+
+String SerialKey::GetKeyBaseCopy(SerialKey *self)
+{
+    return self->key_base_copy;
+}
+
+String SerialKey::GetUnlockCode(SerialKey *self)
+{
+    return self->unlock_code;
+}
+
+String SerialKey::GetRegName(SerialKey *self)
+{
+    return self->reg_name;
+}
+
+String SerialKey::GetDisplayCode(SerialKey *self)
+{
+    String result = DecodeString(self, SERIAL_ENC_STR_NOT_LICENCED);
+    if (self->serial_code.Length() >= 1 && self->valid != 0)
+        result = self->serial_code;
     return result;
+}
+
+bool SerialKey::IsValid(SerialKey *self)
+{
+    return self->valid;
 }
 
 void SerialKey::Validate(SerialKey *self)
@@ -268,7 +216,7 @@ void SerialKey::Validate(SerialKey *self)
                               1000);
         String vs = volserial;
         if (vs.Length() >= 0x21)
-            vs += vs.SubString(1, 0x20);
+            vs = vs.SubString(1, 0x20);
         unsigned int char_sum = 0;
         for (int i = 1; i <= vs.Length(); i++)
             char_sum += (unsigned char)vs[i];
@@ -276,8 +224,8 @@ void SerialKey::Validate(SerialKey *self)
             char_sum += (unsigned char)self->serial_code[i];
         char_sum = vs.Length() * char_sum;
         char_sum = char_sum * 0x87;
-        self->key_base_copy += self->key_base;
-        self->key_base += IntToStr((int)char_sum);
+        self->key_base_copy = self->key_base;
+        self->key_base = IntToStr((int)char_sum);
 
         acc5 = 0x199;
         acc4 = 0x19b;
@@ -288,9 +236,9 @@ void SerialKey::Validate(SerialKey *self)
             acc4 += (unsigned char)self->key_base[i] / 0x11;
             acc3 += (unsigned char)self->key_base[i] % 0x12;
         }
-        c1 += IntToHex(acc5 * 2 % 100 << 5, 3);
-        c2 += IntToHex(acc4 * 0xb % 0x58 * 0x25, 3);
-        c3 += IntToHex(acc3 * 3 % 0x70 * 0x1f, 3);
+        c1 = IntToHex(acc5 * 2 % 100 << 5, 3);
+        c2 = IntToHex(acc4 * 0xb % 0x58 * 0x25, 3);
+        c3 = IntToHex(acc3 * 3 % 0x70 * 0x1f, 3);
         if (self->serial_code.Length() >= 0xf)
         {
             String u1 = self->unlock_code.SubString(5, 3);
@@ -302,10 +250,62 @@ void SerialKey::Validate(SerialKey *self)
     }
 }
 
-String SerialKey::GetDisplayCode(SerialKey *self)
+String SerialKey::DecodeString(SerialKey *self, String src)
 {
-    String result = DecodeString(self, SERIAL_ENC_STR_NOT_LICENCED);
-    if (self->serial_code.Length() >= 1 && self->valid != 0)
-        result = self->serial_code;
+    String rev = "";
+    String result = "";
+    int parity = (src.Length() + 1) % 2;
+    for (int i = src.Length(); i >= 1; i--)
+        rev = rev + src[i];
+    for (int i = 1; i <= src.Length(); i++)
+    {
+        char ch = rev[i];
+        unsigned char c = ch;
+        int u = c;
+        if (i % 2 == parity)
+        {
+            if (0x22 <= u && u <= 0x7d)
+            {
+                u = 0x7d - u + 0x22;
+                c = u;
+                ch = c;
+                result = result + String(ch);
+            }
+            else
+                result = result + String(rev[i]);
+        }
+        else
+        {
+            bool done = false;
+            if (0x22 <= u && u <= 0x4f)
+            {
+                done = true;
+                u = 0x4f - u + 0x22;
+                c = u;
+                ch = c;
+                result = result + String(ch);
+            }
+            if (0x50 <= u && u <= 0x7d)
+            {
+                done = true;
+                u = 0x7d - u + 0x50;
+                c = u;
+                ch = c;
+                result = result + String(ch);
+            }
+            if (!done)
+                result = result + String(rev[i]);
+        }
+    }
     return result;
+}
+
+int SerialKey::GetCounter(SerialKey *self)
+{
+    return self->counter;
+}
+
+void SerialKey::SetCounter(SerialKey *self, int value)
+{
+    self->counter = value;
 }

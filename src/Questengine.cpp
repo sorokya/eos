@@ -56,20 +56,6 @@ QuestContainer::~QuestContainer()
 {
 }
 
-void QuestContainer::RegisterAction(QuestContainer *self, int action_id, String name)
-{
-    QuestType entry(action_id, name);
-    self->action_names.insert(self->action_names.end(), entry);
-}
-
-void QuestContainer::RegisterCondition(QuestContainer *self,
-                                       int condition_id,
-                                       String name)
-{
-    QuestType entry(condition_id, name);
-    self->cond_names.insert(self->cond_names.end(), entry);
-}
-
 void QuestContainer::LoadQuests(QuestContainer *self)
 {
     self->quest_list.clear();
@@ -472,92 +458,11 @@ void QuestContainer::ParseToken(QuestContainer *self, Quest *quest, String token
     }
 }
 
-QuestState *QuestContainer::GetState(QuestContainer *self, int quest_id, int state_index)
+char QuestContainer::GetQuestLoaded(QuestContainer *self, int quest_id)
 {
     if (quest_id < 1 || self->quest_list.size() < (unsigned)quest_id)
-        return NULL;
-    if (state_index < 0 ||
-        self->quest_list[quest_id - 1]->states.size() <= (unsigned)state_index)
-        return NULL;
-    return self->quest_list[quest_id - 1]->states[state_index];
-}
-
-int QuestContainer::GetActionType(QuestContainer *self, String name)
-{
-    if (name.Length() < 3)
         return 0;
-
-    for (vector<QuestType>::iterator it = self->action_names.begin();
-         it != self->action_names.end();
-         ++it)
-    {
-        if (it->name == name)
-            return it->value;
-    }
-    return 0;
-}
-
-int QuestContainer::GetConditionType(QuestContainer *self, String name)
-{
-    if (name.Length() < 3)
-        return 0;
-
-    for (vector<QuestType>::iterator it = self->cond_names.begin();
-         it != self->cond_names.end();
-         ++it)
-    {
-        if (it->name == name)
-            return it->value;
-    }
-    return 0;
-}
-
-int QuestContainer::ParseInt(QuestContainer *self, String token)
-{
-    for (int i = 1; i <= token.Length(); i++)
-    {
-        if ((unsigned char)token[i] < '0' || (unsigned char)token[i] > '9')
-            return 0;
-    }
-    return StrToInt(token);
-}
-
-String QuestContainer::EncodeNumber(QuestContainer *self, unsigned int value, int width)
-{
-    int rem;
-    char c;
-    try
-    {
-        unsigned int quotient = 1;
-        bool leading = true;
-        for (int i = 0; i < width; i++)
-        {
-            if (leading)
-            {
-                double d = value / 253.0;
-                quotient = d;
-                rem = value % EO_NUM_MAX;
-                c = rem + 1;
-                ((char *)self->encode_scratch)[i] = c;
-                value = quotient;
-                if (quotient < 1)
-                    leading = false;
-                else if (i + 1 == width)
-                    width++;
-            }
-            else
-            {
-                char pad = EO_NUM_EMPTY;
-                ((char *)self->encode_scratch)[i] = pad;
-            }
-        }
-    }
-    catch (...)
-    {
-        width = 0;
-    }
-    String encoded_str((char *)self->encode_scratch, width);
-    return encoded_str;
+    return self->quest_list[quest_id - 1]->loaded;
 }
 
 int QuestContainer::GetQuestVersion(QuestContainer *self, int quest_id)
@@ -565,13 +470,6 @@ int QuestContainer::GetQuestVersion(QuestContainer *self, int quest_id)
     if (quest_id < 1 || self->quest_list.size() < (unsigned)quest_id)
         return 0;
     return self->quest_list[quest_id - 1]->version;
-}
-
-char QuestContainer::GetQuestLoaded(QuestContainer *self, int quest_id)
-{
-    if (quest_id < 1 || self->quest_list.size() < (unsigned)quest_id)
-        return 0;
-    return self->quest_list[quest_id - 1]->loaded;
 }
 
 String QuestContainer::GetQuestName(QuestContainer *self, int quest_id)
@@ -675,4 +573,106 @@ int QuestContainer::GetRuleValue2(QuestContainer *self,
             return *(short *)&(*it)->goto_state_index;
     }
     return -1;
+}
+
+QuestState *QuestContainer::GetState(QuestContainer *self, int quest_id, int state_index)
+{
+    if (quest_id < 1 || self->quest_list.size() < (unsigned)quest_id)
+        return NULL;
+    if (state_index < 0 ||
+        self->quest_list[quest_id - 1]->states.size() <= (unsigned)state_index)
+        return NULL;
+    return self->quest_list[quest_id - 1]->states[state_index];
+}
+
+void QuestContainer::RegisterAction(QuestContainer *self, int action_id, String name)
+{
+    QuestType entry(action_id, name);
+    self->action_names.insert(self->action_names.end(), entry);
+}
+
+void QuestContainer::RegisterCondition(QuestContainer *self,
+                                       int condition_id,
+                                       String name)
+{
+    QuestType entry(condition_id, name);
+    self->cond_names.insert(self->cond_names.end(), entry);
+}
+
+int QuestContainer::GetActionType(QuestContainer *self, String name)
+{
+    if (name.Length() < 3)
+        return 0;
+
+    for (vector<QuestType>::iterator it = self->action_names.begin();
+         it != self->action_names.end();
+         ++it)
+    {
+        if (it->name == name)
+            return it->value;
+    }
+    return 0;
+}
+
+int QuestContainer::GetConditionType(QuestContainer *self, String name)
+{
+    if (name.Length() < 3)
+        return 0;
+
+    for (vector<QuestType>::iterator it = self->cond_names.begin();
+         it != self->cond_names.end();
+         ++it)
+    {
+        if (it->name == name)
+            return it->value;
+    }
+    return 0;
+}
+
+int QuestContainer::ParseInt(QuestContainer *self, String token)
+{
+    for (int i = 1; i <= token.Length(); i++)
+    {
+        if ((unsigned char)token[i] < '0' || (unsigned char)token[i] > '9')
+            return 0;
+    }
+    return StrToInt(token);
+}
+
+String QuestContainer::EncodeNumber(QuestContainer *self, unsigned int value, int width)
+{
+    int rem;
+    char c;
+    try
+    {
+        unsigned int quotient = 1;
+        bool leading = true;
+        for (int i = 0; i < width; i++)
+        {
+            if (leading)
+            {
+                double d = value / 253.0;
+                quotient = d;
+                rem = value % EO_NUM_MAX;
+                c = rem + 1;
+                ((char *)self->encode_scratch)[i] = c;
+                value = quotient;
+                if (quotient < 1)
+                    leading = false;
+                else if (i + 1 == width)
+                    width++;
+            }
+            else
+            {
+                char pad = EO_NUM_EMPTY;
+                ((char *)self->encode_scratch)[i] = pad;
+            }
+        }
+    }
+    catch (...)
+    {
+        width = 0;
+    }
+    String encoded_str((char *)self->encode_scratch, width);
+    return encoded_str;
 }

@@ -15,12 +15,6 @@ Logins::Logins(mySQLdb *mysql)
     AddReservedName(this, "angel");
 }
 
-Logins::~Logins()
-{
-    delete login_list;
-    delete reserved_names;
-}
-
 void Logins::AddReservedName(Logins *self, String name)
 {
     Asocketvip *entry = new Asocketvip;
@@ -29,25 +23,10 @@ void Logins::AddReservedName(Logins *self, String name)
     self->reserved_names->Add(entry);
 }
 
-void Logins::AddLogin(Logins *self, String address)
+Logins::~Logins()
 {
-    Asocketblock *entry = new Asocketblock;
-    entry->address = address;
-    entry->count = 0x1e;
-    self->login_list->Add(entry);
-}
-
-void Logins::SetReservedName(Logins *self, String name, String ip)
-{
-    for (int i = 0; i < self->reserved_names->Count; i++)
-    {
-        Asocketvip *entry = (Asocketvip *)self->reserved_names->Items[i];
-        if (entry->name == name)
-        {
-            entry->value = ip;
-            break;
-        }
-    }
+    delete login_list;
+    delete reserved_names;
 }
 
 void Logins::Tick(Logins *self)
@@ -102,6 +81,27 @@ bool Logins::HandleAddress(Logins *self, String address)
     }
 
     return is_new;
+}
+
+void Logins::AddLogin(Logins *self, String address)
+{
+    Asocketblock *entry = new Asocketblock;
+    entry->address = address;
+    entry->count = 0x1e;
+    self->login_list->Add(entry);
+}
+
+void Logins::SetReservedName(Logins *self, String name, String ip)
+{
+    for (int i = 0; i < self->reserved_names->Count; i++)
+    {
+        Asocketvip *entry = (Asocketvip *)self->reserved_names->Items[i];
+        if (entry->name == name)
+        {
+            entry->value = ip;
+            break;
+        }
+    }
 }
 
 bool Logins::ConnectionLog_CheckIP(String ip)

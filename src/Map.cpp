@@ -5,7 +5,7 @@
 
 #pragma package(smart_init)
 
-ChestItem::ChestItem(int map_id, int width, int height)
+MapItem::MapItem(int map_id, int width, int height)
 {
     rid = map_id;
     this->width = width;
@@ -37,6 +37,6 @@ ChestItem::ChestItem(int map_id, int width, int height)
     chest_list.clear();
 }
 
-ChestItem::~ChestItem()
+MapItem::~MapItem()
 {
 }

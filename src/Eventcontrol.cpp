@@ -27,47 +27,9 @@ EventController::~EventController()
 {
 }
 
-String EventController::EncodeNumber(EventController *self, unsigned int value, int width)
-{
-    int rem;
-    char c;
-    try
-    {
-        unsigned int quotient = 1;
-        bool flag = true;
-        for (int i = 0; i < width; i++)
-        {
-            if (flag)
-            {
-                double d = value / 253.0;
-                quotient = d;
-                rem = value % EO_NUM_MAX;
-                c = rem + 1;
-                self->pEncode_scratch[i] = c;
-                value = quotient;
-                if (quotient < 1)
-                    flag = false;
-                else if (i + 1 == width)
-                    width++;
-            }
-            else
-            {
-                char pad = EO_NUM_EMPTY;
-                self->pEncode_scratch[i] = pad;
-            }
-        }
-    }
-    catch (...)
-    {
-        width = 0;
-    }
-    String encoded_str(self->pEncode_scratch, width);
-    return encoded_str;
-}
-
 void EventController::Tick(EventController *self)
 {
-    for (ChestItem *map_iter = self->map_control->maps.begin();
+    for (MapItem *map_iter = self->map_control->maps.begin();
          map_iter != self->map_control->maps.end();
          map_iter++)
     {
@@ -189,4 +151,42 @@ void EventController::Tick(EventController *self)
             }
         }
     }
+}
+
+String EventController::EncodeNumber(EventController *self, unsigned int value, int width)
+{
+    int rem;
+    char c;
+    try
+    {
+        unsigned int quotient = 1;
+        bool flag = true;
+        for (int i = 0; i < width; i++)
+        {
+            if (flag)
+            {
+                double d = value / 253.0;
+                quotient = d;
+                rem = value % EO_NUM_MAX;
+                c = rem + 1;
+                self->pEncode_scratch[i] = c;
+                value = quotient;
+                if (quotient < 1)
+                    flag = false;
+                else if (i + 1 == width)
+                    width++;
+            }
+            else
+            {
+                char pad = EO_NUM_EMPTY;
+                self->pEncode_scratch[i] = pad;
+            }
+        }
+    }
+    catch (...)
+    {
+        width = 0;
+    }
+    String encoded_str(self->pEncode_scratch, width);
+    return encoded_str;
 }

@@ -35,7 +35,7 @@ void InnValues::LoadInns(InnValues *self)
             buf = new char[size + 1];
             FileRead(file_handle, buf, size);
             FileClose(file_handle);
-            data += buf;
+            data = buf;
             data.SetLength(size);
             delete[] buf;
             if (data[1] != 'E' || data[2] != 'I' || data[3] != 'D')

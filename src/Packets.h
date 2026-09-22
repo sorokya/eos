@@ -16,7 +16,7 @@
 
 // Cross-unit operations this unit defines as free functions; the controllers
 // and Mainform reference these exact mangled names.
-ChestItem *Mapcontrol_GetByIndex(MapContainer *map_control, int index);
+MapItem *Mapcontrol_GetByIndex(MapContainer *map_control, int index);
 void Game_Tick(Packets *server);
 void Server_ClientRead(Packets *server, TCustomWinSocket *socket, String data);
 void Server_Shutdown(Packets *server);

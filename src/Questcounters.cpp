@@ -83,7 +83,7 @@ void QuestCounters::Save(QuestCounters *self)
 
 int QuestCounters::RecordCompletion(QuestCounters *self, String name, int quest_id)
 {
-    name += name.LowerCase();
+    name = name.LowerCase();
     // Verified fidelity fact: the reference computes and clamps this bucket
     // index (name[1] - 'a' to [0,26]) and discards it; the lookup is the
     // linear quest_id scan below.
@@ -110,7 +110,7 @@ int QuestCounters::GetCompletionCount(QuestCounters *self,
                                       String player_name,
                                       int quest_id)
 {
-    player_name += player_name.LowerCase();
+    player_name = player_name.LowerCase();
     // Same verified dead bucket computation as RecordCompletion.
     int bucket = player_name[1] - 'a';
     if (bucket < 0 || bucket > 26)

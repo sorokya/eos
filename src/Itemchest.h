@@ -1,13 +1,14 @@
 #ifndef ItemchestH
 #define ItemchestH
 
-// The class defined by the Itemchest unit is MapItem: the reference RTTI
-// type-name table carries `vector<MapItem,...>` for the vector that
-// MapChest holds, and the Itemchest unit exports `@@Itemchest@Initialize`.
+// The class defined by the Itemchest unit is ChestItem: the reference emits
+// `vector<ChestItem,allocator<ChestItem> > *` inside its Mapchest module, so
+// that is the element type MapChest holds, and the Itemchest unit exports
+// `@@Itemchest@Initialize`.
 // Layout recovered from those field accesses in ChestController::Tick
 // (0x4b5594) and the element size 0x2c pinned by the vector grow code at
 // 0x4077f4.
-struct MapItem
+struct ChestItem
 {
     int item_id;                  // +0x00
     int amount;                   // +0x04
@@ -24,8 +25,8 @@ struct MapItem
     int alt_amount2;              // +0x24
     int alt_amount3;              // +0x28
 
-    MapItem(int item_id);
-    ~MapItem();
+    ChestItem(int item_id);
+    ~ChestItem();
 };
 
 #endif

@@ -33,45 +33,6 @@ EffectController::~EffectController()
 {
 }
 
-String
-EffectController::EncodeNumber(EffectController *self, unsigned int value, int width)
-{
-    int rem;
-    char c;
-    try
-    {
-        unsigned int quotient = 1;
-        bool flag = true;
-        for (int i = 0; i < width; i++)
-        {
-            if (flag)
-            {
-                double d = value / 253.0;
-                quotient = d;
-                rem = value % EO_NUM_MAX;
-                c = rem + 1;
-                self->pEncode_scratch[i] = c;
-                value = quotient;
-                if (quotient < 1)
-                    flag = false;
-                else if (i + 1 == width)
-                    width++;
-            }
-            else
-            {
-                char pad = EO_NUM_EMPTY;
-                self->pEncode_scratch[i] = pad;
-            }
-        }
-    }
-    catch (...)
-    {
-        width = 0;
-    }
-    String encoded_str(self->pEncode_scratch, width);
-    return encoded_str;
-}
-
 void EffectController::Tick(EffectController *self)
 {
     for (int countdown_slot = 0; countdown_slot < 4; countdown_slot++)
@@ -121,7 +82,7 @@ void EffectController::Tick(EffectController *self)
                         ->hp_drain_others_sent != 0)
                 {
                     Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                        ->hp_drain_others += "";
+                        ->hp_drain_others = "";
                     Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
                         ->hp_drain_others_sent = 0;
                 }
@@ -202,7 +163,7 @@ void EffectController::Tick(EffectController *self)
                                        PacketAction_Spec,
                                        PacketFamily_Effect,
                                        pkt);
-                    pkt += EncodeNumber(self, (*player_iter)->player_id, 2);
+                    pkt = EncodeNumber(self, (*player_iter)->player_id, 2);
                     pkt.Insert(EncodeNumber(self, Player::HpPercent(*player_iter), 1),
                                pkt.Length() + 1);
                     pkt.Insert(EncodeNumber(self, died, 1), pkt.Length() + 1);
@@ -280,4 +241,43 @@ void EffectController::Tick(EffectController *self)
     }
     if (self->nBroadcast_gate < 1)
         self->nBroadcast_gate = 10;
+}
+
+String
+EffectController::EncodeNumber(EffectController *self, unsigned int value, int width)
+{
+    int rem;
+    char c;
+    try
+    {
+        unsigned int quotient = 1;
+        bool flag = true;
+        for (int i = 0; i < width; i++)
+        {
+            if (flag)
+            {
+                double d = value / 253.0;
+                quotient = d;
+                rem = value % EO_NUM_MAX;
+                c = rem + 1;
+                self->pEncode_scratch[i] = c;
+                value = quotient;
+                if (quotient < 1)
+                    flag = false;
+                else if (i + 1 == width)
+                    width++;
+            }
+            else
+            {
+                char pad = EO_NUM_EMPTY;
+                self->pEncode_scratch[i] = pad;
+            }
+        }
+    }
+    catch (...)
+    {
+        width = 0;
+    }
+    String encoded_str(self->pEncode_scratch, width);
+    return encoded_str;
 }

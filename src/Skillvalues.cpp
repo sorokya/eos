@@ -6,6 +6,16 @@
 
 #pragma package(smart_init)
 
+SkillValues::SkillValues()
+{
+    field_0x18 = operator new(8);
+    field_0x3c = -1;
+    loaded = 0;
+    file_id = 0;
+    string_list = new TStringList;
+    LoadSpells(this);
+}
+
 SkillValues::~SkillValues()
 {
 }
@@ -38,7 +48,7 @@ void SkillValues::LoadSpells(SkillValues *self)
                 buf = new char[size + 1];
                 FileRead(file_handle, buf, size);
                 FileClose(file_handle);
-                data += buf;
+                data = buf;
                 data.SetLength(size);
                 delete[] buf;
                 if (data[1] != 'E' || data[2] != 'S' || data[3] != 'F')
@@ -181,21 +191,6 @@ void SkillValues::AddRecord(SkillValues *self,
     self->record_list.insert(self->record_list.end(), v);
 }
 
-SkillValues::SkillValues()
-{
-    field_0x18 = operator new(8);
-    field_0x3c = -1;
-    loaded = 0;
-    file_id = 0;
-    string_list = new TStringList;
-    LoadSpells(this);
-}
-
-int SkillValues::GetCount()
-{
-    return record_list.size();
-}
-
 SkillDamage SkillValues::GetDamage(SkillValues *self, int skill_id)
 {
     SkillDamage result;
@@ -302,6 +297,11 @@ int SkillValues::GetCastTime(SkillValues *self, int skill_id)
         it++;
     }
     return result;
+}
+
+int SkillValues::GetCount()
+{
+    return record_list.size();
 }
 
 int SkillValues::DecodeNumber(String value)

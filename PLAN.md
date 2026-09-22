@@ -798,36 +798,125 @@ section), reference vs rebuild:
 
 | section | reference | rebuild | delta |
 | --- | --- | --- | --- |
-| `.text` | 1,414,336 | 1,414,356 | **+20** |
-| `.data` | 199,507 | 199,491 | **-16** |
+| `.text` | 1,414,336 | 1,414,336 | **0** |
+| `.data` | 199,507 | 199,503 | **-4** |
 | `.tls` | — | — | byte-identical |
 | `.rsrc` | — | — | byte-identical |
-| `.reloc` | 75,316 | 75,320 | +4 |
+| `.reloc` | 75,316 | 75,296 | -20 |
 
 `.reloc` is a derived quantity: its size follows how the `.text`/`.data` content
 falls across 4 KB relocation blocks, so it moves on its own and is not an
 independent signal. At the start of this pass the figures were `.text` +548,
 `.data` +48, `.reloc` +32; at the end of the COMDAT pass they were `.text` -16,
-`.data` -16, `.reloc` -8.
+`.data` -16, `.reloc` -8; then `.text` +20 / `.data` -16 until the four fixes
+below closed the size gap.
 
-Per-module starts (`scripts/unitmap.py --map` object starts vs
-`analysis/target/modules.tsv`), the whole application is now **address-aligned**
-with the reference: every unit from `Players` to `Weaponmap` and from
-`Effectcontrol` to `Questcounters` starts at its reference RVA. The remaining
-`.text` difference is entirely the statically-linked library tail:
+`.text` is now the reference's size and every module — application unit and
+library member alike — starts at its reference RVA (`scripts/libcompare.py`
+finds each of our modules at its reference address; `make layout` reports 65/65
+units matched with zero delta). Four size errors were closed:
 
-- **Mainform +4.** See "Mainform emission order" below. The module's size is
-  now within 4 bytes of the reference and every application function is in the
-  reference's order; the only residual is the position of one
-  compiler-generated COMDAT.
-- **Mapchest -4.** Seven functions on both sides, identical bodies, no count
-  mismatch; a 4-byte descriptor/padding difference.
-- **library tail +20** (everything after the last unit module, `0x541e84`
-  onward). A library-member difference, not a source one. The `Banned`-adjacent
-  VCL/BDE block (`vclbde50`/`vcl50`) is the visibly displaced part.
+1. **`AnsiString::operator+=` was linked and the reference never links it**
+   (`.text` +20). 44 call sites spelled `x += y` where the reference calls
+   `AnsiString::operator=`. The two are 20-byte thunks with identical bodies
+   apart from the callee (`@LStrCat` at `0x528d68` vs `@LStrAsg` at `0x528b0c`),
+   so the *caller* is byte-identical either way and `funcdiff`'s relocation mask
+   hides the difference — the only observable is the extra `vcle50|dstring`
+   COMDAT at the end of `.text`. Every one of the 44 reads better as an
+   assignment (`name = name.LowerCase()`, `remote_ip = socket->RemoteAddress`,
+   `data = buf` before `data.SetLength(size)`).
+2. **`MapItem` and `ChestItem` were swapped** (`Mainform` +4, `Mapchest` -4).
+   `make typenames` pairs every `__tpdsc__` name with the module that owns it:
+   the reference emits `vector<ChestItem,allocator<ChestItem> > *` inside its
+   **Mapchest** module and `vector<MapItem,...> *` inside **Mapcontrol**, and
+   the bare `ChestItem`/`ChestItem *` descriptors in Mapcontrol against
+   `MapItem`/`MapItem *` in Mainform. We had both pairs the other way round.
+   The names are two characters apart, so the swap is `+4` in one module and
+   `-4` in the other; renaming (`Itemchest` defines `ChestItem`, `Map` defines
+   `MapItem` — which is also what the unit names say) fixed both at once.
+3. **Two unreferenced string literals in `Learnvalues`** (`.data` -16). The
+   reference's `Learnvalues` literal pool is
+   `"./pub/dsm001.emf"`, `"EMF"`, `"dsm001.emf"` and **nothing in the image
+   references the last two** — the signature of a function the linker dropped
+   as an unreferenced COMDAT while its literals, which live in the unit's plain
+   `_DATA`, stayed. `Learnvalues_FileInfo` reproduces that; only the literals
+   and their order are observable, not the function they came from (the same
+   situation as `NpcValues::ClearDrops`, above).
+4. **The `MAINFORM` indirection slot** (`.data` -4). `Mainform.cpp` defined
+   `TGUI **MAINFORM = &GUI` and every unit went through it. The reference has
+   only the *package* indirection slot that `extern PACKAGE TGUI *GUI` produces,
+   a linker communal in the `<internal>` block at `0x58b60c`; `GUI->x` and
+   `(*MAINFORM)->x` compile to the same instructions, so this too was invisible
+   to `funcdiff`. All 256 uses are now `GUI->`.
 
-`make verify` is 499/499 and `make funcdiff` reports one differing reference
-function (`Party_ShareExp`, a byte difference at the same size).
+`make funcdiff` reports one differing reference function (`Party_ShareExp`, a
+byte difference at the same size) and `make track` is 2005/2006.
+
+### The project main unit (`src/GameServer.cpp`)
+
+The reference's first module is `WinMain` at `0x4012c0`, immediately followed by
+the `Exception` RTTI group — the `Exception &` and `Sysutils::Exception` type
+descriptors, `Sysutils::Exception::~Exception` (`0x4013c0`), and the
+`System::TObject`, `System::AnsiString` and `Exception *` descriptors — with the
+`TGUI` constructor only at `0x4014e0`. bcc32 flushes that group at *end of
+translation unit*, so it can only land there if `WinMain` is the last (here: the
+only) function in its TU: `WinMain` belongs to the BCB project file, a separate
+object linked between `sysinit.obj` and `Mainform.obj`. `ilink32` does not
+reorder across objects — moving `WinMain` to the end of `Mainform.cpp` moves its
+code to the end of the module — so the split is the only arrangement that works.
+
+Three details of that unit are observable:
+
+- **No `#pragma package(smart_init)`.** With it, bcc32 emits a
+  `GUI@Initialize`/`GUI@Finalize` pair (2 × 16 bytes) right after the RTTI group
+  and pushes the `TGUI` constructor to `0x401500`. The reference's export table
+  has no such pair (133 exports, identical names on both sides). Real BCB
+  project files carry no `smart_init` either.
+- **`USEFORM`, not `#include "Mainform.h"`.** `USEFORM(File, Name)` expands
+  (`Include/Vcl/sysclass.h:169`) to just `class DELPHICLASS TName; extern PACKAGE
+  TName *Name;` — a forward declaration, which is all `__classid(TGUI)` and
+  `&GUI` need. Including `Mainform.h` instead compiles to the same `WinMain`
+  bytes but drags ~50 unit headers in as `COMENT` class `0xE9` dependency
+  records, and `ilink32` then lays the whole `cp32mt.lib` block inline after
+  `DbConsts` — 182 members, ~96 KB before its reference position.
+- **The object's *name* is observable too.** Byte-identical objects differing
+  only in their module name produce different layouts: named `GUI.obj` — the
+  name of the exported form variable — `ilink32` pulls `cp32mt.lib` inline after
+  `DbConsts`; under any other name the block stays at its reference position
+  (`0x541ea4`). `GameServer.obj` is the name a BCB project for `GameServer.exe`
+  would produce.
+
+### Within-module function order
+
+`make orderdiff` (new) compares each module's internal function order, which no
+existing check could see: `funcdiff` walks reference → rebuild and asks whether
+the bytes exist *somewhere*, and `make layout` compares module *starts*. Every
+function can be byte-exact and every module can start at its reference RVA while
+one module's functions sit in a different order — and that moves every byte of
+the module plus every pointer into it. When first run it reported **28 of 65
+units out of order**, `Packets` and `Players` among them (our `Packets.obj`
+began with `Player_HandlePacket`, the reference's with the `Packets`
+constructor). That is what the bulk of the residual `.text` byte difference is.
+
+`scripts/reorder_unit.py` rewrites a unit's source into the reference order. It
+ties each definition to its mangled name through the `?debug L` markers in the
+unit's `bcc32 -S` listing (no signature parsing), moves whole definitions only,
+and pins everything that is not a function definition. Two source-level
+consequences: `Packets.cpp` needs forward declarations for its free functions
+once definitions move above their callers, and `Players.cpp`'s multi-line
+`#define`s had to be hoisted above the functions that expand them.
+
+Caveats worth knowing before continuing this work:
+
+- The tool ranks a definition by the reference position of the *author-written*
+  symbol it defines (template instantiations and RTL/VCL namespace members share
+  the definition's line numbers and must not be mistaken for it). For a few
+  units the only reference-named symbol in a definition is a compiler COMDAT and
+  the plan can oscillate between two orders — run it repeatedly and keep the
+  state that measures best.
+- The residual after several passes is mostly compiler-generated container
+  COMDATs, whose order follows the order of *statements* inside a function, not
+  the order of the functions; those cannot be fixed by moving definitions.
 
 ### Mainform emission order
 
@@ -867,27 +956,25 @@ reference's order and with the reference's relative sizes; `WinMain` sits at
 its reference address (`0x4012c0`), but every function after it is `0x184` bytes
 early because the compiler-generated COMDAT below lands late -- see below.
 
-**Residual: the `Exception` deleting-destructor COMDAT.** The reference emits
+**Resolved: the `Exception` deleting-destructor COMDAT.** The reference emits
 `@Sysutils@Exception@$bdtr$qqrv` (106 bytes) immediately after `WinMain`
-(`0x4013c0`), because its `catch (Exception &exception)` pulls it while
-`WinMain` is compiled. In our single `Mainform.obj` the same COMDAT is emitted
-late (`0x404374`), so the `TGUI` constructor and everything after it sit
-`0x184` bytes earlier than the reference, even though the module total is only
-4 bytes out. Splitting `WinMain` + `MAINFORM` into a separate project-main unit
-(`GUI.cpp`, linked between `sysinit.obj` and `Mainform.obj`, as PLAN already
-records) reproduces the reference's *exact* `Mainform` order -- `WinMain`,
-`Exception` dtor, `TGUI` ctor, `TForm` ctor, `FormCreate`, ... -- but perturbed
-`ilink32`'s VCL/BDE member placement (the `vcldb` block moved, shifting
-`Itemchest` onward by ~96 KB). That variant is therefore not adopted; the
-residual is left for a link-line investigation. `.data` has the same shape: our
-`Mainform` contribution now orders the EH tables before the literals like the
-reference, but the 4-byte `MAINFORM` pointer (`TGUI **MAINFORM = &GUI`) sits in
-front of them at `0x764` where the reference keeps it at `0x58b60c`.
+(`0x4013c0`); in our single `Mainform.obj` the same COMDAT came out at
+`0x404374`, putting the `TGUI` constructor and everything after it `0x184` bytes
+early. The cause is that bcc32 flushes that RTTI group at end of translation
+unit, so `WinMain` has to be the only function in its TU -- see "The project
+main unit (`src/GameServer.cpp`)" above, which also records why the split must
+not include `Mainform.h`, must not carry `#pragma package(smart_init)`, and must
+not be called `GUI.obj`. With it, `WinMain`, the `Exception` dtor, the `TGUI`
+constructor, the `TForm` constructor and `FormCreate` all sit at their exact
+reference addresses (`0x4012c0`, `0x4013c0`, `0x4014e0`, `0x40155c`,
+`0x4015c8`). The `MAINFORM` slot went with it: the reference's is the package
+communal `extern PACKAGE TGUI *GUI` produces, at `0x58b60c`.
 
-**Harness gap.** `scripts/unitmap.py`'s `emit_units` should give the first unit
-its true start (`0x401000`, or `0x4012b8`) so `Mainform` enters
-`functions.tsv`; until then any `Mainform` regression is invisible to both
-`make verify` and `make funcdiff`.
+**Harness gap (closed).** `scripts/unitmap.py`'s `emit_units` still gives the
+first unit an empty `prev_finalize_end`, but `Mainform` is now in
+`analysis/target/functions.tsv` and `make orderdiff` checks the within-module
+order of every unit, so neither a `Mainform` regression nor a reordering inside
+any other module is invisible any more.
 
 ## COMDAT ownership: what the residual `.text` size difference was made of
 

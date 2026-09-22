@@ -19,7 +19,7 @@
 #define MAP_QUEST_COOLDOWN 10
 #define MAP_GROUND_ITEM_MAX 9
 
-bool Mapcontrol_ParseMapFile(MapContainer *self, ChestItem *map, int map_id);
+bool Mapcontrol_ParseMapFile(MapContainer *self, MapItem *map, int map_id);
 
 MapContainer::MapContainer(Settings *settings)
 {
@@ -38,269 +38,6 @@ MapContainer::MapContainer(Settings *settings)
 
 MapContainer::~MapContainer()
 {
-}
-
-int MapContainer::Mapcontrol_GetWarpMap(MapContainer *self, int map_id, int x, int y)
-{
-    int result = 0;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
-        {
-            for (vector<MapWarp>::iterator warp_iter =
-                     Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
-                 warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
-                 warp_iter++)
-            {
-                if (warp_iter->from_x == x && warp_iter->from_y == y)
-                {
-                    result = warp_iter->dest_map;
-                    break;
-                }
-            }
-        }
-    }
-    return result;
-}
-
-int MapContainer::Mapcontrol_GetWarpLevelReq(MapContainer *self, int map_id, int x, int y)
-{
-    int result = 1000;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<MapWarp>::iterator warp_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
-             warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
-             warp_iter++)
-        {
-            if (warp_iter->from_x == x && warp_iter->from_y == y)
-            {
-                result = warp_iter->level;
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-int MapContainer::Mapcontrol_GetWarpX(MapContainer *self, int map_id, int x, int y)
-{
-    int result = 1000;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<MapWarp>::iterator warp_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
-             warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
-             warp_iter++)
-        {
-            if (warp_iter->from_x == x && warp_iter->from_y == y)
-            {
-                result = warp_iter->to_x;
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-int MapContainer::Mapcontrol_GetWarpY(MapContainer *self, int map_id, int x, int y)
-{
-    int result = 1000;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<MapWarp>::iterator warp_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
-             warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
-             warp_iter++)
-        {
-            if (warp_iter->from_x == x && warp_iter->from_y == y)
-            {
-                result = warp_iter->to_y;
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-unsigned int
-MapContainer::Mapcontrol_GetTileSpec(MapContainer *self, int map_id, int x, int y)
-{
-    unsigned int result = 0xffffffff;
-    for (vector<MapObject>::iterator spec_iter =
-             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-         spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
-         spec_iter++)
-    {
-        if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
-        {
-            result = (unsigned short)spec_iter->value;
-            break;
-        }
-    }
-    return result;
-}
-
-bool MapContainer::Mapcontrol_IsOccupied(MapContainer *self, int map_id, int x, int y)
-{
-    bool result = false;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
-             npc_iter++)
-        {
-            if ((*npc_iter)->x == x && (*npc_iter)->y == y && (*npc_iter)->alive != false)
-            {
-                result = true;
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-bool MapContainer::Mapcontrol_IsTileClear(MapContainer *self, int map_id, int x, int y)
-{
-    bool result = true;
-    if (map_id > 0 && (int)self->maps.size() >= map_id)
-    {
-        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
-        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
-            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
-        {
-            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
-            {
-                if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
-                    result = false;
-            }
-            else
-            {
-                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
-                    result = false;
-            }
-        }
-        else
-        {
-            result = false;
-        }
-    }
-    return result;
-}
-
-bool MapContainer::Mapcontrol_IsTileWalkable(MapContainer *self, int map_id, int x, int y)
-{
-    bool result = false;
-    if (map_id > 0 && (int)self->maps.size() >= map_id)
-    {
-        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
-        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
-            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
-        {
-            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
-            {
-                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
-                {
-                    result = true;
-                }
-                else
-                {
-                    for (vector<MapObject>::iterator spec_iter =
-                             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-                         spec_iter !=
-                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
-                         spec_iter++)
-                    {
-                        if ((unsigned short)spec_iter->x == x &&
-                            (unsigned short)spec_iter->y == y)
-                        {
-                            if ((unsigned short)spec_iter->value ==
-                                    MapTileSpec_Reserved10 ||
-                                (unsigned short)spec_iter->value ==
-                                    MapTileSpec_Reserved11)
-                                result = true;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return result;
-}
-
-int MapContainer::Mapcontrol_IsWalkableNPC(
-    MapContainer *self, int map_id, int x, int y, char ignore_spec_block)
-{
-    int result = 1;
-    if (map_id > 0 && (int)self->maps.size() >= map_id)
-    {
-        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
-        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
-            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
-        {
-            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
-            {
-                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
-                {
-                    result = 2;
-                }
-                else
-                {
-                    result = 1;
-                    for (vector<MapObject>::iterator spec_iter =
-                             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-                         spec_iter !=
-                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
-                         spec_iter++)
-                    {
-                        if ((unsigned short)spec_iter->x == x &&
-                            (unsigned short)spec_iter->y == y)
-                        {
-                            if ((unsigned short)spec_iter->value == MapTileSpec_Chest)
-                                result = 0;
-                            if ((unsigned short)spec_iter->value ==
-                                MapTileSpec_Reserved11)
-                                result = 2;
-                            if ((unsigned short)spec_iter->value != MapTileSpec_BankVault)
-                                break;
-                            if (ignore_spec_block != 0)
-                                result = 0;
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
-                    result = 1;
-                else
-                    result = 0;
-            }
-        }
-    }
-    return result;
-}
-
-void MapContainer::Mapcontrol_IncPlayerCount(MapContainer *self, int map_id)
-{
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        Mapcontrol_GetByIndex(self, map_id - 1)->player_count++;
-        Mapcontrol_GetByIndex(self, map_id - 1)->npc_act_ticks = 0xca;
-    }
-}
-
-void MapContainer::Mapcontrol_DecPlayerCount(MapContainer *self, int map_id)
-{
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->player_count > 0)
-            Mapcontrol_GetByIndex(self, map_id - 1)->player_count--;
-    }
 }
 
 void MapContainer::Mapcontrol_SetArenaBlock(MapContainer *self, int map_id, int block)
@@ -324,105 +61,8 @@ void Mapcontrol_AddArenaSpawn(
     }
 }
 
-void MapContainer::Mapcontrol_SetTileBits(
-    MapContainer *self, ChestItem *map, int x, int y, int code)
-{
-    int tile_offset = x * 2 + map->width * 2 * y;
-    if (code == 0)
-    {
-        map->tile_bits[tile_offset] = 0;
-        map->tile_bits[tile_offset + 1] = 0;
-    }
-    if (code == 1)
-    {
-        map->tile_bits[tile_offset] = 0;
-        map->tile_bits[tile_offset + 1] = 1;
-    }
-    if (code == 2)
-    {
-        map->tile_bits[tile_offset] = 1;
-        map->tile_bits[tile_offset + 1] = 0;
-    }
-    if (code == 3)
-    {
-        map->tile_bits[tile_offset] = 1;
-        map->tile_bits[tile_offset + 1] = 1;
-    }
-}
-
-int MapContainer::Mapcontrol_CountNpcsChasingPlayer(MapContainer *self,
-                                                    int map_id,
-                                                    int player_id)
-{
-    int chase_count = 0;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
-             npc_iter++)
-        {
-            if ((*npc_iter)->chase_target_id == player_id)
-                chase_count++;
-        }
-    }
-    return chase_count;
-}
-
-bool MapContainer::Mapcontrol_AggroChildNpcs(MapContainer *self, int map_id)
-{
-    bool found_child = false;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        TDateTime now = Now();
-        for (vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
-             npc_iter++)
-        {
-            if ((unsigned short)(*npc_iter)->child > 0)
-            {
-                (*npc_iter)->aggressive = true;
-                found_child = true;
-            }
-        }
-    }
-    return found_child;
-}
-
-bool MapContainer::Mapcontrol_KillChildNpcs(MapContainer *self, int map_id)
-{
-    bool found_child = false;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        Mapcontrol_GetByIndex(self, map_id - 1)->boss_alive = false;
-        TDateTime now = Now();
-        for (vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
-             npc_iter++)
-        {
-            if ((unsigned short)(*npc_iter)->child > 0)
-            {
-                (*npc_iter)->nDeath_ms = DateTimeToTimeStamp(now);
-                (*npc_iter)->alive = false;
-                (*npc_iter)->aggressive = false;
-                found_child = true;
-            }
-        }
-    }
-    return found_child;
-}
-
-void MapContainer::Mapcontrol_AddTileSpec(
-    MapContainer *self, ChestItem *map, int x, int y, int spec)
-{
-    MapObject value(x, y, spec);
-    map->tile_specs.insert(map->tile_specs.end(), value);
-}
-
 void MapContainer::Mapcontrol_AddWarp(MapContainer *self,
-                                      ChestItem *map,
+                                      MapItem *map,
                                       int x,
                                       int y,
                                       int dest_map,
@@ -434,918 +74,7 @@ void MapContainer::Mapcontrol_AddWarp(MapContainer *self,
     map->warp_list.insert(map->warp_list.end(), value);
 }
 
-void MapContainer::Mapcontrol_AddLockKey(
-    MapContainer *self, ChestItem *map, unsigned int x, unsigned int y, int key_id)
-{
-    bool found = false;
-    for (vector<MapObject>::iterator lock_iter = map->legacy_door_key_list.begin();
-         lock_iter != map->legacy_door_key_list.end();
-         lock_iter++)
-    {
-        if ((unsigned short)lock_iter->x == x && (unsigned short)lock_iter->y == y)
-        {
-            lock_iter->value = key_id;
-            found = true;
-            break;
-        }
-    }
-    if (!found)
-    {
-        MapObject value(x, y, key_id);
-        map->legacy_door_key_list.insert(map->legacy_door_key_list.end(), value);
-    }
-}
-
-void MapContainer::Mapcontrol_GetOrCreateChest(MapContainer *self,
-                                               ChestItem *map,
-                                               unsigned int x,
-                                               unsigned int y)
-{
-    bool found = false;
-    for (vector<MapChest>::iterator chest_iter = map->chest_list.begin();
-         chest_iter != map->chest_list.end();
-         chest_iter++)
-    {
-        if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
-        {
-            found = true;
-            break;
-        }
-    }
-    if (!found)
-    {
-        MapChest value(x, y, 0);
-        map->chest_list.insert(map->chest_list.end(), value);
-    }
-}
-
-unsigned char MapContainer::Mapcontrol_ToggleDoor(MapContainer *self,
-                                                  int map_id,
-                                                  unsigned int x,
-                                                  unsigned int y)
-{
-    unsigned char result = 0;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<MapObject>::iterator spec_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-             spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
-             spec_iter++)
-        {
-            if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
-            {
-                if (((unsigned short)spec_iter->value == MapTileSpec_Chest ||
-                     (unsigned short)spec_iter->value == MapTileSpec_Reserved11) &&
-                    (unsigned short)spec_iter->ticks != 2)
-                {
-                    spec_iter->ticks = 2;
-                    result = 1;
-                }
-                if ((unsigned short)spec_iter->value == MapTileSpec_ChairAll)
-                {
-                    result = 1;
-                    Mapcontrol_GetByIndex(self, map_id - 1)->has_open_doors = 1;
-                    spec_iter->value = MapTileSpec_Chest;
-                    spec_iter->ticks = 2;
-                }
-                if ((unsigned short)spec_iter->value == MapTileSpec_Reserved10)
-                {
-                    result = 1;
-                    Mapcontrol_GetByIndex(self, map_id - 1)->has_open_doors = 1;
-                    spec_iter->value = MapTileSpec_Reserved11;
-                    spec_iter->ticks = 2;
-                }
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-int MapContainer::Mapcontrol_GetWarpDoorAt(MapContainer *self,
-                                           int map_id,
-                                           MapCoord coords)
-{
-    int result = 0;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<MapObject>::iterator door_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.begin();
-             door_iter !=
-             Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.end();
-             door_iter++)
-        {
-            if ((unsigned short)door_iter->x == coords.x &&
-                (unsigned short)door_iter->y == coords.y)
-            {
-                result = (unsigned short)door_iter->value;
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-int MapContainer::Mapcontrol_GetChestSlotCount(MapContainer *self,
-                                               int map_id,
-                                               MapCoord coords)
-{
-    int result = -1;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<MapChest>::iterator chest_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
-             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
-             chest_iter++)
-        {
-            if ((unsigned short)chest_iter->x == coords.x &&
-                (unsigned short)chest_iter->y == coords.y)
-            {
-                result = chest_iter->slots.size();
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-void MapContainer::Mapcontrol_AddChestSpawn(MapContainer *self,
-                                            ChestItem *map,
-                                            unsigned int x,
-                                            unsigned int y,
-                                            int key_id,
-                                            int slot,
-                                            int item_id,
-                                            int spawn_time,
-                                            int amount)
-{
-    bool found = false;
-    vector<MapChest>::iterator chest_iter = map->chest_list.begin();
-    while (chest_iter != map->chest_list.end())
-    {
-        if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
-        {
-            found = true;
-            chest_iter->key_id = key_id;
-            if (slot >= (int)chest_iter->slots.size())
-            {
-                MapItem extra_slot(item_id);
-                extra_slot.item_present = false;
-                extra_slot.respawn_enabled = true;
-                extra_slot.respawn_countdown = spawn_time;
-                extra_slot.respawn_delay = spawn_time;
-                extra_slot.amount = amount;
-                extra_slot.alt_item_id0 = item_id;
-                extra_slot.alt_amount0 = amount;
-                extra_slot.alt_item_id1 = 0;
-                extra_slot.alt_item_id2 = 0;
-                extra_slot.alt_item_id3 = 0;
-                chest_iter->slots.insert(chest_iter->slots.end(), extra_slot);
-            }
-            else
-            {
-                if (Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id1 > 0)
-                {
-                    if (Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id2 > 0)
-                    {
-                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id3 =
-                            item_id;
-                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_amount3 =
-                            amount;
-                    }
-                    else
-                    {
-                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id2 =
-                            item_id;
-                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_amount2 =
-                            amount;
-                    }
-                }
-                else
-                {
-                    Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id1 = item_id;
-                    Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_amount1 = amount;
-                }
-            }
-            break;
-        }
-        chest_iter++;
-    }
-    if (!found)
-    {
-        MapChest new_chest(x, y, key_id);
-        MapItem new_item(item_id);
-        new_item.item_present = false;
-        new_item.respawn_enabled = true;
-        new_item.respawn_countdown = spawn_time;
-        new_item.respawn_delay = spawn_time;
-        new_item.amount = amount;
-        new_item.alt_item_id0 = item_id;
-        new_item.alt_amount0 = amount;
-        new_item.alt_item_id1 = 0;
-        new_item.alt_item_id2 = 0;
-        new_item.alt_item_id3 = 0;
-        new_chest.slots.insert(new_chest.slots.end(), new_item);
-        map->chest_list.insert(map->chest_list.end(), new_chest);
-    }
-}
-
-void MapContainer::Mapcontrol_AddChestItem(
-    MapContainer *self, int map_id, MapCoord coords, int item_id, int amount)
-{
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<MapChest>::iterator chest_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
-             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
-             chest_iter++)
-        {
-            if ((unsigned short)chest_iter->x == coords.x &&
-                (unsigned short)chest_iter->y == coords.y)
-            {
-                bool found = false;
-                for (vector<MapItem>::iterator item_iter = chest_iter->slots.begin();
-                     item_iter != chest_iter->slots.end() && !found;
-                     item_iter++)
-                {
-                    if (item_iter->item_id == item_id && !found)
-                    {
-                        if (item_iter->respawn_enabled != false)
-                        {
-                            if (item_iter->item_present != false)
-                            {
-                                found = true;
-                                item_iter->amount = item_iter->amount + amount;
-                            }
-                        }
-                        else
-                        {
-                            found = true;
-                            item_iter->amount = item_iter->amount + amount;
-                        }
-                    }
-                }
-                if (!found)
-                {
-                    MapItem new_item(item_id);
-                    new_item.amount = amount;
-                    new_item.item_present = true;
-                    new_item.respawn_enabled = false;
-                    chest_iter->slots.insert(chest_iter->slots.end(), new_item);
-                }
-                break;
-            }
-        }
-    }
-}
-
-ItemStack MapContainer::Mapcontrol_TakeChestItem(MapContainer *self,
-                                                 int map_id,
-                                                 MapCoord coords,
-                                                 int item_id)
-{
-    ItemStack result;
-    result.id = -1;
-    result.amount = -1;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<MapChest>::iterator chest_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
-             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
-             chest_iter++)
-        {
-            if ((unsigned short)chest_iter->x == coords.x &&
-                (unsigned short)chest_iter->y == coords.y)
-            {
-                bool found = false;
-                for (vector<MapItem>::iterator item_iter = chest_iter->slots.begin();
-                     item_iter != chest_iter->slots.end() && !found;
-                     item_iter++)
-                {
-                    if (item_iter->item_id == item_id && !found)
-                    {
-                        if (item_iter->item_present != false)
-                        {
-                            found = true;
-                            result.id = item_iter->item_id;
-                            result.amount = item_iter->amount;
-                            if (item_iter->respawn_enabled != false)
-                            {
-                                item_iter->item_present = false;
-                                item_iter->respawn_countdown = item_iter->respawn_delay;
-                                item_iter->amount = 0;
-                            }
-                            else
-                            {
-                                chest_iter->slots.erase(item_iter);
-                            }
-                        }
-                    }
-                }
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-int MapContainer::Mapcontrol_AddGroundItem(MapContainer *self,
-                                           int map_id,
-                                           unsigned int item_id,
-                                           int x,
-                                           int y,
-                                           unsigned int amount,
-                                           int owner_player_id,
-                                           unsigned short protect_ticks)
-{
-    int item_index = -1;
-    if (map_id > 0 && map_id <= (int)self->maps.size() && x >= 0 && y >= 0 &&
-        x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
-        y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
-    {
-        ItemObj *item = new ItemObj();
-        item->index = Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id;
-        item->item_id = item_id;
-        item->x = x;
-        item->y = y;
-        item->amount = amount;
-        item->drop_time = DateTimeToTimeStamp(Now());
-        item->owner_player_id = owner_player_id;
-        item->protect_ticks = protect_ticks;
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 15000)
-            Mapcontrol_PurgeGroundItemsInRange(self, map_id, 15000, 30000);
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 30000)
-            Mapcontrol_PurgeGroundItemsInRange(self, map_id, 30000, 45000);
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 45000)
-            Mapcontrol_PurgeGroundItemsInRange(self, map_id, 45000, 60000);
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 60000)
-            Mapcontrol_PurgeGroundItemsInRange(self, map_id, 0, 15000);
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id >= 60000)
-            Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id = 0;
-        ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-            ->insert(((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
-                          ->ground_items)
-                         ->end(),
-                     item);
-        item_index = Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id;
-        Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id =
-            Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id + 1;
-    }
-    return item_index;
-}
-
-void MapContainer::Mapcontrol_PurgeGroundItemsInRange(MapContainer *self,
-                                                      int map_id,
-                                                      int range_low,
-                                                      int range_high)
-{
-    vector<ItemObj *>::iterator cursor =
-        ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-            ->begin();
-    while (cursor !=
-           ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-               ->end())
-    {
-        if ((*cursor)->index < range_low)
-        {
-            cursor++;
-        }
-        else if ((*cursor)->index > range_high)
-        {
-            cursor++;
-        }
-        else
-        {
-            ItemObj *item = *cursor;
-            cursor = ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
-                          ->ground_items)
-                         ->erase(cursor);
-            delete item;
-        }
-    }
-}
-
-MapItem *MapContainer::Mapcontrol_GetSlot(vector<MapItem> *slot_list, int slot)
-{
-    return slot_list->begin() + slot;
-}
-
-int MapContainer::DecodeNumber(MapContainer *self, String value)
-{
-    int result = 0;
-    try
-    {
-        for (int digit_index = 1; digit_index <= value.Length(); digit_index++)
-        {
-            char c = value[digit_index];
-            unsigned char ch = c;
-            if (ch == EO_NUM_EMPTY || ch == 0)
-                break;
-            int v = ch;
-            v = v - 1;
-            if (digit_index == 1)
-                result = result + v;
-            if (digit_index == 2)
-                result = result + v * EO_NUM_MAX;
-            if (digit_index == 3)
-                result = result + v * EO_NUM_MAX_2;
-            if (digit_index == 4)
-                result = result + v * EO_NUM_MAX_3;
-        }
-    }
-    catch (...)
-    {
-        result = 0;
-    }
-    return result;
-}
-
-void MapContainer::Mapcontrol_LoadMaps(MapContainer *self)
-{
-    for (int map_id = 1; map_id <= 0xfa00 && map_id <= self->max_maps; map_id++)
-    {
-        if (!Mapcontrol_LoadMap(self, map_id))
-        {
-            ChestItem value(map_id, 0, 0);
-            self->maps.insert(self->maps.end(), value);
-        }
-    }
-}
-
-String MapContainer::EncodeNumber(MapContainer *self, unsigned int value, int width)
-{
-    int rem;
-    char c;
-    try
-    {
-        unsigned int quotient = 1;
-        bool flag = true;
-        for (int i = 0; i < width; i++)
-        {
-            if (flag)
-            {
-                double d = value / 253.0;
-                quotient = d;
-                rem = value % EO_NUM_MAX;
-                c = rem + 1;
-                ((char *)self->encode_scratch)[i] = c;
-                value = quotient;
-                if (quotient < 1)
-                    flag = false;
-                else if (i + 1 == width)
-                    width++;
-            }
-            else
-            {
-                char pad = EO_NUM_EMPTY;
-                ((char *)self->encode_scratch)[i] = pad;
-            }
-        }
-    }
-    catch (...)
-    {
-        width = 0;
-    }
-    String encoded_str((char *)self->encode_scratch, width);
-    return encoded_str;
-}
-
-char Mapcontrol_TryTakeQuestCooldown(MapContainer *self, int map_id)
-{
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->quest_cooldown < 1)
-        {
-            Mapcontrol_GetByIndex(self, map_id - 1)->quest_cooldown = MAP_QUEST_COOLDOWN;
-            return 1;
-        }
-    }
-    return 0;
-}
-
-char Mapcontrol_GetCanScroll(MapContainer *self, int map_id)
-{
-    char result = 0;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-        result = Mapcontrol_GetByIndex(self, map_id - 1)->can_scroll;
-    return result;
-}
-
-MapCoord Mapcontrol_GetRelogCoords(MapContainer *self, int map_id)
-{
-    MapCoord coords;
-    coords.x = 0;
-    coords.y = 0;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        coords.x = Mapcontrol_GetByIndex(self, map_id - 1)->relog_x;
-        coords.y = Mapcontrol_GetByIndex(self, map_id - 1)->relog_y;
-        if (coords.x >= (int)Mapcontrol_GetByIndex(self, map_id - 1)->width ||
-            coords.y >= (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
-        {
-            coords.x = 0;
-            coords.y = 0;
-        }
-    }
-    return coords;
-}
-
-unsigned int
-Mapcontrol_GetNpcIdByIndex(MapContainer *self, int map_id, unsigned int npc_index)
-{
-    unsigned int result = 0xffffffff;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
-             npc_iter++)
-        {
-            if ((*npc_iter)->index == npc_index)
-            {
-                result = (*npc_iter)->id;
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-MapCoord
-Mapcontrol_GetNpcCoordsByIndex(MapContainer *self, int map_id, unsigned int npc_index)
-{
-    MapCoord coords;
-    coords.x = -1;
-    coords.y = -1;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
-             npc_iter++)
-        {
-            if ((*npc_iter)->index == npc_index)
-            {
-                coords.x = (*npc_iter)->x;
-                coords.y = (*npc_iter)->y;
-                break;
-            }
-        }
-    }
-    return coords;
-}
-
-char Mapcontrol_IsDropTileClear(MapContainer *self, int map_id, int x, int y)
-{
-    char result = 1;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
-        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
-            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
-        {
-            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
-            {
-                if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
-                {
-                    result = 0;
-                    for (vector<MapObject>::iterator spec_iter =
-                             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-                         spec_iter !=
-                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
-                         spec_iter++)
-                    {
-                        if ((unsigned short)spec_iter->x == x &&
-                            (unsigned short)spec_iter->y == y)
-                        {
-                            if ((unsigned short)spec_iter->value != 0x10)
-                                break;
-                            result = 1;
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
-                    result = 0;
-            }
-        }
-        else
-        {
-            result = 0;
-        }
-    }
-    return result;
-}
-
-unsigned int Mapcontrol_GetTileSpecValueAt(MapContainer *self,
-                                           int map_id,
-                                           unsigned int x,
-                                           unsigned int y)
-{
-    unsigned int result = 0xffffffff;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
-        {
-            if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
-            {
-                for (vector<MapObject>::iterator spec_iter =
-                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-                     spec_iter !=
-                     Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
-                     spec_iter++)
-                {
-                    if ((unsigned short)spec_iter->x == x &&
-                        (unsigned short)spec_iter->y == y)
-                    {
-                        result = (unsigned short)spec_iter->value;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    return result;
-}
-
-int Mapcontrol_GetChestKeyAt(MapContainer *self, int map_id, MapCoord coords)
-{
-    int result = 0;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<MapChest>::iterator chest_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
-             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
-             chest_iter++)
-        {
-            if ((unsigned short)chest_iter->x == coords.x &&
-                (unsigned short)chest_iter->y == coords.y)
-            {
-                result = (unsigned short)chest_iter->key_id;
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-int Mapcontrol_CountBlockedNeighbors(MapContainer *self,
-                                     int map_id,
-                                     unsigned int x,
-                                     unsigned int y)
-{
-    int result = 0;
-    if (MapContainer::Mapcontrol_IsWalkableNPC(self, map_id, x - 1, y, 1) == 0)
-        result = result + 1;
-    if (MapContainer::Mapcontrol_IsWalkableNPC(self, map_id, x, y - 1, 1) == 0)
-        result = result + 1;
-    if (MapContainer::Mapcontrol_IsWalkableNPC(self, map_id, x + 1, y, 1) == 0)
-        result = result + 1;
-    if (MapContainer::Mapcontrol_IsWalkableNPC(self, map_id, x, y + 1, 1) == 0)
-        result = result + 1;
-    return result;
-}
-
-MapObject Mapcontrol_GetTileSpecObject(MapContainer *self, int map_id, int x, int y)
-{
-    map_id <= 0 ? (map_id == 1) : 0;
-    vector<MapObject>::iterator spec_iter =
-        Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-    while (spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end())
-    {
-        if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
-            break;
-        spec_iter++;
-    }
-    return *spec_iter;
-}
-
-bool Mapcontrol_CanDropItemAt(MapContainer *self, int map_id, int x, int y, int player_id)
-{
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        int count = 0;
-        for (vector<ItemObj *>::iterator cursor =
-                 ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
-                      ->ground_items)
-                     ->begin();
-             cursor !=
-             ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-                 ->end();
-             cursor++)
-        {
-            if ((*cursor)->x == x && (*cursor)->y == y)
-            {
-                if ((*cursor)->owner_player_id == player_id)
-                {
-                    count = count + 1;
-                    if (count > MAP_GROUND_ITEM_MAX)
-                        return 0;
-                }
-                else
-                {
-                    TTimeStamp now = DateTimeToTimeStamp(Now());
-                    int elapsed = now.Date - (*cursor)->drop_time.Date;
-                    int ms = now.Time - (*cursor)->drop_time.Time;
-                    elapsed = ms / MS_PER_SECOND + elapsed * SECONDS_PER_DAY;
-                    if ((*cursor)->protect_ticks > elapsed)
-                        return 0;
-                }
-            }
-        }
-    }
-    return 1;
-}
-
-GroundItemInfo
-Mapcontrol_TakeGroundItemInfo(MapContainer *self, int map_id, int index, int player_id)
-{
-    GroundItemInfo result;
-    result.x = -1;
-    result.y = -1;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<ItemObj *>::iterator cursor =
-                 ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
-                      ->ground_items)
-                     ->begin();
-             cursor !=
-             ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-                 ->end();
-             cursor++)
-        {
-            if ((*cursor)->index == index)
-            {
-                TTimeStamp now = DateTimeToTimeStamp(Now());
-                int elapsed = now.Date - (*cursor)->drop_time.Date;
-                int ms = now.Time - (*cursor)->drop_time.Time;
-                elapsed = ms / MS_PER_SECOND + elapsed * SECONDS_PER_DAY;
-                if ((*cursor)->protect_ticks > elapsed &&
-                    (*cursor)->owner_player_id != player_id &&
-                    (unsigned int)(*cursor)->owner_player_id > 0)
-                {
-                    result.x = -2;
-                }
-                else
-                {
-                    result.x = (*cursor)->x;
-                    result.y = (*cursor)->y;
-                    result.item_id = (*cursor)->item_id;
-                    result.amount = (*cursor)->amount;
-                }
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-String Mapcontrol_BuildChestItemsString(MapContainer *self, int map_id, MapCoord coords)
-{
-    String result = "N";
-    vector<MapChest>::iterator chest_iter;
-    vector<MapItem>::iterator item_iter;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (chest_iter = Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
-             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
-             chest_iter++)
-        {
-            if ((unsigned short)chest_iter->x == coords.x &&
-                (unsigned short)chest_iter->y == coords.y)
-            {
-                result = "";
-                for (item_iter = chest_iter->slots.begin();
-                     item_iter != chest_iter->slots.end();
-                     item_iter++)
-                {
-                    if (item_iter->item_present != false)
-                    {
-                        result.Insert(
-                            MapContainer::EncodeNumber(self, item_iter->item_id, 2),
-                            result.Length() + 1);
-                        result.Insert(
-                            MapContainer::EncodeNumber(self, item_iter->amount, 3),
-                            result.Length() + 1);
-                    }
-                }
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-void Mapcontrol_ResetMap(MapContainer *self, int map_id)
-{
-    for (int i = 0; i < (int)Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.size();
-         i++)
-    {
-        Mapcontrol_GetByIndex(self, map_id - 1)->chest_list[i].slots.clear();
-    }
-    for (int i = 0; i < (int)Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits.size();
-         i++)
-    {
-        Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[i] = false;
-    }
-    Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.clear();
-    Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.clear();
-    Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.clear();
-    ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-        ->clear();
-    Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.clear();
-    Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.clear();
-    Mapcontrol_GetByIndex(self, map_id - 1)->boss_alive = false;
-    Mapcontrol_GetByIndex(self, map_id - 1)->width = 0;
-    Mapcontrol_GetByIndex(self, map_id - 1)->height = 0;
-    Mapcontrol_GetByIndex(self, map_id - 1)
-        ->buf.Delete(0, Mapcontrol_GetByIndex(self, map_id)->buf.Length());
-}
-
-void Mapcontrol_RemoveGroundItem(MapContainer *self, int map_id, int index)
-{
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        for (vector<ItemObj *>::iterator cursor =
-                 ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
-                      ->ground_items)
-                     ->begin();
-             cursor !=
-             ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-                 ->end();
-             cursor++)
-        {
-            if ((*cursor)->index == index)
-            {
-                ItemObj *item = *cursor;
-                ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
-                     ->ground_items)
-                    ->erase(cursor);
-                delete item;
-                break;
-            }
-        }
-    }
-}
-
-char Mapcontrol_ReloadMap(MapContainer *self, int map_id)
-{
-    char result = 0;
-    if (map_id > 0 && map_id <= (int)self->maps.size())
-    {
-        Mapcontrol_ResetMap(self, map_id);
-        JukeBoxController_RemoveMap((*MAINFORM)->jukebox_control, map_id);
-        result = (char)Mapcontrol_ParseMapFile(
-            self, Mapcontrol_GetByIndex(self, map_id - 1), map_id);
-    }
-    return result;
-}
-
-String Mapcontrol_ReadRawFile(MapContainer *self, int map_id)
-{
-    String result;
-    if (Mapcontrol_GetByIndex(self, map_id - 1)->buf == "")
-    {
-        String file_name;
-        int file_handle;
-        int size;
-        char *buf;
-        try
-        {
-            file_name = IntToStr(map_id);
-            for (int i = file_name.Length(); i <= 4; i++)
-                file_name.Insert("0", 0);
-            file_name.Insert("./maps/", 0);
-            file_name.Insert(".emf", file_name.Length() + 1);
-            file_handle = FileOpen(file_name.c_str(), 0);
-            if (file_handle < 0)
-                return "";
-            size = FileSeek(file_handle, 0, 2);
-            FileSeek(file_handle, 0, 0);
-            buf = new char[size + 1];
-            FileRead(file_handle, buf, size);
-            FileClose(file_handle);
-            result = buf;
-            result.SetLength(size);
-            delete[] buf;
-        }
-        catch (...)
-        {
-            FileClose(file_handle);
-        }
-    }
-    else
-    {
-        result = Mapcontrol_GetByIndex(self, map_id - 1)->buf;
-    }
-    return result;
-}
-
-bool Mapcontrol_ParseMapFile(MapContainer *self, ChestItem *map, int map_id)
+bool Mapcontrol_ParseMapFile(MapContainer *self, MapItem *map, int map_id)
 {
     String map_buf;
     String local_c;
@@ -1425,7 +154,7 @@ bool Mapcontrol_ParseMapFile(MapContainer *self, ChestItem *map, int map_id)
                             MapContainer::DecodeNumber(self, map_buf.SubString(5, 1)),
                             MapContainer::DecodeNumber(self, map_buf.SubString(6, 2)));
                 NpcValue npc_value = NpcValues::GetNpc(
-                    (*MAINFORM)->npc_values,
+                    GUI->npc_values,
                     MapContainer::DecodeNumber(self, map_buf.SubString(3, 2)));
                 if (npc_value.npc_type == 2)
                 {
@@ -1523,7 +252,7 @@ bool Mapcontrol_ParseMapFile(MapContainer *self, ChestItem *map, int map_id)
                     MapContainer::Mapcontrol_SetTileBits(self, map, spec, tile_x, 2);
                     MapContainer::Mapcontrol_AddTileSpec(
                         self, map, spec, tile_x, code - 1);
-                    JukeBoxController::Add((*MAINFORM)->jukebox_control, map_id);
+                    JukeBoxController::Add(GUI->jukebox_control, map_id);
                 }
                 if (code == 9)
                     MapContainer::Mapcontrol_GetOrCreateChest(self, map, spec, tile_x);
@@ -1579,6 +308,775 @@ bool Mapcontrol_ParseMapFile(MapContainer *self, ChestItem *map, int map_id)
     }
     return 1;
 }
+
+void MapContainer::Mapcontrol_IncPlayerCount(MapContainer *self, int map_id)
+{
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        Mapcontrol_GetByIndex(self, map_id - 1)->player_count++;
+        Mapcontrol_GetByIndex(self, map_id - 1)->npc_act_ticks = 0xca;
+    }
+}
+
+void MapContainer::Mapcontrol_DecPlayerCount(MapContainer *self, int map_id)
+{
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->player_count > 0)
+            Mapcontrol_GetByIndex(self, map_id - 1)->player_count--;
+    }
+}
+
+String Mapcontrol_BuildChestItemsString(MapContainer *self, int map_id, MapCoord coords)
+{
+    String result = "N";
+    vector<MapChest>::iterator chest_iter;
+    vector<ChestItem>::iterator item_iter;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (chest_iter = Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
+             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
+             chest_iter++)
+        {
+            if ((unsigned short)chest_iter->x == coords.x &&
+                (unsigned short)chest_iter->y == coords.y)
+            {
+                result = "";
+                for (item_iter = chest_iter->slots.begin();
+                     item_iter != chest_iter->slots.end();
+                     item_iter++)
+                {
+                    if (item_iter->item_present != false)
+                    {
+                        result.Insert(
+                            MapContainer::EncodeNumber(self, item_iter->item_id, 2),
+                            result.Length() + 1);
+                        result.Insert(
+                            MapContainer::EncodeNumber(self, item_iter->amount, 3),
+                            result.Length() + 1);
+                    }
+                }
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+int MapContainer::Mapcontrol_GetWarpMap(MapContainer *self, int map_id, int x, int y)
+{
+    int result = 0;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
+        {
+            for (vector<MapWarp>::iterator warp_iter =
+                     Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
+                 warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
+                 warp_iter++)
+            {
+                if (warp_iter->from_x == x && warp_iter->from_y == y)
+                {
+                    result = warp_iter->dest_map;
+                    break;
+                }
+            }
+        }
+    }
+    return result;
+}
+
+int MapContainer::Mapcontrol_GetWarpLevelReq(MapContainer *self, int map_id, int x, int y)
+{
+    int result = 1000;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<MapWarp>::iterator warp_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
+             warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
+             warp_iter++)
+        {
+            if (warp_iter->from_x == x && warp_iter->from_y == y)
+            {
+                result = warp_iter->level;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+int MapContainer::Mapcontrol_GetWarpX(MapContainer *self, int map_id, int x, int y)
+{
+    int result = 1000;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<MapWarp>::iterator warp_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
+             warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
+             warp_iter++)
+        {
+            if (warp_iter->from_x == x && warp_iter->from_y == y)
+            {
+                result = warp_iter->to_x;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+int MapContainer::Mapcontrol_GetWarpY(MapContainer *self, int map_id, int x, int y)
+{
+    int result = 1000;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<MapWarp>::iterator warp_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
+             warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
+             warp_iter++)
+        {
+            if (warp_iter->from_x == x && warp_iter->from_y == y)
+            {
+                result = warp_iter->to_y;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+unsigned char MapContainer::Mapcontrol_ToggleDoor(MapContainer *self,
+                                                  int map_id,
+                                                  unsigned int x,
+                                                  unsigned int y)
+{
+    unsigned char result = 0;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<MapObject>::iterator spec_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
+             spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
+             spec_iter++)
+        {
+            if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
+            {
+                if (((unsigned short)spec_iter->value == MapTileSpec_Chest ||
+                     (unsigned short)spec_iter->value == MapTileSpec_Reserved11) &&
+                    (unsigned short)spec_iter->ticks != 2)
+                {
+                    spec_iter->ticks = 2;
+                    result = 1;
+                }
+                if ((unsigned short)spec_iter->value == MapTileSpec_ChairAll)
+                {
+                    result = 1;
+                    Mapcontrol_GetByIndex(self, map_id - 1)->has_open_doors = 1;
+                    spec_iter->value = MapTileSpec_Chest;
+                    spec_iter->ticks = 2;
+                }
+                if ((unsigned short)spec_iter->value == MapTileSpec_Reserved10)
+                {
+                    result = 1;
+                    Mapcontrol_GetByIndex(self, map_id - 1)->has_open_doors = 1;
+                    spec_iter->value = MapTileSpec_Reserved11;
+                    spec_iter->ticks = 2;
+                }
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+MapObject Mapcontrol_GetTileSpecObject(MapContainer *self, int map_id, int x, int y)
+{
+    map_id <= 0 ? (map_id == 1) : 0;
+    vector<MapObject>::iterator spec_iter =
+        Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
+    while (spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end())
+    {
+        if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
+            break;
+        spec_iter++;
+    }
+    return *spec_iter;
+}
+
+unsigned int
+MapContainer::Mapcontrol_GetTileSpec(MapContainer *self, int map_id, int x, int y)
+{
+    unsigned int result = 0xffffffff;
+    for (vector<MapObject>::iterator spec_iter =
+             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
+         spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
+         spec_iter++)
+    {
+        if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
+        {
+            result = (unsigned short)spec_iter->value;
+            break;
+        }
+    }
+    return result;
+}
+
+unsigned int Mapcontrol_GetTileSpecValueAt(MapContainer *self,
+                                           int map_id,
+                                           unsigned int x,
+                                           unsigned int y)
+{
+    unsigned int result = 0xffffffff;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
+        {
+            if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+            {
+                for (vector<MapObject>::iterator spec_iter =
+                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
+                     spec_iter !=
+                     Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
+                     spec_iter++)
+                {
+                    if ((unsigned short)spec_iter->x == x &&
+                        (unsigned short)spec_iter->y == y)
+                    {
+                        result = (unsigned short)spec_iter->value;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return result;
+}
+
+char Mapcontrol_TryTakeQuestCooldown(MapContainer *self, int map_id)
+{
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->quest_cooldown < 1)
+        {
+            Mapcontrol_GetByIndex(self, map_id - 1)->quest_cooldown = MAP_QUEST_COOLDOWN;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+char Mapcontrol_GetCanScroll(MapContainer *self, int map_id)
+{
+    char result = 0;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+        result = Mapcontrol_GetByIndex(self, map_id - 1)->can_scroll;
+    return result;
+}
+
+MapCoord Mapcontrol_GetRelogCoords(MapContainer *self, int map_id)
+{
+    MapCoord coords;
+    coords.x = 0;
+    coords.y = 0;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        coords.x = Mapcontrol_GetByIndex(self, map_id - 1)->relog_x;
+        coords.y = Mapcontrol_GetByIndex(self, map_id - 1)->relog_y;
+        if (coords.x >= (int)Mapcontrol_GetByIndex(self, map_id - 1)->width ||
+            coords.y >= (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
+        {
+            coords.x = 0;
+            coords.y = 0;
+        }
+    }
+    return coords;
+}
+
+bool MapContainer::Mapcontrol_AggroChildNpcs(MapContainer *self, int map_id)
+{
+    bool found_child = false;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        TDateTime now = Now();
+        for (vector<Npc *>::iterator npc_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
+             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
+             npc_iter++)
+        {
+            if ((unsigned short)(*npc_iter)->child > 0)
+            {
+                (*npc_iter)->aggressive = true;
+                found_child = true;
+            }
+        }
+    }
+    return found_child;
+}
+
+bool MapContainer::Mapcontrol_KillChildNpcs(MapContainer *self, int map_id)
+{
+    bool found_child = false;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        Mapcontrol_GetByIndex(self, map_id - 1)->boss_alive = false;
+        TDateTime now = Now();
+        for (vector<Npc *>::iterator npc_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
+             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
+             npc_iter++)
+        {
+            if ((unsigned short)(*npc_iter)->child > 0)
+            {
+                (*npc_iter)->nDeath_ms = DateTimeToTimeStamp(now);
+                (*npc_iter)->alive = false;
+                (*npc_iter)->aggressive = false;
+                found_child = true;
+            }
+        }
+    }
+    return found_child;
+}
+
+unsigned int
+Mapcontrol_GetNpcIdByIndex(MapContainer *self, int map_id, unsigned int npc_index)
+{
+    unsigned int result = 0xffffffff;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<Npc *>::iterator npc_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
+             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
+             npc_iter++)
+        {
+            if ((*npc_iter)->index == npc_index)
+            {
+                result = (*npc_iter)->id;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+MapCoord
+Mapcontrol_GetNpcCoordsByIndex(MapContainer *self, int map_id, unsigned int npc_index)
+{
+    MapCoord coords;
+    coords.x = -1;
+    coords.y = -1;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<Npc *>::iterator npc_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
+             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
+             npc_iter++)
+        {
+            if ((*npc_iter)->index == npc_index)
+            {
+                coords.x = (*npc_iter)->x;
+                coords.y = (*npc_iter)->y;
+                break;
+            }
+        }
+    }
+    return coords;
+}
+
+bool MapContainer::Mapcontrol_IsOccupied(MapContainer *self, int map_id, int x, int y)
+{
+    bool result = false;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<Npc *>::iterator npc_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
+             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
+             npc_iter++)
+        {
+            if ((*npc_iter)->x == x && (*npc_iter)->y == y && (*npc_iter)->alive != false)
+            {
+                result = true;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+int MapContainer::Mapcontrol_CountNpcsChasingPlayer(MapContainer *self,
+                                                    int map_id,
+                                                    int player_id)
+{
+    int chase_count = 0;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<Npc *>::iterator npc_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
+             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
+             npc_iter++)
+        {
+            if ((*npc_iter)->chase_target_id == player_id)
+                chase_count++;
+        }
+    }
+    return chase_count;
+}
+
+char Mapcontrol_IsDropTileClear(MapContainer *self, int map_id, int x, int y)
+{
+    char result = 1;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
+        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
+            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
+        {
+            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
+            {
+                if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                {
+                    result = 0;
+                    for (vector<MapObject>::iterator spec_iter =
+                             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
+                         spec_iter !=
+                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
+                         spec_iter++)
+                    {
+                        if ((unsigned short)spec_iter->x == x &&
+                            (unsigned short)spec_iter->y == y)
+                        {
+                            if ((unsigned short)spec_iter->value != 0x10)
+                                break;
+                            result = 1;
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                    result = 0;
+            }
+        }
+        else
+        {
+            result = 0;
+        }
+    }
+    return result;
+}
+
+bool MapContainer::Mapcontrol_IsTileClear(MapContainer *self, int map_id, int x, int y)
+{
+    bool result = true;
+    if (map_id > 0 && (int)self->maps.size() >= map_id)
+    {
+        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
+        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
+            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
+        {
+            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
+            {
+                if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                    result = false;
+            }
+            else
+            {
+                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                    result = false;
+            }
+        }
+        else
+        {
+            result = false;
+        }
+    }
+    return result;
+}
+
+bool MapContainer::Mapcontrol_IsTileWalkable(MapContainer *self, int map_id, int x, int y)
+{
+    bool result = false;
+    if (map_id > 0 && (int)self->maps.size() >= map_id)
+    {
+        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
+        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
+            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
+        {
+            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
+            {
+                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                {
+                    result = true;
+                }
+                else
+                {
+                    for (vector<MapObject>::iterator spec_iter =
+                             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
+                         spec_iter !=
+                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
+                         spec_iter++)
+                    {
+                        if ((unsigned short)spec_iter->x == x &&
+                            (unsigned short)spec_iter->y == y)
+                        {
+                            if ((unsigned short)spec_iter->value ==
+                                    MapTileSpec_Reserved10 ||
+                                (unsigned short)spec_iter->value ==
+                                    MapTileSpec_Reserved11)
+                                result = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return result;
+}
+
+int Mapcontrol_CountBlockedNeighbors(MapContainer *self,
+                                     int map_id,
+                                     unsigned int x,
+                                     unsigned int y)
+{
+    int result = 0;
+    if (MapContainer::Mapcontrol_IsWalkableNPC(self, map_id, x - 1, y, 1) == 0)
+        result = result + 1;
+    if (MapContainer::Mapcontrol_IsWalkableNPC(self, map_id, x, y - 1, 1) == 0)
+        result = result + 1;
+    if (MapContainer::Mapcontrol_IsWalkableNPC(self, map_id, x + 1, y, 1) == 0)
+        result = result + 1;
+    if (MapContainer::Mapcontrol_IsWalkableNPC(self, map_id, x, y + 1, 1) == 0)
+        result = result + 1;
+    return result;
+}
+
+int MapContainer::Mapcontrol_IsWalkableNPC(
+    MapContainer *self, int map_id, int x, int y, char ignore_spec_block)
+{
+    int result = 1;
+    if (map_id > 0 && (int)self->maps.size() >= map_id)
+    {
+        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
+        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
+            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
+        {
+            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
+            {
+                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                {
+                    result = 2;
+                }
+                else
+                {
+                    result = 1;
+                    for (vector<MapObject>::iterator spec_iter =
+                             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
+                         spec_iter !=
+                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
+                         spec_iter++)
+                    {
+                        if ((unsigned short)spec_iter->x == x &&
+                            (unsigned short)spec_iter->y == y)
+                        {
+                            if ((unsigned short)spec_iter->value == MapTileSpec_Chest)
+                                result = 0;
+                            if ((unsigned short)spec_iter->value ==
+                                MapTileSpec_Reserved11)
+                                result = 2;
+                            if ((unsigned short)spec_iter->value != MapTileSpec_BankVault)
+                                break;
+                            if (ignore_spec_block != 0)
+                                result = 0;
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                    result = 1;
+                else
+                    result = 0;
+            }
+        }
+    }
+    return result;
+}
+
+void MapContainer::Mapcontrol_LoadMaps(MapContainer *self)
+{
+    for (int map_id = 1; map_id <= 0xfa00 && map_id <= self->max_maps; map_id++)
+    {
+        if (!Mapcontrol_LoadMap(self, map_id))
+        {
+            MapItem value(map_id, 0, 0);
+            self->maps.insert(self->maps.end(), value);
+        }
+    }
+}
+
+void MapContainer::Mapcontrol_SetTileBits(
+    MapContainer *self, MapItem *map, int x, int y, int code)
+{
+    int tile_offset = x * 2 + map->width * 2 * y;
+    if (code == 0)
+    {
+        map->tile_bits[tile_offset] = 0;
+        map->tile_bits[tile_offset + 1] = 0;
+    }
+    if (code == 1)
+    {
+        map->tile_bits[tile_offset] = 0;
+        map->tile_bits[tile_offset + 1] = 1;
+    }
+    if (code == 2)
+    {
+        map->tile_bits[tile_offset] = 1;
+        map->tile_bits[tile_offset + 1] = 0;
+    }
+    if (code == 3)
+    {
+        map->tile_bits[tile_offset] = 1;
+        map->tile_bits[tile_offset + 1] = 1;
+    }
+}
+
+void MapContainer::Mapcontrol_AddLockKey(
+    MapContainer *self, MapItem *map, unsigned int x, unsigned int y, int key_id)
+{
+    bool found = false;
+    for (vector<MapObject>::iterator lock_iter = map->legacy_door_key_list.begin();
+         lock_iter != map->legacy_door_key_list.end();
+         lock_iter++)
+    {
+        if ((unsigned short)lock_iter->x == x && (unsigned short)lock_iter->y == y)
+        {
+            lock_iter->value = key_id;
+            found = true;
+            break;
+        }
+    }
+    if (!found)
+    {
+        MapObject value(x, y, key_id);
+        map->legacy_door_key_list.insert(map->legacy_door_key_list.end(), value);
+    }
+}
+
+void MapContainer::Mapcontrol_GetOrCreateChest(MapContainer *self,
+                                               MapItem *map,
+                                               unsigned int x,
+                                               unsigned int y)
+{
+    bool found = false;
+    for (vector<MapChest>::iterator chest_iter = map->chest_list.begin();
+         chest_iter != map->chest_list.end();
+         chest_iter++)
+    {
+        if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
+        {
+            found = true;
+            break;
+        }
+    }
+    if (!found)
+    {
+        MapChest value(x, y, 0);
+        map->chest_list.insert(map->chest_list.end(), value);
+    }
+}
+
+void MapContainer::Mapcontrol_AddTileSpec(
+    MapContainer *self, MapItem *map, int x, int y, int spec)
+{
+    MapObject value(x, y, spec);
+    map->tile_specs.insert(map->tile_specs.end(), value);
+}
+
+void Mapcontrol_ResetMap(MapContainer *self, int map_id)
+{
+    for (int i = 0; i < (int)Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.size();
+         i++)
+    {
+        Mapcontrol_GetByIndex(self, map_id - 1)->chest_list[i].slots.clear();
+    }
+    for (int i = 0; i < (int)Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits.size();
+         i++)
+    {
+        Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[i] = false;
+    }
+    Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.clear();
+    Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.clear();
+    Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.clear();
+    ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
+        ->clear();
+    Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.clear();
+    Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.clear();
+    Mapcontrol_GetByIndex(self, map_id - 1)->boss_alive = false;
+    Mapcontrol_GetByIndex(self, map_id - 1)->width = 0;
+    Mapcontrol_GetByIndex(self, map_id - 1)->height = 0;
+    Mapcontrol_GetByIndex(self, map_id - 1)
+        ->buf.Delete(0, Mapcontrol_GetByIndex(self, map_id)->buf.Length());
+}
+
+String Mapcontrol_ReadRawFile(MapContainer *self, int map_id)
+{
+    String result;
+    if (Mapcontrol_GetByIndex(self, map_id - 1)->buf == "")
+    {
+        String file_name;
+        int file_handle;
+        int size;
+        char *buf;
+        try
+        {
+            file_name = IntToStr(map_id);
+            for (int i = file_name.Length(); i <= 4; i++)
+                file_name.Insert("0", 0);
+            file_name.Insert("./maps/", 0);
+            file_name.Insert(".emf", file_name.Length() + 1);
+            file_handle = FileOpen(file_name.c_str(), 0);
+            if (file_handle < 0)
+                return "";
+            size = FileSeek(file_handle, 0, 2);
+            FileSeek(file_handle, 0, 0);
+            buf = new char[size + 1];
+            FileRead(file_handle, buf, size);
+            FileClose(file_handle);
+            result = buf;
+            result.SetLength(size);
+            delete[] buf;
+        }
+        catch (...)
+        {
+            FileClose(file_handle);
+        }
+    }
+    else
+    {
+        result = Mapcontrol_GetByIndex(self, map_id - 1)->buf;
+    }
+    return result;
+}
+
+char Mapcontrol_ReloadMap(MapContainer *self, int map_id)
+{
+    char result = 0;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        Mapcontrol_ResetMap(self, map_id);
+        JukeBoxController_RemoveMap(GUI->jukebox_control, map_id);
+        result = (char)Mapcontrol_ParseMapFile(
+            self, Mapcontrol_GetByIndex(self, map_id - 1), map_id);
+    }
+    return result;
+}
+
 bool MapContainer::Mapcontrol_LoadMap(MapContainer *self, int map_id)
 {
     String map_buf;
@@ -1610,9 +1108,9 @@ bool MapContainer::Mapcontrol_LoadMap(MapContainer *self, int map_id)
         delete[] buf;
         if (map_buf[1] != 'E' || map_buf[2] != 'M' || map_buf[3] != 'F')
             return false;
-        ChestItem map(map_id,
-                      MapContainer::DecodeNumber(self, map_buf.SubString(0x26, 1)) + 1,
-                      MapContainer::DecodeNumber(self, map_buf.SubString(0x27, 1)) + 1);
+        MapItem map(map_id,
+                    MapContainer::DecodeNumber(self, map_buf.SubString(0x26, 1)) + 1,
+                    MapContainer::DecodeNumber(self, map_buf.SubString(0x27, 1)) + 1);
         map.rid1 = MapContainer::DecodeNumber(self, map_buf.SubString(4, 2));
         map.rid2 = MapContainer::DecodeNumber(self, map_buf.SubString(6, 2));
         map.map_type = MapContainer::DecodeNumber(self, map_buf.SubString(0x20, 1));
@@ -1657,7 +1155,7 @@ bool MapContainer::Mapcontrol_LoadMap(MapContainer *self, int map_id)
                             MapContainer::DecodeNumber(self, map_buf.SubString(5, 1)),
                             MapContainer::DecodeNumber(self, map_buf.SubString(6, 2)));
                 NpcValue npc_value = NpcValues::GetNpc(
-                    (*MAINFORM)->npc_values,
+                    GUI->npc_values,
                     MapContainer::DecodeNumber(self, map_buf.SubString(3, 2)));
                 if (npc_value.npc_type == 2)
                 {
@@ -1755,7 +1253,7 @@ bool MapContainer::Mapcontrol_LoadMap(MapContainer *self, int map_id)
                     MapContainer::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 2);
                     MapContainer::Mapcontrol_AddTileSpec(
                         self, &map, spec, tile_x, code - 1);
-                    JukeBoxController::Add((*MAINFORM)->jukebox_control, map_id);
+                    JukeBoxController::Add(GUI->jukebox_control, map_id);
                 }
                 if (code == 9)
                     MapContainer::Mapcontrol_GetOrCreateChest(self, &map, spec, tile_x);
@@ -1811,4 +1309,506 @@ bool MapContainer::Mapcontrol_LoadMap(MapContainer *self, int map_id)
         return false;
     }
     return true;
+}
+
+String MapContainer::EncodeNumber(MapContainer *self, unsigned int value, int width)
+{
+    int rem;
+    char c;
+    try
+    {
+        unsigned int quotient = 1;
+        bool flag = true;
+        for (int i = 0; i < width; i++)
+        {
+            if (flag)
+            {
+                double d = value / 253.0;
+                quotient = d;
+                rem = value % EO_NUM_MAX;
+                c = rem + 1;
+                ((char *)self->encode_scratch)[i] = c;
+                value = quotient;
+                if (quotient < 1)
+                    flag = false;
+                else if (i + 1 == width)
+                    width++;
+            }
+            else
+            {
+                char pad = EO_NUM_EMPTY;
+                ((char *)self->encode_scratch)[i] = pad;
+            }
+        }
+    }
+    catch (...)
+    {
+        width = 0;
+    }
+    String encoded_str((char *)self->encode_scratch, width);
+    return encoded_str;
+}
+
+int MapContainer::DecodeNumber(MapContainer *self, String value)
+{
+    int result = 0;
+    try
+    {
+        for (int digit_index = 1; digit_index <= value.Length(); digit_index++)
+        {
+            char c = value[digit_index];
+            unsigned char ch = c;
+            if (ch == EO_NUM_EMPTY || ch == 0)
+                break;
+            int v = ch;
+            v = v - 1;
+            if (digit_index == 1)
+                result = result + v;
+            if (digit_index == 2)
+                result = result + v * EO_NUM_MAX;
+            if (digit_index == 3)
+                result = result + v * EO_NUM_MAX_2;
+            if (digit_index == 4)
+                result = result + v * EO_NUM_MAX_3;
+        }
+    }
+    catch (...)
+    {
+        result = 0;
+    }
+    return result;
+}
+
+int MapContainer::Mapcontrol_GetChestSlotCount(MapContainer *self,
+                                               int map_id,
+                                               MapCoord coords)
+{
+    int result = -1;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<MapChest>::iterator chest_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
+             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
+             chest_iter++)
+        {
+            if ((unsigned short)chest_iter->x == coords.x &&
+                (unsigned short)chest_iter->y == coords.y)
+            {
+                result = chest_iter->slots.size();
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+void MapContainer::Mapcontrol_AddChestSpawn(MapContainer *self,
+                                            MapItem *map,
+                                            unsigned int x,
+                                            unsigned int y,
+                                            int key_id,
+                                            int slot,
+                                            int item_id,
+                                            int spawn_time,
+                                            int amount)
+{
+    bool found = false;
+    vector<MapChest>::iterator chest_iter = map->chest_list.begin();
+    while (chest_iter != map->chest_list.end())
+    {
+        if ((unsigned short)chest_iter->x == x && (unsigned short)chest_iter->y == y)
+        {
+            found = true;
+            chest_iter->key_id = key_id;
+            if (slot >= (int)chest_iter->slots.size())
+            {
+                ChestItem extra_slot(item_id);
+                extra_slot.item_present = false;
+                extra_slot.respawn_enabled = true;
+                extra_slot.respawn_countdown = spawn_time;
+                extra_slot.respawn_delay = spawn_time;
+                extra_slot.amount = amount;
+                extra_slot.alt_item_id0 = item_id;
+                extra_slot.alt_amount0 = amount;
+                extra_slot.alt_item_id1 = 0;
+                extra_slot.alt_item_id2 = 0;
+                extra_slot.alt_item_id3 = 0;
+                chest_iter->slots.insert(chest_iter->slots.end(), extra_slot);
+            }
+            else
+            {
+                if (Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id1 > 0)
+                {
+                    if (Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id2 > 0)
+                    {
+                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id3 =
+                            item_id;
+                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_amount3 =
+                            amount;
+                    }
+                    else
+                    {
+                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id2 =
+                            item_id;
+                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_amount2 =
+                            amount;
+                    }
+                }
+                else
+                {
+                    Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id1 = item_id;
+                    Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_amount1 = amount;
+                }
+            }
+            break;
+        }
+        chest_iter++;
+    }
+    if (!found)
+    {
+        MapChest new_chest(x, y, key_id);
+        ChestItem new_item(item_id);
+        new_item.item_present = false;
+        new_item.respawn_enabled = true;
+        new_item.respawn_countdown = spawn_time;
+        new_item.respawn_delay = spawn_time;
+        new_item.amount = amount;
+        new_item.alt_item_id0 = item_id;
+        new_item.alt_amount0 = amount;
+        new_item.alt_item_id1 = 0;
+        new_item.alt_item_id2 = 0;
+        new_item.alt_item_id3 = 0;
+        new_chest.slots.insert(new_chest.slots.end(), new_item);
+        map->chest_list.insert(map->chest_list.end(), new_chest);
+    }
+}
+
+int MapContainer::Mapcontrol_GetWarpDoorAt(MapContainer *self,
+                                           int map_id,
+                                           MapCoord coords)
+{
+    int result = 0;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<MapObject>::iterator door_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.begin();
+             door_iter !=
+             Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.end();
+             door_iter++)
+        {
+            if ((unsigned short)door_iter->x == coords.x &&
+                (unsigned short)door_iter->y == coords.y)
+            {
+                result = (unsigned short)door_iter->value;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+int Mapcontrol_GetChestKeyAt(MapContainer *self, int map_id, MapCoord coords)
+{
+    int result = 0;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<MapChest>::iterator chest_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
+             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
+             chest_iter++)
+        {
+            if ((unsigned short)chest_iter->x == coords.x &&
+                (unsigned short)chest_iter->y == coords.y)
+            {
+                result = (unsigned short)chest_iter->key_id;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+void MapContainer::Mapcontrol_AddChestItem(
+    MapContainer *self, int map_id, MapCoord coords, int item_id, int amount)
+{
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<MapChest>::iterator chest_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
+             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
+             chest_iter++)
+        {
+            if ((unsigned short)chest_iter->x == coords.x &&
+                (unsigned short)chest_iter->y == coords.y)
+            {
+                bool found = false;
+                for (vector<ChestItem>::iterator item_iter = chest_iter->slots.begin();
+                     item_iter != chest_iter->slots.end() && !found;
+                     item_iter++)
+                {
+                    if (item_iter->item_id == item_id && !found)
+                    {
+                        if (item_iter->respawn_enabled != false)
+                        {
+                            if (item_iter->item_present != false)
+                            {
+                                found = true;
+                                item_iter->amount = item_iter->amount + amount;
+                            }
+                        }
+                        else
+                        {
+                            found = true;
+                            item_iter->amount = item_iter->amount + amount;
+                        }
+                    }
+                }
+                if (!found)
+                {
+                    ChestItem new_item(item_id);
+                    new_item.amount = amount;
+                    new_item.item_present = true;
+                    new_item.respawn_enabled = false;
+                    chest_iter->slots.insert(chest_iter->slots.end(), new_item);
+                }
+                break;
+            }
+        }
+    }
+}
+
+int MapContainer::Mapcontrol_AddGroundItem(MapContainer *self,
+                                           int map_id,
+                                           unsigned int item_id,
+                                           int x,
+                                           int y,
+                                           unsigned int amount,
+                                           int owner_player_id,
+                                           unsigned short protect_ticks)
+{
+    int item_index = -1;
+    if (map_id > 0 && map_id <= (int)self->maps.size() && x >= 0 && y >= 0 &&
+        x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
+        y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
+    {
+        ItemObj *item = new ItemObj();
+        item->index = Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id;
+        item->item_id = item_id;
+        item->x = x;
+        item->y = y;
+        item->amount = amount;
+        item->drop_time = DateTimeToTimeStamp(Now());
+        item->owner_player_id = owner_player_id;
+        item->protect_ticks = protect_ticks;
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 15000)
+            Mapcontrol_PurgeGroundItemsInRange(self, map_id, 15000, 30000);
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 30000)
+            Mapcontrol_PurgeGroundItemsInRange(self, map_id, 30000, 45000);
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 45000)
+            Mapcontrol_PurgeGroundItemsInRange(self, map_id, 45000, 60000);
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 60000)
+            Mapcontrol_PurgeGroundItemsInRange(self, map_id, 0, 15000);
+        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id >= 60000)
+            Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id = 0;
+        ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
+            ->insert(((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
+                          ->ground_items)
+                         ->end(),
+                     item);
+        item_index = Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id;
+        Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id =
+            Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id + 1;
+    }
+    return item_index;
+}
+
+void Mapcontrol_RemoveGroundItem(MapContainer *self, int map_id, int index)
+{
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<ItemObj *>::iterator cursor =
+                 ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
+                      ->ground_items)
+                     ->begin();
+             cursor !=
+             ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
+                 ->end();
+             cursor++)
+        {
+            if ((*cursor)->index == index)
+            {
+                ItemObj *item = *cursor;
+                ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
+                     ->ground_items)
+                    ->erase(cursor);
+                delete item;
+                break;
+            }
+        }
+    }
+}
+
+ItemStack MapContainer::Mapcontrol_TakeChestItem(MapContainer *self,
+                                                 int map_id,
+                                                 MapCoord coords,
+                                                 int item_id)
+{
+    ItemStack result;
+    result.id = -1;
+    result.amount = -1;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<MapChest>::iterator chest_iter =
+                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
+             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
+             chest_iter++)
+        {
+            if ((unsigned short)chest_iter->x == coords.x &&
+                (unsigned short)chest_iter->y == coords.y)
+            {
+                bool found = false;
+                for (vector<ChestItem>::iterator item_iter = chest_iter->slots.begin();
+                     item_iter != chest_iter->slots.end() && !found;
+                     item_iter++)
+                {
+                    if (item_iter->item_id == item_id && !found)
+                    {
+                        if (item_iter->item_present != false)
+                        {
+                            found = true;
+                            result.id = item_iter->item_id;
+                            result.amount = item_iter->amount;
+                            if (item_iter->respawn_enabled != false)
+                            {
+                                item_iter->item_present = false;
+                                item_iter->respawn_countdown = item_iter->respawn_delay;
+                                item_iter->amount = 0;
+                            }
+                            else
+                            {
+                                chest_iter->slots.erase(item_iter);
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+bool Mapcontrol_CanDropItemAt(MapContainer *self, int map_id, int x, int y, int player_id)
+{
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        int count = 0;
+        for (vector<ItemObj *>::iterator cursor =
+                 ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
+                      ->ground_items)
+                     ->begin();
+             cursor !=
+             ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
+                 ->end();
+             cursor++)
+        {
+            if ((*cursor)->x == x && (*cursor)->y == y)
+            {
+                if ((*cursor)->owner_player_id == player_id)
+                {
+                    count = count + 1;
+                    if (count > MAP_GROUND_ITEM_MAX)
+                        return 0;
+                }
+                else
+                {
+                    TTimeStamp now = DateTimeToTimeStamp(Now());
+                    int elapsed = now.Date - (*cursor)->drop_time.Date;
+                    int ms = now.Time - (*cursor)->drop_time.Time;
+                    elapsed = ms / MS_PER_SECOND + elapsed * SECONDS_PER_DAY;
+                    if ((*cursor)->protect_ticks > elapsed)
+                        return 0;
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+GroundItemInfo
+Mapcontrol_TakeGroundItemInfo(MapContainer *self, int map_id, int index, int player_id)
+{
+    GroundItemInfo result;
+    result.x = -1;
+    result.y = -1;
+    if (map_id > 0 && map_id <= (int)self->maps.size())
+    {
+        for (vector<ItemObj *>::iterator cursor =
+                 ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
+                      ->ground_items)
+                     ->begin();
+             cursor !=
+             ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
+                 ->end();
+             cursor++)
+        {
+            if ((*cursor)->index == index)
+            {
+                TTimeStamp now = DateTimeToTimeStamp(Now());
+                int elapsed = now.Date - (*cursor)->drop_time.Date;
+                int ms = now.Time - (*cursor)->drop_time.Time;
+                elapsed = ms / MS_PER_SECOND + elapsed * SECONDS_PER_DAY;
+                if ((*cursor)->protect_ticks > elapsed &&
+                    (*cursor)->owner_player_id != player_id &&
+                    (unsigned int)(*cursor)->owner_player_id > 0)
+                {
+                    result.x = -2;
+                }
+                else
+                {
+                    result.x = (*cursor)->x;
+                    result.y = (*cursor)->y;
+                    result.item_id = (*cursor)->item_id;
+                    result.amount = (*cursor)->amount;
+                }
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+void MapContainer::Mapcontrol_PurgeGroundItemsInRange(MapContainer *self,
+                                                      int map_id,
+                                                      int range_low,
+                                                      int range_high)
+{
+    vector<ItemObj *>::iterator cursor =
+        ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
+            ->begin();
+    while (cursor !=
+           ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
+               ->end())
+    {
+        if ((*cursor)->index < range_low)
+        {
+            cursor++;
+        }
+        else if ((*cursor)->index > range_high)
+        {
+            cursor++;
+        }
+        else
+        {
+            ItemObj *item = *cursor;
+            cursor = ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
+                          ->ground_items)
+                         ->erase(cursor);
+            delete item;
+        }
+    }
+}
+ChestItem *MapContainer::Mapcontrol_GetSlot(vector<ChestItem> *slot_list, int slot)
+{
+    return slot_list->begin() + slot;
 }

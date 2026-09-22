@@ -13,6 +13,18 @@ LearnValues::LearnValues()
     LoadSkillMasters(this);
 }
 
+// Nothing calls this, so ilink32 drops its COMDAT -- but the two string
+// literals it pools stay in the unit's _DATA. The reference carries exactly
+// those two literals at 0x57fe1d and 0x57fe21, immediately after
+// "./pub/dsm001.emf" and with no reference to either anywhere in the image;
+// only their presence and order are observable, not the function they came
+// from (the same situation as NpcValues::ClearDrops, see PLAN.md).
+void Learnvalues_FileInfo()
+{
+    String magic = "EMF";
+    String file = "dsm001.emf";
+}
+
 LearnValues::~LearnValues()
 {
 }
@@ -35,7 +47,7 @@ void LearnValues::LoadSkillMasters(LearnValues *self)
             buf = new char[size + 1];
             FileRead(file_handle, buf, size);
             FileClose(file_handle);
-            data += buf;
+            data = buf;
             data.SetLength(size);
             delete[] buf;
             if (data[1] != 'E' || data[2] != 'M' || data[3] != 'F')
@@ -46,7 +58,7 @@ void LearnValues::LoadSkillMasters(LearnValues *self)
                 int id = DecodeNumber(self, data.SubString(1, 2));
                 int namelen = DecodeNumber(self, data.SubString(3, 1));
                 LearnValue record(id);
-                record.name += data.SubString(4, namelen);
+                record.name = data.SubString(4, namelen);
                 record.min_level = DecodeNumber(self, data.SubString(namelen + 4, 1));
                 record.max_level = DecodeNumber(self, data.SubString(namelen + 5, 1));
                 record.class_requirement =
@@ -188,7 +200,7 @@ String LearnValues::BuildOpenData(LearnValues *self, int behavior_id)
     {
         if (it->id == behavior_id)
         {
-            data += EncodeNumber(self, it->id, 2);
+            data = EncodeNumber(self, it->id, 2);
             data.Insert(it->name, data.Length() + 1);
             data.Insert((char)-1, data.Length() + 1);
             if (it->skills.size() > 0)
@@ -227,7 +239,7 @@ String LearnValues::BuildOpenData(LearnValues *self, int behavior_id)
         it++;
     }
     if (data == "")
-        data += EncodeNumber(self, 0, 2);
+        data = EncodeNumber(self, 0, 2);
     return data;
 }
 
@@ -258,7 +270,7 @@ String LearnValues::EncodeNumber(LearnValues *self, unsigned int value, int widt
     }
     catch (...)
     {
-        result += "";
+        result = "";
     }
     if (result.Length() < width)
     {

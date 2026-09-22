@@ -57,7 +57,7 @@ void NpcValues::LoadNpcs(NpcValues *self)
                 buf = new char[size + 1];
                 FileRead(file_handle, buf, size);
                 FileClose(file_handle);
-                data += buf;
+                data = buf;
                 data.SetLength(size);
                 delete[] buf;
                 if (data[1] != 'E' || data[2] != 'N' || data[3] != 'F')
@@ -133,7 +133,7 @@ void NpcValues::LoadDrops(NpcValues *self)
             buf = new char[size + 1];
             FileRead(file_handle, buf, size);
             FileClose(file_handle);
-            data += buf;
+            data = buf;
             data.SetLength(size);
             delete[] buf;
             if (data[1] != 'E' || data[2] != 'D' || data[3] != 'F')
@@ -183,7 +183,7 @@ void NpcValues::LoadTalk(NpcValues *self)
             buf = new char[size + 1];
             FileRead(file_handle, buf, size);
             FileClose(file_handle);
-            data += buf;
+            data = buf;
             data.SetLength(size);
             delete[] buf;
             if (data[1] != 'E' || data[2] != 'T' || data[3] != 'F')
@@ -355,11 +355,6 @@ void NpcValues::AddNpc(NpcValues *self,
     self->record_list.insert(self->record_list.end(), value);
 }
 
-int NpcValues::GetCount(NpcValues *self)
-{
-    return self->record_list.size();
-}
-
 NpcValue NpcValues::GetNpc(NpcValues *self, int id)
 {
     NpcValue result;
@@ -402,25 +397,6 @@ NpcValue NpcValues::GetNpc(NpcValues *self, int id)
     return result;
 }
 
-NpcTypeInfo NpcValues::GetType(NpcValues *self, int enf_id)
-{
-    NpcTypeInfo result;
-    result.type = -1;
-    result.behavior_id = -1;
-    vector<NpcValue>::iterator it = self->record_list.begin();
-    while (it != self->record_list.end())
-    {
-        if (enf_id == it->id)
-        {
-            result.type = it->npc_type;
-            result.behavior_id = it->behavior_id;
-            break;
-        }
-        it++;
-    }
-    return result;
-}
-
 int NpcValues::GetExp(NpcValues *self, int npc_id)
 {
     int result = 0;
@@ -451,6 +427,30 @@ int NpcValues::GetMaxHp(NpcValues *self, int npc_id)
         it++;
     }
     return result;
+}
+
+NpcTypeInfo NpcValues::GetType(NpcValues *self, int enf_id)
+{
+    NpcTypeInfo result;
+    result.type = -1;
+    result.behavior_id = -1;
+    vector<NpcValue>::iterator it = self->record_list.begin();
+    while (it != self->record_list.end())
+    {
+        if (enf_id == it->id)
+        {
+            result.type = it->npc_type;
+            result.behavior_id = it->behavior_id;
+            break;
+        }
+        it++;
+    }
+    return result;
+}
+
+int NpcValues::GetCount(NpcValues *self)
+{
+    return self->record_list.size();
 }
 
 int NpcValues::DecodeNumber(String value)

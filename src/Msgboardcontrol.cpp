@@ -30,43 +30,72 @@ MsgBoardController::~MsgBoardController()
     }
 }
 
-String
-MsgBoardController::EncodeNumber(MsgBoardController *self, unsigned int value, int width)
+bool MsgBoardController::LoadBoards(MsgBoardController *self)
 {
-    int rem;
-    char c;
+    String path;
+    String unused;
+    int h;
+    int size;
+    char *buf;
     try
     {
-        unsigned int quotient = 1;
-        bool flag = true;
-        for (int i = 0; i < width; i++)
+        path = "./pub/dbb001.ebf";
+        h = FileOpen(path.c_str(), 0);
+        if (h < 0)
+            return 0;
+        size = FileSeek(h, 0, 2);
+        FileSeek(h, 0, 0);
+        buf = new char[size + 1];
+        FileRead(h, buf, size);
+        FileClose(h);
+        path = buf;
+        path.SetLength(size);
+        delete[] buf;
+        for (int i = 0; i < 8; i++)
         {
-            if (flag)
-            {
-                double d = value / 253.0;
-                quotient = d;
-                rem = value % EO_NUM_MAX;
-                c = rem + 1;
-                self->field_0x118[i] = c;
-                value = quotient;
-                if (quotient < 1)
-                    flag = false;
-                else if (i + 1 == width)
-                    width++;
-            }
-            else
-            {
-                char pad = EO_NUM_EMPTY;
-                self->field_0x118[i] = pad;
-            }
+            self->boards[i].clear();
+            self->aBoard_enabled[i] = 1;
+        }
+        for (int i = 0; i < 8; i++)
+        {
+            self->field_0x2c4[i] = DecodeNumber(self, path.SubString(1, 4));
+            path.Delete(1, 4);
+        }
+        for (int i = 0; i < 8; i++)
+        {
+            self->aExtra_strings[i] = path.SubString(1, self->field_0x2c4[i]);
+            path.Delete(1, self->field_0x2c4[i]);
+        }
+        for (int i = 0; i < 8; i++)
+        {
+            LoadBoard(self, i + 1, self->aExtra_strings[i]);
         }
     }
     catch (...)
     {
-        width = 0;
+        FileClose(h);
+        return 0;
     }
-    String result(self->field_0x118, width);
-    return result;
+    return 1;
+}
+
+void MsgBoardController::SaveBoards(MsgBoardController *self)
+{
+    String lengths = "";
+    String contents = "";
+    String board_data = "";
+    for (int i = 1; i <= 8; i++)
+    {
+        board_data = BuildBoardData(self, i);
+        lengths.Insert(EncodeNumber(self, board_data.Length(), 4), lengths.Length() + 1);
+        contents.Insert(board_data, contents.Length() + 1);
+    }
+    lengths.Insert(contents, lengths.Length() + 1);
+    String path = "./pub/dbb001.ebf";
+    ofstream file;
+    file.open(path.c_str(), ios::binary);
+    file << lengths.c_str();
+    file.close();
 }
 
 void MsgBoardController::ClearBoard(MsgBoardController *self, int board)
@@ -137,15 +166,6 @@ void MsgBoardController::AddPost(MsgBoardController *self,
         if (self->boards[board].size() > (unsigned)(self->field_0x0 + 4))
             SetPostLimit(&self->boards[board], self->field_0x0 + 4);
     }
-}
-
-void MsgBoardController::SetPostLimit(vector<MsgBoard> *posts, unsigned int count)
-{
-    MsgBoard post;
-    if (posts->size() < count)
-        posts->insert(posts->end(), count - posts->size(), post);
-    else if (count < posts->size())
-        posts->erase(posts->begin() + count, posts->end());
 }
 
 String MsgBoardController::GetBoard(MsgBoardController *self, int board)
@@ -376,70 +396,50 @@ int MsgBoardController::DecodeNumber(MsgBoardController *self, String value)
     return result;
 }
 
-bool MsgBoardController::LoadBoards(MsgBoardController *self)
+String
+MsgBoardController::EncodeNumber(MsgBoardController *self, unsigned int value, int width)
 {
-    String path;
-    String unused;
-    int h;
-    int size;
-    char *buf;
+    int rem;
+    char c;
     try
     {
-        path = "./pub/dbb001.ebf";
-        h = FileOpen(path.c_str(), 0);
-        if (h < 0)
-            return 0;
-        size = FileSeek(h, 0, 2);
-        FileSeek(h, 0, 0);
-        buf = new char[size + 1];
-        FileRead(h, buf, size);
-        FileClose(h);
-        path = buf;
-        path.SetLength(size);
-        delete[] buf;
-        for (int i = 0; i < 8; i++)
+        unsigned int quotient = 1;
+        bool flag = true;
+        for (int i = 0; i < width; i++)
         {
-            self->boards[i].clear();
-            self->aBoard_enabled[i] = 1;
-        }
-        for (int i = 0; i < 8; i++)
-        {
-            self->field_0x2c4[i] = DecodeNumber(self, path.SubString(1, 4));
-            path.Delete(1, 4);
-        }
-        for (int i = 0; i < 8; i++)
-        {
-            self->aExtra_strings[i] = path.SubString(1, self->field_0x2c4[i]);
-            path.Delete(1, self->field_0x2c4[i]);
-        }
-        for (int i = 0; i < 8; i++)
-        {
-            LoadBoard(self, i + 1, self->aExtra_strings[i]);
+            if (flag)
+            {
+                double d = value / 253.0;
+                quotient = d;
+                rem = value % EO_NUM_MAX;
+                c = rem + 1;
+                self->field_0x118[i] = c;
+                value = quotient;
+                if (quotient < 1)
+                    flag = false;
+                else if (i + 1 == width)
+                    width++;
+            }
+            else
+            {
+                char pad = EO_NUM_EMPTY;
+                self->field_0x118[i] = pad;
+            }
         }
     }
     catch (...)
     {
-        FileClose(h);
-        return 0;
+        width = 0;
     }
-    return 1;
+    String result(self->field_0x118, width);
+    return result;
 }
 
-void MsgBoardController::SaveBoards(MsgBoardController *self)
+void MsgBoardController::SetPostLimit(vector<MsgBoard> *posts, unsigned int count)
 {
-    String lengths = "";
-    String contents = "";
-    String board_data = "";
-    for (int i = 1; i <= 8; i++)
-    {
-        board_data = BuildBoardData(self, i);
-        lengths.Insert(EncodeNumber(self, board_data.Length(), 4), lengths.Length() + 1);
-        contents.Insert(board_data, contents.Length() + 1);
-    }
-    lengths.Insert(contents, lengths.Length() + 1);
-    String path = "./pub/dbb001.ebf";
-    ofstream file;
-    file.open(path.c_str(), ios::binary);
-    file << lengths.c_str();
-    file.close();
+    MsgBoard post;
+    if (posts->size() < count)
+        posts->insert(posts->end(), count - posts->size(), post);
+    else if (count < posts->size())
+        posts->erase(posts->begin() + count, posts->end());
 }

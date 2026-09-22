@@ -11,7 +11,7 @@ Player::Player(TCustomWinSocket *socket)
 {
     this->socket = socket;
     player_id = *(int *)((char *)socket + 4);
-    remote_ip += socket->RemoteAddress;
+    remote_ip = socket->RemoteAddress;
     character_slot_0 = 0;
     character_slot_1 = 0;
     character_slot_2 = 0;
@@ -36,7 +36,7 @@ Player::Player(TCustomWinSocket *socket)
     sequence = 0;
     query_id = RandRange(10000000) + 10;
     session_id = RandRange(50000) + 10000;
-    receive_buffer += "";
+    receive_buffer = "";
     ping_timeout = false;
     packet_count = 0;
     account_ident = -1;
@@ -74,7 +74,7 @@ Player::Player(TCustomWinSocket *socket)
     last_client_walk_tick = 9000000;
     sync_base_ahead = -1;
     sync_base_behind = -1;
-    null_string += "";
+    null_string = "";
     flush_queue = 0;
     cheater_flag = false;
 }

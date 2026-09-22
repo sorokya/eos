@@ -38,22 +38,6 @@ TGUI *GUI;
 
 String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code);
 
-#pragma argsused
-WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
-{
-    try
-    {
-        Application->Initialize();
-        Application->CreateForm(__classid(TGUI), MAINFORM);
-        Application->Run();
-    }
-    catch (Exception &exception)
-    {
-        Application->ShowException(&exception);
-    }
-    return 0;
-}
-
 __fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
 {
     version_patch = 0;
@@ -162,12 +146,6 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     }
     Caption = Settings::GetServerName(settings);
 }
-
-// Non-PACKAGE redeclaration keeps `&GUI` a link-time constant, so bcc emits a
-// static `.data` relocation (matching reference slot 0x58b60c) rather than the
-// package-aware runtime initializer the PACKAGE declaration would produce.
-extern TGUI *GUI;
-TGUI **MAINFORM = &GUI;
 
 Packets *Mainform_GetServer(TGUI *form)
 {

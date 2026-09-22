@@ -25,10 +25,6 @@
 #define TEXT_SYMBOL_LIMIT 0x14
 #define TEXT_CAPS_LIMIT 0x28
 
-mySQLdb::~mySQLdb()
-{
-}
-
 mySQLdb::mySQLdb()
 {
     file_cache = new FileCache;
@@ -39,6 +35,10 @@ mySQLdb::mySQLdb()
     exec_error_count = 0;
     connected_time = DateTimeToTimeStamp(Now());
     last_query_time = DateTimeToTimeStamp(Now());
+}
+
+mySQLdb::~mySQLdb()
+{
 }
 
 bool mySQLdb::TestConnection(mySQLdb *self)

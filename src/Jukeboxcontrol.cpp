@@ -23,43 +23,18 @@ void JukeBoxController::Add(JukeBoxController *self, int map_id)
     self->recent_plays.insert(self->recent_plays.end(), record);
 }
 
-String
-JukeBoxController::EncodeNumber(JukeBoxController *self, unsigned int value, int width)
+void JukeBoxController_RemoveMap(JukeBoxController *self, int map_id)
 {
-    int rem;
-    char c;
-    try
+    for (vector<JukeBox>::iterator it = self->recent_plays.begin();
+         it != self->recent_plays.end();
+         it++)
     {
-        unsigned int quotient = 1;
-        bool flag = true;
-        for (int i = 0; i < width; i++)
+        if (it->map_id == map_id)
         {
-            if (flag)
-            {
-                double d = value / 253.0;
-                quotient = d;
-                rem = value % EO_NUM_MAX;
-                c = rem + 1;
-                self->encode_scratch[i] = c;
-                value = quotient;
-                if (quotient < 1)
-                    flag = false;
-                else if (i + 1 == width)
-                    width++;
-            }
-            else
-            {
-                char pad = EO_NUM_EMPTY;
-                self->encode_scratch[i] = pad;
-            }
+            self->recent_plays.erase(it);
+            break;
         }
     }
-    catch (...)
-    {
-        width = 0;
-    }
-    String result(self->encode_scratch, width);
-    return result;
 }
 
 String JukeBoxController::BuildRecentTracksString(JukeBoxController *self, int map_id)
@@ -120,16 +95,41 @@ bool JukeBoxController::TryPlayTrack(JukeBoxController *self, int map_id, String
     return played;
 }
 
-void JukeBoxController_RemoveMap(JukeBoxController *self, int map_id)
+String
+JukeBoxController::EncodeNumber(JukeBoxController *self, unsigned int value, int width)
 {
-    for (vector<JukeBox>::iterator it = self->recent_plays.begin();
-         it != self->recent_plays.end();
-         it++)
+    int rem;
+    char c;
+    try
     {
-        if (it->map_id == map_id)
+        unsigned int quotient = 1;
+        bool flag = true;
+        for (int i = 0; i < width; i++)
         {
-            self->recent_plays.erase(it);
-            break;
+            if (flag)
+            {
+                double d = value / 253.0;
+                quotient = d;
+                rem = value % EO_NUM_MAX;
+                c = rem + 1;
+                self->encode_scratch[i] = c;
+                value = quotient;
+                if (quotient < 1)
+                    flag = false;
+                else if (i + 1 == width)
+                    width++;
+            }
+            else
+            {
+                char pad = EO_NUM_EMPTY;
+                self->encode_scratch[i] = pad;
+            }
         }
     }
+    catch (...)
+    {
+        width = 0;
+    }
+    String result(self->encode_scratch, width);
+    return result;
 }

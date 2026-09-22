@@ -165,11 +165,6 @@ char Settings::GetWorldCommunication(Settings *self)
     return self->world_communication;
 }
 
-void Settings::SetWorldCommunication(Settings *self, bool value)
-{
-    self->world_communication = value;
-}
-
 int Settings::GetRefreshSeconds(Settings *self)
 {
     return self->refresh_time * 60;
@@ -483,4 +478,9 @@ char Settings::ReadIniBool(Settings *self, String key, char default_value)
         }
     }
     return result;
+}
+
+void Settings::SetWorldCommunication(Settings *self, bool value)
+{
+    self->world_communication = value;
 }

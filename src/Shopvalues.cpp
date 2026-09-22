@@ -36,7 +36,7 @@ void ShopValues::LoadShops(ShopValues *self)
             buf = new char[size + 1];
             FileRead(file_handle, buf, size);
             FileClose(file_handle);
-            data += buf;
+            data = buf;
             data.SetLength(size);
             delete[] buf;
             if (data[1] != 'E' || data[2] != 'S' || data[3] != 'F')
@@ -315,45 +315,6 @@ int ShopValues::GetSellPrice(ShopValues *self, int shop_id, int item_id, int amo
     return result;
 }
 
-int ShopValues::GetCount(ShopValues *self)
-{
-    return self->record_list.size();
-}
-
-String ShopValues::EncodeNumber(ShopValues *self, unsigned int value, int width)
-{
-    unsigned int v = value;
-    String result = "";
-    try
-    {
-        unsigned int quotient;
-        do
-        {
-            int rem;
-            char c;
-            double d = v / 253.0;
-            quotient = d;
-            rem = v % 0xfd;
-            c = rem + 1;
-            result.Insert(c, result.Length() + 1);
-            if (quotient >= 1)
-                v = quotient;
-        } while (quotient >= 1);
-    }
-    catch (...)
-    {
-        result = "";
-    }
-    if (result.Length() < width)
-    {
-        char pad = EO_NUM_EMPTY;
-        int count = width - result.Length();
-        for (int i = 0; i < count; i++)
-            result.Insert(pad, result.Length() + 1);
-    }
-    return result;
-}
-
 String ShopValues::BuildOpenData(ShopValues *self, int behavior_id)
 {
     String result = "";
@@ -364,7 +325,7 @@ String ShopValues::BuildOpenData(ShopValues *self, int behavior_id)
     {
         if (it->id == behavior_id)
         {
-            result += EncodeNumber(self, it->id, 2);
+            result = EncodeNumber(self, it->id, 2);
             result.Insert(it->name, result.Length() + 1);
             result.Insert((char)EO_BREAK_BYTE, result.Length() + 1);
             if (it->trades.size() > 0)
@@ -416,7 +377,46 @@ String ShopValues::BuildOpenData(ShopValues *self, int behavior_id)
         it++;
     }
     if (result == "")
-        result += EncodeNumber(self, 0, 2);
+        result = EncodeNumber(self, 0, 2);
+    return result;
+}
+
+int ShopValues::GetCount(ShopValues *self)
+{
+    return self->record_list.size();
+}
+
+String ShopValues::EncodeNumber(ShopValues *self, unsigned int value, int width)
+{
+    unsigned int v = value;
+    String result = "";
+    try
+    {
+        unsigned int quotient;
+        do
+        {
+            int rem;
+            char c;
+            double d = v / 253.0;
+            quotient = d;
+            rem = v % 0xfd;
+            c = rem + 1;
+            result.Insert(c, result.Length() + 1);
+            if (quotient >= 1)
+                v = quotient;
+        } while (quotient >= 1);
+    }
+    catch (...)
+    {
+        result = "";
+    }
+    if (result.Length() < width)
+    {
+        char pad = EO_NUM_EMPTY;
+        int count = width - result.Length();
+        for (int i = 0; i < count; i++)
+            result.Insert(pad, result.Length() + 1);
+    }
     return result;
 }
 

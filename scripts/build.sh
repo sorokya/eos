@@ -91,6 +91,9 @@ fi
   echo 'set -e'
   echo 'mkdir -p build/obj build/res/vcldb'
   if [ -z "${LINK_ONLY:-}" ]; then
+  if [ -f src/GameServer.cpp ]; then
+    echo "wine \"\$B\\Bin\\bcc32.exe\" $CFLAGS -c -obuild/obj/GameServer.obj src/GameServer.cpp"
+  fi
   for u in "${UNITS[@]}"; do
     echo "wine \"\$B\\Bin\\bcc32.exe\" $CFLAGS -c -obuild/obj/$u.obj src/$u.cpp"
   done
@@ -99,6 +102,23 @@ fi
   echo "L=\"${LPATH:--L\$BZ\\Lib -L\$BZ\\Lib\\Obj -L\$BZ\\Lib\\Debug -L\$BZ\\Lib\\Release}\""
 
   OBJS="${HEADOBJ-" \"Z:\\borland\\Lib\\Obj\\sysinit.obj\""}" 
+  # The project's main unit is its own translation unit (src/GameServer.cpp, the
+  # BCB project file), linked between sysinit.obj and Mainform.obj. The
+  # reference's first module is WinMain immediately followed by the Exception
+  # RTTI group bcc32 flushes at end of translation unit, which only happens when
+  # WinMain is the last -- here the only -- function in its TU. The unit carries
+  # no #pragma package(smart_init) (the reference exports no GUI Initialize /
+  # Finalize pair) and, like a real BCB project file, declares the form through
+  # USEFORM rather than including Mainform.h.
+  #
+  # The object's *name* is observable: ilink32 lays the cp32mt.lib block out
+  # inline after DbConsts, ~96 KB before its reference position, when this
+  # object is called GUI.obj -- the name of the exported form variable -- and at
+  # its reference position under any other name. GameServer.obj is the name a
+  # BCB project for GameServer.exe would produce.
+  if [ -f src/GameServer.cpp ]; then
+    OBJS+=" \"Z:\\work\\build\\obj\\GameServer.obj\""
+  fi
   for u in "${UNITS[@]}"; do
     if [ "$u" = "Itemchest" ]; then
       OBJS+=" $LIB_DB_OBJS"
