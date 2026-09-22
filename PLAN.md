@@ -799,10 +799,14 @@ section), reference vs rebuild:
 | section | reference | rebuild | delta |
 | --- | --- | --- | --- |
 | `.text` | 1,414,336 | 1,414,336 | **0** |
-| `.data` | 199,507 | 199,503 | **-4** |
+| `.data` | 199,507 | 199,495 | **-12** |
 | `.tls` | — | — | byte-identical |
 | `.rsrc` | — | — | byte-identical |
-| `.reloc` | 75,316 | 75,296 | -20 |
+| `.reloc` | 75,316 | 75,308 | -8 |
+
+Differing-byte counts on the same build: `.text` 17,605 raw, of which 4,979 are
+real instruction-stream misalignment once relocations and direct-branch
+displacements are masked; `.data` 120,385.
 
 `.reloc` is a derived quantity: its size follows how the `.text`/`.data` content
 falls across 4 KB relocation blocks, so it moves on its own and is not an
@@ -927,20 +931,63 @@ reference put it. Two things got it there.
 That took `Mapcontrol` from 32,794 masked differing bytes to 492 and
 `Msgboardcontrol` from 4,162 to 1,574.
 
-**What the residual is.** `make orderdiff` still reports 20 units, but the count
-is not proportional to bytes: `Mapcontrol` shows 50 moved entries and costs 492
-bytes. Nearly all of the remainder is one unit — `Packets`, 177,979 of the
-191,852 masked application bytes — and it is *not* a definition-order problem:
-`reorder_unit.py` reports zero moves for it, and diffing the callees of the first
-function that diverges (`Server_RemovePlayer`, byte-exact and at its reference
-address) shows it calls exactly the same functions as the reference, only at
-different addresses. What differs is where bcc32 places the *helper* COMDATs a
-definition pulls in relative to the next definition: the reference emits
-`Mapcontrol_GetByIndex` and then `vector<MapItem>::size`, while we emit `size`,
-`end`, `begin` and the two `vector<Npc *>` accessors first and
-`Mapcontrol_GetByIndex` after them. Moving definitions cannot change that; it is
-driven by the order of *statements* inside the preceding functions, so the next
-step for `Packets` is a statement-level comparison rather than more reordering.
+**The error `reorder_unit.py` cannot see.** Two of the invented unreferenced
+helpers this project uses to place COMDATs were in the wrong place, and between
+them they accounted for 96% of the `.text` difference. `ilink32` drops the
+function itself (nothing calls it), so its name is absent from the reference
+sheet and `reorder_unit.py` gives the block its neighbour's rank instead of
+placing it — but the *helpers it pulls in* stay exactly where it sits.
+
+- `Packets.cpp`'s `FUN_0044f97c` sat between `Server_RemovePlayer` and
+  `Mapcontrol_GetByIndex`, putting `vector<Npc *>::end`/`::begin` 84 bytes before
+  `Mapcontrol_GetByIndex` instead of after it, and everything below `0x417618`
+  shifted with them. The reference has no definition there at all: its `0x44f97c`
+  is a plain `size()` COMDAT next to the `0x44f9bc` one `FUN_0044f9bc` already
+  models, and `Server_RemovePlayer+648` targets `0x417630` — i.e. the helper is
+  emitted *after* `Mapcontrol_GetByIndex` at `0x417618`. Moving the definition
+  next to `FUN_0044f9bc` took Packets from 177,979 masked bytes to **0**.
+- `Npcvalues.cpp`'s `NpcValues::ClearDrops` sat between the destructor and
+  `LoadNpcs`, putting the `vector<NpcDropItem>` clear/erase/copy COMDATs at the
+  top of the module; the reference has them at `0x4a87a0`/`0x4a87c4`/`0x4a8820`,
+  immediately before `GetNpc`. Moving it there took Npcvalues from 7,632 to **0**.
+
+Together: whole-image `.text` differing bytes 300,254 → 16,269, masked
+application `.text` 191,852 → 6,346.
+
+**What is left in `.text`** is 6,346 masked bytes across ten units, and it *is*
+the statement-level class: small permutations of the helper COMDATs one function
+pulls in. `Killcounters` and `Questcounter` both have the reference emitting
+`size`, `end`, `begin` where we emit `end`, `size`, `begin`; `Msgboardcontrol`
+emits `vector<MsgBoard>::end` before `SetPostLimit` where the reference emits it
+after. Each needs the order of expressions inside one function compared against
+the reference, not more reordering.
+
+**Reading `make orderdiff`.** The "moved" count over-reports badly — Packets
+still shows 18 moved entries while costing zero bytes — because byte-identical
+container accessors (`vector<T>::begin` and friends) cannot be told apart by
+body, so the reference sheet's name for one of them is a guess and the pairing is
+arbitrary. The tool now also reports each unit's **masked differing bytes** and
+sorts by them; that column is the ground truth.
+
+## The literal pool as an oracle
+
+bcc32 does not dedupe string literals: every occurrence gets its own entry in the
+unit's pool, in source order, and every `""` takes its own NUL byte. The pool is
+therefore a direct readout of which literals a translation unit uses and in what
+order — and `.data` can be aligned by comparing it against the reference's.
+
+With Packets' functions in the reference order its pool came out 258 strings and
+99.6% sequence-identical, leaving exactly one difference: the guild lookup at
+`Packets.cpp:6226` ended `"' OR tag = '" + tag_upper + "' LIMIT 1"` where the
+reference ends it with a bare `"'"` (the second, later copy of the same query does
+carry `' LIMIT 1'`). Fixing it made `.data 0x561090-0x561118` byte-identical.
+
+Expect the aggregate to move the wrong way while doing this: that site was 8
+bytes too long and had been masking a 12-byte deficit further on, so `.data` went
+from -4 to -12 and its differing-byte count from 110,514 to 120,385. The next one
+is already visible at `0x561cb2`, where the reference has twelve consecutive NUL
+bytes and we have ten — two more `""` literals somewhere between
+`Packets.cpp:11551` and `Server_FormatSentTraffic`.
 
 ### Mainform emission order
 
