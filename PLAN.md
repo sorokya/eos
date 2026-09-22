@@ -799,14 +799,15 @@ section), reference vs rebuild:
 | section | reference | rebuild | delta |
 | --- | --- | --- | --- |
 | `.text` | 1,414,336 | 1,414,336 | **0** |
-| `.data` | 199,507 | 199,495 | **-12** |
+| `.data` | 199,507 | 199,507 | **0** |
 | `.tls` | — | — | byte-identical |
 | `.rsrc` | — | — | byte-identical |
-| `.reloc` | 75,316 | 75,308 | -8 |
+| `.reloc` | 75,316 | 75,312 | -4 |
 
-Differing-byte counts on the same build: `.text` 17,605 raw, of which 4,979 are
-real instruction-stream misalignment once relocations and direct-branch
-displacements are masked; `.data` 120,385.
+Both `.text` and `.data` are now the reference's size to the byte. Differing-byte
+counts on the same build: `.text` 11,948 raw / **6,349** once relocations and
+direct-branch displacements are masked (0.45% of the section); `.data` 1,546 raw
+/ **230** masked (0.12%).
 
 `.reloc` is a derived quantity: its size follows how the `.text`/`.data` content
 falls across 4 KB relocation blocks, so it moves on its own and is not an
