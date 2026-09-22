@@ -40,7 +40,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # vector<NpcDropItem> clear/erase/copy COMDATs -- the reference places them in
 # Npcvalues (0x4a87a0/0x4a87c4/0x4a8820) while their only caller lives in
 # Npcvalue, so Npcvalues.obj must define and win them.  See PLAN.md.
-BENIGN_MISS = re.compile(r"\$bd[et]r?\$|\$bdt\$|@NpcValues@ClearDrops\$")
+#
+# The default constructors of `ItemValue`, `LearnValue`, `MapChest` and
+# `ShopValue` are unreferenced too: the reference emits each class's member
+# template helpers (and, for ItemValue, its `ItemValue *` type descriptor)
+# *ahead* of the `(int)` constructor, which is what an earlier constructor in
+# the unit instantiating the same members produces.  See PLAN.md.
+BENIGN_MISS = re.compile(r"\$bd[et]r?\$|\$bdt\$|@NpcValues@ClearDrops\$"
+                         r"|@(ItemValue|LearnValue|MapChest|ShopValue)@\$bctr\$qv$")
 
 # A unit's C++ class name is fixed by the RTTI type-name table in the reference,
 # which need not match the unit's file base name (that base is fixed by the

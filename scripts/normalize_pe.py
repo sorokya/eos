@@ -12,9 +12,17 @@ writes the current time into all of them. The reference carries 0x418F00E9 in
 every one, so two otherwise identical relinks differ in `.rsrc` unless these
 are normalized too; that is done by default here.
 
+The import directory carries a third volatile: ilink32 never initialises the
+TimeDateStamp and ForwarderChain words of its IMAGE_IMPORT_DESCRIPTORs, so
+they hold whatever was in the linker's heap -- they differ between two links
+of identical objects (and between `MAP=1`'s two links). Nothing reads them for
+an unbound image. The reference's values are recorded below and restored by
+default when the descriptor count matches (`--no-import-junk` opts out).
+
 Usage:
     normalize_pe.py PE [--timestamp 0x50CBB124] [--characteristics 0x10e]
-                       [--resource-timestamp 0x418F00E9] [-o OUT]
+                       [--resource-timestamp 0x418F00E9] [--no-import-junk]
+                       [-o OUT]
 
 Without -o the file is rewritten in place. Values are printed before and after
 and the result is re-read to confirm the patch.
@@ -31,6 +39,15 @@ from pe import PE  # noqa: E402
 REFERENCE_TIMESTAMP = 0x50CBB124
 REFERENCE_CHARACTERISTICS = 0x010E
 REFERENCE_RESOURCE_TIMESTAMP = 0x418F00E9
+
+# (TimeDateStamp, ForwarderChain) of each of the reference's eight import
+# descriptors, in directory order; the terminating descriptor is all zeros.
+REFERENCE_IMPORT_JUNK = [
+    (0x076CBD7C, 0x00000001), (0x00007A4D, 0x07709924),
+    (0x00000000, 0x00007A35), (0x00000002, 0x00000000),
+    (0x00007A11, 0x07709924), (0x07719BB4, 0x0000004D),
+    (0x07709924, 0x07719BB4), (0x0000004B, 0x00000005),
+]
 
 
 def resource_directory_offsets(pe):
@@ -57,6 +74,21 @@ def resource_directory_offsets(pe):
     return sorted(rsrc.raw_pointer + o for o in found)
 
 
+def import_descriptor_offsets(pe, data):
+    """File offsets of every non-terminating IMAGE_IMPORT_DESCRIPTOR."""
+    opt = pe.coff_offset + 20
+    rva = struct.unpack_from("<I", data, opt + 96 + 8)[0]
+    sec = next((s for s in pe.sections
+                if s.virtual_address <= rva < s.virtual_address + s.raw_size), None)
+    if sec is None:
+        return []
+    off, out = rva - sec.virtual_address + sec.raw_pointer, []
+    while any(data[off:off + 20]) and struct.unpack_from("<I", data, off + 12)[0]:
+        out.append(off)
+        off += 20
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("pe")
@@ -67,6 +99,8 @@ def main() -> int:
                     default=REFERENCE_RESOURCE_TIMESTAMP,
                     help="rewrite every IMAGE_RESOURCE_DIRECTORY TimeDateStamp "
                          f"(reference {REFERENCE_RESOURCE_TIMESTAMP:#010x}); -1 leaves them alone")
+    ap.add_argument("--no-import-junk", action="store_true",
+                    help="leave the import descriptors' TimeDateStamp/ForwarderChain alone")
     ap.add_argument("-o", "--out", default=None)
     args = ap.parse_args()
 
@@ -90,6 +124,15 @@ def main() -> int:
             struct.pack_into("<I", data, off + 4, args.resource_timestamp)
         if dirs:
             print(f"resource TimeDateStamp x{len(dirs)} -> {args.resource_timestamp:#010x}")
+
+    if not args.no_import_junk:
+        descs = import_descriptor_offsets(pe, data)
+        if len(descs) == len(REFERENCE_IMPORT_JUNK):
+            for off, (ts, fc) in zip(descs, REFERENCE_IMPORT_JUNK):
+                struct.pack_into("<II", data, off + 4, ts, fc)
+            print(f"import descriptor TimeDateStamp/ForwarderChain x{len(descs)} restored")
+        else:
+            print(f"import descriptors: {len(descs)} (reference {len(REFERENCE_IMPORT_JUNK)}); left alone")
 
     out = args.out or args.pe
     with open(out, "wb") as fh:
