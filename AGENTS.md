@@ -321,6 +321,11 @@ this was normalized, two back-to-back relinks of identical objects produced
 different `.rsrc` bytes and different whole-file MD5s. `normalize_pe.py` now
 rewrites them by default (`--resource-timestamp=-1` opts out).
 
+A third volatile is in `.idata`: ilink32 never initialises the
+`TimeDateStamp`/`ForwarderChain` words of its import descriptors, so they hold
+heap garbage that differs from link to link. `normalize_pe.py` restores the
+reference's values by default (`--no-import-junk` opts out).
+
 The normalization step is implemented and verified: taking a copy of the
 reference with only the timestamp changed, `normalize_pe.py` restores the
 reference MD5 exactly, and it is a byte-level no-op on the reference itself.
@@ -834,6 +839,15 @@ them to pick the form that matches the reference.
   4-byte elements emits `sub` / `test` / `jns` / `add 3` / `sar 2`, not a bare
   `sub`/`sar`. `GroundItemPtrVector_Count` (`0x44f8b0`) is exactly this; casting
   both sides to `char *` removes the scale and the match.
+- **Helper-COMDAT emission order is a fingerprint.** bcc32 emits the template
+  helpers a function instantiates right after that function. If the reference
+  emits a helper *earlier* than we do, either (a) one of our hand-written
+  functions is really an STL member and belongs among the instantiations
+  (`SetPostLimit` was `vector<T>::resize`, `Mapcontrol_GetByIndex` was
+  `vector<MapItem>::operator[]` -- read `Include/vector.cc`/`vector.h` for the
+  RW bodies), or (b) an earlier function the linker dropped instantiated it.
+  With every module at its reference RVA, a *raw* byte diff of `.text` finds
+  these (and swapped same-typed call arguments) where the masked tools cannot.
 - **Encoded strings.** Where the reference carries an obfuscated literal (decoded
   through `Serial::DecodeString`), name a macro after the decoded text so intent
   is legible, e.g.

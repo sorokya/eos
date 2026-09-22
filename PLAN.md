@@ -801,13 +801,16 @@ section), reference vs rebuild:
 | `.text` | 1,414,336 | 1,414,336 | **0** |
 | `.data` | 199,507 | 199,507 | **0** |
 | `.tls` | — | — | byte-identical |
+| `.rdata` | — | — | byte-identical |
+| `.idata` | — | — | byte-identical (after normalization, see below) |
+| `.edata` | — | — | byte-identical |
 | `.rsrc` | — | — | byte-identical |
-| `.reloc` | 75,316 | 75,312 | -4 |
+| `.reloc` | — | — | **byte-identical** |
 
-Both `.text` and `.data` are now the reference's size to the byte. Differing-byte
-counts on the same build: `.text` 11,948 raw / **6,349** once relocations and
-direct-branch displacements are masked (0.45% of the section); `.data` 1,546 raw
-/ **230** masked (0.12%).
+Every section except `.text` and `.data` is now byte-identical. Raw differing
+bytes: `.text` **1,502** (was 11,948), `.data` **1,095** (was 1,546). What is
+left is itemised in "Residual differences" below; none of it is application
+code apart from `Party_ShareExp`.
 
 `.reloc` is a derived quantity: its size follows how the `.text`/`.data` content
 falls across 4 KB relocation blocks, so it moves on its own and is not an
@@ -969,6 +972,105 @@ container accessors (`vector<T>::begin` and friends) cannot be told apart by
 body, so the reference sheet's name for one of them is a guess and the pairing is
 arbitrary. The tool now also reports each unit's **masked differing bytes** and
 sorts by them; that column is the ground truth.
+
+## Residual differences (and the pass that got here)
+
+### Helper-COMDAT placement inside a unit (closed)
+
+With every unit's functions in reference order, the remaining application
+`.text` difference was where each unit's *template helpers* were emitted.
+bcc32 instantiates the helpers a function needs right after that function
+(breadth-first over the helpers' own needs), so a helper that the reference
+emits *earlier* than we do means something earlier in the reference's unit
+already instantiated it. Two causes, each verified by a relink (and the whole
+unit dropping out of the raw diff):
+
+- **A hand-written function that is really an STL member.** The reference's
+  "helper" sits among the instantiations because it *is* one:
+  `MsgBoardController::SetPostLimit` is `vector<MsgBoard>::resize(size_type)`
+  (the RW body `insert(end(), n - size(), T())` / `erase(begin() + n, end())`,
+  `Include/vector.cc:56`); `Mapcontrol_GetSlot` and `Mapcontrol_GetByIndex`
+  are `vector<ChestItem>::operator[]` / `vector<MapItem>::operator[]`
+  (`*(begin() + n)`, `imul 0x2c` / `imul 0x160`). All three names were
+  invented and are gone; the 215 `Mapcontrol_GetByIndex(x, i)->` call sites
+  are `x->maps[i].`.
+- **An unreferenced earlier function instantiating the same members.** The
+  function itself is dropped by ilink32, its instantiations stay where it
+  sat. `Killcounters_BucketSize`/`Questcounter_Count` (`size()` plus the const
+  `begin`/`end` it calls), `Questengine_StateAt`, `Shopvalues_Get`,
+  `Skillvalues_Get`, `Classvalues_Get` (`operator[]`), and default
+  constructors for `ItemValue`, `LearnValue`, `MapChest`, `ShopValue` (the
+  reference emits the `(int)` constructor's member helpers -- for `ItemValue`
+  its `ItemValue *` type descriptor -- *ahead* of it). Only the placement is
+  observable; `verify_units.py` whitelists the four constructors.
+
+Related data-side fixes: `TGUI`'s published-method table lists
+`serverClientError` right after `FormCreate` (declaration order in
+`__published`), and `Learnvalues_FileInfo` belongs *after* `LoadSkillMasters`
+(the reference's pool is `"./pub/dsm001.emf"`, `"EMF"`, `"dsm001.emf"`).
+
+**Swapped iterator arguments.** `Player_HandlePacket` called
+`EO_Decode_Deinterleave(..., range.end(), range.begin())`; the callee walks
+`begin` to `end`, so this was also a real bug. It was invisible to every masked
+comparison (a call to `basic_string::end` and one to `::begin` mask the same)
+and showed up only as the two COMDATs' emission order. With every module at its
+reference RVA a *raw* diff now catches this class directly.
+
+### `.idata`: uninitialized import-descriptor words (closed)
+
+ilink32 never writes the `TimeDateStamp`/`ForwarderChain` words of its
+`IMAGE_IMPORT_DESCRIPTOR`s; they hold heap garbage and differ between two links
+of identical objects (and between the two links `MAP=1` does). They are the same
+class as the header timestamp, so `normalize_pe.py` restores the reference's
+sixteen words (`REFERENCE_IMPORT_JUNK`) when the descriptor count matches; it
+remains a byte-level no-op on the reference and two relinks are now identical.
+
+### Package init order: the `_INIT_` table (partly open)
+
+The `.data` table at `0x55b206` (and the matching `_EXIT_` table at `0x55b524`)
+lists every unit's `Initialize` in package-init order: 6-byte entries
+`{0, 0x1e, addr}`. That order is a linker-computed dependency order and is a
+second oracle -- it reflects which *headers* each unit includes.
+
+- Probed with synthetic units: ilink32 does a post-order DFS over unit
+  dependencies and visits each unit's dependencies in **link order**, not in
+  reference/declaration order. A dependency is "references a symbol owned by
+  that unit".
+- For a COMDAT defined by many objects the owner the DFS uses is **not**
+  simply the first definer. `AnsiString::AnsiString()` (48 definers) was owned
+  by `Skillvalue` in our link; moving `Skillvalue` to the end of the link made
+  `Wedding` the owner, then `Innvalue`. The reference's table puts `Npc` there.
+  The one unit-level difference we found is that our `Npc.obj` also carried the
+  RW locale statics (`std::locale::numeric`, ...) because it included
+  `Players.h` just for `RandRange`; declaring `RandRange` directly (codegen- and
+  byte-neutral) makes `Npc` the owner and matches the reference. The exact rule
+  is still unknown (the TDS even records one bogus `AnsiString()` entry at
+  `0x40152c`, inside the `TGUI` constructor, attributed to the owner unit).
+- **Still open:** `Learnitem Learnvalue Learnvalues` are initialised right after
+  `Mysqlthread` (pulled by `Filecache`'s DFS through one of the shared
+  `bad_alloc`/`exception`/`AnsiString` COMDAT families) where the reference has
+  them after `Weddings`. Forward-declaring `Mainform.h` away in `Mysqlthread.cpp`
+  is byte-neutral but does not move them.
+
+### `vcldb50`: explicit objects vs. the inline library (open, the largest residue)
+
+Most of what is left -- the library code in the `Banned` span and the
+`cp32mt` block after `Questcounters`, plus ~1,200 bytes of `.data` -- is one
+effect: the order of the linker's `<internal>` communal block at `0x58b60c`.
+Mapping every relocated reference into it shows the reference allocates the
+four `vcldb50` members' communals (0xf0 bytes) **after** the VCL/System ones,
+and we allocate them **first**. Communals are allocated in object *load*
+order, and `build.sh` links `DbLogDlg`/`DBCommon`/`DbConsts`/`Db` as explicit
+objects, which load in pass 1. Linked as `vcldb50.lib` inline (the reference's
+evident arrangement), every one of those library/communal differences vanishes
+-- but the known `Skillvalue`/`Npcvalue` layout inversion comes back (`Npcvalue`
+is placed immediately before `Npcvalues`; 17.7 kB of `.text` shifts). The
+inversion is sensitive to the dependency graph, not to the moved unit: with
+`Npcvalue` moved elsewhere, `Npcdrop` is hoisted in front of `Npcvalues`
+instead, and `Learnitem` in front of `Learnvalue`. It did not reproduce in
+small synthetic links. Resolving it -- probably by the same include-driven
+COMDAT ownership as the init order -- is what would let the inline library be
+used and close the library/communal residue.
 
 ## The literal pool as an oracle
 
