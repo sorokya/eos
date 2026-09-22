@@ -10801,36 +10801,45 @@ int Party_ShareExp(Packets *server, Player *player, int exp)
         exp = 1;
     String pkt = "";
     bool leveled = false;
-    for (int i = 0; i < PARTY_MAX_MEMBERS; i++)
+    int i = 0;
+    do
     {
         Player *member = Players::Players_GetById(server->players, player->party_ids[i]);
-        if (member == NULL || member->player_id == player->player_id ||
-            member->map_id != player->map_id)
-            continue;
-        if (Settings::GetMaxKills(server->settings) != 0)
+        if (member != NULL && member->player_id != player->player_id &&
+            member->map_id == player->map_id)
         {
-            if (KillCounters::IncrementAndGet(server->kill_counters, member->name) >
-                Settings::GetMaxKills(server->settings))
-                exp = 0;
+            if (Settings::GetMaxKills(server->settings) != 0)
+            {
+                if (KillCounters::IncrementAndGet(server->kill_counters, member->name) >
+                    Settings::GetMaxKills(server->settings))
+                    exp = 0;
+            }
+            member->experience = member->experience + exp;
+            int levelup = Players::Player_TryLevelUp(server->players, member);
+            if (levelup > 0)
+            {
+                String stats = EO_EncodeNumber(server, member->stat_points, 2);
+                stats.Insert(EO_EncodeNumber(server, member->skill_points, 2),
+                             stats.Length() + 1);
+                stats.Insert(EO_EncodeNumber(server, member->max_hp, 2),
+                             stats.Length() + 1);
+                stats.Insert(EO_EncodeNumber(server, member->max_tp, 2),
+                             stats.Length() + 1);
+                stats.Insert(EO_EncodeNumber(server, member->max_sp, 2),
+                             stats.Length() + 1);
+                Client_SendEncoded(server,
+                                   member,
+                                   PacketAction_TargetGroup,
+                                   PacketFamily_Recover,
+                                   stats);
+                leveled = true;
+            }
+            pkt.Insert(EO_EncodeNumber(server, member->player_id, 2), pkt.Length() + 1);
+            pkt.Insert(EO_EncodeNumber(server, exp, 4), pkt.Length() + 1);
+            pkt.Insert(EO_EncodeNumber(server, levelup, 1), pkt.Length() + 1);
         }
-        member->experience = member->experience + exp;
-        int levelup = Players::Player_TryLevelUp(server->players, member);
-        if (levelup > 0)
-        {
-            String stats = EO_EncodeNumber(server, member->stat_points, 2);
-            stats.Insert(EO_EncodeNumber(server, member->skill_points, 2),
-                         stats.Length() + 1);
-            stats.Insert(EO_EncodeNumber(server, member->max_hp, 2), stats.Length() + 1);
-            stats.Insert(EO_EncodeNumber(server, member->max_tp, 2), stats.Length() + 1);
-            stats.Insert(EO_EncodeNumber(server, member->max_sp, 2), stats.Length() + 1);
-            Client_SendEncoded(
-                server, member, PacketAction_TargetGroup, PacketFamily_Recover, stats);
-            leveled = true;
-        }
-        pkt.Insert(EO_EncodeNumber(server, member->player_id, 2), pkt.Length() + 1);
-        pkt.Insert(EO_EncodeNumber(server, exp, 4), pkt.Length() + 1);
-        pkt.Insert(EO_EncodeNumber(server, levelup, 1), pkt.Length() + 1);
-    }
+        i++;
+    } while (i < PARTY_MAX_MEMBERS);
     if (leveled)
         Server_BroadcastToMap(
             server, player->map_id, PacketAction_TargetGroup, PacketFamily_Party, pkt);
