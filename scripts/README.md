@@ -182,8 +182,10 @@ produced.
   shell.
 - **`build.sh`** — compile every unit in `src/` (main unit first, then
   `units.tsv` order) and link `build/GameServer.exe`, then apply the timestamp
-  normalization. `MAP=1` adds `ilink32 -s` and writes `build/GameServer.map`
-  (the detailed segment map that `unitmap.py --map` consumes).
+  normalization. `MAP=1` adds `ilink32 -s` and writes
+  `build/GameServer_map.map` (the detailed segment map that `unitmap.py --map`,
+  `libmatch.py` and `track.py` consume; the plain `build/GameServer.map` is the
+  276-byte summary and carries no module rows).
   Environment knobs for link experiments — a full build is ~4 min, a relink
   ~12 s, so use these when only the link line is under test:
   - `LINK_ONLY=1` — skip the compiles and the `.rc`, reuse `build/obj`.
@@ -413,7 +415,7 @@ make clean     # remove build/
   same code compiled by the same toolchain, so linking the project (with
   `MAP=1 scripts/build.sh`) yields a library block that can be searched directly,
   and the map names each module. Far more precise than the raw `.lib` blob
-  (`build/GameServer.map` is required).
+  (`build/GameServer_map.map` is required).
 - **`track.py [--summary] [--readme FILE] [--reclassify]`** — the central
   per-function status sheet: `analysis/target/functions.tsv` (generated,
   gitignored) with one row per reference function and columns

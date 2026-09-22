@@ -49,7 +49,9 @@ extract:
 
 # Central per-function status sheet (analysis/target/functions.tsv) and the
 # generated README status block. Depends on --units output, so run `make unitmap`
-# first. Caches the library/comdat classification in
+# first, and on the detailed link map, so run `MAP=1 scripts/build.sh` too (the
+# library/comdat classification matches against the linked build; without the
+# map it falls back to the noisier .lib blob). Caches the classification in
 # analysis/target/function_kinds.tsv (--reclassify to rebuild it).
 track:
 	$(PYTHON) scripts/track.py --readme README.md

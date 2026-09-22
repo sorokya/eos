@@ -47,6 +47,7 @@ BENIGN_MISS = re.compile(r"\$bd[et]r?\$|\$bdt\$|@NpcValues@ClearDrops\$")
 # `@@Unit@Initialize` export). Map each such unit to the class-name prefix its
 # functions actually use.
 UNIT_CLASS_ALIASES = {
+    "Mainform": ["TGUI"],
     "Map": ["ChestItem"],
     "Mapwarp": ["MapWarp"],
     "Mapobject": ["MapObject"],

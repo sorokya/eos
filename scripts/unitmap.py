@@ -329,6 +329,25 @@ def load_modules(path: str):
     return excl
 
 
+def first_unit_start(path: str):
+    """The module_start of the first `unit` row of a --stubs module table.
+
+    `units.tsv` cannot know the first unit's start (there is no preceding
+    Initialize to end at), so `emit_units` skips it -- which silently drops the
+    whole first unit (`Mainform`) from the per-function inventory. The module
+    table already carries the boundary, so take it from there.
+    """
+    with open(path, encoding="utf-8") as fh:
+        next(fh, None)
+        for line in fh:
+            p = line.rstrip("\n").split("\t")
+            if len(p) < 6 or p[0] == "":
+                continue
+            if p[5] == "unit":
+                return int(p[0], 16)
+    return None
+
+
 def emit_units(units, funcs, excl, out) -> int:
     print("\t".join(("unit", "order", "func_start", "func_end", "size", "name")),
           file=out)
@@ -400,6 +419,8 @@ def main() -> int:
             units = load_units(args.units)
             funcs = load_functions(args.functions)
             excl = load_modules(args.modules) if args.modules else []
+            if units and units[0]["prev_end"] is None and args.modules:
+                units[0]["prev_end"] = first_unit_start(args.modules)
             covered = emit_units(units, funcs, excl, out)
             print(f"units {args.units}: {covered} reference functions attributed "
                   f"to {len(units)} units ({len(excl)} excluded module ranges)",

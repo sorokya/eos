@@ -89,7 +89,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--ref", default="GameServer.exe")
     ap.add_argument("--linked", default="build/GameServer.exe")
-    ap.add_argument("--map", default="build/GameServer.map")
+    ap.add_argument("--map", default="build/GameServer_map.map")
     ap.add_argument("--inventory", default="analysis/target/unit_functions.tsv")
     ap.add_argument("--list", default="")
     args = ap.parse_args()

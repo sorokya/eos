@@ -670,8 +670,10 @@ def main() -> int:
     ap.add_argument("--libs", default="ref/Borland5/Lib")
     ap.add_argument("--linked", default="build/GameServer.exe",
                     help="linked build used to identify library members")
-    ap.add_argument("--map", default="build/GameServer.map",
-                    help="its ilink32 -s map (MAP=1 scripts/build.sh)")
+    ap.add_argument("--map", default="build/GameServer_map.map",
+                    help="its detailed ilink32 -s map (MAP=1 scripts/build.sh); "
+                         "the plain build/GameServer.map is the 276-byte summary "
+                         "and carries no module rows")
     ap.add_argument("--out", default="analysis/target/functions.tsv")
     ap.add_argument("--readme", default="")
     ap.add_argument("-j", "--jobs", type=int, default=0,
