@@ -31,7 +31,7 @@ VLIB      ?= vcl50.lib vcldb50.lib vclbde50.lib import32.lib cp32mt.lib
 CLANG_FORMAT ?= clang-format
 SRC          := $(wildcard src/*.cpp src/*.h)
 
-.PHONY: image analyze extract units track unitmap functions funcdiff comdatdiff tdsfuncs typenames struct layout libcompare disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
+.PHONY: image analyze extract units track unitmap functions funcdiff orderdiff comdatdiff tdsfuncs typenames struct layout libcompare disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
 
 image:
 	docker build -t $(IMAGE) docker
@@ -77,6 +77,12 @@ functions:
 # differences `make verify` canonicalises away. Exits non-zero when any differ.
 funcdiff:
 	$(PYTHON) scripts/funcdiff.py
+
+# Within-module function order: every function can be byte-exact and every
+# module at its reference RVA while the functions inside one module sit in a
+# different order. Neither `funcdiff` nor `layout` can see that; this does.
+orderdiff:
+	$(PYTHON) scripts/orderdiff.py
 
 # The opposite direction: COMDATs *we* emit that the reference does not have in
 # that module. `funcdiff` walks reference -> rebuild and so cannot see a surplus

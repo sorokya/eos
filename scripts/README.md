@@ -109,6 +109,30 @@ imports, exports, resource tree). No `pip` packages required.
   different module is reported as *placed elsewhere* (byte-identical, layout
   only). Exits non-zero when any reference function differs, so it can gate a
   build.
+- **`orderdiff.py [--unit U] [--verbose]`** — the **within-module function
+  order**, reference vs rebuild (`make orderdiff`). `funcdiff` walks reference →
+  rebuild and asks whether the bytes exist *somewhere*; `layoutdiff` compares
+  module *starts*. Neither can see a reordering *inside* a module, yet that moves
+  every byte of the module and every pointer into it. `ilink32` lays a module's
+  COMDATs out in the order its object defines them and bcc32 defines them in
+  source order, so the reference's per-function addresses record the original
+  source order: reference order comes from `analysis/target/functions.tsv`, ours
+  from the TD32 file via `tdsfuncs.py`, matched by mangled name. Exits non-zero
+  when any unit's order differs.
+- **`reorder_unit.py UNIT... [--all] [--apply] [--refresh]`** — rewrites one
+  unit's source into that order. Each definition is tied to its mangled name
+  through the `?debug L` markers in the unit's `bcc32 -S` listing (the first
+  marker inside a `proc` is the definition's own line), so no signature parsing
+  is involved; only whole definitions move, and anything that is not a function
+  definition — includes, pragmas, globals, forward declarations, `struct`/`enum`
+  bodies, multi-line `#define`s — is pinned. A definition is ranked by the
+  reference position of the *author-written* symbol it defines; template
+  instantiations and RTL/VCL namespace members share its line numbers and are
+  ignored for that purpose. Where a definition's only reference-named symbols are
+  compiler COMDATs the plan can oscillate between two orders, so run it
+  repeatedly and keep the state that measures best. Moving definitions can make
+  a free function's callers precede it: add forward declarations (and hoist
+  macros) as `Packets.cpp` and `Players.cpp` needed.
 - **`tdsfuncs.py [TDS] [--seg-base A]`** — *our* linked function inventory
   (`make tdsfuncs`), read out of `build/GameServer.tds`: name, virtual address
   and exact COMDAT length for every linked function, template/RTL COMDATs

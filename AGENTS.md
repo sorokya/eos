@@ -365,14 +365,28 @@ documented build, not a manual fix-up.
   `$bdtr` (deleting-destructor) COMDATs that nothing references are reported
   separately — the linker drops them, so the reference has no range for them.
   This is the whole-tree check; `compare_asm.py` remains the per-function tool.
-  **Blind spot: the first unit is omitted.** `scripts/unitmap.py --units` gives
-  the first unit an empty `prev_finalize_end`, so `emit_units` skips it and the
-  sheet begins at the second unit (`Players`, `0x407948`) — the whole `Mainform`
-  module is therefore outside `make verify` *and* `make funcdiff` (which reads
-  the same sheet). Reordering functions inside `Mainform` is invisible to both,
-  and only a per-function order check (`scripts/tdsfuncs.py` address vs
-  `analysis/target/modules.tsv`) catches it. See PLAN.md, "Mainform emission
-  order".
+  Listings are read for every `src/*.cpp`, not only the units the reference
+  inventory names, so the project main unit (`src/GameServer.cpp`, which has no
+  `Initialize`/`Finalize` pair and therefore no rows of its own) still scores the
+  functions the reference puts at the head of the `Mainform` module.
+
+- `make orderdiff` (`scripts/orderdiff.py`) compares the **within-module
+  function order**, reference vs rebuild. `funcdiff` walks reference → rebuild
+  and asks whether the bytes exist somewhere; `layout` compares *module* start
+  addresses. Neither sees a reordering *inside* a module: every function can be
+  byte-exact and every module can start at its reference RVA while one module's
+  functions sit in a different order — which moves every byte of that module and
+  every pointer to it. `ilink32` lays a module's COMDATs out in the order its
+  object defines them and bcc32 defines them in source order, so the reference's
+  per-function addresses record the original source order. Reference order comes
+  from `analysis/target/functions.tsv`, ours from the linked image's TD32 file
+  via `tdsfuncs.py`; functions are matched by mangled name. `scripts/reorder_unit.py`
+  is the companion that rewrites one unit's source into that order — it ties each
+  definition to its mangled name through the `?debug L` markers in the unit's
+  `bcc32 -S` listing, so no signature parsing is involved. Run it repeatedly and
+  keep the state that measures best: for a few units the ranking is ambiguous
+  (a definition whose only reference-named symbols are compiler COMDATs) and the
+  plan can oscillate between two orders.
 
 - `make funcdiff` (`scripts/funcdiff.py`) is the whole-tree byte differential: it
   masks only what the layout moves (each base relocation's four bytes and the

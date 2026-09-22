@@ -667,6 +667,7 @@ def main() -> int:
     ap.add_argument("--reclassify", action="store_true")
     ap.add_argument("--ref", default="GameServer.exe")
     ap.add_argument("--asm-dir", default="build")
+    ap.add_argument("--src", default="src")
     ap.add_argument("--libs", default="ref/Borland5/Lib")
     ap.add_argument("--linked", default="build/GameServer.exe",
                     help="linked build used to identify library members")
@@ -700,8 +701,14 @@ def main() -> int:
     else:
         refresh_cached_kinds(rows, kinds)
 
+    # Listings are read for every unit we have a source for, not just the units
+    # the reference inventory names: the project main unit (src/GameServer.cpp)
+    # has no Initialize/Finalize pair and so no row of its own, but the
+    # reference places its functions at the head of the Mainform module.
+    have_src = {os.path.splitext(f)[0] for f in os.listdir(args.src)
+                if f.endswith('.cpp')} if os.path.isdir(args.src) else set()
     by_unit, names, glob_pool, prov = our_functions(
-        ca, vu.canon, args.asm_dir, units)
+        ca, vu.canon, args.asm_dir, units | have_src)
     groups = defaultdict(list)
     for r in rows:
         groups[r["unit"]].append(r)
