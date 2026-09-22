@@ -568,28 +568,25 @@ is the read-only Ghidra function inventory.
   member), and `vcle50.lib` *after* `cp32mt.lib` in the library field. Our
   `scripts/build.sh` mirrors this; putting the VCL libraries after the comma
   instead pushes every library member to the end and shifts the post-`Itemground`
-  unit RVAs by up to ~600 KB. `scripts/build.sh` also lists `vcl50.lib` twice:
-  the repeat pulls no member but `ilink32`'s `package(smart_init)` tie-break is
-  sensitive to the library *scan list* (without it `Wedding` precedes
-  `Eventcontrol`, which the reference does not), so it reproduces the reference's
-  export order — plausible in an IDE-generated link line, and no byte effect of
-  its own.
-- **Package order is not always command-line order.** `#pragma
-  package(smart_init)` units can be reordered by `ilink32` according to package
-  initialization order: `Skillvalue`/`Npcvalue` came out in the opposite order
-  from the reference, **invariant both to the command line and to swapping the
-  two units**. The trigger was bisected to *scanning* `vcldb50.lib` inline (any
-  position inverts the pair; the VCL block alone does not; all libraries inline at
-  one point does not), so it is an initialization tie-break sensitive to the
-  library distribution, not a source dependency (neither object references the
-  other). **Resolved** by extracting `vcldb50`'s four needed members (`DbLogDlg`,
-  `DBCommon`, `DbConsts`, `Db`) with `tlib` and listing them as explicit objects
-  instead of the `.lib` (see `scripts/build.sh`); unreferenced COMDATs are dropped
-  exactly as when the `.lib` is pulled, so the block is byte-identical and the
-  export order matches the reference. Confirm layout against a build with
+  unit RVAs by up to ~600 KB. The object list starts like a C++Builder IDE link
+  line, `c0w32.obj Memmgr.Lib sysinit.obj GameServer.obj <units>`: `Memmgr.Lib`
+  pulls nothing, but ilink32's placement of `package(smart_init)` objects is
+  sensitive to the *number* of object-list entries ahead of a unit, and without
+  that entry `Npcvalue` is laid out before `Npcvalues` (see PLAN.md, "Closing
+  the gap").
+- **Package order is not always command-line order, and package *init* order
+  is derived from COMDAT names.** Explicit-object placement shifts with the count
+  of object-list entries (the `Memmgr.Lib` entry above), and the `_INIT_`/`_EXIT_`
+  tables in `.data` follow a DFS over units, children in link order, where a unit
+  depends on the *first definer* of every symbol a fixup in any of its COMDAT
+  copies targets (type descriptors excluded). bcc32 names EH tables
+  `@_$DC<n>$`/`@_$ECT<n>$`/`@_$CH<n>$` with a per-TU counter, so adding or removing
+  an EH-bearing function -- even an unreferenced one ilink32 drops -- renames every
+  later table in that unit and can change the init order. When the `_INIT_` table
+  differs, compare the mangled table names (raw OMF, not tdump's demangled view)
+  of the units involved. Confirm layout against a build with
   `MAP=1 scripts/build.sh` and `scripts/unitmap.py --map` or
-  `scripts/layoutdiff.py` (reference `modules.tsv` vs the link map, per-module
-  delta and order inversions).
+  `scripts/layoutdiff.py`.
 - **Unexported units.** `units.py` recognises only modules exported as
   `@@Unit@Initialize`; a unit compiled without `#pragma package(smart_init)` has a
   non-exported module stub and is invisible to it, so a neighbouring unit's span
@@ -839,6 +836,16 @@ them to pick the form that matches the reference.
   4-byte elements emits `sub` / `test` / `jns` / `add 3` / `sar 2`, not a bare
   `sub`/`sar`. `GroundItemPtrVector_Count` (`0x44f8b0`) is exactly this; casting
   both sides to `char *` removes the scale and the match.
+- **Operand load order follows bcc32's variable ranking, not the spelling.**
+  With `-Od` there are no register variables, but bcc32 still ranks variables by
+  weighted use count and loads the *lighter* operand of an address
+  (`p->a[i]`) or comparison first (ties: base first). A use weighs 4 per
+  enclosing `for`/`while` loop and half per enclosing `if`, over the whole
+  function; `do`/`while` and `goto` loops add no weight; `this` weighs its uses
+  + 1. Mirrored spellings (`a == b` / `b == a`, `i[p]`, `+=`) compile identically.
+  So a "register swap" residual is a statement about *loop and block structure*:
+  `Party_ShareExp`'s second loop is a `do`/`while` (positive guard, increment as
+  the last statement), which is what put `member`/`server` below `player`/`exp`.
 - **Helper-COMDAT emission order is a fingerprint.** bcc32 emits the template
   helpers a function instantiates right after that function. If the reference
   emits a helper *earlier* than we do, either (a) one of our hand-written

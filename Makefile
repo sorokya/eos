@@ -31,7 +31,7 @@ VLIB      ?= vcl50.lib vcldb50.lib vclbde50.lib import32.lib cp32mt.lib
 CLANG_FORMAT ?= clang-format
 SRC          := $(wildcard src/*.cpp src/*.h)
 
-.PHONY: image analyze extract units track unitmap functions funcdiff orderdiff comdatdiff tdsfuncs typenames struct layout libcompare disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
+.PHONY: image analyze extract units track unitmap functions funcdiff rawdiff initorder orderdiff comdatdiff tdsfuncs typenames struct layout libcompare disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
 
 image:
 	docker build -t $(IMAGE) docker
@@ -75,6 +75,17 @@ functions:
 # found (masked) in our image. Unlike `functions`, it masks rel32 displacements
 # and decodes each function from its own start, so it sees the branch-target
 # differences `make verify` canonicalises away. Exits non-zero when any differ.
+# Raw (unmasked) byte differential of .text and .data, attributed to modules.
+# Meaningful once every module is at its reference RVA; exits non-zero on any
+# difference.
+rawdiff:
+	$(PYTHON) scripts/rawdiff.py --section .text
+	$(PYTHON) scripts/rawdiff.py --section .data
+
+# Predicted package-init order (from build/obj) vs the reference's _INIT_ table.
+initorder:
+	$(PYTHON) scripts/initorder.py
+
 funcdiff:
 	$(PYTHON) scripts/funcdiff.py
 

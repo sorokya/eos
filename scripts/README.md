@@ -91,6 +91,16 @@ imports, exports, resource tree). No `pip` packages required.
 - **`compare_functions.py FUNCTIONS_TSV REF CANDIDATE [--mask-reloc] [--list N]`**
   — per-function byte comparison using the Ghidra inventory; masks base-relocation
   words when layouts are not yet identical.
+- **`rawdiff.py [--section .text] [--gap N] [-v]`** — the raw byte
+  differential (`make rawdiff`): every differing byte of one section, clustered
+  and attributed to reference modules. Once the layout matches it sees what the
+  masked tools canonicalise away (a same-shaped call to the wrong callee, a
+  branch to the wrong target, a reference to the wrong NUL of a literal pool).
+- **`initorder.py [--why UNIT DEP]`** — predicts the package-init order
+  ilink32 writes into the `_INIT_`/`_EXIT_` tables from the unit objects and
+  compares it with our image and the reference (`make initorder`). The model and
+  the EH-table naming that drives it are described in its docstring and in
+  PLAN.md ("Package init order"); `--why` lists the fixups behind one edge.
 - **`funcdiff.py [--ref] [--linked] [--inventory] [--unit U] [--function F]`**
   — the whole-tree byte differential (`make funcdiff`). Masks only what the
   *layout* moves — the four bytes of every base relocation and the 4-byte
