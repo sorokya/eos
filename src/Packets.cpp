@@ -13219,6 +13219,16 @@ bool Server_InItemViewRing(Packets *self, int x1, int y1, int x2, int y2)
         result = true;
     return result;
 }
+// Nothing calls this, so ilink32 drops the COMDAT -- but the empty-string
+// literals it pools stay in the unit's _DATA. The reference's pool carries
+// two more NUL bytes than its referenced `""` uses account for at exactly this
+// point (`0x561ca8`-`0x561cb3`), which is that signature; only the count and position are
+// observable, not the function they came from (as with NpcValues::ClearDrops).
+void Packets_EmptyLiterals()
+{
+    "";
+    "";
+}
 String Server_FormatSentTraffic(Packets *server)
 {
     if (server->sent_megabytes > 0)

@@ -443,3 +443,16 @@ MsgBoardController::EncodeNumber(MsgBoardController *self, unsigned int value, i
     String result(self->field_0x118, width);
     return result;
 }
+
+// Nothing calls this, so ilink32 drops the COMDAT -- but the empty-string
+// literals it pools stay in the unit's _DATA. The reference's pool carries
+// four more NUL bytes than its referenced `""` uses account for at exactly this
+// point (`0x57a968`-`0x57a973`), which is that signature; only the count and position are
+// observable, not the function they came from (as with NpcValues::ClearDrops).
+void Msgboardcontrol_EmptyLiterals()
+{
+    "";
+    "";
+    "";
+    "";
+}

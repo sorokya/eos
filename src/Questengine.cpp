@@ -676,3 +676,16 @@ String QuestContainer::EncodeNumber(QuestContainer *self, unsigned int value, in
     String encoded_str((char *)self->encode_scratch, width);
     return encoded_str;
 }
+
+// Nothing calls this, so ilink32 drops the COMDAT -- but the empty-string
+// literals it pools stay in the unit's _DATA. The reference's pool carries
+// four more NUL bytes than its referenced `""` uses account for at exactly this
+// point (`0x5818c2`-`0x5818cf`), which is that signature; only the count and position are
+// observable, not the function they came from (as with NpcValues::ClearDrops).
+void Questengine_EmptyLiterals()
+{
+    "";
+    "";
+    "";
+    "";
+}
