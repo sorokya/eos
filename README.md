@@ -147,14 +147,14 @@ outstanding cross-unit externs and the known-unconverged functions.
 
 <!-- BEGIN GENERATED STATUS -->
 
-**1796/1797 (99.9%)** application functions byte-exact (1797 app + compiler COMDATs; 506 library members excluded).
+**1799/1800 (99.9%)** application functions byte-exact (1800 app + compiler COMDATs; 506 library members excluded).
 
-**666,672/667,870 (99.8%)** application BYTES byte-exact. `Player_HandlePacket` (228,416 bytes, **33.9% of all application code**) is now byte-exact, which is why the byte figure has moved close to the function figure.
+**666,852/668,050 (99.8%)** application BYTES byte-exact. `Player_HandlePacket` (228,416 bytes, **33.9% of all application code**) is now byte-exact, which is why the byte figure has moved close to the function figure.
 
 ```mermaid
 pie showData
     title Application functions by status
-    "byte-exact" : 1796
+    "byte-exact" : 1799
     "mismatched" : 1
 ```
 
@@ -165,7 +165,7 @@ pie showData
 | Players | 160 | 160 | 0 | 0 | 0 |
 | Questengine | 123 | 123 | 0 | 0 | 0 |
 | Shopvalues | 86 | 86 | 0 | 0 | 0 |
-| Npcvalues | 77 | 77 | 0 | 0 | 0 |
+| Npcvalues | 80 | 80 | 0 | 0 | 0 |
 | Mysqlcontrols | 73 | 73 | 0 | 0 | 0 |
 | Msgboardcontrol | 56 | 56 | 0 | 0 | 0 |
 | Itemvalues | 44 | 44 | 0 | 0 | 0 |
