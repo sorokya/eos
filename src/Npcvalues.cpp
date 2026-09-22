@@ -24,11 +24,6 @@ NpcValues::~NpcValues()
 {
 }
 
-void NpcValues::ClearDrops(NpcValue *value)
-{
-    value->drops.clear();
-}
-
 void NpcValues::LoadNpcs(NpcValues *self)
 {
     if (self->loaded == 0)
@@ -353,6 +348,11 @@ void NpcValues::AddNpc(NpcValues *self,
     if (value.hp < 1)
         value.hp = 1;
     self->record_list.insert(self->record_list.end(), value);
+}
+
+void NpcValues::ClearDrops(NpcValue *value)
+{
+    value->drops.clear();
 }
 
 NpcValue NpcValues::GetNpc(NpcValues *self, int id)
