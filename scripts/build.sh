@@ -51,31 +51,47 @@ CFLAGS="${CFLAGS:--v -Od -tWM -k}"
 # every library member to the end and shifts the post-Itemground unit RVAs by
 # up to ~600 KB.
 #
-# vcldb50 is not listed as a .lib, though: scanning it inline perturbs the
-# linker's package(smart_init) ordering (Skillvalue/Npcvalue come out inverted,
-# invariant to the command line). Its four needed members -- DbLogDlg,
-# DBCommon, DbConsts, Db -- are extracted with tlib and listed as explicit
-# objects instead; unreferenced COMDATs are dropped exactly as when the .lib is
-# pulled, so the block is byte-identical, and vcldb50.lib stays in the tail to
-# resolve anything remaining.
+# The object list starts the way a C++Builder IDE link line does:
+# `c0w32.obj Memmgr.Lib sysinit.obj <project>.obj <units...>`.  Memmgr.Lib
+# pulls nothing (the image imports no BORLNDMM.DLL), but the entry is
+# observable: ilink32's package(smart_init) placement of explicit objects is
+# sensitive to the *count* of object-list entries ahead of a unit.  Without an
+# entry there, and with vcldb50.lib inline, Npcvalue is laid out immediately
+# before Npcvalues (and takes over their shared vector COMDATs); any one extra
+# entry anywhere before Npcvalue removes that, and it also makes the second
+# `vcl50.lib` the Wedding/Eventcontrol tie-break used to need unnecessary.
+# (An empty object, a repeated sysinit.obj or c0w32.obj all give the identical
+# image; Memmgr.Lib is the one a real IDE link line contains.)
 #
-# vcl50.lib is listed a second time, immediately after the vclbde50/vcl50 pair.
-# The repeat pulls no member (everything it resolves was already pulled), so it
-# changes neither the VCL block nor the tail, but ilink32's package(smart_init)
-# tie-break is sensitive to the library scan list: without it Wedding is emitted
-# before Eventcontrol (the reference has Eventcontrol 0x52db20 before Wedding
-# 0x52e224, and their init counters 0x58c6b8/0x58c6bc).  The repeat restores the
-# reference's export order while keeping vcle50 in the tail, i.e. .data at +48
-# instead of +468.
-LIB_VCL='"Z:\borland\Lib\Debug\vclbde50.lib" "Z:\borland\Lib\Debug\vcl50.lib" "Z:\borland\Lib\Debug\vcl50.lib"'
-LIB_DB_OBJS='"Z:\work\build\res\vcldb\DbLogDlg.OBJ" "Z:\work\build\res\vcldb\DBCommon.OBJ" "Z:\work\build\res\vcldb\DbConsts.OBJ" "Z:\work\build\res\vcldb\Db.OBJ"'
+# With that, vcldb50.lib is listed as the library it is.  Linking its members
+# as explicit objects instead (the earlier workaround) loads them in pass 1, so
+# their communals are allocated at the head of the linker's <internal> block
+# (0x58b60c) where the reference has them after the VCL/System ones, which
+# moved ~1,200 bytes of .data and every reference to them in .text.
+LIB_VCL="${LIB_VCL:-\"Z:\\borland\\Lib\\Debug\\vclbde50.lib\" \"Z:\\borland\\Lib\\Debug\\vcl50.lib\"}"
+LIB_DB_OBJS="${LIB_DB_OBJS:-\"Z:\\borland\\Lib\\Debug\\vcldb50.lib\"}"
 VLIB="${VLIB:-vcldb50.lib import32.lib cp32mt.lib vcle50.lib}"
 LINKFLAGS="${LINKFLAGS:--Tpe -aa -c -Gn -j -v}"
 MAPARG=""
 
+# Unit names come from the `@@Unit@Initialize` exports, which are
+# Pascal-normalised (first letter upper, rest lower); the source file's own
+# spelling can differ in case (MainForm.cpp, MySQLthread.cpp), and that
+# spelling is observable -- it is the unit string in the VCL class-registration
+# record. Resolve each unit to its file base case-insensitively.
+src_base() {
+  local f
+  for f in src/*.cpp; do
+    f=${f#src/}; f=${f%.cpp}
+    if [ "$(printf %s "$f" | tr 'A-Z' 'a-z')" = "$(printf %s "$1" | tr 'A-Z' 'a-z')" ]; then
+      printf %s "$f"; return
+    fi
+  done
+  printf %s "$1"
+}
 UNITS=()
 while IFS= read -r u; do
-  [ -n "$u" ] && UNITS+=("$u")
+  [ -n "$u" ] && UNITS+=("$(src_base "$u")")
 done < <(tail -n +2 "$UNITS_TSV" | cut -f2 | grep -v '^GUI$')
 
 mkdir -p build/obj
@@ -89,7 +105,7 @@ fi
 
 {
   echo 'set -e'
-  echo 'mkdir -p build/obj build/res/vcldb'
+  echo 'mkdir -p build/obj'
   if [ -z "${LINK_ONLY:-}" ]; then
   if [ -f src/GameServer.cpp ]; then
     echo "wine \"\$B\\Bin\\bcc32.exe\" $CFLAGS -c -obuild/obj/GameServer.obj src/GameServer.cpp"
@@ -98,10 +114,9 @@ fi
     echo "wine \"\$B\\Bin\\bcc32.exe\" $CFLAGS -c -obuild/obj/$u.obj src/$u.cpp"
   done
   fi
-  echo '( cd build/res/vcldb && for m in DbLogDlg DBCommon DbConsts Db; do wine "$BZ\\Bin\\tlib.exe" "$BZ\\Lib\\Debug\\vcldb50.lib" "*$m" >/dev/null 2>&1; done )'
   echo "L=\"${LPATH:--L\$BZ\\Lib -L\$BZ\\Lib\\Obj -L\$BZ\\Lib\\Debug -L\$BZ\\Lib\\Release}\""
 
-  OBJS="${HEADOBJ-" \"Z:\\borland\\Lib\\Obj\\sysinit.obj\""}" 
+  OBJS="${HEADOBJ-" \"Z:\\borland\\Lib\\memmgr.lib\" \"Z:\\borland\\Lib\\Obj\\sysinit.obj\""}" 
   # The project's main unit is its own translation unit (src/GameServer.cpp, the
   # BCB project file), linked between sysinit.obj and Mainform.obj. The
   # reference's first module is WinMain immediately followed by the Exception

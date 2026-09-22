@@ -63,7 +63,10 @@ cat > build/asm_inner.sh <<EOF
 set -euo pipefail
 mkdir -p build/asm_log
 work() {
-  if ! wine "\$B\\Bin\\bcc32.exe" $CFLAGS -S -obuild/"\$1".asm src/"\$1".cpp \\
+  # The unit name is the Pascal-normalised export name; the file's own case
+  # (MainForm.cpp, MySQLthread.cpp) is what bcc32 records, so resolve it.
+  local f=\$(cd src && ls | grep -ix "\$1.cpp" | head -1)
+  if ! wine "\$B\\Bin\\bcc32.exe" $CFLAGS -S -obuild/"\$1".asm src/"\${f:-\$1.cpp}" \\
       >build/asm_log/"\$1".log 2>&1; then
     echo "FAIL \$1"
   fi
