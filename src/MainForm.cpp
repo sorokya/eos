@@ -2,7 +2,7 @@
 #include <stdio.h>
 #pragma hdrstop
 
-#include "Mainform.h"
+#include "MainForm.h"
 #include "Serial.h"
 #include "Protocol.h"
 
@@ -47,7 +47,7 @@ __fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
 
 void __fastcall TGUI::FormCreate(TObject *Sender)
 {
-    String s = DateTimeToStr(Now());
+    String s = DateToStr(Now());
     s.Insert(" ", s.Length() + 1);
     s.Insert(TimeToStr(Now()), s.Length() + 1);
     s.Insert(" EndlServ started\n", s.Length() + 1);
@@ -323,7 +323,7 @@ void __fastcall TGUI::FormClose(TObject *Sender, TCloseAction &Action)
 
 void __fastcall TGUI::ApplicationEvents1Exception(TObject *Sender, Exception *E)
 {
-    String s = DateTimeToStr(Now());
+    String s = DateToStr(Now());
     s.Insert(" ", s.Length() + 1);
     s.Insert(TimeToStr(Now()), s.Length() + 1);
     s.Insert(" EndlServ ", s.Length() + 1);

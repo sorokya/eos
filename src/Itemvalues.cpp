@@ -8,7 +8,7 @@
 
 ItemValues::ItemValues()
 {
-    field_0x18 = operator new(8);
+    field_0x18 = new char[8];
     field_0x3c = -1;
     loaded = 0;
     rid_1 = -1;

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #include "Players.h"
-#include "Mainform.h"
+#include "MainForm.h"
 #include "Gamecontrol.h"
 #include "Itemvalues.h"
 #include "Settings.h"
@@ -1033,7 +1033,7 @@ Player *Players::Players_FindByName(Players *self, String name)
 {
     for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
     {
-        if (AnsiLowerCase((*iter)->name) == AnsiLowerCase(name))
+        if (LowerCase((*iter)->name) == LowerCase(name))
             return *iter;
     }
     return 0;

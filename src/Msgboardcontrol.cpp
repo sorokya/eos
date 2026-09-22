@@ -9,7 +9,7 @@
 
 MsgBoardController::MsgBoardController()
 {
-    field_0x118 = (char *)operator new(8);
+    field_0x118 = new char[8];
     field_0x0 = 0x18;
     field_0x4 = 0;
     for (int i = 0; i < 8; i++)
@@ -313,6 +313,18 @@ void MsgBoardController::SetDecodeSource(MsgBoardController *self,
     self->field_0x114 = delimiter;
 }
 
+// Nothing calls this, so ilink32 drops the COMDAT -- but its empty-string
+// literals stay in the unit's _DATA pool. The reference has 3 unreferenced
+// NUL bytes exactly here in the pool (`0x57a96b`-`0x57a96d`, between
+// BuildBoardData's and ReadToken's); only their count and position
+// are observable (as with NpcValues::ClearDrops).
+void Msgboardcontrol_EmptyLiterals()
+{
+    "";
+    "";
+    "";
+}
+
 String MsgBoardController::ReadToken(MsgBoardController *self)
 {
     String result = "";
@@ -435,15 +447,11 @@ MsgBoardController::EncodeNumber(MsgBoardController *self, unsigned int value, i
     return result;
 }
 
-// Nothing calls this, so ilink32 drops the COMDAT -- but the empty-string
-// literals it pools stay in the unit's _DATA. The reference's pool carries
-// four more NUL bytes than its referenced `""` uses account for at exactly this
-// point (`0x57a968`-`0x57a973`), which is that signature; only the count and position are
-// observable, not the function they came from (as with NpcValues::ClearDrops).
-void Msgboardcontrol_EmptyLiterals()
+// Nothing calls this, so ilink32 drops the COMDAT -- but its empty-string
+// literals stay in the unit's _DATA pool. The reference has 1 unreferenced
+// NUL byte exactly here in the pool (`0x57a972`, after ReadRest's); only their count and
+// position are observable (as with NpcValues::ClearDrops).
+void Msgboardcontrol_EmptyLiteral()
 {
-    "";
-    "";
-    "";
     "";
 }

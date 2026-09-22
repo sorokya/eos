@@ -5,7 +5,7 @@
 
 #include "Weddings.h"
 #include "Protocol.h"
-#include "Mainform.h"
+#include "MainForm.h"
 #include "Itemvalues.h"
 #include "Player.h"
 #include "Players.h"
@@ -275,55 +275,64 @@ void WeddingController::Tick(WeddingController *self)
                     BroadcastPriestLine(
                         self, *it, "Please place these rings on eachothers finger..");
                 }
-                if ((*it)->countdown == 7 && BothPresent(self, *it))
+                if ((*it)->countdown == 7)
                 {
-                    String data = EncodeNumber(self, (*it)->player1_id, 2);
-                    data.Insert(EncodeNumber(self, 1, 3), data.Length() + 1);
-                    data.Insert(EncodeNumber(self, (*it)->player2_id, 2),
-                                data.Length() + 1);
-                    data.Insert(EncodeNumber(self, 1, 3), data.Length() + 1);
-                    Server_BroadcastToMap(self->server,
-                                          (*it)->map_id,
-                                          PacketAction_Player,
-                                          PacketFamily_Effect,
-                                          data);
-                }
-                else
-                {
-                    (*it)->countdown == 1;
-                }
-                if ((*it)->countdown == 6 && BothPresent(self, *it))
-                {
-                    String line = (*it)->player1_name;
-                    line.Insert(" and ", line.Length() + 1);
-                    line.Insert((*it)->player2_name, line.Length() + 1);
-                    line.Insert(
-                        " have consented together in marriage. And are now partners for "
-                        "as long you both shall live.",
-                        line.Length() + 1);
-                    BroadcastPriestLine(self, *it, line);
-                    Player *player1 =
-                        Players::Players_GetById(self->players, (*it)->player1_id);
-                    Player *player2 =
-                        Players::Players_GetById(self->players, (*it)->player2_id);
-                    if (player1 != 0 && player2 != 0)
+                    if (BothPresent(self, *it))
                     {
-                        String data = EncodeNumber(self, player1->x, 1);
-                        data.Insert(EncodeNumber(self, player1->y, 1), data.Length() + 1);
-                        data.Insert(EncodeNumber(self, 0xb, 2), data.Length() + 1);
-                        data.Insert(EncodeNumber(self, player2->x, 1), data.Length() + 1);
-                        data.Insert(EncodeNumber(self, player2->y, 1), data.Length() + 1);
-                        data.Insert(EncodeNumber(self, 0xb, 2), data.Length() + 1);
+                        String data = EncodeNumber(self, (*it)->player1_id, 2);
+                        data.Insert(EncodeNumber(self, 1, 3), data.Length() + 1);
+                        data.Insert(EncodeNumber(self, (*it)->player2_id, 2),
+                                    data.Length() + 1);
+                        data.Insert(EncodeNumber(self, 1, 3), data.Length() + 1);
                         Server_BroadcastToMap(self->server,
                                               (*it)->map_id,
-                                              PacketAction_Agree,
+                                              PacketAction_Player,
                                               PacketFamily_Effect,
                                               data);
                     }
+                    else
+                    {
+                        (*it)->countdown == 1;
+                    }
                 }
-                else
+                if ((*it)->countdown == 6)
                 {
-                    (*it)->countdown == 1;
+                    if (BothPresent(self, *it))
+                    {
+                        String line = (*it)->player1_name;
+                        line.Insert(" and ", line.Length() + 1);
+                        line.Insert((*it)->player2_name, line.Length() + 1);
+                        line.Insert(" have consented together in marriage. And are now "
+                                    "partners for "
+                                    "as long you both shall live.",
+                                    line.Length() + 1);
+                        BroadcastPriestLine(self, *it, line);
+                        Player *player1 =
+                            Players::Players_GetById(self->players, (*it)->player1_id);
+                        Player *player2 =
+                            Players::Players_GetById(self->players, (*it)->player2_id);
+                        if (player1 != 0 && player2 != 0)
+                        {
+                            String data = EncodeNumber(self, player1->x, 1);
+                            data.Insert(EncodeNumber(self, player1->y, 1),
+                                        data.Length() + 1);
+                            data.Insert(EncodeNumber(self, 0xb, 2), data.Length() + 1);
+                            data.Insert(EncodeNumber(self, player2->x, 1),
+                                        data.Length() + 1);
+                            data.Insert(EncodeNumber(self, player2->y, 1),
+                                        data.Length() + 1);
+                            data.Insert(EncodeNumber(self, 0xb, 2), data.Length() + 1);
+                            Server_BroadcastToMap(self->server,
+                                                  (*it)->map_id,
+                                                  PacketAction_Agree,
+                                                  PacketFamily_Effect,
+                                                  data);
+                        }
+                    }
+                    else
+                    {
+                        (*it)->countdown == 1;
+                    }
                 }
                 if ((*it)->countdown == 1)
                 {

@@ -4,9 +4,9 @@
 #include <SyncObjs.hpp>
 #include <vector.h>
 
-#include "Mysqlthread.h"
+#include "MySQLthread.h"
 #include "Mysqltask.h"
-#include "Mainform.h"
+#include "MainForm.h"
 
 #pragma package(smart_init)
 
@@ -64,7 +64,7 @@ void __fastcall MySQLthread::Execute()
             {
                 if (task->query_id < 0x3c)
                 {
-                    query->Open();
+                    query->ExecSQL();
                     if (task->query_id != 1)
                         Synchronize(OnResult);
                 }

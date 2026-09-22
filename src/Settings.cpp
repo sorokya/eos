@@ -247,9 +247,9 @@ void Settings::LoadConfig(Settings *self)
     self->chat_log = ReadIniBool(self, "chatlog", self->chat_log);
 
     String protection = ReadIniString(self, "loginprotection", self->join_message);
-    if (AnsiLowerCase(protection) == "low")
+    if (LowerCase(protection) == "low")
         self->login_protection = 8;
-    if (AnsiLowerCase(protection) == "high")
+    if (LowerCase(protection) == "high")
         self->login_protection = 4;
 
     if (self->group_max > 10)
@@ -350,7 +350,7 @@ int Settings::ReadIniInt(Settings *self, String key, int default_value)
                                 value = value + line[j];
                         }
                     }
-                    if (AnsiLowerCase(ini_name) == AnsiLowerCase(key))
+                    if (LowerCase(ini_name) == LowerCase(key))
                     {
                         if (value.Length() >= 1)
                             result = StrToInt(value);
@@ -404,7 +404,7 @@ String Settings::ReadIniString(Settings *self, String key, String default_value)
                             value = value + line[j];
                         }
                     }
-                    if (AnsiLowerCase(ini_name) == AnsiLowerCase(key))
+                    if (LowerCase(ini_name) == LowerCase(key))
                     {
                         if (value.Length() >= 1)
                             result = value;
@@ -458,12 +458,11 @@ char Settings::ReadIniBool(Settings *self, String key, char default_value)
                             value = value + line[j];
                         }
                     }
-                    if (AnsiLowerCase(ini_name) == AnsiLowerCase(key))
+                    if (LowerCase(ini_name) == LowerCase(key))
                     {
                         if (value.Length() >= 1)
                         {
-                            if (AnsiLowerCase(value) == "on" ||
-                                AnsiLowerCase(value) == "1")
+                            if (LowerCase(value) == "on" || LowerCase(value) == "1")
                                 result = true;
                             else
                                 result = false;

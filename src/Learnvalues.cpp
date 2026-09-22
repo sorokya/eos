@@ -88,13 +88,23 @@ void LearnValues::LoadSkillMasters(LearnValues *self)
 // Nothing calls this, so ilink32 drops its COMDAT -- but the two string
 // literals it pools stay in the unit's _DATA. The reference carries exactly
 // those two literals at 0x57fe1d and 0x57fe21, immediately after
-// "./pub/dsm001.emf" and with no reference to either anywhere in the image;
-// only their presence and order are observable, not the function they came
-// from (the same situation as NpcValues::ClearDrops, see PLAN.md).
+// "./pub/dsm001.emf" and with no reference to either anywhere in the image
+// (the same situation as NpcValues::ClearDrops, see PLAN.md). Its shape is
+// pinned by one more observable: the three EH tables it adds (DC, ECT, CH)
+// advance the unit's table counter, which names every later EH table COMDAT
+// and so decides the package-init order the linker derives (the reference's
+// _INIT_ table, 0x55b206). Two String locals without the try/catch (+2)
+// or none give the wrong order.
 void Learnvalues_FileInfo()
 {
-    String magic = "EMF";
-    String file = "dsm001.emf";
+    try
+    {
+        String magic = "EMF";
+        String file = "dsm001.emf";
+    }
+    catch (...)
+    {
+    }
 }
 
 void LearnValues::AddSkill(LearnValues *self,

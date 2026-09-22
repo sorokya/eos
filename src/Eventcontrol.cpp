@@ -16,7 +16,7 @@ EventController::EventController(MapContainer *map_control,
                                  Packets *server,
                                  Settings *settings)
 {
-    pEncode_scratch = (char *)operator new(8);
+    pEncode_scratch = new char[8];
     this->map_control = map_control;
     this->settings = settings;
     this->players = players;

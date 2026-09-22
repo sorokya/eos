@@ -1,5 +1,5 @@
-#ifndef MysqlthreadH
-#define MysqlthreadH
+#ifndef MySQLthreadH
+#define MySQLthreadH
 
 #include <Classes.hpp>
 #include <DBTables.hpp>

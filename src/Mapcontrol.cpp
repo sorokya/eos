@@ -2,7 +2,7 @@
 #pragma hdrstop
 
 #include "Mapcontrol.h"
-#include "Mainform.h"
+#include "MainForm.h"
 #include "Jukeboxcontrol.h"
 #include "Npc.h"
 #include "Npcvalue.h"
@@ -52,7 +52,7 @@ Mapcontrol_TakeGroundItemInfo(MapContainer *self, int map_id, int index, int pla
 
 MapContainer::MapContainer(Settings *settings)
 {
-    encode_scratch = (char *)operator new(8);
+    encode_scratch = new char[8];
     this->settings = settings;
     start_map = Settings::GetStartMap(this->settings);
     start_x = Settings::GetStartX(this->settings);

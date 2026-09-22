@@ -11,7 +11,7 @@
 struct PlayerSkill
 {
     int skill_id;
-    int level;
+    unsigned int level;
 
     PlayerSkill(int id);
     ~PlayerSkill();

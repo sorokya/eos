@@ -12,7 +12,7 @@
 struct PlayerInventory
 {
     int item_id;
-    int amount;
+    unsigned int amount;
 
     PlayerInventory(int id);
     ~PlayerInventory();

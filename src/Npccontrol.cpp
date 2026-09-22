@@ -6,7 +6,7 @@
 #include "Mapcontrol.h"
 #include "Protocol.h"
 #include "Gamecontrol.h"
-#include "Mainform.h"
+#include "MainForm.h"
 #include "Npcvalues.h"
 #include "Players.h"
 #include "Packets.h"
@@ -18,7 +18,7 @@ NpcController::NpcController(MapContainer *map,
                              Packets *server,
                              Settings *settings)
 {
-    encode_scratch = operator new(8);
+    encode_scratch = new char[8];
     map_control = map;
     this->settings = settings;
     this->players = players;

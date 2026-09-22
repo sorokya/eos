@@ -8,7 +8,7 @@
 #include <SyncObjs.hpp>
 
 #include "Mysqltask.h"
-#include "Mysqlthread.h"
+#include "MySQLthread.h"
 #include "Filecache.h"
 
 // mySQLdb is the DB layer root (0x28 bytes). Layout from the reference

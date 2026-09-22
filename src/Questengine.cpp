@@ -367,7 +367,7 @@ void QuestContainer::ParseToken(QuestContainer *self, Quest *quest, String token
             }
         }
 
-        if (AnsiLowerCase(token) == "desc")
+        if (LowerCase(token) == "desc")
         {
             self->field_0x42 = 1;
             return;
@@ -394,17 +394,17 @@ void QuestContainer::ParseToken(QuestContainer *self, Quest *quest, String token
         }
     }
 
-    if (AnsiLowerCase(token) == "questname")
+    if (LowerCase(token) == "questname")
     {
         self->field_0x40 = 1;
         return;
     }
-    if (AnsiLowerCase(token) == "version")
+    if (LowerCase(token) == "version")
     {
         self->field_0x41 = 1;
         return;
     }
-    if (AnsiLowerCase(token) == "state")
+    if (LowerCase(token) == "state")
     {
         self->field_0x38 = 1;
         self->field_0x39 = 1;
@@ -488,6 +488,17 @@ QuestState *Questengine_StateAt(Quest *quest, int index)
     return quest->states[index];
 }
 
+// Nothing calls this, so ilink32 drops the COMDAT -- but its empty-string
+// literals stay in the unit's _DATA pool. The reference has 2 unreferenced
+// NUL bytes exactly here in the pool (`0x5818c3`-`0x5818c4`, between GetQuestName's
+// and GetActionData's); only their count and position
+// are observable (as with NpcValues::ClearDrops).
+void Questengine_EmptyLiterals()
+{
+    "";
+    "";
+}
+
 String QuestContainer::GetActionData(QuestContainer *self,
                                      int quest_id,
                                      int state_index,
@@ -542,6 +553,17 @@ String QuestContainer::GetActionData2(QuestContainer *self,
         }
     }
     return data;
+}
+
+// Nothing calls this, so ilink32 drops the COMDAT -- but its empty-string
+// literals stay in the unit's _DATA pool. The reference has 2 unreferenced
+// NUL bytes exactly here in the pool (`0x5818c9`-`0x5818ca`, between
+// GetActionData2's and GetRuleValue's); only their count and position
+// are observable (as with NpcValues::ClearDrops).
+void Questengine_EmptyLiterals2()
+{
+    "";
+    "";
 }
 
 int QuestContainer::GetRuleValue(QuestContainer *self,
@@ -684,17 +706,4 @@ String QuestContainer::EncodeNumber(QuestContainer *self, unsigned int value, in
     }
     String encoded_str((char *)self->encode_scratch, width);
     return encoded_str;
-}
-
-// Nothing calls this, so ilink32 drops the COMDAT -- but the empty-string
-// literals it pools stay in the unit's _DATA. The reference's pool carries
-// four more NUL bytes than its referenced `""` uses account for at exactly this
-// point (`0x5818c2`-`0x5818cf`), which is that signature; only the count and position are
-// observable, not the function they came from (as with NpcValues::ClearDrops).
-void Questengine_EmptyLiterals()
-{
-    "";
-    "";
-    "";
-    "";
 }

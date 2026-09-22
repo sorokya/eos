@@ -13,7 +13,7 @@
 #include "Filecache.h"
 #include "Settings.h"
 #include "Logins.h"
-#include "Mainform.h"
+#include "MainForm.h"
 #include "Gamecontrol.h"
 #include "Innvalues.h"
 #include "Shopvalues.h"
@@ -236,8 +236,8 @@ Packets::Packets(MapContainer *map_control,
                  int version_minor,
                  int version_major)
 {
-    encode_buffer = (char *)operator new(8);
-    packet_buffer = (char *)operator new(65000);
+    encode_buffer = new char[8];
+    packet_buffer = new char[65000];
     DateSeparator = '/';
     ShortDateFormat = "yyyy/mm/dd";
     start_time = Now();
@@ -5967,8 +5967,8 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                                            data,
                                            "SELECT money FROM endl_guilds WHERE tag = '" +
                                                player->guild_tag + "' LIMIT 1");
+                return true;
             }
-            return true;
         }
         if (action == PacketAction_Tell)
         {
@@ -6150,7 +6150,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return true;
             PacketReader_Init(server, data, EO_GetBreakByte(server, EO_BREAK_BYTE));
             PacketReader_GetBreakString(server);
-            String tag_upper = AnsiUpperCase(mySQLdb::Db_SanitizeString(
+            String tag_upper = UpperCase(mySQLdb::Db_SanitizeString(
                 server->mysql_controls, PacketReader_GetBreakString(server)));
             String name = mySQLdb::Db_SanitizeString(server->mysql_controls,
                                                      PacketReader_GetBreakString(server));
@@ -6186,7 +6186,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             if (!mySQLdb::IsAlphabeticText(server->mysql_controls, tag_upper))
             {
                 Banned::AddBan(
-                    server->banned, player->remote_ip, player->hdid, (char)0, 0x3840);
+                    server->banned, player->remote_ip, player->hdid, (bool)0, 0x3840);
                 return false;
             }
             mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
@@ -7887,8 +7887,8 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
         int token = EO_DecodeNumber(server, query_result->data.SubString(5, 1));
         String char_name =
             query_result->data.SubString(6, query_result->data.Length() - 5);
-        if (AnsiLowerCase(mySQLdb::Db_GetString(server->mysql_controls, "ident_guild")) !=
-            AnsiLowerCase(player->guild_tag))
+        if (LowerCase(mySQLdb::Db_GetString(server->mysql_controls, "ident_guild")) !=
+            LowerCase(player->guild_tag))
         {
             Client_SendEncoded(server,
                                player,
@@ -7923,8 +7923,8 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
     {
         if (GUI->myquery->RecordCount < 1)
             return;
-        if (AnsiLowerCase(mySQLdb::Db_GetString(server->mysql_controls, "ident_guild")) !=
-            AnsiLowerCase(player->guild_tag))
+        if (LowerCase(mySQLdb::Db_GetString(server->mysql_controls, "ident_guild")) !=
+            LowerCase(player->guild_tag))
         {
             Client_SendEncoded(server,
                                player,
@@ -8216,7 +8216,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
         PacketReader_Init(
             server, query_result->data, EO_GetBreakByte(server, EO_BREAK_BYTE));
         PacketReader_GetBreakString(server);
-        String tag = AnsiUpperCase(mySQLdb::Db_SanitizeString(
+        String tag = UpperCase(mySQLdb::Db_SanitizeString(
             server->mysql_controls, PacketReader_GetBreakString(server)));
         String name = mySQLdb::Db_SanitizeString(server->mysql_controls,
                                                  PacketReader_GetBreakString(server));
@@ -8234,7 +8234,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
         description = mySQLdb::Db_SanitizeString(server->mysql_controls, description);
         String sql = "INSERT INTO endl_guilds (tag, name, description, money, signup, "
                      "rank1, rank2 ) VALUES (";
-        sql = sql + "'" + AnsiUpperCase(tag) + "',";
+        sql = sql + "'" + UpperCase(tag) + "',";
         sql = sql + "'" + name + "',";
         sql = sql + "'" + description + "',";
         sql = sql + "10000,";
@@ -8273,8 +8273,8 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
             return;
         if (other->map_id != player->map_id)
             return;
-        if (AnsiLowerCase(mySQLdb::Db_GetString(server->mysql_controls, "tag")) ==
-            AnsiLowerCase(other->guild_tag))
+        if (LowerCase(mySQLdb::Db_GetString(server->mysql_controls, "tag")) ==
+            LowerCase(other->guild_tag))
             return;
         if ((unsigned int)mySQLdb::Db_GetInt(server->mysql_controls, "money") < 0x3e8)
             return;
@@ -8719,7 +8719,7 @@ void Login_SendCharacterList(Packets *server,
                              PacketFamily family,
                              String data)
 {
-    GUI->myquery->Open();
+    GUI->myquery->First();
     data.Insert(
         EO_EncodeNumber(server, mySQLdb::GetResultCount(server->mysql_controls), 1),
         data.Length() + 1);
@@ -10886,8 +10886,8 @@ bool Chair_Execute(Packets *server, Player *player, int action, String *data)
             if (player->map_id < 1 ||
                 (int)server->map_control->maps.size() < player->map_id)
                 return true;
-            int spec = MapContainer::Mapcontrol_GetTileSpec(
-                server->map_control, player->map_id, x, y);
+            int spec =
+                Mapcontrol_GetTileSpecValueAt(server->map_control, player->map_id, x, y);
             if (spec >= 0 && spec <= 6)
             {
                 MapObject tile = Mapcontrol_GetTileSpecObject(
@@ -12967,6 +12967,17 @@ void PacketReader_Init(Packets *reader, String data, unsigned char break_byte)
     reader->reader_len = data.Length();
     reader->reader_break_byte = break_byte;
 }
+// Nothing calls this, so ilink32 drops the COMDAT -- but its empty-string
+// literals stay in the unit's _DATA pool. The reference has 2 unreferenced
+// NUL bytes exactly here in the pool (`0x561cad`-`0x561cae`, between the
+// password codecs' and PacketReader_GetBreakString's); only their count and position
+// are observable (as with NpcValues::ClearDrops).
+void Packets_EmptyLiterals()
+{
+    "";
+    "";
+}
+
 String PacketReader_GetBreakString(Packets *reader)
 {
     String result = "";
@@ -13153,16 +13164,6 @@ bool Server_InItemViewRing(Packets *self, int x1, int y1, int x2, int y2)
     if (dx + dy <= 0x0D && dx + dy > 0x0B)
         result = true;
     return result;
-}
-// Nothing calls this, so ilink32 drops the COMDAT -- but the empty-string
-// literals it pools stay in the unit's _DATA. The reference's pool carries
-// two more NUL bytes than its referenced `""` uses account for at exactly this
-// point (`0x561ca8`-`0x561cb3`), which is that signature; only the count and position are
-// observable, not the function they came from (as with NpcValues::ClearDrops).
-void Packets_EmptyLiterals()
-{
-    "";
-    "";
 }
 String Server_FormatSentTraffic(Packets *server)
 {

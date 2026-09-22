@@ -118,7 +118,7 @@ String SerialKey::ReadKey(SerialKey *self, String key, String default_value)
                             value = value + line[j];
                         }
                     }
-                    if (AnsiLowerCase(ini_name) == AnsiLowerCase(key))
+                    if (LowerCase(ini_name) == LowerCase(key))
                     {
                         if (value.Length() >= 1)
                             result = value;

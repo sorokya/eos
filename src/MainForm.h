@@ -1,5 +1,5 @@
-#ifndef MainformH
-#define MainformH
+#ifndef MainFormH
+#define MainFormH
 
 #include <Classes.hpp>
 #include <Controls.hpp>

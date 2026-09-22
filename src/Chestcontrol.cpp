@@ -15,7 +15,7 @@ ChestController::ChestController(MapContainer *map_control,
                                  Packets *server,
                                  Settings *settings)
 {
-    encode_scratch = (char *)operator new(8);
+    encode_scratch = new char[8];
     this->map_control = map_control;
     this->settings = settings;
     this->players = players;

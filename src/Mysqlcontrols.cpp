@@ -2,7 +2,7 @@
 #pragma hdrstop
 
 #include "Mysqlcontrols.h"
-#include "Mainform.h"
+#include "MainForm.h"
 
 #pragma package(smart_init)
 
@@ -80,7 +80,7 @@ void mySQLdb::Connect(mySQLdb *self,
         {
             try
             {
-                if (AnsiLowerCase(GUI->myquery->Fields->Fields[3]->AsString) == "fixed")
+                if (LowerCase(GUI->myquery->Fields->Fields[3]->AsString) == "fixed")
                     self->file_cache->accounts_count =
                         GUI->myquery->Fields->Fields[4]->AsInteger;
             }
@@ -92,7 +92,7 @@ void mySQLdb::Connect(mySQLdb *self,
         {
             try
             {
-                if (AnsiLowerCase(GUI->myquery->Fields->Fields[3]->AsString) == "fixed")
+                if (LowerCase(GUI->myquery->Fields->Fields[3]->AsString) == "fixed")
                     self->file_cache->characters_count =
                         GUI->myquery->Fields->Fields[4]->AsInteger;
             }
@@ -104,7 +104,7 @@ void mySQLdb::Connect(mySQLdb *self,
         {
             try
             {
-                if (AnsiLowerCase(GUI->myquery->Fields->Fields[3]->AsString) == "fixed")
+                if (LowerCase(GUI->myquery->Fields->Fields[3]->AsString) == "fixed")
                     self->file_cache->guilds_count =
                         GUI->myquery->Fields->Fields[4]->AsInteger;
             }
@@ -274,7 +274,7 @@ bool mySQLdb::Query(mySQLdb *self, String query)
         if (GUI->myquery->RecordCount > 0)
         {
             if (GUI->myquery->Active)
-                GUI->myquery->Open();
+                GUI->myquery->First();
         }
     }
     catch (...)
@@ -394,9 +394,9 @@ String mySQLdb::Mysql_SanitizeString(mySQLdb *self, String value, bool uppercase
         }
     }
     if (!uppercase)
-        return AnsiLowerCase(value);
+        return LowerCase(value);
     else
-        return AnsiUpperCase(value);
+        return UpperCase(value);
 }
 
 String mySQLdb::Db_SanitizeString(mySQLdb *self, String value)
@@ -415,7 +415,7 @@ String mySQLdb::Db_SanitizeString(mySQLdb *self, String value)
                 value.Delete(i, 1);
         }
     }
-    return AnsiLowerCase(value);
+    return LowerCase(value);
 }
 
 // Normalizes an incoming player text field for several packet handlers (it runs
@@ -444,7 +444,7 @@ void mySQLdb::NormalizePlayerText(mySQLdb *self, String &message)
         }
     }
     if (caps > TEXT_CAPS_LIMIT)
-        message = AnsiLowerCase(message);
+        message = LowerCase(message);
 }
 
 TTimeStamp mySQLdb::Server_GetUptime(mySQLdb *self)

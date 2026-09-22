@@ -8,7 +8,7 @@
 
 JukeBoxController::JukeBoxController()
 {
-    encode_scratch = (char *)operator new(8);
+    encode_scratch = new char[8];
     recent_plays.clear();
 }
 
