@@ -940,12 +940,16 @@ reference's own class names directly readable, and it makes a wrong
 reconstructed name a byte *and* a size difference (the descriptor is
 `dd size; dw flags; dw ?; dd base; db name,0`, so its length tracks the name).
 AGENTS.md already recorded this for the `vector<X>` container descriptors; the
-same table covers plain classes, and the procedure generalises to a one-line
-diff of the NUL-terminated ASCII in `.text`:
+same table covers plain classes, arrays and references.
 
-```py
-re.finditer(rb'[ -~]{4,}\x00', text)      # on both images, then diff the multisets
-```
+`scripts/typenames.py` (`make typenames`) is that diff, done properly: it finds
+each descriptor by requiring a base relocation exactly 4 bytes before the name
+(pointer/reference/`vector` forms) or 8 (class/array forms) plus a strict C++
+type-name shape, attributes it to a module, and reports the names each image has
+that the other does not.  **It is now clean: 374 distinct names in the
+reference, all 374 present in the rebuild, zero reference-only leftovers**; the
+only two rebuild-only rows are four-character code noise in the library tail.
+The full table is written to `analysis/target/typenames.tsv`.
 
 Everything below came out of that diff.  Each row is proven: the string exists
 in the reference and not in ours, our replacement exists in ours and not in the

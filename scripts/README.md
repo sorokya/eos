@@ -136,6 +136,20 @@ imports, exports, resource tree). No `pip` packages required.
   `vector<ChestItem>::size` and the nine two-int pair constructors were each
   shown to be one function in the reference. Exits non-zero on any mismatch.
   See PLAN.md, "COMDAT ownership".
+- **`typenames.py [--all] [-o TSV]`** — the RTTI type-name oracle
+  (`make typenames`). bcc32 writes the **spelled** type name into every
+  `__tpdsc__` and those records live inside `.text`, so the reference is stripped
+  of symbols but not of its class names: every class, pointer, reference, array
+  and container type the original named is readable verbatim, and a
+  reconstructed name that differs is a byte difference *and* a size difference
+  (the descriptor's length tracks the name's). Descriptors are found by requiring
+  a base relocation exactly 4 bytes before the name (pointer/reference/`vector`
+  forms) or 8 (class/array forms) plus a strict C++ type-name shape; runs under
+  four characters are dropped as code noise. It reports the names each image has
+  and the other does not — pair the two leftover lists and each pair is a class to
+  rename. That is how `Logins::ReservedName`/`Logins::LoginEntry` were shown to be
+  `Asocketvip`/`Asocketblock` (at namespace scope, no `Logins::` prefix) and
+  `Server` to be `Packets`. See PLAN.md, "The RTTI type-descriptor name oracle".
 - **`normalize_pe.py PE [--timestamp V] [--characteristics V] [-o OUT]`** — the
   documented deterministic post-link step: rewrite the volatile `TimeDateStamp`
   (at `e_lfanew + 8`) and optionally the COFF characteristics word.

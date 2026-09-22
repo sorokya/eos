@@ -31,7 +31,7 @@ VLIB      ?= vcl50.lib vcldb50.lib vclbde50.lib import32.lib cp32mt.lib
 CLANG_FORMAT ?= clang-format
 SRC          := $(wildcard src/*.cpp src/*.h)
 
-.PHONY: image analyze extract units track unitmap functions funcdiff comdatdiff tdsfuncs struct layout libcompare disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
+.PHONY: image analyze extract units track unitmap functions funcdiff comdatdiff tdsfuncs typenames struct layout libcompare disasm sanity compare normalize build stubs unit unit-asm verify case-selftest format format-check clean
 
 image:
 	docker build -t $(IMAGE) docker
@@ -86,6 +86,12 @@ comdatdiff:
 # Our linked function inventory (name, VA, exact COMDAT length) from the TDS.
 tdsfuncs:
 	$(PYTHON) scripts/tdsfuncs.py
+
+# The RTTI type-name oracle: every class name both images spell out in their
+# `__tpdsc__` records, with the module that owns each. A name only the reference
+# has (paired with one only we have) is a class the reconstruction misnamed.
+typenames:
+	$(PYTHON) scripts/typenames.py -o analysis/target/typenames.tsv
 
 # Structural comparison (imports/exports/relocations).
 struct:
