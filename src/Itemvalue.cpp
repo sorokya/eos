@@ -5,6 +5,10 @@
 
 #pragma package(smart_init)
 
+ItemValue::ItemValue()
+{
+}
+
 ItemValue::ItemValue(int id)
 {
     this->id = id;

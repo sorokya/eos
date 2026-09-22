@@ -13,18 +13,6 @@ LearnValues::LearnValues()
     LoadSkillMasters(this);
 }
 
-// Nothing calls this, so ilink32 drops its COMDAT -- but the two string
-// literals it pools stay in the unit's _DATA. The reference carries exactly
-// those two literals at 0x57fe1d and 0x57fe21, immediately after
-// "./pub/dsm001.emf" and with no reference to either anywhere in the image;
-// only their presence and order are observable, not the function they came
-// from (the same situation as NpcValues::ClearDrops, see PLAN.md).
-void Learnvalues_FileInfo()
-{
-    String magic = "EMF";
-    String file = "dsm001.emf";
-}
-
 LearnValues::~LearnValues()
 {
 }
@@ -95,6 +83,18 @@ void LearnValues::LoadSkillMasters(LearnValues *self)
             self->loaded = 0;
         }
     }
+}
+
+// Nothing calls this, so ilink32 drops its COMDAT -- but the two string
+// literals it pools stay in the unit's _DATA. The reference carries exactly
+// those two literals at 0x57fe1d and 0x57fe21, immediately after
+// "./pub/dsm001.emf" and with no reference to either anywhere in the image;
+// only their presence and order are observable, not the function they came
+// from (the same situation as NpcValues::ClearDrops, see PLAN.md).
+void Learnvalues_FileInfo()
+{
+    String magic = "EMF";
+    String file = "dsm001.emf";
 }
 
 void LearnValues::AddSkill(LearnValues *self,

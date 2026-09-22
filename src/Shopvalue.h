@@ -25,6 +25,7 @@ struct ShopValue
     vector<ShopItemVal> trades;
     vector<ShopCraftVal> crafts;
 
+    ShopValue();
     ShopValue(int id);
     ~ShopValue();
 

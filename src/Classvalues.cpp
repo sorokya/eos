@@ -120,6 +120,15 @@ void ClassValues::AddClass(ClassValues *self,
     self->record_list.insert(self->record_list.end(), v);
 }
 
+// Nothing calls this, so ilink32 drops its COMDAT -- but it instantiates
+// vector<ClassValue>::operator[] at this point in the unit, which is where the
+// reference emits it (0x5371d4), ahead of ClassMatches rather than after it. Only that
+// placement is observable.
+ClassValue *Classvalues_Get(ClassValues *self, int index)
+{
+    return &self->record_list[index];
+}
+
 bool ClassValues::ClassMatches(ClassValues *self, int class_id, int class_requirement)
 {
     if (class_requirement == 0)

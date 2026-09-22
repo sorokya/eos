@@ -94,17 +94,15 @@ void ChestController::Tick(ChestController *self)
     {
         if ((*player_iter)->logged_in != 0 && (*player_iter)->map_id > 0 &&
             (*player_iter)->map_id <= (int)self->map_control->maps.size() &&
-            Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                    ->chests_dirty != 0)
+            self->map_control->maps[(*player_iter)->map_id - 1].chests_dirty != 0)
         {
             try
             {
                 String pkt = "";
-                for (chest_iter = Mapcontrol_GetByIndex(self->map_control,
-                                                        (*player_iter)->map_id - 1)
-                                      ->chest_list.begin();
-                     Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                         ->chest_list.end() != chest_iter;
+                for (chest_iter = self->map_control->maps[(*player_iter)->map_id - 1]
+                                      .chest_list.begin();
+                     self->map_control->maps[(*player_iter)->map_id - 1]
+                         .chest_list.end() != chest_iter;
                      chest_iter++)
                 {
                     if (chest_iter->updated != 0)

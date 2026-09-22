@@ -141,6 +141,15 @@ void ShopValues::Clear(ShopValues *self)
     }
 }
 
+// Nothing calls this, so ilink32 drops its COMDAT -- but it instantiates
+// vector<ShopValue>::operator[] at this point in the unit, which is where the
+// reference emits it (0x4b3a70), ahead of GetCraftIngredient1 rather than
+// after it. Only that placement is observable.
+ShopValue *Shopvalues_Get(ShopValues *self, int index)
+{
+    return &self->record_list[index];
+}
+
 ShopCraftIngredient
 ShopValues::GetCraftIngredient1(ShopValues *self, int shop_id, int craft_id)
 {

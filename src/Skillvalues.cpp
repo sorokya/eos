@@ -191,6 +191,15 @@ void SkillValues::AddRecord(SkillValues *self,
     self->record_list.insert(self->record_list.end(), v);
 }
 
+// Nothing calls this, so ilink32 drops its COMDAT -- but it instantiates
+// vector<SkillValue>::operator[] at this point in the unit, which is where the
+// reference emits it (0x4a5030), ahead of GetDamage rather than after it. Only that
+// placement is observable.
+SkillValue *Skillvalues_Get(SkillValues *self, int index)
+{
+    return &self->record_list[index];
+}
+
 SkillDamage SkillValues::GetDamage(SkillValues *self, int skill_id)
 {
     SkillDamage result;

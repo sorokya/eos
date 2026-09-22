@@ -57,7 +57,6 @@ class MsgBoardController
                         String subject,
                         String message,
                         char flag);
-    static void SetPostLimit(vector<MsgBoard> *posts, unsigned int count);
     static String GetBoard(MsgBoardController *self, int board);
     static String GetPost(MsgBoardController *self, int board, int post_id);
     static void BuildBoardName(MsgBoardController *self, int board);

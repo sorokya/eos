@@ -22,6 +22,15 @@ void QuestCounter::Clear(QuestCounter *self)
     self->counters.clear();
 }
 
+// Nothing calls this, so ilink32 drops its COMDAT -- but it instantiates
+// vector<QuestCounterList>::size() (and the const begin()/end() it calls) at this point
+// in the unit, which is where the reference emits them (0x53f914), ahead of
+// Increment's insert helpers. Only that placement is observable.
+int Questcounter_Count(QuestCounter *self)
+{
+    return self->counters.size();
+}
+
 int QuestCounter::Increment(QuestCounter *self, String name)
 {
     name = name.LowerCase();

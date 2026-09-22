@@ -16,6 +16,7 @@ struct MapChest
     char updated;
     vector<ChestItem> slots;
 
+    MapChest();
     MapChest(int x, int y, int key_id);
     ~MapChest();
 };

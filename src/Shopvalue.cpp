@@ -5,6 +5,12 @@
 
 #pragma package(smart_init)
 
+ShopValue::ShopValue()
+{
+    trades.clear();
+    crafts.clear();
+}
+
 ShopValue::ShopValue(int id)
 {
     this->id = id;

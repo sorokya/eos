@@ -72,7 +72,7 @@ MapContainer::~MapContainer()
 void MapContainer::Mapcontrol_SetArenaBlock(MapContainer *self, int map_id, int block)
 {
     if (map_id > 0 && map_id <= (int)self->maps.size())
-        Mapcontrol_GetByIndex(self, map_id - 1)->arena_block = block;
+        self->maps[map_id - 1].arena_block = block;
 }
 
 void Mapcontrol_AddArenaSpawn(
@@ -80,13 +80,12 @@ void Mapcontrol_AddArenaSpawn(
 {
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        Mapcontrol_GetByIndex(self, map_id - 1)->arena_enabled = 1;
-        Mapcontrol_GetByIndex(self, map_id - 1)->arena_block = 4;
-        Mapcontrol_GetByIndex(self, map_id - 1)->arena_ticks = RandRange(0x3c);
+        self->maps[map_id - 1].arena_enabled = 1;
+        self->maps[map_id - 1].arena_block = 4;
+        self->maps[map_id - 1].arena_ticks = RandRange(0x3c);
         MapWarp value(from_x, from_y, map_id, 0, to_x, to_y);
-        Mapcontrol_GetByIndex(self, map_id - 1)
-            ->arena_spawn_list.insert(
-                Mapcontrol_GetByIndex(self, map_id - 1)->arena_spawn_list.end(), value);
+        self->maps[map_id - 1].arena_spawn_list.insert(
+            self->maps[map_id - 1].arena_spawn_list.end(), value);
     }
 }
 
@@ -94,8 +93,8 @@ void MapContainer::Mapcontrol_IncPlayerCount(MapContainer *self, int map_id)
 {
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        Mapcontrol_GetByIndex(self, map_id - 1)->player_count++;
-        Mapcontrol_GetByIndex(self, map_id - 1)->npc_act_ticks = 0xca;
+        self->maps[map_id - 1].player_count++;
+        self->maps[map_id - 1].npc_act_ticks = 0xca;
     }
 }
 
@@ -103,8 +102,8 @@ void MapContainer::Mapcontrol_DecPlayerCount(MapContainer *self, int map_id)
 {
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->player_count > 0)
-            Mapcontrol_GetByIndex(self, map_id - 1)->player_count--;
+        if (self->maps[map_id - 1].player_count > 0)
+            self->maps[map_id - 1].player_count--;
     }
 }
 
@@ -141,8 +140,8 @@ String Mapcontrol_BuildChestItemsString(MapContainer *self, int map_id, MapCoord
     vector<ChestItem>::iterator item_iter;
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        for (chest_iter = Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
-             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
+        for (chest_iter = self->maps[map_id - 1].chest_list.begin();
+             chest_iter != self->maps[map_id - 1].chest_list.end();
              chest_iter++)
         {
             if ((unsigned short)chest_iter->x == coords.x &&
@@ -175,12 +174,12 @@ int MapContainer::Mapcontrol_GetWarpMap(MapContainer *self, int map_id, int x, i
     int result = 0;
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
+        int tile_offset = self->maps[map_id - 1].width * 2 * y + x * 2;
+        if (self->maps[map_id - 1].tile_bits[tile_offset])
         {
             for (vector<MapWarp>::iterator warp_iter =
-                     Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
-                 warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
+                     self->maps[map_id - 1].warp_list.begin();
+                 warp_iter != self->maps[map_id - 1].warp_list.end();
                  warp_iter++)
             {
                 if (warp_iter->from_x == x && warp_iter->from_y == y)
@@ -200,8 +199,8 @@ int MapContainer::Mapcontrol_GetWarpLevelReq(MapContainer *self, int map_id, int
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
         for (vector<MapWarp>::iterator warp_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
-             warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
+                 self->maps[map_id - 1].warp_list.begin();
+             warp_iter != self->maps[map_id - 1].warp_list.end();
              warp_iter++)
         {
             if (warp_iter->from_x == x && warp_iter->from_y == y)
@@ -220,8 +219,8 @@ int MapContainer::Mapcontrol_GetWarpX(MapContainer *self, int map_id, int x, int
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
         for (vector<MapWarp>::iterator warp_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
-             warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
+                 self->maps[map_id - 1].warp_list.begin();
+             warp_iter != self->maps[map_id - 1].warp_list.end();
              warp_iter++)
         {
             if (warp_iter->from_x == x && warp_iter->from_y == y)
@@ -240,8 +239,8 @@ int MapContainer::Mapcontrol_GetWarpY(MapContainer *self, int map_id, int x, int
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
         for (vector<MapWarp>::iterator warp_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.begin();
-             warp_iter != Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.end();
+                 self->maps[map_id - 1].warp_list.begin();
+             warp_iter != self->maps[map_id - 1].warp_list.end();
              warp_iter++)
         {
             if (warp_iter->from_x == x && warp_iter->from_y == y)
@@ -263,8 +262,8 @@ unsigned char MapContainer::Mapcontrol_ToggleDoor(MapContainer *self,
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
         for (vector<MapObject>::iterator spec_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-             spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
+                 self->maps[map_id - 1].tile_specs.begin();
+             spec_iter != self->maps[map_id - 1].tile_specs.end();
              spec_iter++)
         {
             if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
@@ -279,14 +278,14 @@ unsigned char MapContainer::Mapcontrol_ToggleDoor(MapContainer *self,
                 if ((unsigned short)spec_iter->value == MapTileSpec_ChairAll)
                 {
                     result = 1;
-                    Mapcontrol_GetByIndex(self, map_id - 1)->has_open_doors = 1;
+                    self->maps[map_id - 1].has_open_doors = 1;
                     spec_iter->value = MapTileSpec_Chest;
                     spec_iter->ticks = 2;
                 }
                 if ((unsigned short)spec_iter->value == MapTileSpec_Reserved10)
                 {
                     result = 1;
-                    Mapcontrol_GetByIndex(self, map_id - 1)->has_open_doors = 1;
+                    self->maps[map_id - 1].has_open_doors = 1;
                     spec_iter->value = MapTileSpec_Reserved11;
                     spec_iter->ticks = 2;
                 }
@@ -300,9 +299,8 @@ unsigned char MapContainer::Mapcontrol_ToggleDoor(MapContainer *self,
 MapObject Mapcontrol_GetTileSpecObject(MapContainer *self, int map_id, int x, int y)
 {
     map_id <= 0 ? (map_id == 1) : 0;
-    vector<MapObject>::iterator spec_iter =
-        Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-    while (spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end())
+    vector<MapObject>::iterator spec_iter = self->maps[map_id - 1].tile_specs.begin();
+    while (spec_iter != self->maps[map_id - 1].tile_specs.end())
     {
         if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
             break;
@@ -316,8 +314,8 @@ MapContainer::Mapcontrol_GetTileSpec(MapContainer *self, int map_id, int x, int 
 {
     unsigned int result = 0xffffffff;
     for (vector<MapObject>::iterator spec_iter =
-             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-         spec_iter != Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
+             self->maps[map_id - 1].tile_specs.begin();
+         spec_iter != self->maps[map_id - 1].tile_specs.end();
          spec_iter++)
     {
         if ((unsigned short)spec_iter->x == x && (unsigned short)spec_iter->y == y)
@@ -337,15 +335,14 @@ unsigned int Mapcontrol_GetTileSpecValueAt(MapContainer *self,
     unsigned int result = 0xffffffff;
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
+        int tile_offset = self->maps[map_id - 1].width * 2 * y + x * 2;
+        if (self->maps[map_id - 1].tile_bits[tile_offset])
         {
-            if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+            if (!self->maps[map_id - 1].tile_bits[tile_offset + 1])
             {
                 for (vector<MapObject>::iterator spec_iter =
-                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-                     spec_iter !=
-                     Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
+                         self->maps[map_id - 1].tile_specs.begin();
+                     spec_iter != self->maps[map_id - 1].tile_specs.end();
                      spec_iter++)
                 {
                     if ((unsigned short)spec_iter->x == x &&
@@ -365,9 +362,9 @@ char Mapcontrol_TryTakeQuestCooldown(MapContainer *self, int map_id)
 {
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->quest_cooldown < 1)
+        if (self->maps[map_id - 1].quest_cooldown < 1)
         {
-            Mapcontrol_GetByIndex(self, map_id - 1)->quest_cooldown = MAP_QUEST_COOLDOWN;
+            self->maps[map_id - 1].quest_cooldown = MAP_QUEST_COOLDOWN;
             return 1;
         }
     }
@@ -378,7 +375,7 @@ char Mapcontrol_GetCanScroll(MapContainer *self, int map_id)
 {
     char result = 0;
     if (map_id > 0 && map_id <= (int)self->maps.size())
-        result = Mapcontrol_GetByIndex(self, map_id - 1)->can_scroll;
+        result = self->maps[map_id - 1].can_scroll;
     return result;
 }
 
@@ -389,10 +386,10 @@ MapCoord Mapcontrol_GetRelogCoords(MapContainer *self, int map_id)
     coords.y = 0;
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        coords.x = Mapcontrol_GetByIndex(self, map_id - 1)->relog_x;
-        coords.y = Mapcontrol_GetByIndex(self, map_id - 1)->relog_y;
-        if (coords.x >= (int)Mapcontrol_GetByIndex(self, map_id - 1)->width ||
-            coords.y >= (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
+        coords.x = self->maps[map_id - 1].relog_x;
+        coords.y = self->maps[map_id - 1].relog_y;
+        if (coords.x >= (int)self->maps[map_id - 1].width ||
+            coords.y >= (int)self->maps[map_id - 1].height)
         {
             coords.x = 0;
             coords.y = 0;
@@ -407,9 +404,8 @@ bool MapContainer::Mapcontrol_AggroChildNpcs(MapContainer *self, int map_id)
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
         TDateTime now = Now();
-        for (vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
+        for (vector<Npc *>::iterator npc_iter = self->maps[map_id - 1].npc_list.begin();
+             npc_iter != self->maps[map_id - 1].npc_list.end();
              npc_iter++)
         {
             if ((unsigned short)(*npc_iter)->child > 0)
@@ -427,11 +423,10 @@ bool MapContainer::Mapcontrol_KillChildNpcs(MapContainer *self, int map_id)
     bool found_child = false;
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        Mapcontrol_GetByIndex(self, map_id - 1)->boss_alive = false;
+        self->maps[map_id - 1].boss_alive = false;
         TDateTime now = Now();
-        for (vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
+        for (vector<Npc *>::iterator npc_iter = self->maps[map_id - 1].npc_list.begin();
+             npc_iter != self->maps[map_id - 1].npc_list.end();
              npc_iter++)
         {
             if ((unsigned short)(*npc_iter)->child > 0)
@@ -452,9 +447,8 @@ Mapcontrol_GetNpcIdByIndex(MapContainer *self, int map_id, unsigned int npc_inde
     unsigned int result = 0xffffffff;
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        for (vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
+        for (vector<Npc *>::iterator npc_iter = self->maps[map_id - 1].npc_list.begin();
+             npc_iter != self->maps[map_id - 1].npc_list.end();
              npc_iter++)
         {
             if ((*npc_iter)->index == npc_index)
@@ -475,9 +469,8 @@ Mapcontrol_GetNpcCoordsByIndex(MapContainer *self, int map_id, unsigned int npc_
     coords.y = -1;
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        for (vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
+        for (vector<Npc *>::iterator npc_iter = self->maps[map_id - 1].npc_list.begin();
+             npc_iter != self->maps[map_id - 1].npc_list.end();
              npc_iter++)
         {
             if ((*npc_iter)->index == npc_index)
@@ -496,9 +489,8 @@ bool MapContainer::Mapcontrol_IsOccupied(MapContainer *self, int map_id, int x, 
     bool result = false;
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        for (vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
+        for (vector<Npc *>::iterator npc_iter = self->maps[map_id - 1].npc_list.begin();
+             npc_iter != self->maps[map_id - 1].npc_list.end();
              npc_iter++)
         {
             if ((*npc_iter)->x == x && (*npc_iter)->y == y && (*npc_iter)->alive != false)
@@ -518,9 +510,8 @@ int MapContainer::Mapcontrol_CountNpcsChasingPlayer(MapContainer *self,
     int chase_count = 0;
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        for (vector<Npc *>::iterator npc_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.begin();
-             npc_iter != Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.end();
+        for (vector<Npc *>::iterator npc_iter = self->maps[map_id - 1].npc_list.begin();
+             npc_iter != self->maps[map_id - 1].npc_list.end();
              npc_iter++)
         {
             if ((*npc_iter)->chase_target_id == player_id)
@@ -535,19 +526,18 @@ char Mapcontrol_IsDropTileClear(MapContainer *self, int map_id, int x, int y)
     char result = 1;
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
-        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
-        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
-            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
+        int tile_offset = self->maps[map_id - 1].width * 2 * y + x * 2;
+        if (x >= 0 && y >= 0 && x < (int)self->maps[map_id - 1].width &&
+            y < (int)self->maps[map_id - 1].height)
         {
-            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
+            if (self->maps[map_id - 1].tile_bits[tile_offset])
             {
-                if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                if (!self->maps[map_id - 1].tile_bits[tile_offset + 1])
                 {
                     result = 0;
                     for (vector<MapObject>::iterator spec_iter =
-                             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-                         spec_iter !=
-                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
+                             self->maps[map_id - 1].tile_specs.begin();
+                         spec_iter != self->maps[map_id - 1].tile_specs.end();
                          spec_iter++)
                     {
                         if ((unsigned short)spec_iter->x == x &&
@@ -563,7 +553,7 @@ char Mapcontrol_IsDropTileClear(MapContainer *self, int map_id, int x, int y)
             }
             else
             {
-                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                if (self->maps[map_id - 1].tile_bits[tile_offset + 1])
                     result = 0;
             }
         }
@@ -580,18 +570,18 @@ bool MapContainer::Mapcontrol_IsTileClear(MapContainer *self, int map_id, int x,
     bool result = true;
     if (map_id > 0 && (int)self->maps.size() >= map_id)
     {
-        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
-        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
-            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
+        int tile_offset = self->maps[map_id - 1].width * 2 * y + x * 2;
+        if (x >= 0 && y >= 0 && x < (int)self->maps[map_id - 1].width &&
+            y < (int)self->maps[map_id - 1].height)
         {
-            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
+            if (self->maps[map_id - 1].tile_bits[tile_offset])
             {
-                if (!Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                if (!self->maps[map_id - 1].tile_bits[tile_offset + 1])
                     result = false;
             }
             else
             {
-                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                if (self->maps[map_id - 1].tile_bits[tile_offset + 1])
                     result = false;
             }
         }
@@ -608,22 +598,21 @@ bool MapContainer::Mapcontrol_IsTileWalkable(MapContainer *self, int map_id, int
     bool result = false;
     if (map_id > 0 && (int)self->maps.size() >= map_id)
     {
-        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
-        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
-            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
+        int tile_offset = self->maps[map_id - 1].width * 2 * y + x * 2;
+        if (x >= 0 && y >= 0 && x < (int)self->maps[map_id - 1].width &&
+            y < (int)self->maps[map_id - 1].height)
         {
-            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
+            if (self->maps[map_id - 1].tile_bits[tile_offset])
             {
-                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                if (self->maps[map_id - 1].tile_bits[tile_offset + 1])
                 {
                     result = true;
                 }
                 else
                 {
                     for (vector<MapObject>::iterator spec_iter =
-                             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-                         spec_iter !=
-                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
+                             self->maps[map_id - 1].tile_specs.begin();
+                         spec_iter != self->maps[map_id - 1].tile_specs.end();
                          spec_iter++)
                     {
                         if ((unsigned short)spec_iter->x == x &&
@@ -667,13 +656,13 @@ int MapContainer::Mapcontrol_IsWalkableNPC(
     int result = 1;
     if (map_id > 0 && (int)self->maps.size() >= map_id)
     {
-        int tile_offset = Mapcontrol_GetByIndex(self, map_id - 1)->width * 2 * y + x * 2;
-        if (x >= 0 && y >= 0 && x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
-            y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
+        int tile_offset = self->maps[map_id - 1].width * 2 * y + x * 2;
+        if (x >= 0 && y >= 0 && x < (int)self->maps[map_id - 1].width &&
+            y < (int)self->maps[map_id - 1].height)
         {
-            if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset])
+            if (self->maps[map_id - 1].tile_bits[tile_offset])
             {
-                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                if (self->maps[map_id - 1].tile_bits[tile_offset + 1])
                 {
                     result = 2;
                 }
@@ -681,9 +670,8 @@ int MapContainer::Mapcontrol_IsWalkableNPC(
                 {
                     result = 1;
                     for (vector<MapObject>::iterator spec_iter =
-                             Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.begin();
-                         spec_iter !=
-                         Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.end();
+                             self->maps[map_id - 1].tile_specs.begin();
+                         spec_iter != self->maps[map_id - 1].tile_specs.end();
                          spec_iter++)
                     {
                         if ((unsigned short)spec_iter->x == x &&
@@ -705,7 +693,7 @@ int MapContainer::Mapcontrol_IsWalkableNPC(
             }
             else
             {
-                if (Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[tile_offset + 1])
+                if (self->maps[map_id - 1].tile_bits[tile_offset + 1])
                     result = 1;
                 else
                     result = 0;
@@ -815,27 +803,23 @@ void MapContainer::Mapcontrol_AddChestSpawn(MapContainer *self,
             }
             else
             {
-                if (Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id1 > 0)
+                if (chest_iter->slots[slot].alt_item_id1 > 0)
                 {
-                    if (Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id2 > 0)
+                    if (chest_iter->slots[slot].alt_item_id2 > 0)
                     {
-                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id3 =
-                            item_id;
-                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_amount3 =
-                            amount;
+                        chest_iter->slots[slot].alt_item_id3 = item_id;
+                        chest_iter->slots[slot].alt_amount3 = amount;
                     }
                     else
                     {
-                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id2 =
-                            item_id;
-                        Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_amount2 =
-                            amount;
+                        chest_iter->slots[slot].alt_item_id2 = item_id;
+                        chest_iter->slots[slot].alt_amount2 = amount;
                     }
                 }
                 else
                 {
-                    Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_item_id1 = item_id;
-                    Mapcontrol_GetSlot(&chest_iter->slots, slot)->alt_amount1 = amount;
+                    chest_iter->slots[slot].alt_item_id1 = item_id;
+                    chest_iter->slots[slot].alt_amount1 = amount;
                 }
             }
             break;
@@ -861,11 +845,6 @@ void MapContainer::Mapcontrol_AddChestSpawn(MapContainer *self,
     }
 }
 
-ChestItem *MapContainer::Mapcontrol_GetSlot(vector<ChestItem> *slot_list, int slot)
-{
-    return slot_list->begin() + slot;
-}
-
 void MapContainer::Mapcontrol_LoadMaps(MapContainer *self)
 {
     for (int map_id = 1; map_id <= 0xfa00 && map_id <= self->max_maps; map_id++)
@@ -880,34 +859,30 @@ void MapContainer::Mapcontrol_LoadMaps(MapContainer *self)
 
 void Mapcontrol_ResetMap(MapContainer *self, int map_id)
 {
-    for (int i = 0; i < (int)Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.size();
-         i++)
+    for (int i = 0; i < (int)self->maps[map_id - 1].chest_list.size(); i++)
     {
-        Mapcontrol_GetByIndex(self, map_id - 1)->chest_list[i].slots.clear();
+        self->maps[map_id - 1].chest_list[i].slots.clear();
     }
-    for (int i = 0; i < (int)Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits.size();
-         i++)
+    for (int i = 0; i < (int)self->maps[map_id - 1].tile_bits.size(); i++)
     {
-        Mapcontrol_GetByIndex(self, map_id - 1)->tile_bits[i] = false;
+        self->maps[map_id - 1].tile_bits[i] = false;
     }
-    Mapcontrol_GetByIndex(self, map_id - 1)->tile_specs.clear();
-    Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.clear();
-    Mapcontrol_GetByIndex(self, map_id - 1)->warp_list.clear();
-    ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-        ->clear();
-    Mapcontrol_GetByIndex(self, map_id - 1)->npc_list.clear();
-    Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.clear();
-    Mapcontrol_GetByIndex(self, map_id - 1)->boss_alive = false;
-    Mapcontrol_GetByIndex(self, map_id - 1)->width = 0;
-    Mapcontrol_GetByIndex(self, map_id - 1)->height = 0;
-    Mapcontrol_GetByIndex(self, map_id - 1)
-        ->buf.Delete(0, Mapcontrol_GetByIndex(self, map_id)->buf.Length());
+    self->maps[map_id - 1].tile_specs.clear();
+    self->maps[map_id - 1].chest_list.clear();
+    self->maps[map_id - 1].warp_list.clear();
+    ((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)->clear();
+    self->maps[map_id - 1].npc_list.clear();
+    self->maps[map_id - 1].legacy_door_key_list.clear();
+    self->maps[map_id - 1].boss_alive = false;
+    self->maps[map_id - 1].width = 0;
+    self->maps[map_id - 1].height = 0;
+    self->maps[map_id - 1].buf.Delete(0, self->maps[map_id].buf.Length());
 }
 
 String Mapcontrol_ReadRawFile(MapContainer *self, int map_id)
 {
     String result;
-    if (Mapcontrol_GetByIndex(self, map_id - 1)->buf == "")
+    if (self->maps[map_id - 1].buf == "")
     {
         String file_name;
         int file_handle;
@@ -939,7 +914,7 @@ String Mapcontrol_ReadRawFile(MapContainer *self, int map_id)
     }
     else
     {
-        result = Mapcontrol_GetByIndex(self, map_id - 1)->buf;
+        result = self->maps[map_id - 1].buf;
     }
     return result;
 }
@@ -951,8 +926,7 @@ char Mapcontrol_ReloadMap(MapContainer *self, int map_id)
     {
         Mapcontrol_ResetMap(self, map_id);
         JukeBoxController_RemoveMap(GUI->jukebox_control, map_id);
-        result = (char)Mapcontrol_ParseMapFile(
-            self, Mapcontrol_GetByIndex(self, map_id - 1), map_id);
+        result = (char)Mapcontrol_ParseMapFile(self, &self->maps[map_id - 1], map_id);
     }
     return result;
 }
@@ -1502,8 +1476,8 @@ int MapContainer::Mapcontrol_GetChestSlotCount(MapContainer *self,
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
         for (vector<MapChest>::iterator chest_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
-             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
+                 self->maps[map_id - 1].chest_list.begin();
+             chest_iter != self->maps[map_id - 1].chest_list.end();
              chest_iter++)
         {
             if ((unsigned short)chest_iter->x == coords.x &&
@@ -1525,9 +1499,8 @@ int MapContainer::Mapcontrol_GetWarpDoorAt(MapContainer *self,
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
         for (vector<MapObject>::iterator door_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.begin();
-             door_iter !=
-             Mapcontrol_GetByIndex(self, map_id - 1)->legacy_door_key_list.end();
+                 self->maps[map_id - 1].legacy_door_key_list.begin();
+             door_iter != self->maps[map_id - 1].legacy_door_key_list.end();
              door_iter++)
         {
             if ((unsigned short)door_iter->x == coords.x &&
@@ -1547,8 +1520,8 @@ int Mapcontrol_GetChestKeyAt(MapContainer *self, int map_id, MapCoord coords)
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
         for (vector<MapChest>::iterator chest_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
-             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
+                 self->maps[map_id - 1].chest_list.begin();
+             chest_iter != self->maps[map_id - 1].chest_list.end();
              chest_iter++)
         {
             if ((unsigned short)chest_iter->x == coords.x &&
@@ -1568,8 +1541,8 @@ void MapContainer::Mapcontrol_AddChestItem(
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
         for (vector<MapChest>::iterator chest_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
-             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
+                 self->maps[map_id - 1].chest_list.begin();
+             chest_iter != self->maps[map_id - 1].chest_list.end();
              chest_iter++)
         {
             if ((unsigned short)chest_iter->x == coords.x &&
@@ -1622,11 +1595,10 @@ int MapContainer::Mapcontrol_AddGroundItem(MapContainer *self,
 {
     int item_index = -1;
     if (map_id > 0 && map_id <= (int)self->maps.size() && x >= 0 && y >= 0 &&
-        x < (int)Mapcontrol_GetByIndex(self, map_id - 1)->width &&
-        y < (int)Mapcontrol_GetByIndex(self, map_id - 1)->height)
+        x < (int)self->maps[map_id - 1].width && y < (int)self->maps[map_id - 1].height)
     {
         ItemObj *item = new ItemObj();
-        item->index = Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id;
+        item->index = self->maps[map_id - 1].next_ground_item_id;
         item->item_id = item_id;
         item->x = x;
         item->y = y;
@@ -1634,24 +1606,22 @@ int MapContainer::Mapcontrol_AddGroundItem(MapContainer *self,
         item->drop_time = DateTimeToTimeStamp(Now());
         item->owner_player_id = owner_player_id;
         item->protect_ticks = protect_ticks;
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 15000)
+        if (self->maps[map_id - 1].next_ground_item_id == 15000)
             Mapcontrol_PurgeGroundItemsInRange(self, map_id, 15000, 30000);
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 30000)
+        if (self->maps[map_id - 1].next_ground_item_id == 30000)
             Mapcontrol_PurgeGroundItemsInRange(self, map_id, 30000, 45000);
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 45000)
+        if (self->maps[map_id - 1].next_ground_item_id == 45000)
             Mapcontrol_PurgeGroundItemsInRange(self, map_id, 45000, 60000);
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id == 60000)
+        if (self->maps[map_id - 1].next_ground_item_id == 60000)
             Mapcontrol_PurgeGroundItemsInRange(self, map_id, 0, 15000);
-        if (Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id >= 60000)
-            Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id = 0;
-        ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-            ->insert(((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
-                          ->ground_items)
-                         ->end(),
+        if (self->maps[map_id - 1].next_ground_item_id >= 60000)
+            self->maps[map_id - 1].next_ground_item_id = 0;
+        ((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)
+            ->insert(((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)->end(),
                      item);
-        item_index = Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id;
-        Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id =
-            Mapcontrol_GetByIndex(self, map_id - 1)->next_ground_item_id + 1;
+        item_index = self->maps[map_id - 1].next_ground_item_id;
+        self->maps[map_id - 1].next_ground_item_id =
+            self->maps[map_id - 1].next_ground_item_id + 1;
     }
     return item_index;
 }
@@ -1661,19 +1631,14 @@ void Mapcontrol_RemoveGroundItem(MapContainer *self, int map_id, int index)
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
         for (vector<ItemObj *>::iterator cursor =
-                 ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
-                      ->ground_items)
-                     ->begin();
-             cursor !=
-             ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-                 ->end();
+                 ((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)->begin();
+             cursor != ((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)->end();
              cursor++)
         {
             if ((*cursor)->index == index)
             {
                 ItemObj *item = *cursor;
-                ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
-                     ->ground_items)
+                ((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)
                     ->erase(cursor);
                 delete item;
                 break;
@@ -1693,8 +1658,8 @@ ItemStack MapContainer::Mapcontrol_TakeChestItem(MapContainer *self,
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
         for (vector<MapChest>::iterator chest_iter =
-                 Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.begin();
-             chest_iter != Mapcontrol_GetByIndex(self, map_id - 1)->chest_list.end();
+                 self->maps[map_id - 1].chest_list.begin();
+             chest_iter != self->maps[map_id - 1].chest_list.end();
              chest_iter++)
         {
             if ((unsigned short)chest_iter->x == coords.x &&
@@ -1738,12 +1703,8 @@ bool Mapcontrol_CanDropItemAt(MapContainer *self, int map_id, int x, int y, int 
     {
         int count = 0;
         for (vector<ItemObj *>::iterator cursor =
-                 ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
-                      ->ground_items)
-                     ->begin();
-             cursor !=
-             ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-                 ->end();
+                 ((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)->begin();
+             cursor != ((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)->end();
              cursor++)
         {
             if ((*cursor)->x == x && (*cursor)->y == y)
@@ -1778,12 +1739,8 @@ Mapcontrol_TakeGroundItemInfo(MapContainer *self, int map_id, int index, int pla
     if (map_id > 0 && map_id <= (int)self->maps.size())
     {
         for (vector<ItemObj *>::iterator cursor =
-                 ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
-                      ->ground_items)
-                     ->begin();
-             cursor !=
-             ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-                 ->end();
+                 ((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)->begin();
+             cursor != ((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)->end();
              cursor++)
         {
             if ((*cursor)->index == index)
@@ -1817,11 +1774,8 @@ void MapContainer::Mapcontrol_PurgeGroundItemsInRange(MapContainer *self,
                                                       int range_high)
 {
     vector<ItemObj *>::iterator cursor =
-        ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-            ->begin();
-    while (cursor !=
-           ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)->ground_items)
-               ->end())
+        ((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)->begin();
+    while (cursor != ((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)->end())
     {
         if ((*cursor)->index < range_low)
         {
@@ -1834,8 +1788,7 @@ void MapContainer::Mapcontrol_PurgeGroundItemsInRange(MapContainer *self,
         else
         {
             ItemObj *item = *cursor;
-            cursor = ((vector<ItemObj *> *)&Mapcontrol_GetByIndex(self, map_id - 1)
-                          ->ground_items)
+            cursor = ((vector<ItemObj *> *)&self->maps[map_id - 1].ground_items)
                          ->erase(cursor);
             delete item;
         }

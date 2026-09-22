@@ -30,6 +30,15 @@ void KillCounters::Clear(KillCounters *self)
     }
 }
 
+// Nothing calls this, so ilink32 drops its COMDAT -- but it instantiates
+// vector<KillCounter>::size() (and the const begin()/end() it calls) at this point
+// in the unit, which is where the reference emits them (0x53e744), ahead of
+// IncrementAndGet's insert helpers. Only that placement is observable.
+int Killcounters_BucketSize(KillCounters *self, int bucket)
+{
+    return self->buckets[bucket].size();
+}
+
 int KillCounters::IncrementAndGet(KillCounters *self, String name)
 {
     name = name.LowerCase();

@@ -479,6 +479,15 @@ String QuestContainer::GetQuestName(QuestContainer *self, int quest_id)
     return self->quest_list[quest_id - 1]->name;
 }
 
+// Nothing calls this, so ilink32 drops its COMDAT -- but it instantiates
+// vector<QuestState *>::operator[] at this point in the unit, which is where
+// the reference emits it (0x53b3dc), ahead of GetActionData rather than after
+// GetState. Only that placement is observable.
+QuestState *Questengine_StateAt(Quest *quest, int index)
+{
+    return quest->states[index];
+}
+
 String QuestContainer::GetActionData(QuestContainer *self,
                                      int quest_id,
                                      int state_index,

@@ -369,20 +369,17 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
     {
         if ((*player)->logged_in != false && 0 < (*player)->map_id &&
             (*player)->map_id <= (int)npc_control->map_control->maps.size() &&
-            Mapcontrol_GetByIndex(npc_control->map_control, (*player)->map_id - 1)
-                    ->npc_dirty != 0)
+            npc_control->map_control->maps[(*player)->map_id - 1].npc_dirty != 0)
         {
             try
             {
                 String pos = "";
                 String talk = "";
                 String attack = "";
-                Npc **npc2 = (Npc **)Mapcontrol_GetByIndex(npc_control->map_control,
-                                                           (*player)->map_id - 1)
-                                 ->npc_list.begin();
-                while ((Npc **)Mapcontrol_GetByIndex(npc_control->map_control,
-                                                     (*player)->map_id - 1)
-                           ->npc_list.end() != npc2)
+                Npc **npc2 = (Npc **)npc_control->map_control->maps[(*player)->map_id - 1]
+                                 .npc_list.begin();
+                while ((Npc **)npc_control->map_control->maps[(*player)->map_id - 1]
+                           .npc_list.end() != npc2)
                 {
                     if ((*npc2)->pos_pending != 0 &&
                         Npc_IsWithinRange(npc_control,

@@ -5,6 +5,11 @@
 
 #pragma package(smart_init)
 
+LearnValue::LearnValue()
+{
+    skills.clear();
+}
+
 LearnValue::LearnValue(int id)
 {
     this->id = id;

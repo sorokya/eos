@@ -46,9 +46,8 @@ void EffectController::Tick(EffectController *self)
     {
         if ((*player_iter)->map_has_quakes != 0)
         {
-            int idx = Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                          ->timed_effect -
-                      3;
+            int idx =
+                self->map_control->maps[(*player_iter)->map_id - 1].timed_effect - 3;
             if (idx >= 0 && idx <= 3)
             {
                 if (self->aState_countdown[idx] < 1)
@@ -78,34 +77,31 @@ void EffectController::Tick(EffectController *self)
                     hp_regen = (*player_iter)->hp - 1;
                 (*player_iter)->hp -= hp_regen;
                 (*player_iter)->item_change_count = hp_regen;
-                if (Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                        ->hp_drain_others_sent != 0)
+                if (self->map_control->maps[(*player_iter)->map_id - 1]
+                        .hp_drain_others_sent != 0)
                 {
-                    Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                        ->hp_drain_others = "";
-                    Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                        ->hp_drain_others_sent = 0;
+                    self->map_control->maps[(*player_iter)->map_id - 1].hp_drain_others =
+                        "";
+                    self->map_control->maps[(*player_iter)->map_id - 1]
+                        .hp_drain_others_sent = 0;
                 }
-                Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                    ->hp_drain_others.Insert(
+                self->map_control->maps[(*player_iter)->map_id - 1]
+                    .hp_drain_others.Insert(
                         EncodeNumber(self, (*player_iter)->player_id, 2),
-                        Mapcontrol_GetByIndex(self->map_control,
-                                              (*player_iter)->map_id - 1)
-                                ->hp_drain_others.Length() +
+                        self->map_control->maps[(*player_iter)->map_id - 1]
+                                .hp_drain_others.Length() +
                             1);
-                Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                    ->hp_drain_others.Insert(
+                self->map_control->maps[(*player_iter)->map_id - 1]
+                    .hp_drain_others.Insert(
                         EncodeNumber(self, Player::HpPercent(*player_iter), 1),
-                        Mapcontrol_GetByIndex(self->map_control,
-                                              (*player_iter)->map_id - 1)
-                                ->hp_drain_others.Length() +
+                        self->map_control->maps[(*player_iter)->map_id - 1]
+                                .hp_drain_others.Length() +
                             1);
-                Mapcontrol_GetByIndex(self->map_control, (*player_iter)->map_id - 1)
-                    ->hp_drain_others.Insert(
+                self->map_control->maps[(*player_iter)->map_id - 1]
+                    .hp_drain_others.Insert(
                         EncodeNumber(self, hp_regen, 2),
-                        Mapcontrol_GetByIndex(self->map_control,
-                                              (*player_iter)->map_id - 1)
-                                ->hp_drain_others.Length() +
+                        self->map_control->maps[(*player_iter)->map_id - 1]
+                                .hp_drain_others.Length() +
                             1);
             }
             if ((*player_iter)->map_has_tp_drain != 0 && (*player_iter)->tp > 0)
@@ -197,16 +193,15 @@ void EffectController::Tick(EffectController *self)
         {
             if ((*broadcast_iter)->map_has_hp_drain != 0)
             {
-                Mapcontrol_GetByIndex(self->map_control, (*broadcast_iter)->map_id - 1)
-                    ->hp_drain_others_sent = 1;
+                self->map_control->maps[(*broadcast_iter)->map_id - 1]
+                    .hp_drain_others_sent = 1;
                 String pkt = EncodeNumber(self, (*broadcast_iter)->item_change_count, 2);
                 pkt.Insert(EncodeNumber(self, (*broadcast_iter)->hp, 2),
                            pkt.Length() + 1);
                 pkt.Insert(EncodeNumber(self, (*broadcast_iter)->max_hp, 2),
                            pkt.Length() + 1);
-                pkt.Insert(Mapcontrol_GetByIndex(self->map_control,
-                                                 (*broadcast_iter)->map_id - 1)
-                               ->hp_drain_others,
+                pkt.Insert(self->map_control->maps[(*broadcast_iter)->map_id - 1]
+                               .hp_drain_others,
                            pkt.Length() + 1);
                 Client_SendEncoded(self->server,
                                    *broadcast_iter,

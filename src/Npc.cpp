@@ -2,7 +2,7 @@
 #pragma hdrstop
 
 #include "Npc.h"
-#include "Players.h"
+int RandRange(int max);
 
 #pragma package(smart_init)
 

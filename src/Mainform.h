@@ -56,13 +56,13 @@ class TGUI : public TForm
     TPanel *panel_buffer;                   // +0x2f0
     TApplicationEvents *ApplicationEvents1; // +0x2f4
     __fastcall void FormCreate(TObject *Sender);
-    __fastcall void serverClientConnect(TObject *Sender, TCustomWinSocket *Socket);
-    __fastcall void serverClientDisconnect(TObject *Sender, TCustomWinSocket *Socket);
-    __fastcall void serverClientRead(TObject *Sender, TCustomWinSocket *Socket);
     __fastcall void serverClientError(TObject *Sender,
                                       TCustomWinSocket *Socket,
                                       TErrorEvent ErrorEvent,
                                       int &ErrorCode);
+    __fastcall void serverClientConnect(TObject *Sender, TCustomWinSocket *Socket);
+    __fastcall void serverClientDisconnect(TObject *Sender, TCustomWinSocket *Socket);
+    __fastcall void serverClientRead(TObject *Sender, TCustomWinSocket *Socket);
     __fastcall void timerTimer(TObject *Sender);
     __fastcall void FormClose(TObject *Sender, TCloseAction &Action);
     __fastcall void ApplicationEvents1Exception(TObject *Sender, Exception *E);

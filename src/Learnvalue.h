@@ -32,6 +32,7 @@ struct LearnValue
     short class_requirement;
     vector<LearnItemVal> skills;
 
+    LearnValue();
     LearnValue(int id);
     ~LearnValue();
 

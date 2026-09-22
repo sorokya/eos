@@ -76,7 +76,6 @@ class MapContainer
                                             unsigned int y);
     static unsigned char
     Mapcontrol_ToggleDoor(MapContainer *self, int map_id, unsigned int x, unsigned int y);
-    static ChestItem *Mapcontrol_GetSlot(vector<ChestItem> *slot_list, int slot);
     static int Mapcontrol_GetWarpDoorAt(MapContainer *self, int map_id, MapCoord coords);
     static int
     Mapcontrol_GetChestSlotCount(MapContainer *self, int map_id, MapCoord coords);

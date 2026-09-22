@@ -54,6 +54,7 @@ struct ItemValue
     short element;                  // +0x52 (GetElement)
     short element_damage;           // +0x54 (GetElement)
 
+    ItemValue();
     ItemValue(int id);
     ~ItemValue();
 };

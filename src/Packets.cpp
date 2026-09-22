@@ -41,7 +41,6 @@ void Server_Shutdown(Packets *server);
 void Server_RemovePlayer(Packets *server, TCustomWinSocket *socket);
 int FUN_0044f97c(MapContainer *map_control);
 int FUN_0044f9bc(MapContainer *map_control);
-MapItem *Mapcontrol_GetByIndex(MapContainer *map_control, int index);
 void Server_ClientRead(Packets *server, TCustomWinSocket *socket, String data);
 bool Player_HandlePacket(Packets *server, Player *player, String data);
 void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result);
@@ -461,8 +460,7 @@ void Server_RemovePlayer(Packets *server, TCustomWinSocket *socket)
         }
         if (player->arena_queued)
         {
-            if (Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                    ->arena_enabled)
+            if (server->map_control->maps[player->map_id - 1].arena_enabled)
             {
                 if (Players::Players_CountArenaPlayers(server->players, player->map_id) ==
                     2)
@@ -528,11 +526,6 @@ void Server_RemovePlayer(Packets *server, TCustomWinSocket *socket)
 // COMDAT calls, which is why the reference's helpers here are just those
 // accessors: writing them by hand emitted a second, byte-identical copy of
 // each (see PLAN.md, "COMDAT ownership").
-MapItem *Mapcontrol_GetByIndex(MapContainer *map_control, int index)
-{
-    return map_control->maps.begin() + index;
-}
-
 void Server_ClientRead(Packets *server, TCustomWinSocket *socket, String data)
 {
     if (server->players->by_id[socket->SocketHandle] == NULL)
@@ -610,8 +603,8 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
     std::basic_string<char> range(data.c_str());
     data = EO_Decode_Deinterleave(server,
                                   player->client_encryption_multiple,
-                                  (char *)range.end(),
-                                  (char *)range.begin());
+                                  (char *)range.begin(),
+                                  (char *)range.end());
     int action = EO_DecodeByte(server, data[1]);
     int family = EO_DecodeByte(server, data[2]);
     int size = EO_DecodeNumber(server, String(data[3]));
@@ -862,14 +855,10 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                         }
                         else
                         {
-                            coords.x = Mapcontrol_GetByIndex(server->map_control,
-                                                             target->map_id - 1)
-                                           ->width /
-                                       2;
-                            coords.y = Mapcontrol_GetByIndex(server->map_control,
-                                                             target->map_id - 1)
-                                           ->height /
-                                       2;
+                            coords.x =
+                                server->map_control->maps[target->map_id - 1].width / 2;
+                            coords.y =
+                                server->map_control->maps[target->map_id - 1].height / 2;
                             if (coords.x < 7 && coords.y < 7)
                                 return true;
                             if (target->x < coords.x)
@@ -1556,14 +1545,8 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                             map_id < (unsigned int)(int)server->map_control->maps.size())
                         {
                             MapCoord coords;
-                            coords.x =
-                                Mapcontrol_GetByIndex(server->map_control, map_id - 1)
-                                    ->width /
-                                2;
-                            coords.y =
-                                Mapcontrol_GetByIndex(server->map_control, map_id - 1)
-                                    ->height /
-                                2;
+                            coords.x = server->map_control->maps[map_id - 1].width / 2;
+                            coords.y = server->map_control->maps[map_id - 1].height / 2;
                             player->flush_queue = 1;
                             Player_Warp(
                                 server, player, map_id, coords, WarpEffect_None, false);
@@ -2230,23 +2213,23 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                     slot->y = Settings::GetRescueY(server->settings);
                 }
                 out.Insert(EO_EncodeNumber(server, slot->map_id, 2), out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server,
-                                           (unsigned short)Mapcontrol_GetByIndex(
-                                               server->map_control, slot->map_id - 1)
-                                               ->rid1,
-                                           2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server,
-                                           (unsigned short)Mapcontrol_GetByIndex(
-                                               server->map_control, slot->map_id - 1)
-                                               ->rid2,
-                                           2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server,
-                                           (unsigned short)Mapcontrol_GetByIndex(
-                                               server->map_control, slot->map_id - 1)
-                                               ->filesize,
-                                           3),
+                out.Insert(
+                    EO_EncodeNumber(
+                        server,
+                        (unsigned short)server->map_control->maps[slot->map_id - 1].rid1,
+                        2),
+                    out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(
+                        server,
+                        (unsigned short)server->map_control->maps[slot->map_id - 1].rid2,
+                        2),
+                    out.Length() + 1);
+                out.Insert(EO_EncodeNumber(
+                               server,
+                               (unsigned short)server->map_control->maps[slot->map_id - 1]
+                                   .filesize,
+                               3),
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, GUI->item_values->rid_1, 2),
                            out.Length() + 1);
@@ -2737,17 +2720,13 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 player->name != "vult-r")
                 return false;
             player->map_has_quakes =
-                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                    ->has_quakes;
+                server->map_control->maps[player->map_id - 1].has_quakes;
             player->map_has_hp_drain =
-                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                    ->has_hp_drain;
+                server->map_control->maps[player->map_id - 1].has_hp_drain;
             player->map_has_tp_drain =
-                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                    ->has_tp_drain;
+                server->map_control->maps[player->map_id - 1].has_tp_drain;
             player->map_has_spikes =
-                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                    ->has_spikes;
+                server->map_control->maps[player->map_id - 1].has_spikes;
             MapContainer::Mapcontrol_IncPlayerCount(server->map_control, player->map_id);
             String out = EO_EncodeNumber(server, 2, 2);
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
@@ -3444,10 +3423,8 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                         return true;
                     }
                 }
-                if (Mapcontrol_GetByIndex(server->map_control, scroll_map - 1)->width <
-                        1 ||
-                    Mapcontrol_GetByIndex(server->map_control, scroll_map - 1)->height <
-                        1)
+                if (server->map_control->maps[scroll_map - 1].width < 1 ||
+                    server->map_control->maps[scroll_map - 1].height < 1)
                     return true;
                 String out = EO_EncodeNumber(server, 4, 1);
                 out.Insert(EO_EncodeNumber(server, item_id, 2), out.Length() + 1);
@@ -3490,8 +3467,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 x = player->x;
                 y = player->y;
             }
-            if (Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                    ->ground_items.size() > 0x3e7)
+            if (server->map_control->maps[player->map_id - 1].ground_items.size() > 0x3e7)
                 return true;
             if (!Coords_IsWithinTwo(server, player->x, player->y, x, y))
                 return true;
@@ -3759,17 +3735,13 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             player->on_chair = false;
             player->sitting = false;
             player->map_has_quakes =
-                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                    ->has_quakes;
+                server->map_control->maps[player->map_id - 1].has_quakes;
             player->map_has_hp_drain =
-                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                    ->has_hp_drain;
+                server->map_control->maps[player->map_id - 1].has_hp_drain;
             player->map_has_tp_drain =
-                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                    ->has_tp_drain;
+                server->map_control->maps[player->map_id - 1].has_tp_drain;
             player->map_has_spikes =
-                Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                    ->has_spikes;
+                server->map_control->maps[player->map_id - 1].has_spikes;
             MapContainer::Mapcontrol_IncPlayerCount(server->map_control, player->map_id);
             String out = EO_GetBreakByte(server, EO_BREAK_BYTE);
             out.Insert(Player_SerializeAvatar(server, player, saved_state),
@@ -9015,12 +8987,10 @@ String Walk_BuildReply(Packets *server, Player *player)
         {
             if (player->map_id <= (int)server->map_control->maps.size())
             {
-                for (niter = (Npc **)Mapcontrol_GetByIndex(server->map_control,
-                                                           player->map_id - 1)
-                                 ->npc_list.begin();
-                     niter != (Npc **)Mapcontrol_GetByIndex(server->map_control,
-                                                            player->map_id - 1)
-                                  ->npc_list.end();
+                for (niter = (Npc **)server->map_control->maps[player->map_id - 1]
+                                 .npc_list.begin();
+                     niter !=
+                     (Npc **)server->map_control->maps[player->map_id - 1].npc_list.end();
                      niter++)
                 {
                     if (Server_InViewRing(
@@ -9035,12 +9005,10 @@ String Walk_BuildReply(Packets *server, Player *player)
         {
             if (player->map_id <= (int)server->map_control->maps.size())
             {
-                for (iiter = (ItemObj **)Mapcontrol_GetByIndex(server->map_control,
-                                                               player->map_id - 1)
-                                 ->ground_items.begin();
-                     iiter != (ItemObj **)Mapcontrol_GetByIndex(server->map_control,
-                                                                player->map_id - 1)
-                                  ->ground_items.end();
+                for (iiter = (ItemObj **)server->map_control->maps[player->map_id - 1]
+                                 .ground_items.begin();
+                     iiter != (ItemObj **)server->map_control->maps[player->map_id - 1]
+                                  .ground_items.end();
                      iiter++)
                 {
                     if (Server_InItemViewRing(
@@ -9152,12 +9120,10 @@ String Refresh_BuildReply(Packets *server, Player *player)
         Npc **niter;
         if (player->map_id > 0 && player->map_id <= (int)server->map_control->maps.size())
         {
-            for (niter = (Npc **)Mapcontrol_GetByIndex(server->map_control,
-                                                       player->map_id - 1)
-                             ->npc_list.begin();
+            for (niter = (Npc **)server->map_control->maps[player->map_id - 1]
+                             .npc_list.begin();
                  niter !=
-                 (Npc **)Mapcontrol_GetByIndex(server->map_control, player->map_id - 1)
-                     ->npc_list.end();
+                 (Npc **)server->map_control->maps[player->map_id - 1].npc_list.end();
                  niter++)
             {
                 if ((*niter)->alive &&
@@ -9198,12 +9164,10 @@ String Refresh_BuildReply(Packets *server, Player *player)
         ItemObj **iiter;
         if (player->map_id > 0 && player->map_id <= (int)server->map_control->maps.size())
         {
-            for (iiter = (ItemObj **)Mapcontrol_GetByIndex(server->map_control,
-                                                           player->map_id - 1)
-                             ->ground_items.begin();
-                 iiter != (ItemObj **)Mapcontrol_GetByIndex(server->map_control,
-                                                            player->map_id - 1)
-                              ->ground_items.end();
+            for (iiter = (ItemObj **)server->map_control->maps[player->map_id - 1]
+                             .ground_items.begin();
+                 iiter != (ItemObj **)server->map_control->maps[player->map_id - 1]
+                              .ground_items.end();
                  iiter++)
             {
                 if (Server_InViewRange(
@@ -9573,12 +9537,10 @@ String NpcRange_Lookup(Packets *server, Player *player, unsigned int npc_index)
         {
             if (player->map_id <= (int)server->map_control->maps.size())
             {
-                for (iter = (Npc **)Mapcontrol_GetByIndex(server->map_control,
-                                                          player->map_id - 1)
-                                ->npc_list.begin();
-                     iter != (Npc **)Mapcontrol_GetByIndex(server->map_control,
-                                                           player->map_id - 1)
-                                 ->npc_list.end();
+                for (iter = (Npc **)server->map_control->maps[player->map_id - 1]
+                                .npc_list.begin();
+                     iter !=
+                     (Npc **)server->map_control->maps[player->map_id - 1].npc_list.end();
                      iter++)
                 {
                     if ((*iter)->index == npc_index && (*iter)->alive)
@@ -10095,8 +10057,8 @@ void Player_Warp(Packets *server,
         return;
     if (target_map < 1 && (int)server->map_control->maps.size() < target_map)
         return;
-    if (Mapcontrol_GetByIndex(server->map_control, target_map - 1)->width < 1 ||
-        Mapcontrol_GetByIndex(server->map_control, target_map - 1)->height < 1)
+    if (server->map_control->maps[target_map - 1].width < 1 ||
+        server->map_control->maps[target_map - 1].height < 1)
         return;
     if (player->warp_state < 0)
         player->session_id = RandRange(50000) + 10000;
@@ -10140,39 +10102,32 @@ void Player_Warp(Packets *server,
     if (target_map == old_map)
     {
         String out = EO_EncodeNumber(server, WarpType_Local, 1);
-        out.Insert(EO_EncodeNumber(
-                       server,
-                       Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid,
-                       2),
-                   out.Length() + 1);
+        out.Insert(
+            EO_EncodeNumber(server, server->map_control->maps[target_map - 1].rid, 2),
+            out.Length() + 1);
         out.Insert(EO_EncodeNumber(server, player->session_id, 2), out.Length() + 1);
         Client_SendEncoded(server, player, PacketAction_Request, PacketFamily_Warp, out);
     }
     else
     {
         String out = EO_EncodeNumber(server, WarpType_MapSwitch, 1);
+        out.Insert(
+            EO_EncodeNumber(server, server->map_control->maps[target_map - 1].rid, 2),
+            out.Length() + 1);
         out.Insert(EO_EncodeNumber(
                        server,
-                       Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid,
+                       (unsigned short)server->map_control->maps[target_map - 1].rid1,
                        2),
                    out.Length() + 1);
-        out.Insert(EO_EncodeNumber(server,
-                                   (unsigned short)Mapcontrol_GetByIndex(
-                                       server->map_control, target_map - 1)
-                                       ->rid1,
-                                   2),
+        out.Insert(EO_EncodeNumber(
+                       server,
+                       (unsigned short)server->map_control->maps[target_map - 1].rid2,
+                       2),
                    out.Length() + 1);
-        out.Insert(EO_EncodeNumber(server,
-                                   (unsigned short)Mapcontrol_GetByIndex(
-                                       server->map_control, target_map - 1)
-                                       ->rid2,
-                                   2),
-                   out.Length() + 1);
-        out.Insert(EO_EncodeNumber(server,
-                                   (unsigned short)Mapcontrol_GetByIndex(
-                                       server->map_control, target_map - 1)
-                                       ->filesize,
-                                   3),
+        out.Insert(EO_EncodeNumber(
+                       server,
+                       (unsigned short)server->map_control->maps[target_map - 1].filesize,
+                       3),
                    out.Length() + 1);
         out.Insert(EO_EncodeNumber(server, player->session_id, 2), out.Length() + 1);
         Client_SendEncoded(server, player, PacketAction_Request, PacketFamily_Warp, out);
@@ -10814,14 +10769,12 @@ void Server_SyncMapHazardFlags(Packets *server, int map_id)
     {
         if ((*iter)->map_id == map_id)
         {
-            (*iter)->map_has_quakes =
-                Mapcontrol_GetByIndex(server->map_control, map_id - 1)->has_quakes;
+            (*iter)->map_has_quakes = server->map_control->maps[map_id - 1].has_quakes;
             (*iter)->map_has_hp_drain =
-                Mapcontrol_GetByIndex(server->map_control, map_id - 1)->has_hp_drain;
+                server->map_control->maps[map_id - 1].has_hp_drain;
             (*iter)->map_has_tp_drain =
-                Mapcontrol_GetByIndex(server->map_control, map_id - 1)->has_tp_drain;
-            (*iter)->map_has_spikes =
-                Mapcontrol_GetByIndex(server->map_control, map_id - 1)->has_spikes;
+                server->map_control->maps[map_id - 1].has_tp_drain;
+            (*iter)->map_has_spikes = server->map_control->maps[map_id - 1].has_spikes;
         }
     }
 }
@@ -11099,8 +11052,8 @@ bool Attack_Execute(Packets *server, Player *caster, int action, String *data)
                 ItemSubtype_Arrows)
                 return 1;
         }
-        if ((unsigned char)Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
-                ->map_type == MapType_Pk)
+        if ((unsigned char)server->map_control->maps[caster->map_id - 1].map_type ==
+            MapType_Pk)
         {
             for (int i = 0; i < reach; i++)
             {
@@ -11273,12 +11226,10 @@ bool Attack_Execute(Packets *server, Player *caster, int action, String *data)
                 return 1;
             }
             Npc **npc_iter;
-            for (npc_iter = (Npc **)Mapcontrol_GetByIndex(server->map_control,
-                                                          caster->map_id - 1)
-                                ->npc_list.begin();
+            for (npc_iter = (Npc **)server->map_control->maps[caster->map_id - 1]
+                                .npc_list.begin();
                  npc_iter !=
-                 (Npc **)Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
-                     ->npc_list.end();
+                 (Npc **)server->map_control->maps[caster->map_id - 1].npc_list.end();
                  npc_iter++)
             {
                 if ((*npc_iter)->x != offset_x)
@@ -11429,9 +11380,9 @@ bool Attack_Execute(Packets *server, Player *caster, int action, String *data)
                             PacketAction_Junk,
                             PacketFamily_Npc,
                             EO_EncodeNumber(server,
-                                            (unsigned short)Mapcontrol_GetByIndex(
-                                                server->map_control, caster->map_id - 1)
-                                                ->child_npc_id,
+                                            (unsigned short)server->map_control
+                                                ->maps[caster->map_id - 1]
+                                                .child_npc_id,
                                             2));
                     String reply = EO_EncodeNumber(server, caster->player_id, 2);
                     reply.Insert(EO_EncodeNumber(server, caster->direction, 1),
@@ -11514,8 +11465,7 @@ bool Attack_Execute(Packets *server, Player *caster, int action, String *data)
             }
             if (caster->arena_queued)
             {
-                if (!(char)Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
-                         ->arena_enabled)
+                if (!(char)server->map_control->maps[caster->map_id - 1].arena_enabled)
                     caster->arena_queued = false;
                 else if (tile_step == 0)
                 {
@@ -11526,12 +11476,8 @@ bool Attack_Execute(Packets *server, Player *caster, int action, String *data)
                         caster->arena_kills++;
                         target->arena_queued = false;
                         MapCoord coords;
-                        coords.x =
-                            Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
-                                ->relog_x;
-                        coords.y =
-                            Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
-                                ->relog_y;
+                        coords.x = server->map_control->maps[caster->map_id - 1].relog_x;
+                        coords.y = server->map_control->maps[caster->map_id - 1].relog_y;
                         Player_Warp(server,
                                     target,
                                     target->map_id,
@@ -11573,9 +11519,8 @@ bool Attack_Execute(Packets *server, Player *caster, int action, String *data)
                                                PacketAction_Accept,
                                                PacketFamily_Arena,
                                                arena_win_pkt);
-                            if (Mapcontrol_GetByIndex(server->map_control,
-                                                      caster->map_id - 1)
-                                    ->arena_block > 2)
+                            if (server->map_control->maps[caster->map_id - 1]
+                                    .arena_block > 2)
                             {
                                 caster->arena_queued = false;
                                 Player_Warp(server,
@@ -11772,9 +11717,8 @@ bool Spell_Execute(Packets *server, Player *caster, int action, String *data)
             }
             if (skill_type == 1)
             {
-                if ((unsigned char)Mapcontrol_GetByIndex(server->map_control,
-                                                         caster->map_id - 1)
-                        ->map_type == 3)
+                if ((unsigned char)server->map_control->maps[caster->map_id - 1]
+                        .map_type == 3)
                 {
                     if (target->player_id == caster->player_id)
                         return 1;
@@ -11901,12 +11845,10 @@ bool Spell_Execute(Packets *server, Player *caster, int action, String *data)
         if (spell_target == SpellTargetType_Npc)
         {
             Npc **iter;
-            for (iter = (Npc **)Mapcontrol_GetByIndex(server->map_control,
-                                                      caster->map_id - 1)
-                            ->npc_list.begin();
+            for (iter = (Npc **)server->map_control->maps[caster->map_id - 1]
+                            .npc_list.begin();
                  iter !=
-                 (Npc **)Mapcontrol_GetByIndex(server->map_control, caster->map_id - 1)
-                     ->npc_list.end();
+                 (Npc **)server->map_control->maps[caster->map_id - 1].npc_list.end();
                  iter++)
             {
                 if ((*iter)->index != target_id)
@@ -12073,12 +12015,11 @@ bool Spell_Execute(Packets *server, Player *caster, int action, String *data)
                                 caster->map_id,
                                 PacketAction_Junk,
                                 PacketFamily_Npc,
-                                EO_EncodeNumber(
-                                    server,
-                                    (unsigned short)Mapcontrol_GetByIndex(
-                                        server->map_control, caster->map_id - 1)
-                                        ->child_npc_id,
-                                    2));
+                                EO_EncodeNumber(server,
+                                                (unsigned short)server->map_control
+                                                    ->maps[caster->map_id - 1]
+                                                    .child_npc_id,
+                                                2));
                         String reply = EO_EncodeNumber(server, spell_id, 2);
                         reply.Insert(EO_EncodeNumber(server, caster->player_id, 2),
                                      reply.Length() + 1);
@@ -12536,8 +12477,8 @@ bool Walk_Execute(Packets *server, Player *player, int action, String *data)
             return true;
         if (target_map > 0 && target_map <= (int)server->map_control->maps.size())
         {
-            if (Mapcontrol_GetByIndex(server->map_control, target_map - 1)->width < 1 ||
-                Mapcontrol_GetByIndex(server->map_control, target_map - 1)->height < 1)
+            if (server->map_control->maps[target_map - 1].width < 1 ||
+                server->map_control->maps[target_map - 1].height < 1)
                 return true;
             if (player->warp_state < 0)
                 player->session_id = RandRange(50000) + 10000;
@@ -12550,12 +12491,9 @@ bool Walk_Execute(Packets *server, Player *player, int action, String *data)
             if (target_map == player->map_id)
             {
                 String out = EO_EncodeNumber(server, 1, 1);
-                out.Insert(
-                    EO_EncodeNumber(
-                        server,
-                        Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid,
-                        2),
-                    out.Length() + 1);
+                out.Insert(EO_EncodeNumber(
+                               server, server->map_control->maps[target_map - 1].rid, 2),
+                           out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->session_id, 2),
                            out.Length() + 1);
                 Client_SendEncoded(
@@ -12565,29 +12503,26 @@ bool Walk_Execute(Packets *server, Player *player, int action, String *data)
             else
             {
                 String out = EO_EncodeNumber(server, 2, 1);
+                out.Insert(EO_EncodeNumber(
+                               server, server->map_control->maps[target_map - 1].rid, 2),
+                           out.Length() + 1);
                 out.Insert(
                     EO_EncodeNumber(
                         server,
-                        Mapcontrol_GetByIndex(server->map_control, target_map - 1)->rid,
+                        (unsigned short)server->map_control->maps[target_map - 1].rid1,
                         2),
                     out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server,
-                                           (unsigned short)Mapcontrol_GetByIndex(
-                                               server->map_control, target_map - 1)
-                                               ->rid1,
-                                           2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server,
-                                           (unsigned short)Mapcontrol_GetByIndex(
-                                               server->map_control, target_map - 1)
-                                               ->rid2,
-                                           2),
-                           out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server,
-                                           (unsigned short)Mapcontrol_GetByIndex(
-                                               server->map_control, target_map - 1)
-                                               ->filesize,
-                                           3),
+                out.Insert(
+                    EO_EncodeNumber(
+                        server,
+                        (unsigned short)server->map_control->maps[target_map - 1].rid2,
+                        2),
+                    out.Length() + 1);
+                out.Insert(EO_EncodeNumber(
+                               server,
+                               (unsigned short)server->map_control->maps[target_map - 1]
+                                   .filesize,
+                               3),
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, player->session_id, 2),
                            out.Length() + 1);

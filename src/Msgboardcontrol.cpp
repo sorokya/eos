@@ -164,17 +164,8 @@ void MsgBoardController::AddPost(MsgBoardController *self,
             self->boards[board].insert(self->boards[board].end(), post);
         self->aBoard_enabled[board] = 1;
         if (self->boards[board].size() > (unsigned)(self->field_0x0 + 4))
-            SetPostLimit(&self->boards[board], self->field_0x0 + 4);
+            self->boards[board].resize(self->field_0x0 + 4);
     }
-}
-
-void MsgBoardController::SetPostLimit(vector<MsgBoard> *posts, unsigned int count)
-{
-    MsgBoard post;
-    if (posts->size() < count)
-        posts->insert(posts->end(), count - posts->size(), post);
-    else if (count < posts->size())
-        posts->erase(posts->begin() + count, posts->end());
 }
 
 String MsgBoardController::GetBoard(MsgBoardController *self, int board)
