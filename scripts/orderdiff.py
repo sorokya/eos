@@ -44,6 +44,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
 
 
 COMDAT_RE = re.compile(r"^\s*Name:\s*\d+:\s*'([^']+)'\s+virtual\(_TEXT\)")
@@ -102,6 +103,56 @@ def reference_order(path):
     return {u: [n for _, n in sorted(v)] for u, v in units.items()}
 
 
+def masked_bytes(ref_image, linked, map_path):
+    """{unit: masked differing bytes} for each application object in the map.
+
+    The "moved" count is a *name* permutation and over-reports badly: byte-
+    identical container accessors (`vector<T>::begin` and friends) cannot be told
+    apart by body, so the reference sheet's name for one of them is a guess and
+    the pairing is arbitrary. This is the ground truth -- the bytes of each
+    module that differ once relocations and direct-branch displacements, the two
+    things layout legitimately moves, are masked out.
+    """
+    try:
+        from pe import PE
+        from find_region import mask_for
+    except ImportError:
+        return {}
+    if not (os.path.exists(linked) and os.path.exists(map_path)):
+        return {}
+
+    def text(path):
+        p = PE.from_file(path)
+        for sec in p.sections:
+            if sec.name == '.text':
+                return p.section_data(sec), sec.virtual_address + 0x400000
+        return None, 0
+
+    a, base = text(ref_image)
+    b, _ = text(linked)
+    if a is None or b is None:
+        return {}
+    rx = re.compile(r'0001:([0-9A-Fa-f]{8})\s+([0-9A-Fa-f]{8})\s+C=CODE\s+.*?M=(\S+)')
+    out = {}
+    for line in open(map_path, errors='replace'):
+        m = rx.search(line)
+        if not m:
+            continue
+        name = m.group(3).split('\\')[-1]
+        if not name.upper().endswith('.OBJ'):
+            continue
+        unit = name[:-4].capitalize()
+        va = 0x401000 + int(m.group(1), 16)
+        sz = int(m.group(2), 16)
+        off = va - base
+        if off < 0 or off + sz > min(len(a), len(b)):
+            continue
+        ca, cb = a[off:off + sz], b[off:off + sz]
+        ma, mb = mask_for(ca), mask_for(cb)
+        out[unit] = sum(1 for i in range(sz) if ca[i] != cb[i] and ma[i] and mb[i])
+    return out
+
+
 def rebuild_order(tds):
     cmd = [sys.executable, os.path.join(HERE, 'tdsfuncs.py')]
     if tds:
@@ -132,6 +183,9 @@ def main():
                     help='read our order from the unit objects instead of the linked TDS '
                          '(one bcc32 -c per unit, no link)')
     ap.add_argument('--refresh', action='store_true', help='recompile the objects first')
+    ap.add_argument('--ref', default=os.path.join(ROOT, 'GameServer.exe'))
+    ap.add_argument('--linked', default=os.path.join(ROOT, 'build/GameServer.exe'))
+    ap.add_argument('--map', default=os.path.join(ROOT, 'build/GameServer_map.map'))
     args = ap.parse_args()
 
     ref = reference_order(args.functions)
@@ -158,20 +212,28 @@ def main():
         rows.append((moved, unit, r, o, sm))
 
     matched = sum(1 for u in ref if u in ours and (not args.unit or u in args.unit))
+    mbytes = {} if args.from_obj else masked_bytes(args.ref, args.linked, args.map)
     print('units compared            : %d' % matched)
     print('units out of order        : %d' % len(rows))
+    if mbytes:
+        print('masked differing bytes    : %d (this is the figure that matters; a unit '
+              'can be "out of order" and cost nothing)' % sum(mbytes.values()))
     if not rows:
         print('\nevery unit\'s functions are in the reference order')
         return 0
 
-    rows.sort(reverse=True)
-    print('\n%-20s %6s %6s %8s  first divergence' % ('unit', 'funcs', 'moved', 'in-order'))
+    rows.sort(key=lambda x: (mbytes.get(x[1], 0), x[0]), reverse=True)
+    print('\n%-20s %6s %6s %9s %8s  first divergence'
+          % ('unit', 'funcs', 'moved', 'bytes', 'in-order'))
     for moved, unit, r, o, sm in rows:
         ops = [x for x in sm.get_opcodes() if x[0] != 'equal']
         tag, i1, i2, j1, j2 = ops[0]
         want = r[i1][:44] if i1 < len(r) else '(end)'
         got = o[j1][:44] if j1 < len(o) else '(end)'
-        print('%-20s %6d %6d %7.1f%%  at index %d' % (unit, len(r), moved, 100.0 * sm.ratio(), i1))
+        cost = mbytes.get(unit)
+        print('%-20s %6d %6d %9s %7.1f%%  at index %d'
+              % (unit, len(r), moved, ('-' if cost is None else cost),
+                 100.0 * sm.ratio(), i1))
         print('%-20s %s ref: %s' % ('', ' ' * 21, want))
         print('%-20s %s our: %s' % ('', ' ' * 21, got))
         if args.verbose:

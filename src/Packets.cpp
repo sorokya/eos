@@ -523,20 +523,6 @@ void Server_RemovePlayer(Packets *server, TCustomWinSocket *socket)
     }
 }
 
-// Two unidentified element-count helpers (reference `0x44f97c` / `0x44f9bc`).
-// The bodies are an `end() - begin()` over a 4-byte element type, emitted as two
-// out-of-line accessor calls plus the signed divide-by-4 sequence; the container
-// each one counts is NOT identified, so the type here is only a stand-in that
-// reproduces the shape. It must be a pointer vector Packets already owns the
-// accessors for -- using `MapContainer::maps` instead makes Packets.obj define
-// `vector<MapItem>::end()`, which the reference keeps in MapContainer
-// (`0x47ecd4`); see PLAN.md, "COMDAT ownership".
-int FUN_0044f97c(MapContainer *map_control)
-{
-    vector<Npc *> *list = (vector<Npc *> *)map_control;
-    return list->end() - list->begin();
-}
-
 // `MapContainer::maps` is the vector at +0x00, whose start/finish pointers land
 // at +0x04/+0x08. `-v` keeps `vector<T>::begin`/`end`/`size` as out-of-line
 // COMDAT calls, which is why the reference's helpers here are just those
@@ -12920,6 +12906,20 @@ String EO_Encode_Interleave(Packets *server, int multiple, char *begin, char *en
     String data(server->packet_buffer, len);
     return data;
 }
+// Two unidentified element-count helpers (reference `0x44f97c` / `0x44f9bc`).
+// The bodies are an `end() - begin()` over a 4-byte element type, emitted as two
+// out-of-line accessor calls plus the signed divide-by-4 sequence; the container
+// each one counts is NOT identified, so the type here is only a stand-in that
+// reproduces the shape. It must be a pointer vector Packets already owns the
+// accessors for -- using `MapContainer::maps` instead makes Packets.obj define
+// `vector<MapItem>::end()`, which the reference keeps in MapContainer
+// (`0x47ecd4`); see PLAN.md, "COMDAT ownership".
+int FUN_0044f97c(MapContainer *map_control)
+{
+    vector<Npc *> *list = (vector<Npc *> *)map_control;
+    return list->end() - list->begin();
+}
+
 int FUN_0044f9bc(MapContainer *map_control)
 {
     vector<ItemObj *> *list = (vector<ItemObj *> *)map_control;
