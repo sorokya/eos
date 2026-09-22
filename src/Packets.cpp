@@ -6223,8 +6223,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                                        player->query_id,
                                        data,
                                        "SELECT name FROM endl_guilds WHERE name = '" +
-                                           name + "' OR tag = '" + tag_upper +
-                                           "' LIMIT 1");
+                                           name + "' OR tag = '" + tag_upper + "'");
             return true;
         }
         if (action == PacketAction_Use)

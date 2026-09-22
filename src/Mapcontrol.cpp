@@ -14,31 +14,41 @@
 
 #pragma package(smart_init)
 
-void Mapcontrol_AddArenaSpawn( MapContainer *self, int map_id, int from_x, int from_y, int to_x, int to_y);
+void Mapcontrol_AddArenaSpawn(
+    MapContainer *self, int map_id, int from_x, int from_y, int to_x, int to_y);
 String Mapcontrol_BuildChestItemsString(MapContainer *self, int map_id, MapCoord coords);
 MapObject Mapcontrol_GetTileSpecObject(MapContainer *self, int map_id, int x, int y);
-unsigned int Mapcontrol_GetTileSpecValueAt(MapContainer *self, int map_id, unsigned int x, unsigned int y);
+unsigned int Mapcontrol_GetTileSpecValueAt(MapContainer *self,
+                                           int map_id,
+                                           unsigned int x,
+                                           unsigned int y);
 char Mapcontrol_TryTakeQuestCooldown(MapContainer *self, int map_id);
 char Mapcontrol_GetCanScroll(MapContainer *self, int map_id);
 MapCoord Mapcontrol_GetRelogCoords(MapContainer *self, int map_id);
-unsigned int Mapcontrol_GetNpcIdByIndex(MapContainer *self, int map_id, unsigned int npc_index);
-MapCoord Mapcontrol_GetNpcCoordsByIndex(MapContainer *self, int map_id, unsigned int npc_index);
+unsigned int
+Mapcontrol_GetNpcIdByIndex(MapContainer *self, int map_id, unsigned int npc_index);
+MapCoord
+Mapcontrol_GetNpcCoordsByIndex(MapContainer *self, int map_id, unsigned int npc_index);
 char Mapcontrol_IsDropTileClear(MapContainer *self, int map_id, int x, int y);
-int Mapcontrol_CountBlockedNeighbors(MapContainer *self, int map_id, unsigned int x, unsigned int y);
+int Mapcontrol_CountBlockedNeighbors(MapContainer *self,
+                                     int map_id,
+                                     unsigned int x,
+                                     unsigned int y);
 void Mapcontrol_ResetMap(MapContainer *self, int map_id);
 String Mapcontrol_ReadRawFile(MapContainer *self, int map_id);
 char Mapcontrol_ReloadMap(MapContainer *self, int map_id);
 bool Mapcontrol_ParseMapFile(MapContainer *self, MapItem *map, int map_id);
 int Mapcontrol_GetChestKeyAt(MapContainer *self, int map_id, MapCoord coords);
 void Mapcontrol_RemoveGroundItem(MapContainer *self, int map_id, int index);
-bool Mapcontrol_CanDropItemAt(MapContainer *self, int map_id, int x, int y, int player_id);
-GroundItemInfo Mapcontrol_TakeGroundItemInfo(MapContainer *self, int map_id, int index, int player_id);
+bool Mapcontrol_CanDropItemAt(
+    MapContainer *self, int map_id, int x, int y, int player_id);
+GroundItemInfo
+Mapcontrol_TakeGroundItemInfo(MapContainer *self, int map_id, int index, int player_id);
 
 // Quest cooldown ticks a map starts with, and the most ground items one owner
 // may drop on a single tile.
 #define MAP_QUEST_COOLDOWN 10
 #define MAP_GROUND_ITEM_MAX 9
-
 
 MapContainer::MapContainer(Settings *settings)
 {
