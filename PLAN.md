@@ -798,35 +798,96 @@ section), reference vs rebuild:
 
 | section | reference | rebuild | delta |
 | --- | --- | --- | --- |
-| `.text` | 1,414,336 | 1,414,320 | **-16** |
+| `.text` | 1,414,336 | 1,414,356 | **+20** |
 | `.data` | 199,507 | 199,491 | **-16** |
 | `.tls` | — | — | byte-identical |
 | `.rsrc` | — | — | byte-identical |
-| `.reloc` | 75,316 | 75,308 | -8 |
+| `.reloc` | 75,316 | 75,320 | +4 |
 
 `.reloc` is a derived quantity: its size follows how the `.text`/`.data` content
 falls across 4 KB relocation blocks, so it moves on its own and is not an
 independent signal. At the start of this pass the figures were `.text` +548,
-`.data` +48, `.reloc` +32.
+`.data` +48, `.reloc` +32; at the end of the COMDAT pass they were `.text` -16,
+`.data` -16, `.reloc` -8.
 
-Per-module (`unitmap.py --pe --stubs` paired index-for-index with
-`analysis/target/modules.tsv`), only three ranges still differ:
+Per-module starts (`scripts/unitmap.py --map` object starts vs
+`analysis/target/modules.tsv`), the whole application is now **address-aligned**
+with the reference: every unit from `Players` to `Weaponmap` and from
+`Effectcontrol` to `Questcounters` starts at its reference RVA. The remaining
+`.text` difference is entirely the statically-linked library tail:
 
-- **Mainform -32.** No COMDAT count mismatch and the type-name multiset matches
-  (the only string difference left is `MainForm` vs our `Mainform`, same
-  length). The module carries ~8.7 KB of embedded data the function walk cannot
-  identify (VCL class records, property tables, vtables), so the remaining 32
-  bytes are inside that. `.data` shows the same class of difference: the
-  reference's Mainform `.data` contribution starts with EH/RTTI tables where
-  ours starts with the string literals, i.e. an intra-module *emission order*
-  difference, which is the next thing to characterise.
+- **Mainform +4.** See "Mainform emission order" below. The module's size is
+  now within 4 bytes of the reference and every application function is in the
+  reference's order; the only residual is the position of one
+  compiler-generated COMDAT.
 - **Mapchest -4.** Seven functions on both sides, identical bodies, no count
   mismatch; a 4-byte descriptor/padding difference.
 - **library tail +20** (everything after the last unit module, `0x541e84`
-  onward). A library-member difference, not a source one.
+  onward). A library-member difference, not a source one. The `Banned`-adjacent
+  VCL/BDE block (`vclbde50`/`vcl50`) is the visibly displaced part.
 
 `make verify` is 499/499 and `make funcdiff` reports one differing reference
 function (`Party_ShareExp`, a byte difference at the same size).
+
+### Mainform emission order
+
+The `Mainform` unit was never measured: `scripts/unitmap.py --units` gives the
+first unit an empty `prev_finalize_end`, so `emit_units` skips it and
+`analysis/target/functions.tsv` begins at `Players` (`0x407948`). Both
+`verify_units.py` and `funcdiff.py` read that sheet, so every `Mainform`
+function was outside the verification set, and `funcdiff`'s "placed elsewhere"
+check cannot see a reordering *within* a module. The module's internal layout
+had therefore drifted silently.
+
+Reconstructing the reference's order from its addresses and matching each body
+by size (`tdsfuncs.py`) showed the source had the functions in a different
+order, and that the **`TGUI` constructor was incomplete**: the reference's
+constructor (`0x4014e0`, 122 bytes) initialises `version_patch`/`version_minor`/
+`version_major` (`+0x328`/`+0x32c`/`+0x330`) to `0`/`0`/`0x1c`; ours was an
+empty 88-byte call to the `TForm` constructor. That 34-byte deficit was the
+source of the uniform `-0x20` start offset that every later unit carried (it
+was invisible to the paired-size check because each unit's own size was
+correct).
+
+Two changes fixed it, both verified by rebuild:
+
+1. **`Mainform.cpp` reordered to the reference function order** -- `TGUI` ctor,
+   `FormCreate`, `Mainform_GetServer`, `serverClientConnect`,
+   `serverClientError`, `serverClientDisconnect`, `serverClientRead`,
+   `timerTimer`, `FUN_00403080`, `FormClose`, `ApplicationEvents1Exception`
+   (the handler order is observable, and differs from the `__published`
+   declaration order in `Mainform.h`). This also put the two string-literal
+   groups in the reference's `.data` order (`FormCreate`'s `" EndlServ
+   started\n"`/`boot.log` group before `ApplicationEvents1Exception`'s `"
+   EndlServ "`/`error.log` group).
+2. **The `TGUI` constructor body** gained the three version-field assignments.
+
+With both, `tdsfuncs.py` reports every `Mainform` application function in the
+reference's order and with the reference's relative sizes; `WinMain` sits at
+its reference address (`0x4012c0`), but every function after it is `0x184` bytes
+early because the compiler-generated COMDAT below lands late -- see below.
+
+**Residual: the `Exception` deleting-destructor COMDAT.** The reference emits
+`@Sysutils@Exception@$bdtr$qqrv` (106 bytes) immediately after `WinMain`
+(`0x4013c0`), because its `catch (Exception &exception)` pulls it while
+`WinMain` is compiled. In our single `Mainform.obj` the same COMDAT is emitted
+late (`0x404374`), so the `TGUI` constructor and everything after it sit
+`0x184` bytes earlier than the reference, even though the module total is only
+4 bytes out. Splitting `WinMain` + `MAINFORM` into a separate project-main unit
+(`GUI.cpp`, linked between `sysinit.obj` and `Mainform.obj`, as PLAN already
+records) reproduces the reference's *exact* `Mainform` order -- `WinMain`,
+`Exception` dtor, `TGUI` ctor, `TForm` ctor, `FormCreate`, ... -- but perturbed
+`ilink32`'s VCL/BDE member placement (the `vcldb` block moved, shifting
+`Itemchest` onward by ~96 KB). That variant is therefore not adopted; the
+residual is left for a link-line investigation. `.data` has the same shape: our
+`Mainform` contribution now orders the EH tables before the literals like the
+reference, but the 4-byte `MAINFORM` pointer (`TGUI **MAINFORM = &GUI`) sits in
+front of them at `0x764` where the reference keeps it at `0x58b60c`.
+
+**Harness gap.** `scripts/unitmap.py`'s `emit_units` should give the first unit
+its true start (`0x401000`, or `0x4012b8`) so `Mainform` enters
+`functions.tsv`; until then any `Mainform` regression is invisible to both
+`make verify` and `make funcdiff`.
 
 ## COMDAT ownership: what the residual `.text` size difference was made of
 

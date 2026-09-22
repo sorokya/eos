@@ -365,6 +365,14 @@ documented build, not a manual fix-up.
   `$bdtr` (deleting-destructor) COMDATs that nothing references are reported
   separately — the linker drops them, so the reference has no range for them.
   This is the whole-tree check; `compare_asm.py` remains the per-function tool.
+  **Blind spot: the first unit is omitted.** `scripts/unitmap.py --units` gives
+  the first unit an empty `prev_finalize_end`, so `emit_units` skips it and the
+  sheet begins at the second unit (`Players`, `0x407948`) — the whole `Mainform`
+  module is therefore outside `make verify` *and* `make funcdiff` (which reads
+  the same sheet). Reordering functions inside `Mainform` is invisible to both,
+  and only a per-function order check (`scripts/tdsfuncs.py` address vs
+  `analysis/target/modules.tsv`) catches it. See PLAN.md, "Mainform emission
+  order".
 
 - `make funcdiff` (`scripts/funcdiff.py`) is the whole-tree byte differential: it
   masks only what the layout moves (each base relocation's four bytes and the

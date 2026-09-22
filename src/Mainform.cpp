@@ -36,6 +36,8 @@
 
 TGUI *GUI;
 
+String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code);
+
 #pragma argsused
 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
@@ -52,146 +54,11 @@ WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     return 0;
 }
 
-String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code)
-{
-    if (key_base.Length() < 1 || display_code.Length() < 1 || unlock_code.Length() < 1)
-        return "";
-    String result = "";
-    String part = "";
-    int sum = 0xd;
-    bool again = true;
-    do
-    {
-        for (int i = 1; i <= key_base.Length(); i++)
-            sum += (unsigned char)key_base[i];
-        for (int i = 1; i <= display_code.Length(); i++)
-            sum += (unsigned char)display_code[i];
-        for (int i = 1; i <= unlock_code.Length(); i++)
-            sum += (unsigned char)unlock_code[i];
-        sum += 2;
-        if (key_base.Length() == 0 && display_code.Length() == 0)
-            again = false;
-        if (key_base.Length() > 0)
-            key_base.Delete(1, 1);
-        if (display_code.Length() > 0)
-            display_code.Delete(1, 1);
-        if (unlock_code.Length() > 0)
-            unlock_code.Delete(1, 1);
-        sum += 3;
-    } while (again);
-    part = IntToHex(sum * 0x1040, 2);
-    if (part.Length() > 2)
-        part = part.SubString(part.Length() - 2, 2);
-    result = result + part;
-    sum += 2;
-    part = IntToHex(sum * 0xd91, 3);
-    if (part.Length() > 2)
-        part = part.SubString(part.Length() - 3, 3);
-    result = result + part;
-    sum += 3;
-    part = IntToHex(sum * 0x872, 4);
-    if (part.Length() > 2)
-        part = part.SubString(part.Length() - 4, 4);
-    result = result + part;
-    sum += 4;
-    part = IntToHex(sum * 0x157e, 3);
-    if (part.Length() > 2)
-        part = part.SubString(part.Length() - 3, 3);
-    return result + part;
-}
-
-// Non-PACKAGE redeclaration keeps `&GUI` a link-time constant, so bcc emits a
-// static `.data` relocation (matching reference slot 0x58b60c) rather than the
-// package-aware runtime initializer the PACKAGE declaration would produce.
-extern TGUI *GUI;
-TGUI **MAINFORM = &GUI;
-
-Packets *Mainform_GetServer(TGUI *form)
-{
-    return form->server_ctrl;
-}
-
 __fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
 {
-}
-
-void __fastcall TGUI::FormClose(TObject *Sender, TCloseAction &Action)
-{
-    Server_Shutdown(server_ctrl);
-    Action = caNone;
-}
-
-void __fastcall TGUI::serverClientError(TObject *Sender,
-                                        TCustomWinSocket *Socket,
-                                        TErrorEvent ErrorEvent,
-                                        int &ErrorCode)
-{
-    ErrorCode = 0;
-    if (Socket->SocketHandle < 1 || Socket->SocketHandle >= SOCKET_HANDLE_MAX)
-        Socket->Close();
-    else
-        Players::Players_MarkRemoving(players, Socket);
-}
-
-void __fastcall TGUI::serverClientConnect(TObject *Sender, TCustomWinSocket *Socket)
-{
-    if (Socket->SocketHandle < 1)
-    {
-        Socket->Close();
-        return;
-    }
-    if (server->Socket->ActiveConnections > Settings::GetMaxConnections(settings) + 5)
-    {
-        Socket->Close();
-        return;
-    }
-    if (!Logins::HandleAddress(logins, Socket->RemoteAddress))
-    {
-        Socket->Close();
-        return;
-    }
-    if (!Players::Players_Add(players, Socket))
-    {
-        Socket->Close();
-        return;
-    }
-}
-
-void __fastcall TGUI::serverClientDisconnect(TObject *Sender, TCustomWinSocket *Socket)
-{
-    if (Socket->SocketHandle >= 1 && Socket->SocketHandle < SOCKET_HANDLE_MAX)
-    {
-        Server_RemovePlayer(server_ctrl, Socket);
-        Players::Players_Remove(players, Socket);
-    }
-}
-
-void __fastcall TGUI::serverClientRead(TObject *Sender, TCustomWinSocket *Socket)
-{
-    if (Socket->SocketHandle < 1 || Socket->SocketHandle >= SOCKET_HANDLE_MAX)
-    {
-        Socket->Close();
-        return;
-    }
-    Server_ClientRead(server_ctrl, Socket, Socket->ReceiveText());
-}
-
-void __fastcall TGUI::ApplicationEvents1Exception(TObject *Sender, Exception *E)
-{
-    String s = DateTimeToStr(Now());
-    s.Insert(" ", s.Length() + 1);
-    s.Insert(TimeToStr(Now()), s.Length() + 1);
-    s.Insert(" EndlServ ", s.Length() + 1);
-    s.Insert(E->Message, s.Length() + 1);
-    s.Insert(" ", s.Length() + 1);
-    s.Insert(IntToStr(field_0x36c), s.Length() + 1);
-    s.Insert(",", s.Length() + 1);
-    s.Insert(IntToStr(field_0x370), s.Length() + 1);
-    s.Insert("\n", s.Length() + 1);
-    FILE *fp;
-    fp = fopen(".\\logs\\error.log", "a");
-    fprintf(fp, "%s", s.c_str());
-    fclose(fp);
+    version_patch = 0;
+    version_minor = 0;
+    version_major = 0x1c;
 }
 
 void __fastcall TGUI::FormCreate(TObject *Sender)
@@ -296,6 +163,72 @@ void __fastcall TGUI::FormCreate(TObject *Sender)
     Caption = Settings::GetServerName(settings);
 }
 
+// Non-PACKAGE redeclaration keeps `&GUI` a link-time constant, so bcc emits a
+// static `.data` relocation (matching reference slot 0x58b60c) rather than the
+// package-aware runtime initializer the PACKAGE declaration would produce.
+extern TGUI *GUI;
+TGUI **MAINFORM = &GUI;
+
+Packets *Mainform_GetServer(TGUI *form)
+{
+    return form->server_ctrl;
+}
+
+void __fastcall TGUI::serverClientConnect(TObject *Sender, TCustomWinSocket *Socket)
+{
+    if (Socket->SocketHandle < 1)
+    {
+        Socket->Close();
+        return;
+    }
+    if (server->Socket->ActiveConnections > Settings::GetMaxConnections(settings) + 5)
+    {
+        Socket->Close();
+        return;
+    }
+    if (!Logins::HandleAddress(logins, Socket->RemoteAddress))
+    {
+        Socket->Close();
+        return;
+    }
+    if (!Players::Players_Add(players, Socket))
+    {
+        Socket->Close();
+        return;
+    }
+}
+
+void __fastcall TGUI::serverClientError(TObject *Sender,
+                                        TCustomWinSocket *Socket,
+                                        TErrorEvent ErrorEvent,
+                                        int &ErrorCode)
+{
+    ErrorCode = 0;
+    if (Socket->SocketHandle < 1 || Socket->SocketHandle >= SOCKET_HANDLE_MAX)
+        Socket->Close();
+    else
+        Players::Players_MarkRemoving(players, Socket);
+}
+
+void __fastcall TGUI::serverClientDisconnect(TObject *Sender, TCustomWinSocket *Socket)
+{
+    if (Socket->SocketHandle >= 1 && Socket->SocketHandle < SOCKET_HANDLE_MAX)
+    {
+        Server_RemovePlayer(server_ctrl, Socket);
+        Players::Players_Remove(players, Socket);
+    }
+}
+
+void __fastcall TGUI::serverClientRead(TObject *Sender, TCustomWinSocket *Socket)
+{
+    if (Socket->SocketHandle < 1 || Socket->SocketHandle >= SOCKET_HANDLE_MAX)
+    {
+        Socket->Close();
+        return;
+    }
+    Server_ClientRead(server_ctrl, Socket, Socket->ReceiveText());
+}
+
 void __fastcall TGUI::timerTimer(TObject *Sender)
 {
     tick_counter++;
@@ -354,4 +287,76 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
         }
         tick_counter = 0;
     }
+}
+
+String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code)
+{
+    if (key_base.Length() < 1 || display_code.Length() < 1 || unlock_code.Length() < 1)
+        return "";
+    String result = "";
+    String part = "";
+    int sum = 0xd;
+    bool again = true;
+    do
+    {
+        for (int i = 1; i <= key_base.Length(); i++)
+            sum += (unsigned char)key_base[i];
+        for (int i = 1; i <= display_code.Length(); i++)
+            sum += (unsigned char)display_code[i];
+        for (int i = 1; i <= unlock_code.Length(); i++)
+            sum += (unsigned char)unlock_code[i];
+        sum += 2;
+        if (key_base.Length() == 0 && display_code.Length() == 0)
+            again = false;
+        if (key_base.Length() > 0)
+            key_base.Delete(1, 1);
+        if (display_code.Length() > 0)
+            display_code.Delete(1, 1);
+        if (unlock_code.Length() > 0)
+            unlock_code.Delete(1, 1);
+        sum += 3;
+    } while (again);
+    part = IntToHex(sum * 0x1040, 2);
+    if (part.Length() > 2)
+        part = part.SubString(part.Length() - 2, 2);
+    result = result + part;
+    sum += 2;
+    part = IntToHex(sum * 0xd91, 3);
+    if (part.Length() > 2)
+        part = part.SubString(part.Length() - 3, 3);
+    result = result + part;
+    sum += 3;
+    part = IntToHex(sum * 0x872, 4);
+    if (part.Length() > 2)
+        part = part.SubString(part.Length() - 4, 4);
+    result = result + part;
+    sum += 4;
+    part = IntToHex(sum * 0x157e, 3);
+    if (part.Length() > 2)
+        part = part.SubString(part.Length() - 3, 3);
+    return result + part;
+}
+
+void __fastcall TGUI::FormClose(TObject *Sender, TCloseAction &Action)
+{
+    Server_Shutdown(server_ctrl);
+    Action = caNone;
+}
+
+void __fastcall TGUI::ApplicationEvents1Exception(TObject *Sender, Exception *E)
+{
+    String s = DateTimeToStr(Now());
+    s.Insert(" ", s.Length() + 1);
+    s.Insert(TimeToStr(Now()), s.Length() + 1);
+    s.Insert(" EndlServ ", s.Length() + 1);
+    s.Insert(E->Message, s.Length() + 1);
+    s.Insert(" ", s.Length() + 1);
+    s.Insert(IntToStr(field_0x36c), s.Length() + 1);
+    s.Insert(",", s.Length() + 1);
+    s.Insert(IntToStr(field_0x370), s.Length() + 1);
+    s.Insert("\n", s.Length() + 1);
+    FILE *fp;
+    fp = fopen(".\\logs\\error.log", "a");
+    fprintf(fp, "%s", s.c_str());
+    fclose(fp);
 }
