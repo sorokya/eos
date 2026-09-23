@@ -19,13 +19,13 @@ MD5 (GameServer.exe) = 075fb5db1d6369bf488cd2ad0c715ddd
 1. **The reference binary is ground truth.** The provided `GameServer.exe` must
    never be modified. Treat it as read-only input.
 2. **Never guess machine-code bytes.** Every instruction, branch target, and data
-   value must come from a disassembly of the reference or a verified reassembly
-   diff. If you cannot prove a byte, do not write it.
+   value must come from a disassembly of the reference or a verified
+   recompilation diff. If you cannot prove a byte, do not write it.
 3. **Never invent file or symbol names.** Unit names come from the export table,
    form names from the DFM resources, and library functions from the toolchain.
    Do not name a source file unless it corresponds to observed evidence.
 4. **Verify, then record.** A change is only done when the relevant comparison
-   (assembly bytes, object bytes, or final MD5) passes. Record the verification
+   (listing bytes, object bytes, or final MD5) passes. Record the verification
    method and result alongside the change.
 5. **Do not commit** unless the user explicitly asks. Do not amend, force-push,
    or rewrite history.
@@ -108,9 +108,6 @@ banners):
 ```sh
 # Compiler — bcc32 5.5
 wine "$B\Bin\bcc32.exe" -c -ohello.obj hello.cpp
-
-# Assembler — TASM 5.3
-wine "$B\Bin\tasm32.exe" /q /ml /m2 hello.asm
 
 # Linker — Turbo Incremental Link 5.00
 # Use $BZ for -L / object / library arguments: ilink32 mishandles spaces.
@@ -287,8 +284,8 @@ Codegen otherwise matches the reference (`__cdecl` members, RTTI on).
 Fidelity is proven at three levels, from cheapest to most expensive. Always run the
 cheapest comparison that can falsify your change before moving on.
 
-1. **Assembly/object-level.** Assemble or compile the touched unit and compare the
-   resulting `.obj`/`.text` bytes against the reference slice. Use
+1. **Compiler/object-level.** Compile the touched unit and compare the resulting
+   `-S` listing or `.obj`/`.text` bytes against the reference slice. Use
    `objdump -d`, `tdump.exe`, or a binary diff.
 2. **Section-level.** Link and compare each PE section (`.text`, `.data`,
    `.idata`, `.edata`, `.rsrc`, `.reloc`) byte-for-byte against the reference.

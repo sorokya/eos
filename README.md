@@ -9,10 +9,10 @@ MD5 (GameServer.exe) = 075fb5db1d6369bf488cd2ad0c715ddd
 ```
 
 The reference is a 32-bit Windows GUI application built with **Borland C++Builder 5**
-(statically linked VCL, no runtime Borland packages). Work proceeds **TASM-first**:
-every machine-code region is first reproduced as reassemblable Turbo Assembler source
-and proven against the reference, then lifted, unit by unit, into C++ translation
-units that recompile to the same bytes.
+(statically linked VCL, no runtime Borland packages). The reconstruction is
+**C++-first**: each original translation unit is rewritten in the Borland dialect,
+compiled with `bcc32`, and scored against the reference disassembly until it
+reproduces the exact machine code. No hand-written assembly is used.
 
 The detailed roadmap lives in [PLAN.md](PLAN.md). Working instructions for
 contributors and AI agents live in [AGENTS.md](AGENTS.md).
@@ -27,8 +27,7 @@ contributors and AI agents live in [AGENTS.md](AGENTS.md).
 | Format                | PE32, `coff-i386`, GUI subsystem                                  |
 | Compiler              | Borland C++ 5.5 (`bcc32.exe`), 32-bit, static                     |
 | Linker                | Turbo Incremental Link 5.00 (`ilink32.exe`)                       |
-| Assembler             | Turbo Assembler 5.3 (`tasm32.exe`)                                |
-| Resource compiler     | Borland Resource Compiler 5.40 (`brcc32.exe`)                     |
+| Resource compiler     | Borland Resource Compiler 5.40 (`brcc32.exe`); reference only — the rebuild copies the reference `.rsrc` |
 | Entry point           | `0x00401000`                                                      |
 | Image base            | `0x00400000`                                                      |
 | Sections              | `.text .data .tls .rdata .idata .edata .rsrc .reloc`              |
@@ -63,6 +62,7 @@ original translation units (see [PLAN.md](PLAN.md#translation-unit-inventory)).
 ├── GameServer.exe.md5            # expected hash (tracked)
 ├── docker/
 │   └── Dockerfile                # Wine + Borland runner image
+├── src/                          # reconstructed C++ translation units (Unit.cpp / Unit.h)
 ├── scripts/                      # container wrapper and PE tooling (see scripts/README.md)
 ├── tests/                        # harness fixtures (minimal VCL+BDE link check)
 └── ref/
@@ -71,38 +71,72 @@ original translation units (see [PLAN.md](PLAN.md#translation-unit-inventory)).
     └── calling_conventions.pdf   # Agner Fog, calling conventions and name mangling
 ```
 
-Reconstruction sources (`src/`, `asm/`, `forms/`, `res/`) are added as the plan
-progresses; the intended structure is described in
-[PLAN.md](PLAN.md#proposed-repository-layout). `build/` and `analysis/` are
-generated and gitignored.
+The reconstructed translation units live in `src/` (one `.cpp`/`.h` per original
+unit). `forms/` and `res/` are derived from the reference and gitignored, as are
+`build/` and `analysis/`.
 
 ## Requirements
 
 - Docker (the Borland tools are Windows binaries and run under Wine in the image).
-- The provided `ref/Borland5` toolchain tree and `GameServer.exe` reference binary.
+- The `ref/Borland5` toolchain tree (compiler, linker, headers and libraries).
+- A reference `GameServer.exe` — your own copy of the target. It is gitignored;
+  place it at the repository root or point `REF=` at it (see Quickstart).
 - No native Borland install is needed; everything runs in the container.
 
 ## Quickstart
 
-Build the runner image once:
+### 1. Provide the reference
+
+The rebuild is driven by the reference binary. It is **not** tracked (all `*.exe`
+are gitignored), so supply your own copy:
 
 ```sh
-docker build -t gameserver-borland-wine docker
+cp /path/to/your/GameServer.exe GameServer.exe
 ```
 
-Run any Borland tool through the container wrapper, which mounts the toolchain at
-the absolute path its `.cfg` files expect
-(`C:\Program Files (x86)\Borland\CBuilder5`) and the repository at `/work`. It
-exports `$B` for tool paths and `$BZ`, a space-free path for `ilink32` arguments:
+Any location works via `REF`, e.g. `REF=/path/to/GameServer.exe scripts/build.sh`.
+The expected hash is in `GameServer.exe.md5`:
+
+```
+075fb5db1d6369bf488cd2ad0c715ddd  GameServer.exe
+```
+
+The Borland C++Builder 5 toolchain must be present at `ref/Borland5`.
+
+### 2. Build the runner image
+
+```sh
+make image          # docker build -t gameserver-borland-wine docker
+```
+
+### 3. Analyze the reference and rebuild
+
+```sh
+make analyze        # metadata, DFMs and the unit table -> analysis/target/
+scripts/build.sh    # compile every unit, link, normalize, copy .rsrc -> build/GameServer.exe
+```
+
+`scripts/build.sh` reads the unit link order from `analysis/target/units.tsv`, so
+`make analyze` must run first. On the first build it also reconstructs
+`build/GameServer.res` from the reference's `.rsrc` (`make extract` does that step
+alone). `make build` is an alias for `scripts/build.sh`.
+
+### 4. Verify
+
+```sh
+md5 -q build/GameServer.exe        # 075fb5db1d6369bf488cd2ad0c715ddd
+make compare                       # section-by-section comparison; must print IDENTICAL
+make verify                        # score every source function against the reference
+```
+
+### Running individual tools
+
+The container wrapper mounts the toolchain at the absolute path its `.cfg` files
+expect (`C:\Program Files (x86)\Borland\CBuilder5`) and the repository at `/work`,
+and exports `$B` (tool paths) and `$BZ` (a space-free path for `ilink32` arguments):
 
 ```sh
 scripts/borland.sh 'wine "$B\Bin\bcc32.exe" -c -obuild/unit.obj tests/vcl_link.cpp'
-```
-
-Verify a build result against the reference:
-
-```sh
-md5 -q build/GameServer.exe        # must equal GameServer.exe.md5
 ```
 
 The mount path is significant: `bcc32.cfg` and `ilink32.cfg` reference
@@ -113,11 +147,8 @@ command line, which is why the wrapper provides the space-free `$BZ` path.
 Convenience targets cover the harness (`scripts/README.md` has the details):
 
 ```sh
-make image     # build the docker/Wine image
-make analyze   # extract reference metadata and DFMs into analysis/target/
 make disasm    # linear .text disassembly into analysis/target/
 make sanity    # compile+link a minimal VCL+BDE app to validate the toolchain
-make compare   # compare build/GameServer.exe against the reference
 make normalize # apply the deterministic timestamp step
 ```
 
@@ -129,9 +160,9 @@ See [AGENTS.md](AGENTS.md) for the full command reference and link configuration
   linker behavior for the exact toolchain version in use.
 - `ref/calling_conventions.pdf` (Agner Fog) — 32-bit register/stack conventions,
   Borland name mangling (section 8.2), object-file formats, and exception/stack
-  unwinding rules needed to express optimized code as TASM and C++.
-- `ref/Borland5/` — compiler, assembler, linker, resource compiler, runtime (`Lib/`),
-  headers (`Include/`), and the RTL/C++Builder sources including the startup module
+  unwinding rules needed to read the reference disassembly.
+- `ref/Borland5/` — compiler, linker, resource compiler, runtime (`Lib/`), headers
+  (`Include/`), and the RTL/C++Builder sources including the startup module
   `Source/RTL/source/startup/c0nt.asm`.
 
 ## Status
@@ -140,7 +171,7 @@ See [AGENTS.md](AGENTS.md) for the full command reference and link configuration
 `scripts/build.sh` produces `MD5 = 075fb5db1d6369bf488cd2ad0c715ddd`, and
 `scripts/compare_pe.py GameServer.exe build/GameServer.exe` reports `IDENTICAL`.
 
-Reconstruction is C++-first (TASM as a surgical fallback). The figures below are
+Reconstruction is C++-first. The figures below are
 generated by `scripts/track.py` from `analysis/target/functions.tsv`: every
 function in the reference's non-library modules is classified as application
 code, a compiler-emitted COMDAT, or a statically linked library member, then

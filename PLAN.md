@@ -18,25 +18,21 @@ Success is a single, reproducible `make`-style command (running in the Docker/Wi
 container) that emits `build/GameServer.exe` matching the reference, with no manual
 byte patching other than an explicitly documented deterministic timestamp step.
 
-## Strategy: C++-first, TASM fallback
+## Strategy: C++-first
 
-Reconstruction is C++-first, with byte-exactness as a final convergence phase:
+Reconstruction is C++-first, with byte-exactness as the final convergence phase:
 
 1. Each translation unit is reconstructed in Borland C++ from the Ghidra
    decompilation and the reference disassembly, then compiled with `bcc32`.
-2. Functional equivalence (a linkable, runnable server) comes first; per-function
-   byte convergence follows, unit by unit.
-3. TASM is used surgically: as a byte-fidelity fallback for individual functions
-   the compiler cannot be coaxed to reproduce, and as stubs that keep the build
-   linkable while units are partially reconstructed.
-4. Library code (RTL, VCL, BDE) is not reimplemented; it comes from the unmodified
-   `.lib`/`.obj` files in `ref/Borland5/Lib`. The whole-image MD5 is the final
-   arbiter.
+2. Per-function byte convergence proceeds unit by unit; the whole-image MD5 is the
+   final arbiter.
+3. Library code (RTL, VCL, BDE) is not reimplemented; it comes from the unmodified
+   `.lib`/`.obj` files in `ref/Borland5/Lib`.
 
 Rationale: C++ exception handling is lowered onto SEH and is pervasive in this
 image (the `FS:[0x0]` frame pattern appears in well over a thousand functions), so
-hand-authoring EH frames in TASM is impractical. The compiler emits EH, RTTI,
-strings and vtables correctly once the source matches.
+reproducing it by hand is impractical. The compiler emits EH, RTTI, strings and
+vtables correctly once the source matches -- no hand-written assembly is needed.
 
 ## Findings (Phase 0/1)
 
@@ -46,8 +42,8 @@ strings and vtables correctly once the source matches.
   the observed range. `scripts/units.py` emits the table.
 - **Symbol-name freedom.** The shipped image is stripped, so internal function
   symbol names are not observable. Only the 133 export names, RTTI/type-name
-  strings, and DFM method names must match for byte-exactness. C++/TASM interop can
-  therefore use arbitrary internal names as long as our declarations agree.
+  strings, and DFM method names must match for byte-exactness. Internal names can
+  therefore be arbitrary as long as our declarations agree.
 - **RTTI type-name table (the class-name authority).** The image carries Borland's
   RTTI type-name strings, e.g. `std::vector<NpcValue,std::allocator<NpcValue> >`
   and `NpcValues *`. These are observable and must match. Recipe: scan the raw file
@@ -334,7 +330,6 @@ matching the linked object set against the reference.
 
 ```
 src/        reconstructed C++ per translation unit (Unit.cpp / Unit.h)
-asm/        TASM per translation unit (intermediate, authoritative early)
 forms/      reconstructed .dfm resources (from the embedded DFMs)
 res/        .rc and generated .res, icons, cursors
 scripts/    docker wrapper, metadata extraction, comparators, normalizer
@@ -431,8 +426,8 @@ Goal: a repeatable environment and measurement pipeline, plus the exact link lin
 
 Delivered:
 
-- `gameserver-borland-wine` built from `docker/Dockerfile`; all four tools
-  (`bcc32`, `tasm32`, `ilink32`, `brcc32`) verified under Wine.
+- `gameserver-borland-wine` built from `docker/Dockerfile`; the tools
+  (`bcc32`, `ilink32`, `brcc32`) verified under Wine.
 - `scripts/`: `borland.sh` container wrapper (exports `$B`/`$BZ`), `pe.py` and
   `extract_target.py` for metadata and DFM extraction, `compare_pe.py` for
   three-level comparison plus structural (imports/exports/relocations) diffs,
@@ -494,8 +489,7 @@ Goal: drive every function to the reference bytes.
 - Use `scripts/compare_functions.py` to score functions, and a linker map
   (`ilink32 -s`) to attribute objects to addresses and confirm the original
   library set and order.
-- Converge through source changes; where a function resists, inject TASM sourced
-  from the reference disassembly.
+- Converge through source changes only; no hand-written assembly is used.
 - Confirm `.text`, `.data`, `.edata`, and `.reloc` equality.
 
 Exit criteria: all functions byte-identical; the linked image matches the
@@ -2033,5 +2027,5 @@ owner to resolve them.
 | Linker nondeterminism | Fix timestamp and compare sections; treat whole-file MD5 as the final gate |
 | Resource/DFM mismatch | Reconstruct from the embedded payloads, byte-diff `.rsrc` |
 | Scale (65 units, 1.7 MB image) | Unit inventory + per-unit status; smallest-falsifiable-test discipline |
-| EH pervasive in TASM | C++-first; use TASM only for EH-free functions or last-resort fidelity |
+| EH is pervasive | Reproduce it through the compiler's own SEH lowering; match source forms, not hand-written frames |
 | Source-form ambiguity | Match codegen per function; record the form in the header |
