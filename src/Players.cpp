@@ -15,11 +15,14 @@
 
 #pragma package(smart_init)
 
+// Serialized inventory/bank/skill/quest blobs are split at this length.
+#define BLOB_CHUNK_MAX 255
+
 #define PLAYER_UNEQUIP_SLOT(slot, graphic, set_flag)                                     \
     if (ItemValues::GetSpecial(GUI->item_values, player->slot) == 5)                     \
     {                                                                                    \
         ItemValue *item = ItemValues::GetByIndex(GUI->item_values, player->slot - 1);    \
-        if (item->element < 7)                                                           \
+        if (item->element < ELEMENT_COUNT)                                               \
             player->element_resistances[item->element] =                                 \
                 player->element_resistances[item->element] + item->element_damage;       \
         player->min_damage -= item->min_damage;                                          \
@@ -334,25 +337,29 @@ String Character_BuildSaveQuery(Players *self, Player *player, int flags)
     String bankblob2;
     String skillblob2;
     String questblob2;
-    if (invblob.Length() > 255)
+    if (invblob.Length() > BLOB_CHUNK_MAX)
     {
-        invblob2 = invblob.SubString(256, invblob.Length() - 255);
-        invblob.Delete(256, invblob.Length() - 255);
+        invblob2 =
+            invblob.SubString(BLOB_CHUNK_MAX + 1, invblob.Length() - BLOB_CHUNK_MAX);
+        invblob.Delete(BLOB_CHUNK_MAX + 1, invblob.Length() - BLOB_CHUNK_MAX);
     }
-    if (bankblob.Length() > 255)
+    if (bankblob.Length() > BLOB_CHUNK_MAX)
     {
-        bankblob2 = bankblob.SubString(256, bankblob.Length() - 255);
-        bankblob.Delete(256, bankblob.Length() - 255);
+        bankblob2 =
+            bankblob.SubString(BLOB_CHUNK_MAX + 1, bankblob.Length() - BLOB_CHUNK_MAX);
+        bankblob.Delete(BLOB_CHUNK_MAX + 1, bankblob.Length() - BLOB_CHUNK_MAX);
     }
-    if (skillblob.Length() > 255)
+    if (skillblob.Length() > BLOB_CHUNK_MAX)
     {
-        skillblob2 = skillblob.SubString(256, skillblob.Length() - 255);
-        skillblob.Delete(256, invblob.Length() - 255);
+        skillblob2 =
+            skillblob.SubString(BLOB_CHUNK_MAX + 1, skillblob.Length() - BLOB_CHUNK_MAX);
+        skillblob.Delete(BLOB_CHUNK_MAX + 1, invblob.Length() - BLOB_CHUNK_MAX);
     }
-    if (questblob.Length() > 255)
+    if (questblob.Length() > BLOB_CHUNK_MAX)
     {
-        questblob2 = questblob.SubString(256, questblob.Length() - 255);
-        questblob.Delete(256, questblob.Length() - 255);
+        questblob2 =
+            questblob.SubString(BLOB_CHUNK_MAX + 1, questblob.Length() - BLOB_CHUNK_MAX);
+        questblob.Delete(BLOB_CHUNK_MAX + 1, questblob.Length() - BLOB_CHUNK_MAX);
     }
     String q = "UPDATE endl_characters SET ";
     q.Insert("ident_class = " + IntToStr(player->class_id), q.Length() + 1);
@@ -1075,12 +1082,12 @@ void Players::Player_LevelUp(Players *self, Player *player)
     int sp_bonus = player->level / 20;
     player->base_sp = player->base_sp + 1;
     player->base_sp = player->base_sp + sp_bonus;
-    if (player->base_hp > 64000)
-        player->base_hp = 64000;
-    if (player->base_tp > 64000)
-        player->base_tp = 64000;
-    if (player->base_sp > 64000)
-        player->base_sp = 64000;
+    if (player->base_hp > STAT_VALUE_MAX)
+        player->base_hp = STAT_VALUE_MAX;
+    if (player->base_tp > STAT_VALUE_MAX)
+        player->base_tp = STAT_VALUE_MAX;
+    if (player->base_sp > STAT_VALUE_MAX)
+        player->base_sp = STAT_VALUE_MAX;
     Player::CalculateHP_TP_SP(player);
 }
 

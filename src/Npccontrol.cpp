@@ -13,6 +13,9 @@
 
 #pragma package(smart_init)
 
+// Ticks between NPC hp-regen steps.
+#define NPC_REGEN_INTERVAL 0x1c2
+
 NpcController::NpcController(MapContainer *map,
                              Players *players,
                              Packets *server,
@@ -133,7 +136,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
             }
             else
             {
-                if (0x1c2 < npc_control->regen_counter)
+                if (NPC_REGEN_INTERVAL < npc_control->regen_counter)
                 {
                     (*npc)->hp = (*npc)->hp + (*npc)->hp_regen;
                     if ((*npc)->hp > (*npc)->max_hp)
@@ -360,7 +363,7 @@ void NpcController::NpcControl_Tick(NpcController *npc_control)
     }
     if (0x17 < npc_control->act_counter)
         npc_control->act_counter = 0;
-    if (0x1c2 < npc_control->regen_counter)
+    if (NPC_REGEN_INTERVAL < npc_control->regen_counter)
         npc_control->regen_counter = 0;
     Player **player;
     for (player = npc_control->players->players.begin();
@@ -983,7 +986,7 @@ String NpcController::EncodeNumber(NpcController *self, unsigned int value, int 
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % EO_NUM_MAX;
+                rem = value % EO_CHAR_MAX;
                 c = rem + 1;
                 ((char *)self->encode_scratch)[i] = c;
                 value = quotient;
@@ -994,7 +997,7 @@ String NpcController::EncodeNumber(NpcController *self, unsigned int value, int 
             }
             else
             {
-                char pad = EO_NUM_EMPTY;
+                char pad = EO_PADDING_BYTE;
                 ((char *)self->encode_scratch)[i] = pad;
             }
         }

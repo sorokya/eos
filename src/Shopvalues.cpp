@@ -421,7 +421,7 @@ String ShopValues::EncodeNumber(ShopValues *self, unsigned int value, int width)
     }
     if (result.Length() < width)
     {
-        char pad = EO_NUM_EMPTY;
+        char pad = EO_PADDING_BYTE;
         int count = width - result.Length();
         for (int i = 0; i < count; i++)
             result.Insert(pad, result.Length() + 1);
@@ -440,18 +440,18 @@ int ShopValues::DecodeNumber(String value)
         {
             char c = value_copy[byte_index];
             unsigned char ch = c;
-            if (ch == EO_NUM_EMPTY || ch == 0)
+            if (ch == EO_PADDING_BYTE || ch == 0)
                 break;
             int n = ch;
             n = n - 1;
             if (byte_index == 1)
                 result = result + n;
             if (byte_index == 2)
-                result = result + n * EO_NUM_MAX;
+                result = result + n * EO_CHAR_MAX;
             if (byte_index == 3)
-                result = result + n * EO_NUM_MAX_2;
+                result = result + n * EO_SHORT_MAX;
             if (byte_index == 4)
-                result = result + n * EO_NUM_MAX_3;
+                result = result + n * EO_THREE_MAX;
             byte_index = byte_index + 1;
         }
     }

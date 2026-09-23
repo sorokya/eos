@@ -14,6 +14,9 @@
 // Size of the party roster and the bound its iteration loops use.
 #define PARTY_MAX_MEMBERS 10
 
+// HP/TP/SP (base and max) are clamped to this ceiling.
+#define STAT_VALUE_MAX 64000
+
 // Layout recovered from the reference (Player unit, 0x410e04..0x411f64).
 // sizeof is 0x3f8, pinned by the `operator new(0x3f8)` at 0x4082d5 and by the
 // destructor's member-destruction counter (0x1c = 28 destructible members).

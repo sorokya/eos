@@ -4,6 +4,9 @@
 #include <vector.h>
 #include "Msgboard.h"
 
+// Number of message boards the controller holds (the `boards[8]` inline array).
+#define MSG_BOARD_COUNT 8
+
 // Recovered from the reference (MsgBoardController unit, 0x4ab128..0x4ae180).
 // Object layout pinned by the constructor (0x4ab15c) and the board reader
 // (0x4ad190):
@@ -28,14 +31,14 @@ class MsgBoardController
   public:
     int max_posts;
     int next_post_id;
-    vector<MsgBoard> boards[8];
+    vector<MsgBoard> boards[MSG_BOARD_COUNT];
     String misc_text;
     int decode_pos;
     int decode_length;
     char decode_delimiter;
     char *encode_buffer;
-    char aBoard_enabled[8];
-    String aBoard_names[8];
+    char aBoard_enabled[MSG_BOARD_COUNT];
+    String aBoard_names[MSG_BOARD_COUNT];
     int poster_lengths[32];
     int subject_lengths[32];
     int message_lengths[32];

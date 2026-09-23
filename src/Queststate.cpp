@@ -30,7 +30,7 @@ QuestState::QuestState(int state_index, String name)
     this->state_index = state_index;
     this->name = name;
     fast_dispatch_rule_index = 0;
-    fast_dispatch_condition_type = 0;
+    fast_dispatch_rule_type = 0;
 }
 
 QuestState::~QuestState()

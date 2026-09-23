@@ -12,7 +12,7 @@ MsgBoardController::MsgBoardController()
     encode_buffer = new char[8];
     max_posts = 0x18;
     next_post_id = 0;
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < MSG_BOARD_COUNT; i++)
     {
         boards[i].clear();
         aBoard_enabled[i] = 1;
@@ -23,7 +23,7 @@ MsgBoardController::MsgBoardController()
 MsgBoardController::~MsgBoardController()
 {
     SaveBoards(this);
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < MSG_BOARD_COUNT; i++)
     {
         boards[i].clear();
         aBoard_enabled[i] = 1;
@@ -51,22 +51,22 @@ bool MsgBoardController::LoadBoards(MsgBoardController *self)
         path = buf;
         path.SetLength(size);
         delete[] buf;
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < MSG_BOARD_COUNT; i++)
         {
             self->boards[i].clear();
             self->aBoard_enabled[i] = 1;
         }
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < MSG_BOARD_COUNT; i++)
         {
             self->extra_lengths[i] = DecodeNumber(self, path.SubString(1, 4));
             path.Delete(1, 4);
         }
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < MSG_BOARD_COUNT; i++)
         {
             self->aExtra_strings[i] = path.SubString(1, self->extra_lengths[i]);
             path.Delete(1, self->extra_lengths[i]);
         }
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < MSG_BOARD_COUNT; i++)
         {
             LoadBoard(self, i + 1, self->aExtra_strings[i]);
         }
@@ -84,7 +84,7 @@ void MsgBoardController::SaveBoards(MsgBoardController *self)
     String lengths = "";
     String contents = "";
     String board_data = "";
-    for (int i = 1; i <= 8; i++)
+    for (int i = 1; i <= MSG_BOARD_COUNT; i++)
     {
         board_data = BuildBoardData(self, i);
         lengths.Insert(EncodeNumber(self, board_data.Length(), 4), lengths.Length() + 1);
@@ -100,7 +100,7 @@ void MsgBoardController::SaveBoards(MsgBoardController *self)
 
 void MsgBoardController::ClearBoard(MsgBoardController *self, int board)
 {
-    if (board >= 1 && board <= 8)
+    if (board >= 1 && board <= MSG_BOARD_COUNT)
     {
         board--;
         self->boards[board].clear();
@@ -110,7 +110,7 @@ void MsgBoardController::ClearBoard(MsgBoardController *self, int board)
 
 void MsgBoardController::DeletePost(MsgBoardController *self, int board, int post_id)
 {
-    if (board >= 1 && board <= 8)
+    if (board >= 1 && board <= MSG_BOARD_COUNT)
     {
         board--;
         for (vector<MsgBoard>::iterator it = self->boards[board].begin();
@@ -130,7 +130,7 @@ void MsgBoardController::DeletePost(MsgBoardController *self, int board, int pos
 int MsgBoardController::CountPosts(MsgBoardController *self, int board, String author)
 {
     int count = 0;
-    if (board >= 1 && board <= 8)
+    if (board >= 1 && board <= MSG_BOARD_COUNT)
     {
         board--;
         for (vector<MsgBoard>::iterator it = self->boards[board].begin();
@@ -151,7 +151,7 @@ void MsgBoardController::AddPost(MsgBoardController *self,
                                  String message,
                                  char flag)
 {
-    if (board >= 1 && board <= 8)
+    if (board >= 1 && board <= MSG_BOARD_COUNT)
     {
         self->next_post_id++;
         if (self->next_post_id > 40000)
@@ -171,7 +171,7 @@ void MsgBoardController::AddPost(MsgBoardController *self,
 String MsgBoardController::GetBoard(MsgBoardController *self, int board)
 {
     String result;
-    if (board >= 1 && board <= 8)
+    if (board >= 1 && board <= MSG_BOARD_COUNT)
     {
         if (self->aBoard_enabled[board - 1])
         {
@@ -186,7 +186,7 @@ String MsgBoardController::GetBoard(MsgBoardController *self, int board)
 String MsgBoardController::GetPost(MsgBoardController *self, int board, int post_id)
 {
     String result;
-    if (board >= 1 && board <= 8)
+    if (board >= 1 && board <= MSG_BOARD_COUNT)
     {
         board--;
         vector<MsgBoard>::iterator it;
@@ -208,7 +208,7 @@ String MsgBoardController::GetPost(MsgBoardController *self, int board, int post
 
 void MsgBoardController::BuildBoardName(MsgBoardController *self, int board)
 {
-    if (board >= 1 && board <= 8)
+    if (board >= 1 && board <= MSG_BOARD_COUNT)
     {
         int count = self->boards[board - 1].size();
         if (count > self->max_posts)
@@ -237,7 +237,7 @@ String MsgBoardController::BuildBoardData(MsgBoardController *self, int board)
 {
     String text = "";
     String result = "";
-    if (board >= 1 && board <= 8)
+    if (board >= 1 && board <= MSG_BOARD_COUNT)
     {
         board--;
         result = EncodeNumber(self, self->boards[board].size(), 2);
@@ -265,7 +265,7 @@ String MsgBoardController::BuildBoardData(MsgBoardController *self, int board)
 
 void MsgBoardController::LoadBoard(MsgBoardController *self, int board, String data)
 {
-    if (board >= 1 && board <= 8)
+    if (board >= 1 && board <= MSG_BOARD_COUNT)
     {
         if (data.Length() > 0)
         {
@@ -385,18 +385,18 @@ int MsgBoardController::DecodeNumber(MsgBoardController *self, String value)
         {
             char c = value[byte_index];
             unsigned char ch = c;
-            if (ch == EO_NUM_EMPTY || ch == 0)
+            if (ch == EO_PADDING_BYTE || ch == 0)
                 break;
             int n = ch;
             n = n - 1;
             if (byte_index == 1)
                 result = result + n;
             if (byte_index == 2)
-                result = result + n * EO_NUM_MAX;
+                result = result + n * EO_CHAR_MAX;
             if (byte_index == 3)
-                result = result + n * EO_NUM_MAX_2;
+                result = result + n * EO_SHORT_MAX;
             if (byte_index == 4)
-                result = result + n * EO_NUM_MAX_3;
+                result = result + n * EO_THREE_MAX;
             byte_index = byte_index + 1;
         }
     }
@@ -422,7 +422,7 @@ MsgBoardController::EncodeNumber(MsgBoardController *self, unsigned int value, i
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % EO_NUM_MAX;
+                rem = value % EO_CHAR_MAX;
                 c = rem + 1;
                 self->encode_buffer[i] = c;
                 value = quotient;
@@ -433,7 +433,7 @@ MsgBoardController::EncodeNumber(MsgBoardController *self, unsigned int value, i
             }
             else
             {
-                char pad = EO_NUM_EMPTY;
+                char pad = EO_PADDING_BYTE;
                 self->encode_buffer[i] = pad;
             }
         }

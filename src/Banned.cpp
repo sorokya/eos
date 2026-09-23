@@ -7,6 +7,9 @@
 
 #pragma package(smart_init)
 
+// Sentinel octet for a wildcarded (`*`) component of an IP pattern.
+#define IP_OCTET_WILDCARD 0x100
+
 Banned::Banned(mySQLdb *db_handle)
 {
     ban_list = new TList;
@@ -49,10 +52,10 @@ void Banned::AddBan(
         ip[p2] = 'x';
         int p3 = ip.Pos(".");
         ip[p3] = 'x';
-        short octet1 = 0x100;
-        short octet2 = 0x100;
-        short octet3 = 0x100;
-        short octet4 = 0x100;
+        short octet1 = IP_OCTET_WILDCARD;
+        short octet2 = IP_OCTET_WILDCARD;
+        short octet3 = IP_OCTET_WILDCARD;
+        short octet4 = IP_OCTET_WILDCARD;
         if (ip.SubString(1, p1 - 1) != "*")
             octet1 = StrToInt(ip.SubString(1, p1 - 1));
         if (ip.SubString(p1 + 1, (p2 - 1) - p1) != "*")
@@ -89,10 +92,10 @@ void Banned::AddBan(
         ip[p2] = 'x';
         int p3 = ip.Pos(".");
         ip[p3] = 'x';
-        short octet1 = 0x100;
-        short octet2 = 0x100;
-        short octet3 = 0x100;
-        short octet4 = 0x100;
+        short octet1 = IP_OCTET_WILDCARD;
+        short octet2 = IP_OCTET_WILDCARD;
+        short octet3 = IP_OCTET_WILDCARD;
+        short octet4 = IP_OCTET_WILDCARD;
         if (ip.SubString(1, p1 - 1) != "*")
             octet1 = StrToInt(ip.SubString(1, p1 - 1));
         if (ip.SubString(p1 + 1, (p2 - 1) - p1) != "*")
@@ -127,10 +130,10 @@ bool Banned::IsBanned(Banned *self, String ip, String hdid)
         ip[p2] = 'x';
         int p3 = ip.Pos(".");
         ip[p3] = 'x';
-        short octet1 = 0x100;
-        short octet2 = 0x100;
-        short octet3 = 0x100;
-        short octet4 = 0x100;
+        short octet1 = IP_OCTET_WILDCARD;
+        short octet2 = IP_OCTET_WILDCARD;
+        short octet3 = IP_OCTET_WILDCARD;
+        short octet4 = IP_OCTET_WILDCARD;
         if (ip.SubString(1, p1 - 1) != "*")
             octet1 = StrToInt(ip.SubString(1, p1 - 1));
         if (ip.SubString(p1 + 1, (p2 - 1) - p1) != "*")

@@ -33,7 +33,7 @@ void Client_SendEncoded(Packets *server,
                         unsigned char family,
                         String data);
 bool Walk_Execute(Packets *server, Player *player, int action, String *data);
-bool Attack_Execute(Packets *server, Player *caster, int action, String *data);
+bool Attack_Execute(Packets *server, Player *attacker, int action, String *data);
 bool Spell_Execute(Packets *server, Player *caster, int action, String *data);
 bool Face_Execute(Packets *server, Player *player, int action, String *data);
 bool Chair_Execute(Packets *server, Player *player, int action, String *data);
@@ -116,7 +116,7 @@ int FUN_0044f73c(void *range);
 int FUN_0044f710(void *range);
 int EO_DecodeNumber(Packets *self, String data);
 int EO_DecodeByte(Packets *self, char value);
-char EO_GetBreakByte(Packets *self, int value);
+char EO_IntToChar(Packets *self, int value);
 unsigned int Server_DecodePacketLength(Packets *self, String data);
 bool Login_CheckConnectionThreshold(Packets *server);
 void Connection_Ping(Packets *server);

@@ -16,7 +16,7 @@
 //                     `*(short *)&goto_state_index`)
 // QuestState  (0x54): int state_index (+0), String name (+4), String description
 //                     (+8), int fast_dispatch_rule_index (+0xc),
-//                     int fast_dispatch_condition_type (+0x10),
+//                     int fast_dispatch_rule_type (+0x10),
 //                     vector<QuestAction *> actions (+0x14),
 //                     vector<QuestRule *> rules (+0x34)
 class QuestAction
@@ -50,7 +50,7 @@ class QuestState
     String name;
     String description;
     int fast_dispatch_rule_index;
-    int fast_dispatch_condition_type;
+    int fast_dispatch_rule_type;
     vector<QuestAction *> actions;
     vector<QuestRule *> rules;
 

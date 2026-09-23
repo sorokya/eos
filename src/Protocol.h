@@ -513,6 +513,9 @@ enum Element
     Element_Fire = 6
 };
 
+// One past the last element id; the "has a real element" bound.
+#define ELEMENT_COUNT 7
+
 enum ItemType
 {
     ItemType_General = 0,
@@ -626,11 +629,12 @@ enum SkillTargetType
     SkillTargetType_Group = 3
 };
 
-// Endless Online number codec: base 253, "no value" and field-separator bytes.
-#define EO_NUM_MAX 0xfd
-#define EO_NUM_MAX_2 0xfa09
-#define EO_NUM_MAX_3 0xf71ae5
-#define EO_NUM_EMPTY 0xfe
+// Endless Online number codec: base-253 digits (1/2/3-byte maxima), the padding
+// byte, and the field-separator byte.
+#define EO_CHAR_MAX 0xfd
+#define EO_SHORT_MAX 0xfa09
+#define EO_THREE_MAX 0xf71ae5
+#define EO_PADDING_BYTE 0xfe
 #define EO_BREAK_BYTE 0xff
 
 #define SECONDS_PER_DAY 0x15180

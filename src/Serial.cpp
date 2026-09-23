@@ -12,6 +12,15 @@
 #define SERIAL_ENC_STR_PUB_DVF001_EVF "g)hq@oA9W;B=X/Bq"
 #define SERIAL_ENC_STR_NOT_LICENCED "i:j1h<d3 +^1"
 
+// The codec mirrors printable-ASCII ranges; these are the range endpoints.
+#define SERIAL_ENC_LOW 0x22
+#define SERIAL_ENC_MID_LOW 0x4f
+#define SERIAL_ENC_MID_HIGH 0x50
+#define SERIAL_ENC_HIGH 0x7d
+
+// Buffer size for the volume/filesystem names read during validation.
+#define DRIVE_NAME_MAX 1000
+
 SerialKey::SerialKey()
 {
     counter = 10;
@@ -198,8 +207,8 @@ void SerialKey::Validate(SerialKey *self)
         DWORD maxcomp;
         DWORD flags;
         char computer_name[16];
-        char volume_name[1000];
-        char filesystem_name[1000];
+        char volume_name[DRIVE_NAME_MAX];
+        char filesystem_name[DRIVE_NAME_MAX];
 
         computer_name[0] = '\0';
         GetComputerNameA(computer_name, &csize);
@@ -208,12 +217,12 @@ void SerialKey::Validate(SerialKey *self)
         (void)filesystem_name;
         GetVolumeInformationA("c:\\",
                               volume_name,
-                              1000,
+                              DRIVE_NAME_MAX,
                               &volserial,
                               &maxcomp,
                               &flags,
                               filesystem_name,
-                              1000);
+                              DRIVE_NAME_MAX);
         String vs = volserial;
         if (vs.Length() >= 0x21)
             vs = vs.SubString(1, 0x20);
@@ -264,9 +273,9 @@ String SerialKey::DecodeString(SerialKey *self, String src)
         int u = c;
         if (i % 2 == parity)
         {
-            if (0x22 <= u && u <= 0x7d)
+            if (SERIAL_ENC_LOW <= u && u <= SERIAL_ENC_HIGH)
             {
-                u = 0x7d - u + 0x22;
+                u = SERIAL_ENC_HIGH - u + SERIAL_ENC_LOW;
                 c = u;
                 ch = c;
                 result = result + String(ch);
@@ -277,18 +286,18 @@ String SerialKey::DecodeString(SerialKey *self, String src)
         else
         {
             bool done = false;
-            if (0x22 <= u && u <= 0x4f)
+            if (SERIAL_ENC_LOW <= u && u <= SERIAL_ENC_MID_LOW)
             {
                 done = true;
-                u = 0x4f - u + 0x22;
+                u = SERIAL_ENC_MID_LOW - u + SERIAL_ENC_LOW;
                 c = u;
                 ch = c;
                 result = result + String(ch);
             }
-            if (0x50 <= u && u <= 0x7d)
+            if (SERIAL_ENC_MID_HIGH <= u && u <= SERIAL_ENC_HIGH)
             {
                 done = true;
-                u = 0x7d - u + 0x50;
+                u = SERIAL_ENC_HIGH - u + SERIAL_ENC_MID_HIGH;
                 c = u;
                 ch = c;
                 result = result + String(ch);

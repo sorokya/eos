@@ -7,6 +7,9 @@
 
 #pragma package(smart_init)
 
+// Largest bucket index (the dead name[1]-'a' clamp mirrors Killcounters).
+#define COUNTER_BUCKET_MAX 26
+
 QuestCounters::QuestCounters()
 {
     Load(this);
@@ -88,9 +91,9 @@ int QuestCounters::RecordCompletion(QuestCounters *self, String name, int quest_
     // index (name[1] - 'a' to [0,26]) and discards it; the lookup is the
     // linear quest_id scan below.
     int bucket = name[1] - 'a';
-    if (bucket < 0 || bucket > 26)
+    if (bucket < 0 || bucket > COUNTER_BUCKET_MAX)
     {
-        bucket = 26;
+        bucket = COUNTER_BUCKET_MAX;
     }
     vector<QuestCounter>::iterator it;
     for (it = self->counters.begin(); it != self->counters.end(); it++)
@@ -113,9 +116,9 @@ int QuestCounters::GetCompletionCount(QuestCounters *self,
     player_name = player_name.LowerCase();
     // Same verified dead bucket computation as RecordCompletion.
     int bucket = player_name[1] - 'a';
-    if (bucket < 0 || bucket > 26)
+    if (bucket < 0 || bucket > COUNTER_BUCKET_MAX)
     {
-        bucket = 26;
+        bucket = COUNTER_BUCKET_MAX;
     }
     vector<QuestCounter>::iterator it;
     for (it = self->counters.begin(); it != self->counters.end(); it++)

@@ -176,10 +176,10 @@ void Player::CalculateHP_TP_SP(Player *self)
     self->weight_max = self->adj_strength + 70;
     if (self->weight_max > 250)
         self->weight_max = 250;
-    if (self->max_hp > 64000)
-        self->max_hp = 64000;
-    if (self->max_tp > 64000)
-        self->max_tp = 64000;
-    if (self->max_sp > 64000)
-        self->max_sp = 64000;
+    if (self->max_hp > STAT_VALUE_MAX)
+        self->max_hp = STAT_VALUE_MAX;
+    if (self->max_tp > STAT_VALUE_MAX)
+        self->max_tp = STAT_VALUE_MAX;
+    if (self->max_sp > STAT_VALUE_MAX)
+        self->max_sp = STAT_VALUE_MAX;
 }

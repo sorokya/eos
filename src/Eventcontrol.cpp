@@ -167,7 +167,7 @@ String EventController::EncodeNumber(EventController *self, unsigned int value, 
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % EO_NUM_MAX;
+                rem = value % EO_CHAR_MAX;
                 c = rem + 1;
                 self->pEncode_scratch[i] = c;
                 value = quotient;
@@ -178,7 +178,7 @@ String EventController::EncodeNumber(EventController *self, unsigned int value, 
             }
             else
             {
-                char pad = EO_NUM_EMPTY;
+                char pad = EO_PADDING_BYTE;
                 self->pEncode_scratch[i] = pad;
             }
         }

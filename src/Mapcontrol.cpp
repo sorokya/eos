@@ -1414,7 +1414,7 @@ String MapContainer::EncodeNumber(MapContainer *self, unsigned int value, int wi
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % EO_NUM_MAX;
+                rem = value % EO_CHAR_MAX;
                 c = rem + 1;
                 ((char *)self->encode_scratch)[i] = c;
                 value = quotient;
@@ -1425,7 +1425,7 @@ String MapContainer::EncodeNumber(MapContainer *self, unsigned int value, int wi
             }
             else
             {
-                char pad = EO_NUM_EMPTY;
+                char pad = EO_PADDING_BYTE;
                 ((char *)self->encode_scratch)[i] = pad;
             }
         }
@@ -1447,18 +1447,18 @@ int MapContainer::DecodeNumber(MapContainer *self, String value)
         {
             char c = value[digit_index];
             unsigned char ch = c;
-            if (ch == EO_NUM_EMPTY || ch == 0)
+            if (ch == EO_PADDING_BYTE || ch == 0)
                 break;
             int v = ch;
             v = v - 1;
             if (digit_index == 1)
                 result = result + v;
             if (digit_index == 2)
-                result = result + v * EO_NUM_MAX;
+                result = result + v * EO_CHAR_MAX;
             if (digit_index == 3)
-                result = result + v * EO_NUM_MAX_2;
+                result = result + v * EO_SHORT_MAX;
             if (digit_index == 4)
-                result = result + v * EO_NUM_MAX_3;
+                result = result + v * EO_THREE_MAX;
         }
     }
     catch (...)

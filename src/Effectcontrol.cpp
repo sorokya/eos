@@ -253,7 +253,7 @@ EffectController::EncodeNumber(EffectController *self, unsigned int value, int w
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % EO_NUM_MAX;
+                rem = value % EO_CHAR_MAX;
                 c = rem + 1;
                 self->pEncode_scratch[i] = c;
                 value = quotient;
@@ -264,7 +264,7 @@ EffectController::EncodeNumber(EffectController *self, unsigned int value, int w
             }
             else
             {
-                char pad = EO_NUM_EMPTY;
+                char pad = EO_PADDING_BYTE;
                 self->pEncode_scratch[i] = pad;
             }
         }

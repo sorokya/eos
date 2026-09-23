@@ -34,20 +34,20 @@ QuestContainer::QuestContainer(Settings *settings)
     RegisterAction(this, 19, "EffectOnCoord");
     RegisterAction(this, 20, "ResetDaily");
 
-    RegisterCondition(this, 1, "TalkedToNpc");
-    RegisterCondition(this, 2, "InputNpc");
-    RegisterCondition(this, 3, "GotItems");
-    RegisterCondition(this, 4, "LostItems");
-    RegisterCondition(this, 5, "Die");
-    RegisterCondition(this, 6, "Disconnect");
-    RegisterCondition(this, 7, "TimeElapsed");
-    RegisterCondition(this, 8, "KilledNpcs");
-    RegisterCondition(this, 9, "KilledPlayers");
-    RegisterCondition(this, 10, "EnterCoord");
-    RegisterCondition(this, 11, "EnterMap");
-    RegisterCondition(this, 12, "LeaveMap");
-    RegisterCondition(this, 13, "Always");
-    RegisterCondition(this, 14, "DoneDaily");
+    RegisterRule(this, 1, "TalkedToNpc");
+    RegisterRule(this, 2, "InputNpc");
+    RegisterRule(this, 3, "GotItems");
+    RegisterRule(this, 4, "LostItems");
+    RegisterRule(this, 5, "Die");
+    RegisterRule(this, 6, "Disconnect");
+    RegisterRule(this, 7, "TimeElapsed");
+    RegisterRule(this, 8, "KilledNpcs");
+    RegisterRule(this, 9, "KilledPlayers");
+    RegisterRule(this, 10, "EnterCoord");
+    RegisterRule(this, 11, "EnterMap");
+    RegisterRule(this, 12, "LeaveMap");
+    RegisterRule(this, 13, "Always");
+    RegisterRule(this, 14, "DoneDaily");
 
     LoadQuests(this);
 }
@@ -348,12 +348,12 @@ void QuestContainer::ParseToken(QuestContainer *self, Quest *quest, String token
             }
             if (token == "(")
             {
-                if (self->current_state->fast_dispatch_condition_type == 0 &&
+                if (self->current_state->fast_dispatch_rule_type == 0 &&
                     (self->current_rule_type == 3 || self->current_rule_type == 8 ||
                      self->current_rule_type == 9 || self->current_rule_type == 10 ||
                      self->current_rule_type == 11))
                 {
-                    self->current_state->fast_dispatch_condition_type =
+                    self->current_state->fast_dispatch_rule_type =
                         self->current_rule_type;
                     self->current_state->fast_dispatch_rule_index =
                         self->current_state->rules.size();
@@ -387,9 +387,9 @@ void QuestContainer::ParseToken(QuestContainer *self, Quest *quest, String token
             return;
         }
 
-        if (GetConditionType(self, token) > 0)
+        if (GetRuleType(self, token) > 0)
         {
-            self->current_rule_type = GetConditionType(self, token);
+            self->current_rule_type = GetRuleType(self, token);
             self->in_rule_args = 0;
             return;
         }
@@ -514,7 +514,7 @@ String QuestContainer::GetActionData(QuestContainer *self,
          it != state->actions.end();
          ++it)
     {
-        if ((*it)->args[0] == arg && (*it)->action == 3)
+        if ((*it)->args[0] == arg && (*it)->action == QuestAction_AddNpcChat)
         {
             data.Insert((*it)->data[1], data.Length() + 1);
             data.Insert((char)-1, data.Length() + 1);
@@ -538,13 +538,13 @@ String QuestContainer::GetActionData2(QuestContainer *self,
     {
         if ((*it)->args[0] == arg)
         {
-            if ((*it)->action == 1)
+            if ((*it)->action == QuestAction_AddNpcText)
             {
                 data.Insert(EncodeNumber(self, (*it)->action, 2), data.Length() + 1);
                 data.Insert((*it)->data[1], data.Length() + 1);
                 data.Insert((char)-1, data.Length() + 1);
             }
-            if ((*it)->action == 2)
+            if ((*it)->action == QuestAction_AddNpcInput)
             {
                 data.Insert(EncodeNumber(self, (*it)->action, 2), data.Length() + 1);
                 data.Insert(EncodeNumber(self, (*it)->args[1], 2), data.Length() + 1);
@@ -581,7 +581,7 @@ int QuestContainer::GetRuleValue(QuestContainer *self,
          it != state->rules.end();
          ++it)
     {
-        if ((*it)->rule == 1 && (*it)->args[0] == rule_type)
+        if ((*it)->rule == QuestRule_TalkedToNpc && (*it)->args[0] == rule_type)
             return *(short *)&(*it)->goto_state_index;
     }
     return -1;
@@ -601,7 +601,7 @@ int QuestContainer::GetRuleValue2(QuestContainer *self,
          it != state->rules.end();
          ++it)
     {
-        if ((*it)->rule == 2 && (*it)->args[0] == rule_type)
+        if ((*it)->rule == QuestRule_InputNpc && (*it)->args[0] == rule_type)
             return *(short *)&(*it)->goto_state_index;
     }
     return -1;
@@ -623,12 +623,10 @@ void QuestContainer::RegisterAction(QuestContainer *self, int action_id, String 
     self->action_names.insert(self->action_names.end(), entry);
 }
 
-void QuestContainer::RegisterCondition(QuestContainer *self,
-                                       int condition_id,
-                                       String name)
+void QuestContainer::RegisterRule(QuestContainer *self, int rule_id, String name)
 {
-    QuestType entry(condition_id, name);
-    self->cond_names.insert(self->cond_names.end(), entry);
+    QuestType entry(rule_id, name);
+    self->rule_names.insert(self->rule_names.end(), entry);
 }
 
 int QuestContainer::GetActionType(QuestContainer *self, String name)
@@ -646,13 +644,13 @@ int QuestContainer::GetActionType(QuestContainer *self, String name)
     return 0;
 }
 
-int QuestContainer::GetConditionType(QuestContainer *self, String name)
+int QuestContainer::GetRuleType(QuestContainer *self, String name)
 {
     if (name.Length() < 3)
         return 0;
 
-    for (vector<QuestType>::iterator it = self->cond_names.begin();
-         it != self->cond_names.end();
+    for (vector<QuestType>::iterator it = self->rule_names.begin();
+         it != self->rule_names.end();
          ++it)
     {
         if (it->name == name)
@@ -685,7 +683,7 @@ String QuestContainer::EncodeNumber(QuestContainer *self, unsigned int value, in
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % EO_NUM_MAX;
+                rem = value % EO_CHAR_MAX;
                 c = rem + 1;
                 ((char *)self->encode_scratch)[i] = c;
                 value = quotient;
@@ -696,7 +694,7 @@ String QuestContainer::EncodeNumber(QuestContainer *self, unsigned int value, in
             }
             else
             {
-                char pad = EO_NUM_EMPTY;
+                char pad = EO_PADDING_BYTE;
                 ((char *)self->encode_scratch)[i] = pad;
             }
         }

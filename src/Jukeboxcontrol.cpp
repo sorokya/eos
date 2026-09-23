@@ -110,7 +110,7 @@ JukeBoxController::EncodeNumber(JukeBoxController *self, unsigned int value, int
             {
                 double d = value / 253.0;
                 quotient = d;
-                rem = value % EO_NUM_MAX;
+                rem = value % EO_CHAR_MAX;
                 c = rem + 1;
                 self->encode_scratch[i] = c;
                 value = quotient;
@@ -121,7 +121,7 @@ JukeBoxController::EncodeNumber(JukeBoxController *self, unsigned int value, int
             }
             else
             {
-                char pad = EO_NUM_EMPTY;
+                char pad = EO_PADDING_BYTE;
                 self->encode_scratch[i] = pad;
             }
         }

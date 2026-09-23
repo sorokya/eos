@@ -271,7 +271,7 @@ String LearnValues::EncodeNumber(LearnValues *self, unsigned int value, int widt
             char c;
             double d = n / 253.0;
             q = (int)d;
-            r = n % EO_NUM_MAX;
+            r = n % EO_CHAR_MAX;
             c = r + 1;
             result.Insert(c, result.Length() + 1);
             if (q >= 1)
@@ -303,18 +303,18 @@ int LearnValues::DecodeNumber(LearnValues *self, String value)
         {
             char c = value_copy[byte_index];
             unsigned char ch = c;
-            if (ch == EO_NUM_EMPTY)
+            if (ch == EO_PADDING_BYTE)
                 break;
             int n = ch;
             n = n - 1;
             if (byte_index == 1)
                 result = result + n;
             if (byte_index == 2)
-                result = result + n * EO_NUM_MAX;
+                result = result + n * EO_CHAR_MAX;
             if (byte_index == 3)
-                result = result + n * EO_NUM_MAX_2;
+                result = result + n * EO_SHORT_MAX;
             if (byte_index == 4)
-                result = result + n * EO_NUM_MAX_3;
+                result = result + n * EO_THREE_MAX;
             byte_index = byte_index + 1;
         }
     }
