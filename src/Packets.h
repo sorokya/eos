@@ -153,7 +153,10 @@ void Server_BroadcastToAll(Packets *server,
                            String data);
 void Server_SyncMapHazardFlags(Packets *server, int map_id);
 void Server_AppendChatLog(Packets *server, String message);
-void Talk_PlayerWhisper(Packets *server, int map_id, String message, int break_byte);
+void Server_BroadcastMapMutation(Packets *server,
+                                 int map_id,
+                                 String map_data,
+                                 int reply_code);
 String Server_BuildOnlineNames(Packets *server);
 String Server_BuildOnlineList(Packets *server);
 String Refresh_BuildReply(Packets *server, Player *player);

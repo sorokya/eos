@@ -1366,11 +1366,12 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                         if (Mapcontrol_ReloadMap(server->map_control, player->map_id))
                         {
                             Server_SyncMapHazardFlags(server, player->map_id);
-                            Talk_PlayerWhisper(server,
-                                               player->map_id,
-                                               Mapcontrol_ReadRawFile(server->map_control,
-                                                                      player->map_id),
-                                               10);
+                            Server_BroadcastMapMutation(
+                                server,
+                                player->map_id,
+                                Mapcontrol_ReadRawFile(server->map_control,
+                                                       player->map_id),
+                                InitReply_MapMutation);
                         }
                     }
                     if (command == "guilds")
@@ -9616,7 +9617,10 @@ void Client_SendRaw(Packets *server, Player *client, String data, int break_byte
     client->socket->SendText(built);
 }
 
-void Talk_PlayerWhisper(Packets *server, int map_id, String message, int break_byte)
+void Server_BroadcastMapMutation(Packets *server,
+                                 int map_id,
+                                 String map_data,
+                                 int reply_code)
 {
     for (Player **player_iter = server->players->players.begin();
          player_iter != server->players->players.end();
@@ -9627,8 +9631,8 @@ void Talk_PlayerWhisper(Packets *server, int map_id, String message, int break_b
         {
             String out = EO_IntToChar(server, EO_BREAK_BYTE);
             out.Insert(EO_IntToChar(server, EO_BREAK_BYTE), out.Length() + 1);
-            out.Insert(EO_IntToChar(server, break_byte), out.Length() + 1);
-            out.Insert(message, out.Length() + 1);
+            out.Insert(EO_IntToChar(server, reply_code), out.Length() + 1);
+            out.Insert(map_data, out.Length() + 1);
             out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
             (*player_iter)->socket->SendText(out);
         }
