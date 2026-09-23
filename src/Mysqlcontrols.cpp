@@ -287,7 +287,7 @@ bool mySQLdb::Query(mySQLdb *self, String query)
 
 bool mySQLdb::Mysql_ExecDirect(mySQLdb *self, int expected_query_id, String query)
 {
-    mySQLtask *task = new mySQLtask(1, 0, expected_query_id, "", query);
+    mySQLtask *task = new mySQLtask(QueryId_Direct, 0, expected_query_id, "", query);
     self->thread_queue->thread->Acquire();
     self->thread_queue->EnqueueTask(task);
     self->worker_thread->Resume();
@@ -299,7 +299,7 @@ bool mySQLdb::Mysql_ExecDirect_FromCallback(mySQLdb *self,
                                             int expected_query_id,
                                             String query)
 {
-    mySQLtask *task = new mySQLtask(1, 0, expected_query_id, "", query);
+    mySQLtask *task = new mySQLtask(QueryId_Direct, 0, expected_query_id, "", query);
     self->thread_queue->EnqueueTask(task);
     return 1;
 }

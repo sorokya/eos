@@ -1377,7 +1377,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                     {
                         mySQLdb::Mysql_SubmitQuery(
                             server->mysql_controls,
-                            0x53,
+                            QueryId_TopGuilds,
                             player->player_id,
                             player->query_id,
                             data,
@@ -1762,7 +1762,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                                                      PacketReader_GetBreakString(server));
         mySQLdb::Mysql_SubmitQuery(
             server->mysql_controls,
-            0x40,
+            QueryId_Login,
             player->player_id,
             player->query_id,
             data,
@@ -1780,7 +1780,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return false;
             mySQLdb::Mysql_SubmitQuery(
                 server->mysql_controls,
-                0x42,
+                QueryId_AccountByIdent,
                 player->player_id,
                 player->query_id,
                 data,
@@ -1821,7 +1821,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             player->account_create_cooldown = 6;
             mySQLdb::Mysql_SubmitQuery(
                 server->mysql_controls,
-                0x43,
+                QueryId_AccountNameCheck,
                 player->player_id,
                 player->query_id,
                 data,
@@ -1844,7 +1844,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 server->mysql_controls, PacketReader_GetBreakString(server));
             mySQLdb::Mysql_SubmitQuery(
                 server->mysql_controls,
-                0x44,
+                QueryId_CreateAccount,
                 player->player_id,
                 player->query_id,
                 data,
@@ -2038,7 +2038,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             }
             mySQLdb::Mysql_SubmitQuery(
                 server->mysql_controls,
-                0x45,
+                QueryId_CharacterNameCheck,
                 player->player_id,
                 player->query_id,
                 data,
@@ -5597,7 +5597,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return true;
             String rank_field = "rank" + IntToStr(rank);
             mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
-                                       0x47,
+                                       QueryId_GuildRank,
                                        player->player_id,
                                        player->query_id,
                                        data,
@@ -5634,7 +5634,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             {
                 mySQLdb::Mysql_SubmitQuery(
                     server->mysql_controls,
-                    0x49,
+                    QueryId_GuildMemberLookup,
                     player->player_id,
                     player->query_id,
                     data,
@@ -5819,7 +5819,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                     return true;
                 mySQLdb::Mysql_SubmitQuery(
                     server->mysql_controls,
-                    0x4a,
+                    QueryId_GuildDescription,
                     player->player_id,
                     player->query_id,
                     data,
@@ -5831,7 +5831,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             {
                 mySQLdb::Mysql_SubmitQuery(
                     server->mysql_controls,
-                    0x4b,
+                    QueryId_GuildRanks,
                     player->player_id,
                     player->query_id,
                     data,
@@ -5843,7 +5843,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             if (info_type == GuildInfoType_Bank)
             {
                 mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
-                                           0x4c,
+                                           QueryId_GuildMoney,
                                            player->player_id,
                                            player->query_id,
                                            data,
@@ -5880,7 +5880,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                            "ident_guild = '" +
                            guild + "' ORDER BY ident_rank, name LIMIT 100";
             mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
-                                       0x4d,
+                                       QueryId_GuildMembers,
                                        player->player_id,
                                        player->query_id,
                                        data,
@@ -5914,7 +5914,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             String query =
                 "SELECT * FROM endl_guilds WHERE tag = '" + guild + "' LIMIT 1";
             mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
-                                       0x4e,
+                                       QueryId_GuildInfo,
                                        player->player_id,
                                        player->query_id,
                                        data,
@@ -6072,7 +6072,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return false;
             }
             mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
-                                       0x51,
+                                       QueryId_GuildCreate,
                                        player->player_id,
                                        player->query_id,
                                        data,
@@ -6101,7 +6101,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             if (player->name != target->guild_inviter_name)
                 return true;
             mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
-                                       0x52,
+                                       QueryId_GuildAccept,
                                        player->player_id,
                                        player->query_id,
                                        data,
@@ -6236,7 +6236,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return true;
             }
             mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
-                                       0x50,
+                                       QueryId_GuildCreateRequest,
                                        player->player_id,
                                        player->query_id,
                                        data,
@@ -7417,7 +7417,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
         return;
     if (player->query_id != query_result->expected_query_id)
         return;
-    if (query_result->query_id == 0x40)
+    if (query_result->query_id == QueryId_Login)
     {
         PacketReader_Init(
             server, query_result->data, EO_IntToChar(server, EO_BREAK_BYTE));
@@ -7507,7 +7507,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                                                    "' WHERE ident = " + IntToStr(ident));
         mySQLdb::Mysql_SubmitQuery_FromCallback(
             server->mysql_controls,
-            0x41,
+            QueryId_CharacterList,
             player->player_id,
             player->query_id,
             "",
@@ -7516,7 +7516,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                 " ORDER BY level DESC LIMIT 3");
         return;
     }
-    if (query_result->query_id == 0x41)
+    if (query_result->query_id == QueryId_CharacterList)
     {
         Login_SendCharacterList(server,
                                 player,
@@ -7525,7 +7525,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                                 EO_EncodeNumber(server, 3, 2));
         return;
     }
-    if (query_result->query_id == 0x45)
+    if (query_result->query_id == QueryId_CharacterNameCheck)
     {
         if (GUI->myquery->RecordCount > 0)
         {
@@ -7566,7 +7566,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
             server->mysql_controls, player->account_ident, sql);
         mySQLdb::Mysql_SubmitQuery_FromCallback(
             server->mysql_controls,
-            0x46,
+            QueryId_CreateCharacter,
             player->player_id,
             player->query_id,
             "",
@@ -7576,7 +7576,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
         server->mysql_controls->file_cache->characters_count++;
         return;
     }
-    if (query_result->query_id == 0x46)
+    if (query_result->query_id == QueryId_CreateCharacter)
     {
         Login_SendCharacterList(server,
                                 player,
@@ -7587,7 +7587,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
         player->session_id = RandRange(50000) + 10000;
         return;
     }
-    if (query_result->query_id == 0x43)
+    if (query_result->query_id == QueryId_AccountNameCheck)
     {
         if (GUI->myquery->RecordCount > 0)
         {
@@ -7606,7 +7606,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
             server, player, PacketAction_Reply, PacketFamily_Account, reply);
         return;
     }
-    if (query_result->query_id == 0x44)
+    if (query_result->query_id == QueryId_CreateAccount)
     {
         if (GUI->myquery->RecordCount > 0)
         {
@@ -7665,7 +7665,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
         player->session_id = RandRange(50000) + 10000;
         return;
     }
-    if (query_result->query_id == 0x42)
+    if (query_result->query_id == QueryId_AccountByIdent)
     {
         PacketReader_Init(
             server, query_result->data, EO_IntToChar(server, EO_BREAK_BYTE));
@@ -7706,7 +7706,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                                       IntToStr((unsigned int)player->account_ident));
         return;
     }
-    if (query_result->query_id == 0x47)
+    if (query_result->query_id == QueryId_GuildRank)
     {
         if (GUI->myquery->RecordCount < 1)
             return;
@@ -7723,7 +7723,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
             player->guild_query_scratch = rank_value;
             mySQLdb::Mysql_SubmitQuery_FromCallback(
                 server->mysql_controls,
-                0x48,
+                QueryId_GuildMemberRank,
                 player->player_id,
                 player->query_id,
                 query_result->data,
@@ -7764,7 +7764,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                            EO_EncodeNumber(server, GuildReply_Updated, 2));
         return;
     }
-    if (query_result->query_id == 0x48)
+    if (query_result->query_id == QueryId_GuildMemberRank)
     {
         if (GUI->myquery->RecordCount < 1)
             return;
@@ -7803,7 +7803,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                            EO_EncodeNumber(server, GuildReply_Updated, 2));
         return;
     }
-    if (query_result->query_id == 0x49)
+    if (query_result->query_id == QueryId_GuildMemberLookup)
     {
         if (GUI->myquery->RecordCount < 1)
             return;
@@ -7841,7 +7841,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                            EO_EncodeNumber(server, GuildReply_Removed, 2));
         return;
     }
-    if (query_result->query_id == 0x4a)
+    if (query_result->query_id == QueryId_GuildDescription)
     {
         if (GUI->myquery->RecordCount < 1)
             return;
@@ -7852,7 +7852,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
             server, player, PacketAction_Take, PacketFamily_Guild, description);
         return;
     }
-    if (query_result->query_id == 0x4b)
+    if (query_result->query_id == QueryId_GuildRanks)
     {
         if (GUI->myquery->RecordCount < 1)
             return;
@@ -7885,7 +7885,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
         Client_SendEncoded(server, player, PacketAction_Rank, PacketFamily_Guild, ranks);
         return;
     }
-    if (query_result->query_id == 0x4c)
+    if (query_result->query_id == QueryId_GuildMoney)
     {
         if (GUI->myquery->RecordCount < 1)
             return;
@@ -7898,7 +7898,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                 server, mySQLdb::Db_GetInt(server->mysql_controls, "money"), 4));
         return;
     }
-    if (query_result->query_id == 0x4d)
+    if (query_result->query_id == QueryId_GuildMembers)
     {
         if (GUI->myquery->RecordCount < 1)
         {
@@ -7929,7 +7929,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
         Client_SendEncoded(server, player, PacketAction_Tell, PacketFamily_Guild, list);
         return;
     }
-    if (query_result->query_id == 0x4e)
+    if (query_result->query_id == QueryId_GuildInfo)
     {
         if (GUI->myquery->RecordCount < 1)
         {
@@ -8021,7 +8021,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                                            player->guild_query_scratch.Length() + 1);
         mySQLdb::Mysql_SubmitQuery_FromCallback(
             server->mysql_controls,
-            0x4f,
+            QueryId_GuildLeaders,
             player->player_id,
             player->query_id,
             "",
@@ -8030,7 +8030,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                 tag + "' ORDER by ident_rank asc LIMIT 20");
         return;
     }
-    if (query_result->query_id == 0x4f)
+    if (query_result->query_id == QueryId_GuildLeaders)
     {
         bool has_result = true;
         if (GUI->myquery->RecordCount < 1)
@@ -8070,7 +8070,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                            player->guild_query_scratch);
         return;
     }
-    if (query_result->query_id == 0x50)
+    if (query_result->query_id == QueryId_GuildCreateRequest)
     {
         if (mySQLdb::GetResultCount(server->mysql_controls) > 0)
         {
@@ -8100,7 +8100,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
             server, player->map_id, PacketAction_Request, PacketFamily_Guild, msg);
         return;
     }
-    if (query_result->query_id == 0x51)
+    if (query_result->query_id == QueryId_GuildCreate)
     {
         if (GUI->myquery->RecordCount > 0)
             return;
@@ -8163,7 +8163,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
         server->mysql_controls->file_cache->guilds_count++;
         return;
     }
-    if (query_result->query_id == 0x52)
+    if (query_result->query_id == QueryId_GuildAccept)
     {
         if (GUI->myquery->RecordCount < 1)
             return;
@@ -8212,7 +8212,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                            EO_EncodeNumber(server, GuildReply_Accepted, 2));
         return;
     }
-    if (query_result->query_id == 0x53)
+    if (query_result->query_id == QueryId_TopGuilds)
     {
         vector<TopGuild *>::iterator it =
             server->mysql_controls->file_cache->pending_guild_writes.begin();

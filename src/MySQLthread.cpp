@@ -65,7 +65,7 @@ void __fastcall MySQLthread::Execute()
                 if (task->query_id < 0x3c)
                 {
                     query->ExecSQL();
-                    if (task->query_id != 1)
+                    if (task->query_id != QueryId_Direct)
                         Synchronize(OnResult);
                 }
                 else

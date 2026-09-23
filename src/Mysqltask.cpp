@@ -37,13 +37,13 @@ mySQLbuffer::~mySQLbuffer()
 void mySQLbuffer::EnqueueTask(mySQLtask *task)
 {
     if (task->player_id == last_player_id && task->query_id == last_query_id &&
-        task->query_id != 1)
+        task->query_id != QueryId_Direct)
         return;
 
     for (vector<mySQLtask *>::iterator it = job_queue.begin(); it != job_queue.end();
          ++it)
     {
-        if ((*it)->player_id == task->player_id && task->query_id != 1 &&
+        if ((*it)->player_id == task->player_id && task->query_id != QueryId_Direct &&
             (*it)->query_id == task->query_id)
             return;
     }
@@ -56,11 +56,12 @@ bool mySQLbuffer::HasPendingTask(int expected_query_id)
     for (vector<mySQLtask *>::iterator it = job_queue.begin(); it != job_queue.end();
          ++it)
     {
-        if ((*it)->expected_query_id == expected_query_id && (*it)->query_id == 1)
+        if ((*it)->expected_query_id == expected_query_id &&
+            (*it)->query_id == QueryId_Direct)
             return true;
     }
 
-    if (last_expected_query_id == expected_query_id && last_query_id == 1)
+    if (last_expected_query_id == expected_query_id && last_query_id == QueryId_Direct)
         return true;
 
     return false;
