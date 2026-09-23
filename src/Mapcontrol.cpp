@@ -30,7 +30,7 @@ Mapcontrol_GetNpcIdByIndex(MapContainer *self, int map_id, unsigned int npc_inde
 MapCoord
 Mapcontrol_GetNpcCoordsByIndex(MapContainer *self, int map_id, unsigned int npc_index);
 char Mapcontrol_IsDropTileClear(MapContainer *self, int map_id, int x, int y);
-int Mapcontrol_CountBlockedNeighbors(MapContainer *self,
+int Mapcontrol_CountWalkableNeighbors(MapContainer *self,
                                      int map_id,
                                      unsigned int x,
                                      unsigned int y);
@@ -633,24 +633,24 @@ bool MapContainer::Mapcontrol_IsTileWalkable(MapContainer *self, int map_id, int
     return result;
 }
 
-int Mapcontrol_CountBlockedNeighbors(MapContainer *self,
+int Mapcontrol_CountWalkableNeighbors(MapContainer *self,
                                      int map_id,
                                      unsigned int x,
                                      unsigned int y)
 {
     int result = 0;
-    if (MapContainer::Mapcontrol_IsWalkableNPC(self, map_id, x - 1, y, 1) == 0)
+    if (MapContainer::Mapcontrol_GetWalkableStatus(self, map_id, x - 1, y, 1) == 0)
         result = result + 1;
-    if (MapContainer::Mapcontrol_IsWalkableNPC(self, map_id, x, y - 1, 1) == 0)
+    if (MapContainer::Mapcontrol_GetWalkableStatus(self, map_id, x, y - 1, 1) == 0)
         result = result + 1;
-    if (MapContainer::Mapcontrol_IsWalkableNPC(self, map_id, x + 1, y, 1) == 0)
+    if (MapContainer::Mapcontrol_GetWalkableStatus(self, map_id, x + 1, y, 1) == 0)
         result = result + 1;
-    if (MapContainer::Mapcontrol_IsWalkableNPC(self, map_id, x, y + 1, 1) == 0)
+    if (MapContainer::Mapcontrol_GetWalkableStatus(self, map_id, x, y + 1, 1) == 0)
         result = result + 1;
     return result;
 }
 
-int MapContainer::Mapcontrol_IsWalkableNPC(
+int MapContainer::Mapcontrol_GetWalkableStatus(
     MapContainer *self, int map_id, int x, int y, char ignore_spec_block)
 {
     int result = 1;
@@ -943,10 +943,10 @@ bool Mapcontrol_ParseMapFile(MapContainer *self, MapItem *map, int map_id)
         map_buf = IntToStr(map_id);
         for (int i = map_buf.Length(); i <= 4; i++)
             map_buf.Insert("0", 0);
-        int tile_x;
+        int row_y;
         int count;
         int spec;
-        int tile_y;
+        int tile_count;
         map_buf.Insert("./maps/", 0);
         map_buf.Insert(".emf", map_buf.Length() + 1);
         file_handle = FileOpen(map_buf.c_str(), 0);
@@ -1078,48 +1078,48 @@ bool Mapcontrol_ParseMapFile(MapContainer *self, MapItem *map, int map_id)
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            tile_x = MapContainer::DecodeNumber(self, map_buf.SubString(1, 1));
-            tile_y = MapContainer::DecodeNumber(self, map_buf.SubString(2, 1));
+            row_y = MapContainer::DecodeNumber(self, map_buf.SubString(1, 1));
+            tile_count = MapContainer::DecodeNumber(self, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
-            for (int k = 0; k < tile_y; k++)
+            for (int k = 0; k < tile_count; k++)
             {
                 spec = MapContainer::DecodeNumber(self, map_buf.SubString(1, 1));
                 int code = MapContainer::DecodeNumber(self, map_buf.SubString(2, 1));
                 if (code == 0 || code == 0x12)
-                    MapContainer::Mapcontrol_SetTileBits(self, map, spec, tile_x, 1);
+                    MapContainer::Mapcontrol_SetTileBits(self, map, spec, row_y, 1);
                 if (code > 0 && code <= 0x11)
                 {
-                    MapContainer::Mapcontrol_SetTileBits(self, map, spec, tile_x, 2);
+                    MapContainer::Mapcontrol_SetTileBits(self, map, spec, row_y, 2);
                     MapContainer::Mapcontrol_AddTileSpec(
-                        self, map, spec, tile_x, code - 1);
+                        self, map, spec, row_y, code - 1);
                 }
                 if (code == 0x13 || code == 0x1d)
                 {
-                    MapContainer::Mapcontrol_SetTileBits(self, map, spec, tile_x, 2);
-                    MapContainer::Mapcontrol_AddTileSpec(self, map, spec, tile_x, 0x10);
+                    MapContainer::Mapcontrol_SetTileBits(self, map, spec, row_y, 2);
+                    MapContainer::Mapcontrol_AddTileSpec(self, map, spec, row_y, 0x10);
                 }
                 if (code > 0x13 && code <= 0x1b)
                 {
-                    MapContainer::Mapcontrol_SetTileBits(self, map, spec, tile_x, 2);
+                    MapContainer::Mapcontrol_SetTileBits(self, map, spec, row_y, 2);
                     MapContainer::Mapcontrol_AddTileSpec(
-                        self, map, spec, tile_x, code - 1);
+                        self, map, spec, row_y, code - 1);
                 }
                 if (code == 0x1c)
                 {
-                    MapContainer::Mapcontrol_SetTileBits(self, map, spec, tile_x, 2);
+                    MapContainer::Mapcontrol_SetTileBits(self, map, spec, row_y, 2);
                     MapContainer::Mapcontrol_AddTileSpec(
-                        self, map, spec, tile_x, code - 1);
+                        self, map, spec, row_y, code - 1);
                     JukeBoxController::Add(GUI->jukebox_control, map_id);
                 }
                 if (code == 9)
-                    MapContainer::Mapcontrol_GetOrCreateChest(self, map, spec, tile_x);
+                    MapContainer::Mapcontrol_GetOrCreateChest(self, map, spec, row_y);
                 if (code == 0x20)
                     MapContainer::Mapcontrol_AddTileSpec(
-                        self, map, spec, tile_x, code - 1);
+                        self, map, spec, row_y, code - 1);
                 if (code > 0x21 && code < 0x25)
                 {
                     MapContainer::Mapcontrol_AddTileSpec(
-                        self, map, spec, tile_x, code - 1);
+                        self, map, spec, row_y, code - 1);
                     map->has_spikes = 1;
                 }
                 map_buf.Delete(1, 2);
@@ -1129,30 +1129,30 @@ bool Mapcontrol_ParseMapFile(MapContainer *self, MapItem *map, int map_id)
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            tile_x = MapContainer::DecodeNumber(self, map_buf.SubString(1, 1));
-            tile_y = MapContainer::DecodeNumber(self, map_buf.SubString(2, 1));
+            row_y = MapContainer::DecodeNumber(self, map_buf.SubString(1, 1));
+            tile_count = MapContainer::DecodeNumber(self, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
-            for (int k = 0; k < tile_y; k++)
+            for (int k = 0; k < tile_count; k++)
             {
                 spec = MapContainer::DecodeNumber(self, map_buf.SubString(1, 1));
                 int lock_key = MapContainer::DecodeNumber(self, map_buf.SubString(7, 2));
-                MapContainer::Mapcontrol_SetTileBits(self, map, spec, tile_x, 3);
+                MapContainer::Mapcontrol_SetTileBits(self, map, spec, row_y, 3);
                 MapContainer::Mapcontrol_AddWarp(
                     self,
                     map,
                     spec,
-                    tile_x,
+                    row_y,
                     MapContainer::DecodeNumber(self, map_buf.SubString(2, 2)),
                     MapContainer::DecodeNumber(self, map_buf.SubString(6, 1)),
                     MapContainer::DecodeNumber(self, map_buf.SubString(4, 1)),
                     MapContainer::DecodeNumber(self, map_buf.SubString(5, 1)));
                 if (lock_key > 0)
                 {
-                    MapContainer::Mapcontrol_AddTileSpec(self, map, spec, tile_x, 0xa);
-                    MapContainer::Mapcontrol_SetTileBits(self, map, spec, tile_x, 2);
+                    MapContainer::Mapcontrol_AddTileSpec(self, map, spec, row_y, 0xa);
+                    MapContainer::Mapcontrol_SetTileBits(self, map, spec, row_y, 2);
                     if (lock_key > 1)
                         MapContainer::Mapcontrol_AddLockKey(
-                            self, map, spec, tile_x, lock_key);
+                            self, map, spec, row_y, lock_key);
                 }
                 map_buf.Delete(1, 8);
             }
@@ -1178,10 +1178,10 @@ bool MapContainer::Mapcontrol_LoadMap(MapContainer *self, int map_id)
         map_buf = IntToStr(map_id);
         for (int i = map_buf.Length(); i <= 4; i++)
             map_buf.Insert("0", 0);
-        int tile_x;
+        int row_y;
         int count;
         int spec;
-        int tile_y;
+        int tile_count;
         map_buf.Insert("./maps/", 0);
         map_buf.Insert(".emf", map_buf.Length() + 1);
         file_handle = FileOpen(map_buf.c_str(), 0);
@@ -1311,48 +1311,48 @@ bool MapContainer::Mapcontrol_LoadMap(MapContainer *self, int map_id)
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            tile_x = MapContainer::DecodeNumber(self, map_buf.SubString(1, 1));
-            tile_y = MapContainer::DecodeNumber(self, map_buf.SubString(2, 1));
+            row_y = MapContainer::DecodeNumber(self, map_buf.SubString(1, 1));
+            tile_count = MapContainer::DecodeNumber(self, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
-            for (int k = 0; k < tile_y; k++)
+            for (int k = 0; k < tile_count; k++)
             {
                 spec = MapContainer::DecodeNumber(self, map_buf.SubString(1, 1));
                 int code = MapContainer::DecodeNumber(self, map_buf.SubString(2, 1));
                 if (code == 0 || code == 0x12)
-                    MapContainer::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 1);
+                    MapContainer::Mapcontrol_SetTileBits(self, &map, spec, row_y, 1);
                 if (code > 0 && code <= 0x11)
                 {
-                    MapContainer::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 2);
+                    MapContainer::Mapcontrol_SetTileBits(self, &map, spec, row_y, 2);
                     MapContainer::Mapcontrol_AddTileSpec(
-                        self, &map, spec, tile_x, code - 1);
+                        self, &map, spec, row_y, code - 1);
                 }
                 if (code == 0x13 || code == 0x1d)
                 {
-                    MapContainer::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 2);
-                    MapContainer::Mapcontrol_AddTileSpec(self, &map, spec, tile_x, 0x10);
+                    MapContainer::Mapcontrol_SetTileBits(self, &map, spec, row_y, 2);
+                    MapContainer::Mapcontrol_AddTileSpec(self, &map, spec, row_y, 0x10);
                 }
                 if (code > 0x13 && code <= 0x1b)
                 {
-                    MapContainer::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 2);
+                    MapContainer::Mapcontrol_SetTileBits(self, &map, spec, row_y, 2);
                     MapContainer::Mapcontrol_AddTileSpec(
-                        self, &map, spec, tile_x, code - 1);
+                        self, &map, spec, row_y, code - 1);
                 }
                 if (code == 0x1c)
                 {
-                    MapContainer::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 2);
+                    MapContainer::Mapcontrol_SetTileBits(self, &map, spec, row_y, 2);
                     MapContainer::Mapcontrol_AddTileSpec(
-                        self, &map, spec, tile_x, code - 1);
+                        self, &map, spec, row_y, code - 1);
                     JukeBoxController::Add(GUI->jukebox_control, map_id);
                 }
                 if (code == 9)
-                    MapContainer::Mapcontrol_GetOrCreateChest(self, &map, spec, tile_x);
+                    MapContainer::Mapcontrol_GetOrCreateChest(self, &map, spec, row_y);
                 if (code == 0x20)
                     MapContainer::Mapcontrol_AddTileSpec(
-                        self, &map, spec, tile_x, code - 1);
+                        self, &map, spec, row_y, code - 1);
                 if (code > 0x21 && code < 0x25)
                 {
                     MapContainer::Mapcontrol_AddTileSpec(
-                        self, &map, spec, tile_x, code - 1);
+                        self, &map, spec, row_y, code - 1);
                     map.has_spikes = 1;
                 }
                 map_buf.Delete(1, 2);
@@ -1362,30 +1362,30 @@ bool MapContainer::Mapcontrol_LoadMap(MapContainer *self, int map_id)
         map_buf.Delete(1, 1);
         for (int i = 0; i < count; i++)
         {
-            tile_x = MapContainer::DecodeNumber(self, map_buf.SubString(1, 1));
-            tile_y = MapContainer::DecodeNumber(self, map_buf.SubString(2, 1));
+            row_y = MapContainer::DecodeNumber(self, map_buf.SubString(1, 1));
+            tile_count = MapContainer::DecodeNumber(self, map_buf.SubString(2, 1));
             map_buf.Delete(1, 2);
-            for (int k = 0; k < tile_y; k++)
+            for (int k = 0; k < tile_count; k++)
             {
                 spec = MapContainer::DecodeNumber(self, map_buf.SubString(1, 1));
                 int lock_key = MapContainer::DecodeNumber(self, map_buf.SubString(7, 2));
-                MapContainer::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 3);
+                MapContainer::Mapcontrol_SetTileBits(self, &map, spec, row_y, 3);
                 MapContainer::Mapcontrol_AddWarp(
                     self,
                     &map,
                     spec,
-                    tile_x,
+                    row_y,
                     MapContainer::DecodeNumber(self, map_buf.SubString(2, 2)),
                     MapContainer::DecodeNumber(self, map_buf.SubString(6, 1)),
                     MapContainer::DecodeNumber(self, map_buf.SubString(4, 1)),
                     MapContainer::DecodeNumber(self, map_buf.SubString(5, 1)));
                 if (lock_key > 0)
                 {
-                    MapContainer::Mapcontrol_AddTileSpec(self, &map, spec, tile_x, 0xa);
-                    MapContainer::Mapcontrol_SetTileBits(self, &map, spec, tile_x, 2);
+                    MapContainer::Mapcontrol_AddTileSpec(self, &map, spec, row_y, 0xa);
+                    MapContainer::Mapcontrol_SetTileBits(self, &map, spec, row_y, 2);
                     if (lock_key > 1)
                         MapContainer::Mapcontrol_AddLockKey(
-                            self, &map, spec, tile_x, lock_key);
+                            self, &map, spec, row_y, lock_key);
                 }
                 map_buf.Delete(1, 8);
             }

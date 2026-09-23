@@ -73,7 +73,7 @@ String Server_BuildOnlineNames(Packets *server);
 String Message_BuildServerStatus(Packets *server);
 String Server_BuildOnlineList(Packets *server);
 String NpcRange_Lookup(Packets *server, Player *player, unsigned int npc_index);
-bool FUN_00462374(Packets *server, Player *player, String data);
+bool Server_HandleInit(Packets *server, Player *player, String data);
 String Server_BuildInitOkReply(Packets *server, Player *player);
 String Server_BuildInitVersionReply(Packets *server);
 String Server_BuildInitBanReply(Packets *server);
@@ -168,8 +168,8 @@ int Math_Abs(int value);
 bool Spell_Execute(Packets *server, Player *caster, int action, String *data);
 bool Walk_Execute(Packets *server, Player *player, int action, String *data);
 void Connection_Ping(Packets *server);
-void FUN_00470584();
-int FUN_00470598(int a0, int value);
+void Random_Seed();
+int EO_DeriveSessionKey(int a0, int value);
 String Account_DecodePassword(Packets *server, String value);
 String Account_EncodePassword(Packets *server, String value);
 String EO_EncodeNumber(Packets *server, unsigned int value, int width);
@@ -273,13 +273,13 @@ Packets::Packets(MapContainer *map_control,
     ticks = 0;
     shutting_down = 0;
     kill_counters_cleared = 0;
-    state_0x00 = 1;
-    state_0x04 = 1;
+    chat_log_line_count = 1;
+    chat_log_file_index = 1;
     cheat_offset_x = 0;
     cheat_offset_y = 0;
 }
 
-bool FUN_00462374(Packets *server, Player *player, String data);
+bool Server_HandleInit(Packets *server, Player *player, String data);
 void Server_BroadcastToPartyOnMap(Packets *server,
                                   Player *player,
                                   unsigned char action,
@@ -377,7 +377,7 @@ void Game_Tick(Packets *server)
                     (*player)->recover_ticks = 0;
                 }
                 if (server->hangup_gate != 0 &&
-                    Players::Players_GetIdleTimeout(server->players) + 600 <
+                    Players::Players_GetOnlineCount(server->players) + 600 <
                         (*player)->hangup_ticks)
                 {
                     if (!(*player)->removing)
@@ -563,7 +563,7 @@ void Server_ClientRead(Packets *server, TCustomWinSocket *socket, String data)
                 socket->Close();
                 break;
             }
-            if (!FUN_00462374(
+            if (!Server_HandleInit(
                     server, player, player->receive_buffer.SubString(3, packet_len - 2)))
             {
                 socket->Close();
@@ -616,8 +616,8 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             found = true;
     if (!found)
         return true;
-    GUI->field_0x370 = family;
-    GUI->field_0x36c = action;
+    GUI->last_packet_family = family;
+    GUI->last_packet_action = action;
     if (family == PacketFamily_Walk)
     {
         if (!player->logged_in)
@@ -779,7 +779,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                             coords.x = player->x;
                             coords.y = player->y;
                         }
-                        if (Mapcontrol_CountBlockedNeighbors(server->map_control,
+                        if (Mapcontrol_CountWalkableNeighbors(server->map_control,
                                                              player->map_id,
                                                              coords.x,
                                                              coords.y) == 0)
@@ -1018,7 +1018,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                             out.Insert(IntToStr(GUI->server->Socket->ActiveConnections) +
                                            " conn] [",
                                        out.Length() + 1);
-                            out.Insert(IntToStr(Players::Players_GetIdleTimeout(
+                            out.Insert(IntToStr(Players::Players_GetOnlineCount(
                                            server->players)) +
                                            " players] [",
                                        out.Length() + 1);
@@ -1560,11 +1560,11 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             }
             else
             {
-                if (player->field_0x37c < 1 && player->field_0x37c < 1)
+                if (player->say_chat_tokens < 1 && player->say_chat_tokens < 1)
                     return true;
                 Server_BroadcastNearby(
                     server, player, PacketAction_Player, PacketFamily_Talk, seq);
-                player->field_0x37c--;
+                player->say_chat_tokens--;
                 return true;
             }
         }
@@ -1681,7 +1681,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             }
             if (Settings::GetJailMap(server->settings) == player->map_id)
                 return false;
-            if (player->field_0x378 < 1 && player->admin_level < AdminLevel_Spy)
+            if (player->world_chat_tokens < 1 && player->admin_level < AdminLevel_Spy)
                 return true;
             if (!mySQLdb::IsAsciiText(server->mysql_controls, data))
                 return true;
@@ -1707,11 +1707,11 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                                          "] " + data);
             }
             Admin_ReportToGMs(server, player, PacketAction_Msg, PacketFamily_Talk, out);
-            player->field_0x378--;
+            player->world_chat_tokens--;
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             for (int i = 1; i < 7; i++)
-                server->field_0x8c[i - 1] = server->field_0x8c[i];
-            server->field_0x8c[6] = out;
+                server->global_chat_history[i - 1] = server->global_chat_history[i];
+            server->global_chat_history[6] = out;
             return true;
         }
         if (action == PacketAction_Admin)
@@ -2176,7 +2176,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return false;
             if (data.Length() != 4)
                 return false;
-            if (Players::Players_GetIdleTimeout(server->players) >
+            if (Players::Players_GetOnlineCount(server->players) >
                 Settings::GetMaxPlayers(server->settings))
             {
                 if (!server->logins->ConnectionLog_CheckIP(player->socket->RemoteAddress))
@@ -2205,7 +2205,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                     return false;
                 if (slot->character_id != selected_id)
                     continue;
-                if (!Mapcontrol_CountBlockedNeighbors(
+                if (!Mapcontrol_CountWalkableNeighbors(
                         server->map_control, slot->map_id, slot->x, slot->y))
                 {
                     slot->map_id = Settings::GetRescueMap(server->settings);
@@ -2235,7 +2235,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, GUI->item_values->rid_2, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, GUI->item_values->num_records, 2),
+                out.Insert(EO_EncodeNumber(server, GUI->item_values->total_items_count, 2),
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, GUI->npc_values->rid_1, 2),
                            out.Length() + 1);
@@ -2253,7 +2253,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, GUI->class_values->rid_2, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, GUI->class_values->num_records, 2),
+                out.Insert(EO_EncodeNumber(server, GUI->class_values->num_classes, 2),
                            out.Length() + 1);
                 out.Insert(slot->name, out.Length() + 1);
                 out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
@@ -3628,9 +3628,9 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return false;
             if (player->warp_map != read_map)
                 return false;
-            if (player->read_len > 0)
+            if (player->trade_partner_id > 0)
             {
-                Player *target = server->players->by_id[player->read_len];
+                Player *target = server->players->by_id[player->trade_partner_id];
                 if (target != NULL)
                 {
                     Client_SendEncoded(server,
@@ -3664,10 +3664,10 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             player->y = 0;
             player->idle_ticks = 0;
             player->dead = false;
-            player->read_len = -1;
+            player->trade_partner_id = -1;
             player->guild_inviter_id = -1;
             player->session_token = -1;
-            player->field_0x8c = "";
+            player->guild_inviter_name = "";
             Client_SendRaw(
                 server, player, Mapcontrol_ReadRawFile(server->map_control, read_map), 4);
             return true;
@@ -3690,9 +3690,9 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return true;
             if (player->warp_y > 0xf0 || player->warp_y < 0)
                 return true;
-            if (player->read_len > 0)
+            if (player->trade_partner_id > 0)
             {
-                Player *target = server->players->by_id[player->read_len];
+                Player *target = server->players->by_id[player->trade_partner_id];
                 if (target != NULL)
                 {
                     Client_SendEncoded(server,
@@ -3725,10 +3725,10 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             if (player->arena_playing)
                 player->arena_queued = true;
             player->arena_playing = false;
-            player->read_len = -1;
+            player->trade_partner_id = -1;
             player->guild_inviter_id = -1;
             player->session_token = -1;
-            player->field_0x8c = "";
+            player->guild_inviter_name = "";
             player->warp_state = 0;
             player->warp_pending = false;
             player->map_switch_pending = false;
@@ -4976,7 +4976,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return true;
             if ((unsigned int)amount > (unsigned int)have || (unsigned int)amount < 1)
                 return true;
-            if (player->read_len < 1)
+            if (player->trade_partner_id < 1)
                 return false;
             if ((unsigned int)Players::Players_GetItemAmount(
                     server->players, player, item_id) < (unsigned int)amount)
@@ -4985,12 +4985,12 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                     server->banned, player->remote_ip, player->hdid, (char)0, 0xc8);
                 return false;
             }
-            Player *target = server->players->by_id[player->read_len];
+            Player *target = server->players->by_id[player->trade_partner_id];
             if (target == NULL)
                 return false;
             if (player->map_id != target->map_id)
                 return true;
-            if (target->read_len != player->player_id)
+            if (target->trade_partner_id != player->player_id)
             {
                 player->trade_accepted = false;
                 return false;
@@ -5031,12 +5031,12 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return false;
             if (data.Length() < 2)
                 return false;
-            Player *target = server->players->by_id[player->read_len];
+            Player *target = server->players->by_id[player->trade_partner_id];
             if (target == NULL)
                 return false;
             if (player->map_id != target->map_id)
                 return false;
-            if (target->read_len != player->player_id)
+            if (target->trade_partner_id != player->player_id)
             {
                 player->trade_accepted = false;
                 return false;
@@ -5079,12 +5079,12 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             if (data.Length() < 1)
                 return false;
             int arg = EO_DecodeNumber(server, String(data[1]));
-            Player *target = server->players->by_id[player->read_len];
+            Player *target = server->players->by_id[player->trade_partner_id];
             if (target == NULL)
                 return false;
             if (player->map_id != target->map_id)
                 return false;
-            if (target->read_len != player->player_id)
+            if (target->trade_partner_id != player->player_id)
             {
                 player->trade_accepted = false;
                 return false;
@@ -5280,11 +5280,11 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             }
             out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), out.Length() + 1);
             player->trade_items.clear();
-            player->read_len = -1;
+            player->trade_partner_id = -1;
             player->trade_accepted = 0;
             player->trade_value = 100;
             target->trade_items.clear();
-            target->read_len = -1;
+            target->trade_partner_id = -1;
             target->trade_accepted = 0;
             target->trade_value = 100;
             Client_SendEncoded(server, player, PacketAction_Use, PacketFamily_Trade, out);
@@ -5305,15 +5305,15 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
         {
             if (!player->logged_in)
                 return false;
-            Player *target = server->players->by_id[player->read_len];
-            if (player->read_len < 1)
+            Player *target = server->players->by_id[player->trade_partner_id];
+            if (player->trade_partner_id < 1)
                 return true;
             if (target == NULL)
                 return true;
             player->trade_items.clear();
             target->trade_items.clear();
-            player->read_len = -1;
-            target->read_len = -1;
+            player->trade_partner_id = -1;
+            target->trade_partner_id = -1;
             player->trade_accepted = 0;
             player->trade_value = 100;
             Client_SendEncoded(server,
@@ -5342,7 +5342,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return true;
             if (target->trade_accepted != 0)
             {
-                if (target->read_len == player->player_id)
+                if (target->trade_partner_id == player->player_id)
                 {
                     Banned::AddBan(
                         server->banned, player->remote_ip, player->hdid, false, 0x3840);
@@ -5350,7 +5350,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 }
                 return true;
             }
-            player->read_len = target_id;
+            player->trade_partner_id = target_id;
             player->trade_accepted = 0;
             player->trade_value = 100;
             player->trade_items.clear();
@@ -5376,9 +5376,9 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return true;
             if (type != 0)
                 return true;
-            if (target->read_len != player->player_id)
+            if (target->trade_partner_id != player->player_id)
                 return true;
-            player->read_len = target->player_id;
+            player->trade_partner_id = target->player_id;
             player->trade_accepted = 0;
             target->trade_accepted = 0;
             player->trade_value = 100;
@@ -5461,7 +5461,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                         EO_EncodeNumber(server, PartyReplyCode_PartyIsFull, 1));
                     return true;
                 }
-                player->read_pos = target->player_id;
+                player->party_invite_id = target->player_id;
                 String msg = EO_EncodeNumber(server, type, 1);
                 msg.Insert(EO_EncodeNumber(server, player->player_id, 2),
                            msg.Length() + 1);
@@ -5494,7 +5494,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                         EO_EncodeNumber(server, PartyReplyCode_PartyIsFull, 1));
                     return true;
                 }
-                player->read_pos = target->player_id;
+                player->party_invite_id = target->player_id;
                 String msg = EO_EncodeNumber(server, type, 1);
                 msg.Insert(EO_EncodeNumber(server, player->player_id, 2),
                            msg.Length() + 1);
@@ -5547,7 +5547,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
             Player *target = Players::Players_GetById(server->players, id);
             if (target == NULL)
                 return true;
-            if (target->read_pos != player->player_id)
+            if (target->party_invite_id != player->player_id)
                 return true;
             if (type == 0)
             {
@@ -6129,7 +6129,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                                    EO_EncodeNumber(server, GuildReply_NotRecruiter, 2));
                 return true;
             }
-            player->field_0x8c = target->name;
+            player->guild_inviter_name = target->name;
             String msg = EO_EncodeNumber(server, GuildReply_JoinRequest, 2);
             msg.Insert(EO_EncodeNumber(server, player->player_id, 2), msg.Length() + 1);
             msg.Insert(player->name, msg.Length() + 1);
@@ -6216,7 +6216,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return true;
             if (target->map_id != player->map_id)
                 return true;
-            if (player->name != target->field_0x8c)
+            if (player->name != target->guild_inviter_name)
                 return true;
             mySQLdb::Mysql_SubmitQuery(server->mysql_controls,
                                        0x52,
@@ -6335,7 +6335,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                                    EO_EncodeNumber(server, GuildReply_NotApproved, 2));
                 return true;
             }
-            if (Players::Players_CountGuildOnMap(server->players, player) < 0xa)
+            if (Players::Players_CountNonGuildMembersOnMap(server->players, player) < 0xa)
             {
                 Client_SendEncoded(server,
                                    player,
@@ -6484,7 +6484,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                 return false;
             if (player->session_token != token)
                 return false;
-            if (player->field_0x80 != rule)
+            if (player->pending_quest_rule != rule)
                 return false;
             player->session_token = RandRange(SESSION_TOKEN_SPAN);
             PlayerQuest *iter;
@@ -6519,7 +6519,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                         break;
                     player->session_id = RandRange(0xc350) + 0x2710;
                     player->session_token = RandRange(0x7530) + SESSION_BASE_QUEST;
-                    player->field_0x80 = rule;
+                    player->pending_quest_rule = rule;
                     out.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE), 1);
                     out.Insert(QuestContainer::GetQuestName(server->quest_engine,
                                                             iter->quest_id),
@@ -6631,7 +6631,7 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                             player->session_id = RandRange(0xc350) + 0x2710;
                             player->session_token =
                                 RandRange(0x7530) + SESSION_BASE_QUEST;
-                            player->field_0x80 = type_info.behavior_id;
+                            player->pending_quest_rule = type_info.behavior_id;
                             payload = EO_EncodeNumber(server, type_info.behavior_id, 2);
                             payload.Insert(EO_EncodeNumber(server, iter->quest_id, 2),
                                            payload.Length() + 1);
@@ -7375,10 +7375,10 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                     out.Length() + 1);
                 out.Insert(
                     EO_EncodeNumber(
-                        server, Players::Players_GetIdleTimeout(server->players), 2),
+                        server, Players::Players_GetOnlineCount(server->players), 2),
                     out.Length() + 1);
                 out.Insert(EO_EncodeNumber(
-                               server, Players::Players_GetStatTotal(server->players), 2),
+                               server, Players::Players_GetPeakOnline(server->players), 2),
                            out.Length() + 1);
                 TTimeStamp now = DateTimeToTimeStamp(Now());
                 int date_delta =
@@ -7499,9 +7499,9 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
         if (action == PacketAction_Open)
         {
             player->global_chat = 1;
-            String names = server->field_0x8c[0];
+            String names = server->global_chat_history[0];
             for (int i = 1; i < 7; i++)
-                names.Insert(server->field_0x8c[i], names.Length() + 1);
+                names.Insert(server->global_chat_history[i], names.Length() + 1);
             if (names != "")
                 Client_SendEncoded(
                     server, player, PacketAction_List, PacketFamily_Talk, names);
@@ -7606,7 +7606,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
         }
         player->account_ident = ident;
         player->account_name = account_name;
-        player->field_0x48 = account_type;
+        player->account_type = account_type;
         if (Players::Players_IsAccountNameTaken(
                 server->players, player->account_name, player->player_id))
         {
@@ -7699,7 +7699,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                                 PacketAction_Reply,
                                 PacketFamily_Character,
                                 EO_EncodeNumber(server, 5, 2));
-        player->null_string = "";
+        player->reserved_name = "";
         player->session_id = RandRange(50000) + 10000;
         return;
     }
@@ -7836,7 +7836,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
             mySQLdb::Mysql_SanitizeString(server->mysql_controls, rank_value, false);
         if (target == NULL)
         {
-            player->field_0x14 = rank_value;
+            player->guild_query_scratch = rank_value;
             mySQLdb::Mysql_SubmitQuery_FromCallback(
                 server->mysql_controls,
                 0x48,
@@ -7910,7 +7910,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
             server->mysql_controls,
             player->account_ident,
             "UPDATE endl_characters SET ident_rank = " + IntToStr(token) + ", rank = '" +
-                player->field_0x14 + "' WHERE name = '" + char_name +
+                player->guild_query_scratch + "' WHERE name = '" + char_name +
                 "' AND ident_guild = '" + player->guild_tag + "'");
         Client_SendEncoded(server,
                            player,
@@ -8067,61 +8067,61 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
             type = "wealthy";
         if (money >= 0x186a0)
             type = "very wealthy";
-        player->field_0x14 = mySQLdb::Db_GetString(server->mysql_controls, "name");
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "tag"),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "signup"),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(
+        player->guild_query_scratch = mySQLdb::Db_GetString(server->mysql_controls, "name");
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "tag"),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "signup"),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(
             mySQLdb::Db_GetString(server->mysql_controls, "description"),
-            player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(type, player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank1"),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank2"),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank3"),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank4"),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank5"),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank6"),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank7"),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank8"),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank9"),
-                                  player->field_0x14.Length() + 1);
-        player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->field_0x14.Length() + 1);
+            player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(type, player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank1"),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank2"),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank3"),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank4"),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank5"),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank6"),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank7"),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank8"),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank9"),
+                                  player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                  player->guild_query_scratch.Length() + 1);
         mySQLdb::Mysql_SubmitQuery_FromCallback(
             server->mysql_controls,
             0x4f,
@@ -8140,32 +8140,32 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
             has_result = false;
         if (has_result)
         {
-            player->field_0x14.Insert(
+            player->guild_query_scratch.Insert(
                 EO_EncodeNumber(
                     server, mySQLdb::GetResultCount(server->mysql_controls), 2),
-                player->field_0x14.Length() + 1);
-            player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                      player->field_0x14.Length() + 1);
+                player->guild_query_scratch.Length() + 1);
+            player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                      player->guild_query_scratch.Length() + 1);
             while (!mySQLdb::ResultAtEnd(server->mysql_controls))
             {
-                player->field_0x14.Insert(
+                player->guild_query_scratch.Insert(
                     EO_EncodeNumber(
                         server,
                         mySQLdb::Db_GetInt(server->mysql_controls, "ident_rank"),
                         1),
-                    player->field_0x14.Length() + 1);
-                player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                          player->field_0x14.Length() + 1);
-                player->field_0x14.Insert(
+                    player->guild_query_scratch.Length() + 1);
+                player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                          player->guild_query_scratch.Length() + 1);
+                player->guild_query_scratch.Insert(
                     mySQLdb::Db_GetString(server->mysql_controls, "name"),
-                    player->field_0x14.Length() + 1);
-                player->field_0x14.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                          player->field_0x14.Length() + 1);
+                    player->guild_query_scratch.Length() + 1);
+                player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
+                                          player->guild_query_scratch.Length() + 1);
                 mySQLdb::NextResultRecord(server->mysql_controls);
             }
         }
         Client_SendEncoded(
-            server, player, PacketAction_Report, PacketFamily_Guild, player->field_0x14);
+            server, player, PacketAction_Report, PacketFamily_Guild, player->guild_query_scratch);
         return;
     }
     if (query_result->query_id == 0x50)
@@ -8896,35 +8896,35 @@ void Login_SendCharacterList(Packets *server,
             data.Length() + 1);
         data.Insert(
             EO_EncodeNumber(server,
-                            ItemValues::GetSpec1ForTypes(
+                            ItemValues::GetDollGraphic(
                                 GUI->item_values,
                                 mySQLdb::Db_GetInt(server->mysql_controls, "eq_boots")),
                             2),
             data.Length() + 1);
         data.Insert(
             EO_EncodeNumber(server,
-                            ItemValues::GetSpec1ForTypes(
+                            ItemValues::GetDollGraphic(
                                 GUI->item_values,
                                 mySQLdb::Db_GetInt(server->mysql_controls, "eq_armor")),
                             2),
             data.Length() + 1);
         data.Insert(
             EO_EncodeNumber(server,
-                            ItemValues::GetSpec1ForTypes(
+                            ItemValues::GetDollGraphic(
                                 GUI->item_values,
                                 mySQLdb::Db_GetInt(server->mysql_controls, "eq_hat")),
                             2),
             data.Length() + 1);
         data.Insert(
             EO_EncodeNumber(server,
-                            ItemValues::GetSpec1ForTypes(
+                            ItemValues::GetDollGraphic(
                                 GUI->item_values,
                                 mySQLdb::Db_GetInt(server->mysql_controls, "eq_shield")),
                             2),
             data.Length() + 1);
         data.Insert(
             EO_EncodeNumber(server,
-                            ItemValues::GetSpec1ForTypes(
+                            ItemValues::GetDollGraphic(
                                 GUI->item_values,
                                 mySQLdb::Db_GetInt(server->mysql_controls, "eq_weapon")),
                             2),
@@ -9585,7 +9585,7 @@ String NpcRange_Lookup(Packets *server, Player *player, unsigned int npc_index)
     return fragment;
 }
 
-bool FUN_00462374(Packets *server, Player *player, String data)
+bool Server_HandleInit(Packets *server, Player *player, String data)
 {
     if (data.Length() > 8 && data.Length() < 0x2a)
     {
@@ -9608,7 +9608,7 @@ bool FUN_00462374(Packets *server, Player *player, String data)
                 }
             }
             int session =
-                FUN_00470598((int)server, EO_DecodeNumber(server, data.SubString(3, 3)));
+                EO_DeriveSessionKey((int)server, EO_DecodeNumber(server, data.SubString(3, 3)));
             int patch = EO_DecodeNumber(server, data[6]);
             int minor = EO_DecodeNumber(server, data[7]);
             int major = EO_DecodeNumber(server, data[8]);
@@ -9623,7 +9623,7 @@ bool FUN_00462374(Packets *server, Player *player, String data)
                         player->remove_timer = 7;
                     else
                         player->remove_timer = -1;
-                    player->field_0x34 = session;
+                    player->client_session_key = session;
                     player->initialized = true;
                     player->socket->SendText(Server_BuildInitOkReply(server, player));
                     return true;
@@ -9655,7 +9655,7 @@ String Server_BuildInitOkReply(Packets *server, Player *player)
     out.Insert(EO_GetBreakByte(server, player->client_encryption_multiple),
                out.Length() + 1);
     out.Insert(EO_EncodeNumber(server, player->player_id, 2), out.Length() + 1);
-    out.Insert(EO_EncodeNumber(server, player->field_0x34, 3), out.Length() + 1);
+    out.Insert(EO_EncodeNumber(server, player->client_session_key, 3), out.Length() + 1);
     out.Insert(EO_EncodeNumber(server, out.Length(), 2), 1);
     return out;
 }
@@ -10019,7 +10019,7 @@ void Client_SendEncoded(Packets *server,
     }
 }
 
-void FUN_00470584();
+void Random_Seed();
 
 void Player_Respawn(Packets *server, Player *player)
 {
@@ -10095,7 +10095,7 @@ void Player_Warp(Packets *server,
         player->x = 0;
         player->y = 0;
         player->idle_ticks = 0;
-        player->read_len = -1;
+        player->trade_partner_id = -1;
         player->guild_inviter_id = -1;
         player->session_token = -1;
     }
@@ -12415,7 +12415,7 @@ bool Walk_Execute(Packets *server, Player *player, int action, String *data)
             }
         }
     }
-    int walkable = MapContainer::Mapcontrol_IsWalkableNPC(
+    int walkable = MapContainer::Mapcontrol_GetWalkableStatus(
         server->map_control, player->map_id, target_x, target_y, 1);
     if (walkable == 0 || (walkable == 1 && action == PacketAction_Admin))
     {
@@ -12547,7 +12547,7 @@ bool Walk_Execute(Packets *server, Player *player, int action, String *data)
 
 void Connection_Ping(Packets *server)
 {
-    FUN_00470584();
+    Random_Seed();
     bool found = false;
     int value = 0;
     while (!found)
@@ -12590,12 +12590,12 @@ void Connection_Ping(Packets *server)
     }
 }
 
-void FUN_00470584()
+void Random_Seed()
 {
     srand(time(0));
 }
 
-int FUN_00470598(int a0, int value)
+int EO_DeriveSessionKey(int a0, int value)
 {
     value++;
     int a1 = value % 11 + 1;
@@ -12934,7 +12934,7 @@ int EO_DecodeByte(Packets *self, char value)
     int result = (unsigned char)c;
     return result;
 }
-int FUN_00470598(int a0, int value);
+int EO_DeriveSessionKey(int a0, int value);
 char EO_GetBreakByte(Packets *self, int value)
 {
     char c = value;
@@ -13217,7 +13217,7 @@ void Server_AppendChatLog(Packets *server, String message)
     line.Insert(message, line.Length() + 1);
     line.Insert("\n", line.Length() + 1);
 
-    String idx = IntToStr(server->state_0x04);
+    String idx = IntToStr(server->chat_log_file_index);
     if (idx.Length() < 2)
         idx = "0" + idx;
     String path = ".\\logs\\chat" + idx + ".log";
@@ -13225,14 +13225,14 @@ void Server_AppendChatLog(Packets *server, String message)
     fprintf(fp, "%s", line.c_str());
     fclose(fp);
 
-    server->state_0x00++;
-    if (server->state_0x00 > 0x7530)
+    server->chat_log_line_count++;
+    if (server->chat_log_line_count > 0x7530)
     {
-        server->state_0x04++;
-        server->state_0x00 = 1;
-        if (server->state_0x04 > 0x63)
-            server->state_0x04 = 1;
-        idx = IntToStr(server->state_0x04);
+        server->chat_log_file_index++;
+        server->chat_log_line_count = 1;
+        if (server->chat_log_file_index > 0x63)
+            server->chat_log_file_index = 1;
+        idx = IntToStr(server->chat_log_file_index);
         if (idx.Length() < 2)
             idx = "0" + idx;
         path = ".\\logs\\chat" + idx + ".log";

@@ -20,6 +20,6 @@ struct WeaponMapper
     ~WeaponMapper();
 };
 
-bool Combat_IsRangedWeapon(void *unused, int doll_graphic_id);
+bool Combat_IsRangedWeapon(void *unused, int weapon_graphic_id);
 
 #endif

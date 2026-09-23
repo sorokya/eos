@@ -20,8 +20,8 @@
 class Packets
 {
   public:
-    int state_0x00;                // +0x00
-    int state_0x04;                // +0x04
+    int chat_log_line_count;       // +0x00
+    int chat_log_file_index;       // +0x04
     TStringList *wordfilter;       // +0x08
     WeaponMapper *weapon_map;      // +0x0c
     Players *players;              // +0x10
@@ -54,7 +54,7 @@ class Packets
     String online_names_cache;     // +0x80
     int online_list_ttl;           // +0x84
     String online_list_cache;      // +0x88
-    String field_0x8c[7];          // +0x8c
+    String global_chat_history[7];          // +0x8c
     int ping_history[3];           // +0xa8
     int ticks;                     // +0xb4
     char hangup_gate;              // +0xb8

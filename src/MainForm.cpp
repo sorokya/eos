@@ -36,7 +36,7 @@
 
 TGUI *GUI;
 
-String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code);
+String Mainform_ComputeRegName(TGUI *self, String key_base, String display_code, String unlock_code);
 
 __fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
 {
@@ -231,14 +231,14 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
         mySQLdb::UpdateServerStatus(mysql_controls,
                                     Settings::GetRefreshSeconds(settings),
                                     server->Socket->ActiveConnections,
-                                    Players::Players_GetIdleTimeout(players),
-                                    Players::Players_GetStatTotal(players),
+                                    Players::Players_GetOnlineCount(players),
+                                    Players::Players_GetPeakOnline(players),
                                     Server_FormatSentTraffic(server_ctrl),
                                     Server_FormatReceivedTraffic(server_ctrl));
         if (Visible)
         {
             String s = IntToStr(server->Socket->ActiveConnections) + " con / ";
-            s.Insert(IntToStr(Players::Players_GetIdleTimeout(players)) + " players",
+            s.Insert(IntToStr(Players::Players_GetOnlineCount(players)) + " players",
                      s.Length() + 1);
             panel_buffer->Caption =
                 IntToStr(mySQLdb::Db_GetActiveConnectionCount(mysql_controls)) + " sql";
@@ -256,7 +256,7 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
     {
         if (Players::Players_GetActiveCount(players) > 1)
         {
-            String expected = FUN_00403080(this,
+            String expected = Mainform_ComputeRegName(this,
                                            SerialKey::GetKeyBaseCopy(serial),
                                            SerialKey::GetDisplayCode(serial),
                                            SerialKey::GetUnlockCode(serial));
@@ -267,7 +267,7 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
     }
 }
 
-String FUN_00403080(TGUI *self, String key_base, String display_code, String unlock_code)
+String Mainform_ComputeRegName(TGUI *self, String key_base, String display_code, String unlock_code)
 {
     if (key_base.Length() < 1 || display_code.Length() < 1 || unlock_code.Length() < 1)
         return "";
@@ -329,9 +329,9 @@ void __fastcall TGUI::ApplicationEvents1Exception(TObject *Sender, Exception *E)
     s.Insert(" EndlServ ", s.Length() + 1);
     s.Insert(E->Message, s.Length() + 1);
     s.Insert(" ", s.Length() + 1);
-    s.Insert(IntToStr(field_0x36c), s.Length() + 1);
+    s.Insert(IntToStr(last_packet_action), s.Length() + 1);
     s.Insert(",", s.Length() + 1);
-    s.Insert(IntToStr(field_0x370), s.Length() + 1);
+    s.Insert(IntToStr(last_packet_family), s.Length() + 1);
     s.Insert("\n", s.Length() + 1);
     FILE *fp;
     fp = fopen(".\\logs\\error.log", "a");

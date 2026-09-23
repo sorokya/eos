@@ -13,7 +13,7 @@ ItemValues::ItemValues()
     loaded = 0;
     rid_1 = -1;
     rid_2 = -1;
-    file_id = 0;
+    files_loaded = 0;
     string_list = new TStringList;
     LoadItems(this);
 }
@@ -67,7 +67,7 @@ void ItemValues::LoadItems(ItemValues *self)
                     int parsed = self->DecodeNumber(data.SubString(8, 2));
                     int version = self->DecodeNumber(data.SubString(10, 1));
                     total = parsed;
-                    self->num_records = parsed;
+                    self->total_items_count = parsed;
                 }
                 data.Delete(1, 10);
                 for (int j = 0; count < total && j < 900; j++)
@@ -128,7 +128,7 @@ void ItemValues::LoadItems(ItemValues *self)
             file++;
         } while (count < total);
 
-        self->file_id = file - 1;
+        self->files_loaded = file - 1;
         self->loaded = 1;
     }
 }
@@ -249,7 +249,7 @@ int ItemValues::GetCount(ItemValues *self)
     return self->record_list.size();
 }
 
-int ItemValues::GetSpec1ForTypes(ItemValues *self, int item_id)
+int ItemValues::GetDollGraphic(ItemValues *self, int item_id)
 {
     int result = 0;
     if (item_id > 0)

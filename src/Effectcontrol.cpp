@@ -70,13 +70,13 @@ void EffectController::Tick(EffectController *self)
         {
             if ((*player_iter)->map_has_hp_drain != 0 && (*player_iter)->hp > 0)
             {
-                int hp_regen = (*player_iter)->max_hp / 10;
-                if (hp_regen < 1)
-                    hp_regen = 1;
-                if ((*player_iter)->hp <= hp_regen)
-                    hp_regen = (*player_iter)->hp - 1;
-                (*player_iter)->hp -= hp_regen;
-                (*player_iter)->item_change_count = hp_regen;
+                int hp_drain = (*player_iter)->max_hp / 10;
+                if (hp_drain < 1)
+                    hp_drain = 1;
+                if ((*player_iter)->hp <= hp_drain)
+                    hp_drain = (*player_iter)->hp - 1;
+                (*player_iter)->hp -= hp_drain;
+                (*player_iter)->item_change_count = hp_drain;
                 if (self->map_control->maps[(*player_iter)->map_id - 1]
                         .hp_drain_others_sent != 0)
                 {
@@ -99,21 +99,21 @@ void EffectController::Tick(EffectController *self)
                             1);
                 self->map_control->maps[(*player_iter)->map_id - 1]
                     .hp_drain_others.Insert(
-                        EncodeNumber(self, hp_regen, 2),
+                        EncodeNumber(self, hp_drain, 2),
                         self->map_control->maps[(*player_iter)->map_id - 1]
                                 .hp_drain_others.Length() +
                             1);
             }
             if ((*player_iter)->map_has_tp_drain != 0 && (*player_iter)->tp > 0)
             {
-                int tp_regen = (*player_iter)->max_tp / 10;
-                if (tp_regen < 1)
-                    tp_regen = 1;
-                if ((*player_iter)->tp <= tp_regen)
-                    tp_regen = (*player_iter)->tp - 1;
-                (*player_iter)->tp -= tp_regen;
+                int tp_drain = (*player_iter)->max_tp / 10;
+                if (tp_drain < 1)
+                    tp_drain = 1;
+                if ((*player_iter)->tp <= tp_drain)
+                    tp_drain = (*player_iter)->tp - 1;
+                (*player_iter)->tp -= tp_drain;
                 String pkt = EncodeNumber(self, 1, 1);
-                pkt.Insert(EncodeNumber(self, tp_regen, 2), pkt.Length() + 1);
+                pkt.Insert(EncodeNumber(self, tp_drain, 2), pkt.Length() + 1);
                 pkt.Insert(EncodeNumber(self, (*player_iter)->tp, 2), pkt.Length() + 1);
                 pkt.Insert(EncodeNumber(self, (*player_iter)->max_tp, 2),
                            pkt.Length() + 1);

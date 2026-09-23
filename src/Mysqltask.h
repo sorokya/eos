@@ -36,22 +36,22 @@ class mySQLtask
 //   +0x00 TCriticalSection *        thread
 //   +0x04 vector<mySQLtask *>  job_queue  (32 bytes, +0x04..+0x24)
 //   +0x24 int                       last_player_id
-//   +0x28 int                       field_0x28
-//   +0x2c int                       field_0x2c
+//   +0x28 int                       last_expected_query_id
+//   +0x2c int                       last_query_id
 class mySQLbuffer
 {
   public:
     TCriticalSection *thread;      // +0x00
     vector<mySQLtask *> job_queue; // +0x04
     int last_player_id;            // +0x24
-    int field_0x28;                // +0x28
-    int field_0x2c;                // +0x2c
+    int last_expected_query_id;    // +0x28
+    int last_query_id;             // +0x2c
 
     mySQLbuffer();
     ~mySQLbuffer();
 
     void EnqueueTask(mySQLtask *task);
-    bool HasPendingTask(int player_id);
+    bool HasPendingTask(int expected_query_id);
 };
 
 #endif

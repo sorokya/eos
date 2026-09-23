@@ -23,8 +23,8 @@ int RandRange(int max);
 // Player manager. Layout recovered from the reference (Players unit,
 // 0x407948..0x410de4): a vector<Player *> at +0, the 100000-entry
 // socket-handle index at +0x20, the Settings/mySQLdb back-references at
-// +0x61aa0/+0x61aa4, the removal/dirty flag at +0x61aa8, the idle-timeout
-// counter at +0x61aac and the stat total at +0x61ab0. sizeof is 0x61ab4.
+// +0x61aa0/+0x61aa4, the removal/dirty flag at +0x61aa8, the online-player
+// count at +0x61aac and the peak-online count at +0x61ab0. sizeof is 0x61ab4.
 class Players
 {
   public:
@@ -34,8 +34,8 @@ class Players
     mySQLdb *mysql_controls;          // +0x61aa4
     char dirty;                       // +0x61aa8
     char pad_0x61aa9[3];              // +0x61aa9
-    int idle_timeout;                 // +0x61aac
-    int stat_total;                   // +0x61ab0
+    int online_count;                 // +0x61aac
+    int peak_online;                  // +0x61ab0
 
     Players(Settings *settings, mySQLdb *mysql_controls);
     ~Players();
@@ -59,8 +59,8 @@ class Players
     static int Player_TryLevelUp(Players *self, Player *player);
     static void Player_LevelUp(Players *self, Player *player);
     static int Players_GetActiveCount(Players *self);
-    static int Players_GetIdleTimeout(Players *self);
-    static int Players_GetStatTotal(Players *self);
+    static int Players_GetOnlineCount(Players *self);
+    static int Players_GetPeakOnline(Players *self);
     static void Players_MarkDirty(Players *self);
     static void Player_AddItem(Players *self, Player *player, int item_id, int amount);
     static bool Player_RemoveItem(Players *self, Player *player, int item_id, int amount);
@@ -78,9 +78,9 @@ class Players
     static int Player_LevelUpSpell(Players *self, Player *player, int spell_id);
     static bool Player_RemoveSpell(Players *self, Player *player, int spell_id);
     static void Player_ClearSpells(Players *self, Player *player);
-    static bool Players_IsAccountIdentOnline(Players *self, int field_c);
+    static bool Players_IsAccountIdentOnline(Players *self, int account_ident);
     static int Players_CountGuildInvites(Players *self, Player *player);
-    static int Players_CountGuildOnMap(Players *self, Player *player);
+    static int Players_CountNonGuildMembersOnMap(Players *self, Player *player);
     static void Players_UpdatePeakOnline(Players *self);
     static void Players_GuildSetMemberInfo(Players *self,
                                            Player *player,

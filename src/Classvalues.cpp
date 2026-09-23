@@ -61,7 +61,7 @@ void ClassValues::LoadClasses(ClassValues *self)
                     int parsed = self->DecodeNumber(data.SubString(8, 2));
                     int version = self->DecodeNumber(data.SubString(10, 1));
                     total = parsed;
-                    self->num_records = parsed;
+                    self->num_classes = parsed;
                 }
                 data.Delete(1, 10);
                 for (int j = 0; count < total && j < 0xfa; j++)

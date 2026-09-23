@@ -38,7 +38,11 @@ Banned::~Banned()
 {
 }
 
-void Banned::AddBan(Banned *self, String ip, String serial, bool permanent, int duration)
+void Banned::AddBan(Banned *self,
+                    String ip,
+                    String serial,
+                    bool permanent,
+                    int duration_secs)
 {
     try
     {
@@ -69,7 +73,7 @@ void Banned::AddBan(Banned *self, String ip, String serial, bool permanent, int 
         entry->octet4 = octet4;
         entry->ban_date = DateTimeToTimeStamp(Now());
         entry->ban_type = permanent;
-        entry->duration = duration;
+        entry->duration_secs = duration_secs;
         self->ban_list->Add(entry);
     }
     catch (...)
@@ -77,7 +81,11 @@ void Banned::AddBan(Banned *self, String ip, String serial, bool permanent, int 
     }
 }
 
-void Banned::AddBan(Banned *self, String ip, String hdid, char ban_type, int duration)
+void Banned::AddBan(Banned *self,
+                    String ip,
+                    String hdid,
+                    char ban_type,
+                    int duration_secs)
 {
     try
     {
@@ -106,7 +114,7 @@ void Banned::AddBan(Banned *self, String ip, String hdid, char ban_type, int dur
         entry->octet4 = octet4;
         entry->ban_date = DateTimeToTimeStamp(Now());
         entry->ban_type = ban_type;
-        entry->duration = duration;
+        entry->duration_secs = duration_secs;
         self->ban_list->Add(entry);
     }
     catch (...)
@@ -143,8 +151,8 @@ bool Banned::IsBanned(Banned *self, String ip, String hdid)
             Asocketban *entry = (Asocketban *)self->ban_list->Items[i];
             TTimeStamp now = DateTimeToTimeStamp(Now());
             int days = now.Date - entry->ban_date.Date;
-            int secs = now.Time - entry->ban_date.Time;
-            int elapsed = secs / MS_PER_SECOND + days * SECONDS_PER_DAY;
+            int ms = now.Time - entry->ban_date.Time;
+            int elapsed = ms / MS_PER_SECOND + days * SECONDS_PER_DAY;
             if (entry->octet1 == octet1 || entry->octet1 > 0xff)
             {
                 if (hdid == entry->hdid)
@@ -153,13 +161,13 @@ bool Banned::IsBanned(Banned *self, String ip, String hdid)
                     (entry->octet3 == octet3 || entry->octet3 > 0xff) &&
                     (entry->octet4 == octet4 || entry->octet4 > 0xff))
                     match = true;
-                if (match && entry->duration > elapsed)
+                if (match && entry->duration_secs > elapsed)
                 {
-                    self->field_0x8 = (entry->duration - elapsed) / 60 + 1;
-                    self->field_0xc = entry->ban_type;
+                    self->minutes_remaining = (entry->duration_secs - elapsed) / 60 + 1;
+                    self->ban_type = entry->ban_type;
                     banned = true;
                 }
-                if (entry->ban_type == 0 && entry->duration <= elapsed)
+                if (entry->ban_type == 0 && entry->duration_secs <= elapsed)
                 {
                     self->ban_list->Delete(i);
                     delete entry;
@@ -176,10 +184,10 @@ bool Banned::IsBanned(Banned *self, String ip, String hdid)
 
 int Banned::GetBanType(Banned *self)
 {
-    return self->field_0xc;
+    return self->ban_type;
 }
 
 int Banned::GetBanTime(Banned *self)
 {
-    return self->field_0x8;
+    return self->minutes_remaining;
 }

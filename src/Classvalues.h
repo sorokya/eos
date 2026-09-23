@@ -18,7 +18,7 @@ class ClassValues
 {
   public:
     int file_id;
-    int num_records;
+    int num_classes;
     int rid_1;
     int rid_2;
     char loaded;

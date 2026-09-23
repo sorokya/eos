@@ -13,11 +13,12 @@ WeaponMapper::~WeaponMapper()
 {
 }
 
-bool Combat_IsRangedWeapon(void *unused, int doll_graphic_id)
+bool Combat_IsRangedWeapon(void *unused, int weapon_graphic_id)
 {
     bool ranged = false;
-    if (doll_graphic_id == 0x2a || doll_graphic_id == 0x2b || doll_graphic_id == 0x31 ||
-        doll_graphic_id == 0x32 || doll_graphic_id == 0x3a || doll_graphic_id == 0x49)
+    if (weapon_graphic_id == 0x2a || weapon_graphic_id == 0x2b ||
+        weapon_graphic_id == 0x31 || weapon_graphic_id == 0x32 ||
+        weapon_graphic_id == 0x3a || weapon_graphic_id == 0x49)
         ranged = true;
     return ranged;
 }

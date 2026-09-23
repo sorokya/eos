@@ -9,8 +9,8 @@
 // The item table (EIF). Layout recovered from the reference constructor
 // (0x47826c); sizeof(vector<ItemValue*>) is 32 and the member extent runs
 // to 0x3c / the vector element type is ItemValue*:
-//   +0x00 int                         file_id
-//   +0x04 int                         num_records
+//   +0x00 int                         files_loaded
+//   +0x04 int                         total_items_count
 //   +0x08 int                         rid_1
 //   +0x0c int                         rid_2
 //   +0x10 char                        loaded
@@ -21,8 +21,8 @@
 class ItemValues
 {
   public:
-    int file_id;
-    int num_records;
+    int files_loaded;
+    int total_items_count;
     int rid_1;
     int rid_2;
     char loaded;
@@ -93,7 +93,7 @@ class ItemValues
     static int GetHP(ItemValues *self, int item_id);
     static int GetTP(ItemValues *self, int item_id);
     static int GetSpec1(ItemValues *self, int item_id);
-    static int GetSpec1ForTypes(ItemValues *self, int item_id);
+    static int GetDollGraphic(ItemValues *self, int item_id);
     static int GetLevelRequirement(ItemValues *self, int item_id);
     static int GetScrollMap(ItemValues *self, int item_id);
     static int GetGender(ItemValues *self, int item_id);

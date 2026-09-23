@@ -49,8 +49,8 @@ Player::Player(TCustomWinSocket *socket)
     recover_ticks = 0;
     field_0xa4 = 0;
     show_players = false;
-    read_pos = -1;
-    read_len = -1;
+    party_invite_id = -1;
+    trade_partner_id = -1;
     session_token = -1;
     trade_accepted = false;
     stats_dirty = 0;
@@ -64,9 +64,9 @@ Player::Player(TCustomWinSocket *socket)
     map_has_hp_drain = false;
     map_has_tp_drain = false;
     last_pass_ms = DateTimeToTimeStamp(Now());
-    field_0x37c = 30;
+    say_chat_tokens = 30;
     drop_counter = 20;
-    field_0x378 = 3;
+    world_chat_tokens = 3;
     attack_tokens = 40;
     attack_token_ticks = 0;
     ghost_walk_tokens = 0;
@@ -74,7 +74,7 @@ Player::Player(TCustomWinSocket *socket)
     last_client_walk_tick = 9000000;
     sync_base_ahead = -1;
     sync_base_behind = -1;
-    null_string = "";
+    reserved_name = "";
     flush_queue = 0;
     cheater_flag = false;
 }

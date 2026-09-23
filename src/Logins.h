@@ -10,19 +10,19 @@
 // `Asocketvip *` and `Asocketblock` / `Asocketblock *` (no `Logins::` prefix).
 // Reconstructing them as nested `Logins::ReservedName` / `Logins::LoginEntry`
 // made the descriptors 32 bytes too long, which was the whole of that module's
-// size difference. The field-count words in the descriptors (3 and 2) pair
+// size difference. The field-ticks_remaining words in the descriptors (3 and 2) pair
 // `Asocketvip` with the two-String record and `Asocketblock` with the
 // String+int one.
 struct Asocketvip
 {
     String name;  // +0x00
-    String value; // +0x04
+    String ip; // +0x04
 };
 
 struct Asocketblock
 {
     String address; // +0x00
-    int count;      // +0x04
+    int ticks_remaining;      // +0x04
 };
 
 class Logins

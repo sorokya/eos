@@ -20,7 +20,7 @@ class Asocketban
     short octet4;           // +0x0a
     unsigned char ban_type; // +0x0c
     char pad_0xd[3];        // +0x0d
-    int duration;           // +0x10
+    int duration_secs;      // +0x10
     TTimeStamp ban_date;    // +0x14
 };
 
@@ -34,16 +34,17 @@ class Banned
   public:
     mySQLdb *db_handle;      // +0x00
     TList *ban_list;         // +0x04
-    int field_0x8;           // +0x08
-    unsigned char field_0xc; // +0x0c
+    int minutes_remaining;   // +0x08
+    unsigned char ban_type;  // +0x0c
     char pad_0xd[3];         // +0x0d
 
     Banned(mySQLdb *db_handle);
     ~Banned();
 
     static void
-    AddBan(Banned *self, String ip, String serial, bool permanent, int duration);
-    static void AddBan(Banned *self, String ip, String hdid, char ban_type, int duration);
+    AddBan(Banned *self, String ip, String serial, bool permanent, int duration_secs);
+    static void
+    AddBan(Banned *self, String ip, String hdid, char ban_type, int duration_secs);
     static bool IsBanned(Banned *self, String ip, String hdid);
     static int GetBanType(Banned *self);
     static int GetBanTime(Banned *self);

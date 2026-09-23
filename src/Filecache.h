@@ -42,8 +42,8 @@ class FileCache
     vector<TopPlayer *> pending_player_writes;
     vector<TopGuild *> pending_guild_writes;
     TStringList *string_list;
-    String field_0x54;
-    int field_0x58;
+    String current_line;
+    int experience_floor;
 
     FileCache();
     ~FileCache();

@@ -117,7 +117,7 @@ class MapContainer
     static bool Mapcontrol_IsOccupied(MapContainer *self, int map_id, int x, int y);
     static bool Mapcontrol_IsTileClear(MapContainer *self, int map_id, int x, int y);
     static bool Mapcontrol_IsTileWalkable(MapContainer *self, int map_id, int x, int y);
-    static int Mapcontrol_IsWalkableNPC(
+    static int Mapcontrol_GetWalkableStatus(
         MapContainer *self, int map_id, int x, int y, char ignore_spec_block);
 };
 
@@ -135,7 +135,7 @@ unsigned int Mapcontrol_GetTileSpecValueAt(MapContainer *self,
                                            int map_id,
                                            unsigned int x,
                                            unsigned int y);
-int Mapcontrol_CountBlockedNeighbors(MapContainer *self,
+int Mapcontrol_CountWalkableNeighbors(MapContainer *self,
                                      int map_id,
                                      unsigned int x,
                                      unsigned int y);

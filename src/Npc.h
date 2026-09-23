@@ -62,7 +62,7 @@ struct Npc
     int target_player_id;                   // +0x84
     int chase_target_id;                    // +0x88
     int nStuck_pos;                         // +0x8c
-    char pad_0x90[4];                       // +0x90
+    char nStuck_pos_y[4];                   // +0x90
 
     Npc(int npc_index,
         short npc_id,

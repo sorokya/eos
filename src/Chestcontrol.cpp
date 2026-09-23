@@ -31,7 +31,7 @@ void ChestController::Tick(ChestController *self)
     MapItem *map;
     MapChest *chest;
     ChestItem *item;
-    int max_items;
+    int alt_count;
     int item_index;
     Player **player_iter;
     MapChest *chest_iter;
@@ -54,14 +54,14 @@ void ChestController::Tick(ChestController *self)
                         chest->updated = 1;
                         item->item_present = 1;
                         item->respawn_countdown = item->respawn_delay;
-                        max_items = 1;
-                        if (max_items == 1 && item->alt_item_id1 > 0)
-                            max_items++;
-                        if (max_items == 2 && item->alt_item_id2 > 0)
-                            max_items++;
-                        if (max_items == 3 && item->alt_item_id3 > 0)
-                            max_items++;
-                        item_index = RandRange(max_items);
+                        alt_count = 1;
+                        if (alt_count == 1 && item->alt_item_id1 > 0)
+                            alt_count++;
+                        if (alt_count == 2 && item->alt_item_id2 > 0)
+                            alt_count++;
+                        if (alt_count == 3 && item->alt_item_id3 > 0)
+                            alt_count++;
+                        item_index = RandRange(alt_count);
                         if (item_index == 0)
                         {
                             item->item_id = item->alt_item_id0;

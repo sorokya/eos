@@ -9,9 +9,9 @@
 
 MsgBoardController::MsgBoardController()
 {
-    field_0x118 = new char[8];
-    field_0x0 = 0x18;
-    field_0x4 = 0;
+    encode_buffer = new char[8];
+    max_posts = 0x18;
+    next_post_id = 0;
     for (int i = 0; i < 8; i++)
     {
         boards[i].clear();
@@ -58,13 +58,13 @@ bool MsgBoardController::LoadBoards(MsgBoardController *self)
         }
         for (int i = 0; i < 8; i++)
         {
-            self->field_0x2c4[i] = DecodeNumber(self, path.SubString(1, 4));
+            self->extra_lengths[i] = DecodeNumber(self, path.SubString(1, 4));
             path.Delete(1, 4);
         }
         for (int i = 0; i < 8; i++)
         {
-            self->aExtra_strings[i] = path.SubString(1, self->field_0x2c4[i]);
-            path.Delete(1, self->field_0x2c4[i]);
+            self->aExtra_strings[i] = path.SubString(1, self->extra_lengths[i]);
+            path.Delete(1, self->extra_lengths[i]);
         }
         for (int i = 0; i < 8; i++)
         {
@@ -153,18 +153,18 @@ void MsgBoardController::AddPost(MsgBoardController *self,
 {
     if (board >= 1 && board <= 8)
     {
-        self->field_0x4++;
-        if (self->field_0x4 > 40000)
-            self->field_0x4 = 0;
-        MsgBoard post(self->field_0x4, poster, subject, message);
+        self->next_post_id++;
+        if (self->next_post_id > 40000)
+            self->next_post_id = 0;
+        MsgBoard post(self->next_post_id, poster, subject, message);
         board--;
         if (flag == 0)
             self->boards[board].insert(self->boards[board].begin(), post);
         else
             self->boards[board].insert(self->boards[board].end(), post);
         self->aBoard_enabled[board] = 1;
-        if (self->boards[board].size() > (unsigned)(self->field_0x0 + 4))
-            self->boards[board].resize(self->field_0x0 + 4);
+        if (self->boards[board].size() > (unsigned)(self->max_posts + 4))
+            self->boards[board].resize(self->max_posts + 4);
     }
 }
 
@@ -192,7 +192,7 @@ String MsgBoardController::GetPost(MsgBoardController *self, int board, int post
         vector<MsgBoard>::iterator it;
         int count = 0;
         for (it = self->boards[board].begin();
-             it != self->boards[board].end() && count < self->field_0x0;
+             it != self->boards[board].end() && count < self->max_posts;
              it++)
         {
             if (it->id == post_id)
@@ -211,15 +211,15 @@ void MsgBoardController::BuildBoardName(MsgBoardController *self, int board)
     if (board >= 1 && board <= 8)
     {
         int count = self->boards[board - 1].size();
-        if (count > self->field_0x0)
-            count = self->field_0x0;
+        if (count > self->max_posts)
+            count = self->max_posts;
         String result = EncodeNumber(self, board, 1);
         result.Insert(EncodeNumber(self, count, 1), result.Length() + 1);
         board--;
         vector<MsgBoard>::iterator it;
         int i = 0;
         for (it = self->boards[board].begin();
-             it != self->boards[board].end() && i < self->field_0x0;
+             it != self->boards[board].end() && i < self->max_posts;
              i++, it++)
         {
             result.Insert(EncodeNumber(self, it->id, 2), result.Length() + 1);
@@ -280,9 +280,9 @@ void MsgBoardController::LoadBoard(MsgBoardController *self, int board, String d
                 int a = DecodeNumber(self, ReadToken(self));
                 int b = DecodeNumber(self, ReadToken(self));
                 int c = DecodeNumber(self, ReadToken(self));
-                self->field_0x144[i] = a;
-                self->field_0x1c4[i] = b;
-                self->field_0x244[i] = c;
+                self->poster_lengths[i] = a;
+                self->subject_lengths[i] = b;
+                self->message_lengths[i] = c;
                 total = total + a + b + c;
             }
             String text = ReadRest(self);
@@ -290,12 +290,12 @@ void MsgBoardController::LoadBoard(MsgBoardController *self, int board, String d
             {
                 for (int j = 0; j < count && j < 0x20; j++)
                 {
-                    String poster = text.SubString(1, self->field_0x144[j]);
-                    text.Delete(1, self->field_0x144[j]);
-                    String subject = text.SubString(1, self->field_0x1c4[j]);
-                    text.Delete(1, self->field_0x1c4[j]);
-                    String message = text.SubString(1, self->field_0x244[j]);
-                    text.Delete(1, self->field_0x244[j]);
+                    String poster = text.SubString(1, self->poster_lengths[j]);
+                    text.Delete(1, self->poster_lengths[j]);
+                    String subject = text.SubString(1, self->subject_lengths[j]);
+                    text.Delete(1, self->subject_lengths[j]);
+                    String message = text.SubString(1, self->message_lengths[j]);
+                    text.Delete(1, self->message_lengths[j]);
                     AddPost(self, board + 1, poster, subject, message, 1);
                 }
             }
@@ -307,10 +307,10 @@ void MsgBoardController::SetDecodeSource(MsgBoardController *self,
                                          String data,
                                          char delimiter)
 {
-    self->field_0x10c = 1;
+    self->decode_pos = 1;
     self->misc_text = data;
-    self->field_0x110 = data.Length();
-    self->field_0x114 = delimiter;
+    self->decode_length = data.Length();
+    self->decode_delimiter = delimiter;
 }
 
 // Nothing calls this, so ilink32 drops the COMDAT -- but its empty-string
@@ -330,21 +330,21 @@ String MsgBoardController::ReadToken(MsgBoardController *self)
     String result = "";
     try
     {
-        if (self->field_0x110 >= 1)
+        if (self->decode_length >= 1)
         {
-            while (self->field_0x10c <= self->field_0x110)
+            while (self->decode_pos <= self->decode_length)
             {
-                if (self->misc_text[self->field_0x10c] != self->field_0x114)
+                if (self->misc_text[self->decode_pos] != self->decode_delimiter)
                 {
-                    result.Insert(self->misc_text[self->field_0x10c],
+                    result.Insert(self->misc_text[self->decode_pos],
                                   result.Length() + 1);
                 }
                 else
                 {
-                    self->field_0x10c++;
+                    self->decode_pos++;
                     break;
                 }
-                self->field_0x10c++;
+                self->decode_pos++;
             }
         }
     }
@@ -360,12 +360,12 @@ String MsgBoardController::ReadRest(MsgBoardController *self)
     String result = "";
     try
     {
-        if (self->field_0x110 >= 1)
+        if (self->decode_length >= 1)
         {
-            while (self->field_0x10c <= self->field_0x110)
+            while (self->decode_pos <= self->decode_length)
             {
-                result.Insert(self->misc_text[self->field_0x10c], result.Length() + 1);
-                self->field_0x10c++;
+                result.Insert(self->misc_text[self->decode_pos], result.Length() + 1);
+                self->decode_pos++;
             }
         }
     }
@@ -425,7 +425,7 @@ MsgBoardController::EncodeNumber(MsgBoardController *self, unsigned int value, i
                 quotient = d;
                 rem = value % EO_NUM_MAX;
                 c = rem + 1;
-                self->field_0x118[i] = c;
+                self->encode_buffer[i] = c;
                 value = quotient;
                 if (quotient < 1)
                     flag = false;
@@ -435,7 +435,7 @@ MsgBoardController::EncodeNumber(MsgBoardController *self, unsigned int value, i
             else
             {
                 char pad = EO_NUM_EMPTY;
-                self->field_0x118[i] = pad;
+                self->encode_buffer[i] = pad;
             }
         }
     }
@@ -443,7 +443,7 @@ MsgBoardController::EncodeNumber(MsgBoardController *self, unsigned int value, i
     {
         width = 0;
     }
-    String result(self->field_0x118, width);
+    String result(self->encode_buffer, width);
     return result;
 }
 

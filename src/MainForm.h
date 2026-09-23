@@ -97,8 +97,8 @@ class TGUI : public TForm
     QuestContainer *quest_engine;         // +0x360
     NewsTopics *news_control;             // +0x364
     Game *game_control;                   // +0x368
-    int field_0x36c;                      // +0x36c
-    int field_0x370;                      // +0x370
+    int last_packet_action;                      // +0x36c
+    int last_packet_family;                      // +0x370
     int field_0x374;                      // +0x374
 
     __fastcall TGUI(TComponent *Owner);

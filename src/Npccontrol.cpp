@@ -473,7 +473,7 @@ int NpcController::Npc_GetDistance(NpcController *self, Npc *npc, Player *player
     return distance;
 }
 
-bool NpcController::Npc_AttackPlayer(NpcController *mc, Npc *npc, Player *player)
+bool NpcController::Npc_AttackPlayer(NpcController *self, Npc *npc, Player *player)
 {
     int accuracy =
         Game::Combat_CalcArmorPen(GUI->game_control, npc->accuracy, player->evasion, 0.9);
@@ -562,20 +562,20 @@ bool NpcController::Npc_AttackPlayer(NpcController *mc, Npc *npc, Player *player
     }
     int hp_percent = (player->hp * 100) / player->max_hp;
     player->stats_dirty = 1;
-    npc->attack_buffer = EncodeNumber(mc, npc->index, 1);
+    npc->attack_buffer = EncodeNumber(self, npc->index, 1);
     if (player->hp > 0)
-        npc->attack_buffer.Insert(EncodeNumber(mc, 1, 1),
+        npc->attack_buffer.Insert(EncodeNumber(self, 1, 1),
                                   npc->attack_buffer.Length() + 1);
     if (player->hp < 1)
-        npc->attack_buffer.Insert(EncodeNumber(mc, 2, 1),
+        npc->attack_buffer.Insert(EncodeNumber(self, 2, 1),
                                   npc->attack_buffer.Length() + 1);
-    npc->attack_buffer.Insert(EncodeNumber(mc, (unsigned short)npc->nAttack_dir, 1),
+    npc->attack_buffer.Insert(EncodeNumber(self, (unsigned short)npc->nAttack_dir, 1),
                               npc->attack_buffer.Length() + 1);
-    npc->attack_buffer.Insert(EncodeNumber(mc, player->player_id, 2),
+    npc->attack_buffer.Insert(EncodeNumber(self, player->player_id, 2),
                               npc->attack_buffer.Length() + 1);
-    npc->attack_buffer.Insert(EncodeNumber(mc, damage, 3),
+    npc->attack_buffer.Insert(EncodeNumber(self, damage, 3),
                               npc->attack_buffer.Length() + 1);
-    npc->attack_buffer.Insert(EncodeNumber(mc, hp_percent, 1),
+    npc->attack_buffer.Insert(EncodeNumber(self, hp_percent, 1),
                               npc->attack_buffer.Length() + 1);
     if (player->hp == 0)
         return true;
@@ -595,7 +595,7 @@ void NpcController::Npc_Wander(
     {
         if (npc->y < map_h)
         {
-            if (MapContainer::Mapcontrol_IsWalkableNPC(
+            if (MapContainer::Mapcontrol_GetWalkableStatus(
                     self->map_control, map_id, npc->x, npc->y + 1, 0) == 0)
             {
                 if (!MapContainer::Mapcontrol_IsOccupied(
@@ -616,7 +616,7 @@ void NpcController::Npc_Wander(
     {
         if (npc->x >= 1)
         {
-            if (MapContainer::Mapcontrol_IsWalkableNPC(
+            if (MapContainer::Mapcontrol_GetWalkableStatus(
                     self->map_control, map_id, npc->x - 1, npc->y, 0) == 0)
             {
                 if (!MapContainer::Mapcontrol_IsOccupied(
@@ -637,7 +637,7 @@ void NpcController::Npc_Wander(
     {
         if (npc->y >= 1)
         {
-            if (MapContainer::Mapcontrol_IsWalkableNPC(
+            if (MapContainer::Mapcontrol_GetWalkableStatus(
                     self->map_control, map_id, npc->x, npc->y - 1, 0) == 0)
             {
                 if (!MapContainer::Mapcontrol_IsOccupied(
@@ -656,7 +656,7 @@ void NpcController::Npc_Wander(
     }
     else if (npc->nAttack_dir == Direction_Right && npc->x < map_w)
     {
-        if (MapContainer::Mapcontrol_IsWalkableNPC(
+        if (MapContainer::Mapcontrol_GetWalkableStatus(
                 self->map_control, map_id, npc->x + 1, npc->y, 0) == 0)
         {
             if (!MapContainer::Mapcontrol_IsOccupied(
@@ -674,7 +674,7 @@ void NpcController::Npc_Wander(
 }
 
 void NpcController::Npc_ChaseTarget(
-    NpcController *mc, Npc *npc, Player *player, int map_id, int map_w, int map_h)
+    NpcController *self, Npc *npc, Player *player, int map_id, int map_w, int map_h)
 {
     int dir;
     if (player->x < npc->x)
@@ -742,7 +742,7 @@ void NpcController::Npc_ChaseTarget(
         if (attempt == 2)
         {
             npc->nStuck_pos = npc->x;
-            *(int *)&npc->pad_0x90 = npc->y;
+            *(int *)&npc->nStuck_pos_y = npc->y;
             dir = dir + 2;
             if (dir > 3)
                 dir = dir - 4;
@@ -783,15 +783,15 @@ void NpcController::Npc_ChaseTarget(
         {
             if (npc->y >= map_h)
                 continue;
-            if (npc->x == npc->nStuck_pos && npc->y + 1 == *(int *)&npc->pad_0x90)
+            if (npc->x == npc->nStuck_pos && npc->y + 1 == *(int *)&npc->nStuck_pos_y)
                 continue;
-            if (MapContainer::Mapcontrol_IsWalkableNPC(
-                    mc->map_control, map_id, npc->x, npc->y + 1, 0) != 0)
+            if (MapContainer::Mapcontrol_GetWalkableStatus(
+                    self->map_control, map_id, npc->x, npc->y + 1, 0) != 0)
                 continue;
             if (MapContainer::Mapcontrol_IsOccupied(
-                    mc->map_control, map_id, npc->x, npc->y + 1))
+                    self->map_control, map_id, npc->x, npc->y + 1))
                 continue;
-            int player_id = Npc_ValidateMove(mc, map_id, npc->x, npc->y + 1);
+            int player_id = Npc_ValidateMove(self, map_id, npc->x, npc->y + 1);
             if (player_id > 0)
             {
                 if (attempt > 1)
@@ -813,15 +813,15 @@ void NpcController::Npc_ChaseTarget(
         {
             if (npc->x < 1)
                 continue;
-            if (npc->x - 1 == npc->nStuck_pos && npc->y == *(int *)&npc->pad_0x90)
+            if (npc->x - 1 == npc->nStuck_pos && npc->y == *(int *)&npc->nStuck_pos_y)
                 continue;
-            if (MapContainer::Mapcontrol_IsWalkableNPC(
-                    mc->map_control, map_id, npc->x - 1, npc->y, 0) != 0)
+            if (MapContainer::Mapcontrol_GetWalkableStatus(
+                    self->map_control, map_id, npc->x - 1, npc->y, 0) != 0)
                 continue;
             if (MapContainer::Mapcontrol_IsOccupied(
-                    mc->map_control, map_id, npc->x - 1, npc->y))
+                    self->map_control, map_id, npc->x - 1, npc->y))
                 continue;
-            int player_id = Npc_ValidateMove(mc, map_id, npc->x - 1, npc->y);
+            int player_id = Npc_ValidateMove(self, map_id, npc->x - 1, npc->y);
             if (player_id > 0)
             {
                 if (attempt > 1)
@@ -843,15 +843,15 @@ void NpcController::Npc_ChaseTarget(
         {
             if (npc->y < 1)
                 continue;
-            if (npc->x == npc->nStuck_pos && npc->y - 1 == *(int *)&npc->pad_0x90)
+            if (npc->x == npc->nStuck_pos && npc->y - 1 == *(int *)&npc->nStuck_pos_y)
                 continue;
-            if (MapContainer::Mapcontrol_IsWalkableNPC(
-                    mc->map_control, map_id, npc->x, npc->y - 1, 0) != 0)
+            if (MapContainer::Mapcontrol_GetWalkableStatus(
+                    self->map_control, map_id, npc->x, npc->y - 1, 0) != 0)
                 continue;
             if (MapContainer::Mapcontrol_IsOccupied(
-                    mc->map_control, map_id, npc->x, npc->y - 1))
+                    self->map_control, map_id, npc->x, npc->y - 1))
                 continue;
-            int player_id = Npc_ValidateMove(mc, map_id, npc->x, npc->y - 1);
+            int player_id = Npc_ValidateMove(self, map_id, npc->x, npc->y - 1);
             if (player_id > 0)
             {
                 if (attempt > 1)
@@ -873,15 +873,15 @@ void NpcController::Npc_ChaseTarget(
         {
             if (npc->x >= map_w)
                 continue;
-            if (npc->x + 1 == npc->nStuck_pos && npc->y == *(int *)&npc->pad_0x90)
+            if (npc->x + 1 == npc->nStuck_pos && npc->y == *(int *)&npc->nStuck_pos_y)
                 continue;
-            if (MapContainer::Mapcontrol_IsWalkableNPC(
-                    mc->map_control, map_id, npc->x + 1, npc->y, 0) != 0)
+            if (MapContainer::Mapcontrol_GetWalkableStatus(
+                    self->map_control, map_id, npc->x + 1, npc->y, 0) != 0)
                 continue;
             if (MapContainer::Mapcontrol_IsOccupied(
-                    mc->map_control, map_id, npc->x + 1, npc->y))
+                    self->map_control, map_id, npc->x + 1, npc->y))
                 continue;
-            int player_id = Npc_ValidateMove(mc, map_id, npc->x + 1, npc->y);
+            int player_id = Npc_ValidateMove(self, map_id, npc->x + 1, npc->y);
             if (player_id > 0)
             {
                 if (attempt > 1)

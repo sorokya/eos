@@ -45,7 +45,7 @@
     {                                                                                    \
         player->equip_result = result;                                                   \
         player->slot = item_id;                                                          \
-        player->graphic = ItemValues::GetSpec1ForTypes(GUI->item_values, item_id);       \
+        player->graphic = ItemValues::GetDollGraphic(GUI->item_values, item_id);       \
     }
 
 #define EQUIP_SLOT_ID(itype, slot, graphic, result)                                      \
@@ -82,8 +82,8 @@
 
 Players::Players(Settings *settings, mySQLdb *mysql_controls)
 {
-    idle_timeout = 0;
-    stat_total = 0;
+    online_count = 0;
+    peak_online = 0;
     dirty = 0;
     this->settings = settings;
     this->mysql_controls = mysql_controls;
@@ -222,8 +222,8 @@ void Players::Players_Remove(Players *self, TCustomWinSocket *socket)
         }
         if (player->logged_in != false)
         {
-            if (self->idle_timeout > 0)
-                self->idle_timeout = self->idle_timeout - 1;
+            if (self->online_count > 0)
+                self->online_count = self->online_count - 1;
             mySQLdb::Mysql_ExecDirect(self->mysql_controls,
                                       player->account_ident,
                                       Character_BuildSaveQuery(self, player, 0));
@@ -450,11 +450,11 @@ String Character_BuildSaveQuery(Players *self, Player *player, int flags)
     return q;
 }
 
-bool Players::Players_IsAccountIdentOnline(Players *self, int field_c)
+bool Players::Players_IsAccountIdentOnline(Players *self, int account_ident)
 {
     for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
     {
-        if ((*iter)->account_ident == field_c)
+        if ((*iter)->account_ident == account_ident)
             return true;
     }
     return false;
@@ -487,18 +487,18 @@ bool Players::Players_IsPlayerAt(Players *self, int map_id, int x, int y)
 bool Players::CharName_Validate(Players *self, Player *player, String name)
 {
     Player **iter;
-    if (player->null_string != "")
+    if (player->reserved_name != "")
     {
         return true;
     }
     iter = self->players.begin();
     while (iter != self->players.end())
     {
-        if (name == (*iter)->null_string)
+        if (name == (*iter)->reserved_name)
             return true;
         iter++;
     }
-    player->null_string = name;
+    player->reserved_name = name;
     return false;
 }
 
@@ -570,7 +570,7 @@ bool Players::Player_EquipItem(Players *self, Player *player, int item_id, int s
                     player->equip_result = 2;
                     player->armor_item_id = item_id;
                     player->armor_graphic_id =
-                        ItemValues::GetSpec1ForTypes(GUI->item_values, item_id);
+                        ItemValues::GetDollGraphic(GUI->item_values, item_id);
                 }
                 EQUIP_SLOT_TYPE(ItemType_Hat, hat_item_id, hat_graphic_id, 2)
                 EQUIP_SLOT_TYPE(ItemType_Boots, boots_item_id, boots_graphic_id, 2)
@@ -903,7 +903,7 @@ int Players::Players_CountGuildInvites(Players *self, Player *player)
     return count;
 }
 
-int Players::Players_CountGuildOnMap(Players *self, Player *player)
+int Players::Players_CountNonGuildMembersOnMap(Players *self, Player *player)
 {
     int count;
     for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
@@ -990,9 +990,9 @@ void Players::Player_LeaveParty(Players *self, Player *player)
 
 void Players::Player_RegenHpTp(Players *self, Player *player)
 {
-    player->field_0x37c = 30;
+    player->say_chat_tokens = 30;
     player->drop_counter = 20;
-    player->field_0x378 = 3;
+    player->world_chat_tokens = 3;
     int regen;
     if (player->sitting != false)
     {
@@ -1094,14 +1094,14 @@ int Players::Players_GetActiveCount(Players *self)
     return self->players.size();
 }
 
-int Players::Players_GetIdleTimeout(Players *self)
+int Players::Players_GetOnlineCount(Players *self)
 {
-    return self->idle_timeout;
+    return self->online_count;
 }
 
-int Players::Players_GetStatTotal(Players *self)
+int Players::Players_GetPeakOnline(Players *self)
 {
-    return self->stat_total;
+    return self->peak_online;
 }
 
 void Players::Players_MarkDirty(Players *self)
@@ -1111,12 +1111,12 @@ void Players::Players_MarkDirty(Players *self)
 
 void Players::Players_UpdatePeakOnline(Players *self)
 {
-    self->idle_timeout = 0;
+    self->online_count = 0;
     for (Player **iter = self->players.begin(); iter != self->players.end(); iter++)
     {
         if ((*iter)->logged_in != false)
-            self->idle_timeout = self->idle_timeout + 1;
+            self->online_count = self->online_count + 1;
     }
-    if (self->idle_timeout > self->stat_total)
-        self->stat_total = self->idle_timeout;
+    if (self->online_count > self->peak_online)
+        self->peak_online = self->online_count;
 }

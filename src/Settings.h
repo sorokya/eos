@@ -12,7 +12,7 @@
 //   +0x00 AnsiString  welcome_message        "welcomemessage"
 //   +0x04 AnsiString  join_message           "joinmessage"  (unset default)
 //   +0x08 AnsiString  server_name            "servername"   default "endl serv"
-//   +0x0c int         port                   "port"         default 8610
+//   +0x0c int         port                   "port"         default 8642
 //   +0x10 AnsiString  mysql_host             "mysqlhost"    default "localhost"
 //   +0x14 int         mysql_port             "mysqlport"    default 3306
 //   +0x18 int         login_protection       "loginprotection" low=8 high=4 else 6

@@ -7,39 +7,39 @@
 // Recovered from the reference (MsgBoardController unit, 0x4ab128..0x4ae180).
 // Object layout pinned by the constructor (0x4ab15c) and the board reader
 // (0x4ad190):
-//   +0x000 int                       field_0x0
-//   +0x004 int                       field_0x4
+//   +0x000 int                       max_posts
+//   +0x004 int                       next_post_id
 //   +0x008 vector<MsgBoard>     boards[8]      inline fixed array
 //   +0x108 String                    misc_text
-//   +0x10c int                       field_0x10c
-//   +0x110 int                       field_0x110
-//   +0x114 char                      field_0x114
-//   +0x118 char *                    field_0x118 = operator new(8), encode buffer
+//   +0x10c int                       decode_pos
+//   +0x110 int                       decode_length
+//   +0x114 char                      decode_delimiter
+//   +0x118 char *                    encode_buffer = operator new(8), encode scratch
 //   +0x11c char                      aBoard_enabled[8]
 //   +0x124 String                    aBoard_names[8]
-//   +0x144 int                       field_0x144[32]
-//   +0x1c4 int                       field_0x1c4[32]
-//   +0x244 int                       field_0x244[32]
-//   +0x2c4 int                       field_0x2c4[32]
+//   +0x144 int                       poster_lengths[32]
+//   +0x1c4 int                       subject_lengths[32]
+//   +0x244 int                       message_lengths[32]
+//   +0x2c4 int                       extra_lengths[32]
 //   +0x344 String                    aExtra_strings[32]
 // sizeof = 0x3c4.
 class MsgBoardController
 {
   public:
-    int field_0x0;
-    int field_0x4;
+    int max_posts;
+    int next_post_id;
     vector<MsgBoard> boards[8];
     String misc_text;
-    int field_0x10c;
-    int field_0x110;
-    char field_0x114;
-    char *field_0x118;
+    int decode_pos;
+    int decode_length;
+    char decode_delimiter;
+    char *encode_buffer;
     char aBoard_enabled[8];
     String aBoard_names[8];
-    int field_0x144[32];
-    int field_0x1c4[32];
-    int field_0x244[32];
-    int field_0x2c4[32];
+    int poster_lengths[32];
+    int subject_lengths[32];
+    int message_lengths[32];
+    int extra_lengths[32];
     String aExtra_strings[32];
 
     MsgBoardController();

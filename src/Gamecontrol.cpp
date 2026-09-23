@@ -87,17 +87,17 @@ int Game::Combat_CalcHitRate(Game *self, int accuracy, int evade, double factor)
 }
 
 double Game::Combat_CalcElementMult(Game *self,
-                                    MapCoord coord,
+                                    MapCoord element,
                                     short atk_power,
                                     short target_value)
 {
     double result = 1;
-    if (coord.x > Element_None)
+    if (element.x > Element_None)
     {
-        if (coord.x == Element_Dark)
-            result = coord.y / 10 + atk_power + 8;
+        if (element.x == Element_Dark)
+            result = element.y / 10 + atk_power + 8;
         else if (target_value > 0)
-            result = Combat_ElementScore(self, atk_power + coord.y, target_value);
+            result = Combat_ElementScore(self, atk_power + element.y, target_value);
     }
     if (result > 1)
         result = 0.01L * result + 1;

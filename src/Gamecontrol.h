@@ -21,7 +21,7 @@ class Game
     static int Combat_CalcArmorPen(Game *self, int avg_dmg, int armor, double factor);
     static int Combat_CalcHitRate(Game *self, int accuracy, int evade, double factor);
     static double Combat_CalcElementMult(Game *self,
-                                         MapCoord coord,
+                                         MapCoord element,
                                          short atk_power,
                                          short target_value);
     static int Combat_ElementScore(Game *self, int atk_power, int target_value);

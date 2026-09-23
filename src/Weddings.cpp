@@ -65,19 +65,19 @@ void WeddingController::Confirm(WeddingController *self,
     {
         if ((*it)->map_id == map_id && (*it)->priest_line == priest_line)
         {
-            if ((*it)->player1_id == player_id && (*it)->field_0x10 == 0)
+            if ((*it)->player1_id == player_id && (*it)->player1_confirmed == 0)
             {
-                (*it)->field_0x10 = 1;
+                (*it)->player1_confirmed = 1;
                 (*it)->step++;
                 (*it)->countdown = 0x14;
             }
-            if ((*it)->player2_id == player_id && (*it)->field_0x1c == 0)
+            if ((*it)->player2_id == player_id && (*it)->player2_confirmed == 0)
             {
-                (*it)->field_0x1c = 1;
+                (*it)->player2_confirmed = 1;
                 (*it)->step++;
                 (*it)->countdown = 0x19;
             }
-            if ((*it)->field_0x10 != 0 && (*it)->field_0x1c != 0)
+            if ((*it)->player1_confirmed != 0 && (*it)->player2_confirmed != 0)
             {
                 Player *player1 =
                     Players::Players_GetById(self->players, (*it)->player1_id);

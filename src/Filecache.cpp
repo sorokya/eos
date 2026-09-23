@@ -13,7 +13,7 @@ FileCache::FileCache()
     accounts_count = 0;
     characters_count = 0;
     guilds_count = 0;
-    field_0x58 = 0;
+    experience_floor = 0;
     string_list = new TStringList;
 }
 
@@ -33,10 +33,10 @@ void FileCache::CheckCacheFile(FileCache *self)
 
 void FileCache::UpdatePlayerCache(FileCache *self, char *record)
 {
-    if (self->field_0x58 < *(int *)(record + 0xc0) && *(int *)(record + 0x98) == 0)
+    if (self->experience_floor < *(int *)(record + 0xc0) && *(int *)(record + 0x98) == 0)
     {
         vector<TopPlayer *>::iterator it;
-        TopPlayer *last = 0;
+        TopPlayer *weakest_entry = 0;
         bool found = false;
         int min_experience = 0x7ffffff8;
         for (it = self->pending_player_writes.begin();
@@ -54,18 +54,18 @@ void FileCache::UpdatePlayerCache(FileCache *self, char *record)
             if ((*it)->experience < min_experience)
             {
                 min_experience = (*it)->experience;
-                last = *it;
+                weakest_entry = *it;
             }
         }
-        if (found == false && last != 0)
+        if (found == false && weakest_entry != 0)
         {
-            if (last->experience < *(int *)(record + 0xc0))
+            if (weakest_entry->experience < *(int *)(record + 0xc0))
             {
-                last->name = *(String *)(record + 0xa8);
-                last->experience = *(int *)(record + 0xc0);
-                last->title = *(String *)(record + 0xb0);
-                last->level = *(int *)(record + 0xc4);
-                last->gender = *(int *)(record + 0xcc);
+                weakest_entry->name = *(String *)(record + 0xa8);
+                weakest_entry->experience = *(int *)(record + 0xc0);
+                weakest_entry->title = *(String *)(record + 0xb0);
+                weakest_entry->level = *(int *)(record + 0xc4);
+                weakest_entry->gender = *(int *)(record + 0xcc);
             }
             min_experience = 0x7ffffff8;
             for (it = self->pending_player_writes.begin();
@@ -76,7 +76,7 @@ void FileCache::UpdatePlayerCache(FileCache *self, char *record)
                     min_experience = (*it)->experience;
             }
         }
-        self->field_0x58 = min_experience;
+        self->experience_floor = min_experience;
     }
 }
 
@@ -92,7 +92,7 @@ void FileCache::LoadPlayerCache(FileCache *self)
     }
     for (int i = 0; i < self->string_list->Count; i++)
     {
-        self->field_0x54 = self->string_list->Strings[i];
+        self->current_line = self->string_list->Strings[i];
         TopPlayer *entry = new TopPlayer;
         entry->privilege = StrToInt(NextToken(self));
         entry->name = NextToken(self);
@@ -116,7 +116,7 @@ void FileCache::LoadGuildCache(FileCache *self)
     }
     for (int i = 0; i < self->string_list->Count; i++)
     {
-        self->field_0x54 = self->string_list->Strings[i];
+        self->current_line = self->string_list->Strings[i];
         TopGuild *entry = new TopGuild;
         entry->ident_guild = NextToken(self);
         entry->guild = NextToken(self);
@@ -128,11 +128,11 @@ void FileCache::LoadGuildCache(FileCache *self)
 
 String FileCache::NextToken(FileCache *self)
 {
-    int pos = self->field_0x54.Pos(";");
+    int pos = self->current_line.Pos(";");
     if (pos < 1)
-        return self->field_0x54;
-    String result = self->field_0x54.SubString(1, pos - 1);
-    self->field_0x54.Delete(1, pos);
+        return self->current_line;
+    String result = self->current_line.SubString(1, pos - 1);
+    self->current_line.Delete(1, pos);
     return result;
 }
 
