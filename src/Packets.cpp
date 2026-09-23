@@ -780,9 +780,9 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                             coords.y = player->y;
                         }
                         if (Mapcontrol_CountWalkableNeighbors(server->map_control,
-                                                             player->map_id,
-                                                             coords.x,
-                                                             coords.y) == 0)
+                                                              player->map_id,
+                                                              coords.x,
+                                                              coords.y) == 0)
                         {
                             Banned::AddBan(server->banned,
                                            player->remote_ip,
@@ -2235,8 +2235,9 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, GUI->item_values->rid_2, 2),
                            out.Length() + 1);
-                out.Insert(EO_EncodeNumber(server, GUI->item_values->total_items_count, 2),
-                           out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(server, GUI->item_values->total_items_count, 2),
+                    out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, GUI->npc_values->rid_1, 2),
                            out.Length() + 1);
                 out.Insert(EO_EncodeNumber(server, GUI->npc_values->rid_2, 2),
@@ -7377,9 +7378,10 @@ bool Player_HandlePacket(Packets *server, Player *player, String data)
                     EO_EncodeNumber(
                         server, Players::Players_GetOnlineCount(server->players), 2),
                     out.Length() + 1);
-                out.Insert(EO_EncodeNumber(
-                               server, Players::Players_GetPeakOnline(server->players), 2),
-                           out.Length() + 1);
+                out.Insert(
+                    EO_EncodeNumber(
+                        server, Players::Players_GetPeakOnline(server->players), 2),
+                    out.Length() + 1);
                 TTimeStamp now = DateTimeToTimeStamp(Now());
                 int date_delta =
                     now.Date - mySQLdb::Server_GetUptime(server->mysql_controls).Date;
@@ -8067,61 +8069,74 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
             type = "wealthy";
         if (money >= 0x186a0)
             type = "very wealthy";
-        player->guild_query_scratch = mySQLdb::Db_GetString(server->mysql_controls, "name");
+        player->guild_query_scratch =
+            mySQLdb::Db_GetString(server->mysql_controls, "name");
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
-        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "tag"),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(
+            mySQLdb::Db_GetString(server->mysql_controls, "tag"),
+            player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
-        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "signup"),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(
+            mySQLdb::Db_GetString(server->mysql_controls, "signup"),
+            player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(
             mySQLdb::Db_GetString(server->mysql_controls, "description"),
             player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
-        player->guild_query_scratch.Insert(type, player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(type,
+                                           player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
-        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank1"),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(
+            mySQLdb::Db_GetString(server->mysql_controls, "rank1"),
+            player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
-        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank2"),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(
+            mySQLdb::Db_GetString(server->mysql_controls, "rank2"),
+            player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
-        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank3"),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(
+            mySQLdb::Db_GetString(server->mysql_controls, "rank3"),
+            player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
-        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank4"),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(
+            mySQLdb::Db_GetString(server->mysql_controls, "rank4"),
+            player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
-        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank5"),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(
+            mySQLdb::Db_GetString(server->mysql_controls, "rank5"),
+            player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
-        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank6"),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(
+            mySQLdb::Db_GetString(server->mysql_controls, "rank6"),
+            player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
-        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank7"),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(
+            mySQLdb::Db_GetString(server->mysql_controls, "rank7"),
+            player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
-        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank8"),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(
+            mySQLdb::Db_GetString(server->mysql_controls, "rank8"),
+            player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
-        player->guild_query_scratch.Insert(mySQLdb::Db_GetString(server->mysql_controls, "rank9"),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
+        player->guild_query_scratch.Insert(
+            mySQLdb::Db_GetString(server->mysql_controls, "rank9"),
+            player->guild_query_scratch.Length() + 1);
         player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                  player->guild_query_scratch.Length() + 1);
+                                           player->guild_query_scratch.Length() + 1);
         mySQLdb::Mysql_SubmitQuery_FromCallback(
             server->mysql_controls,
             0x4f,
@@ -8145,7 +8160,7 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                     server, mySQLdb::GetResultCount(server->mysql_controls), 2),
                 player->guild_query_scratch.Length() + 1);
             player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                      player->guild_query_scratch.Length() + 1);
+                                               player->guild_query_scratch.Length() + 1);
             while (!mySQLdb::ResultAtEnd(server->mysql_controls))
             {
                 player->guild_query_scratch.Insert(
@@ -8155,17 +8170,22 @@ void MysqlCallback_Dispatch(Packets *server, mySQLtask *query_result)
                         1),
                     player->guild_query_scratch.Length() + 1);
                 player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                          player->guild_query_scratch.Length() + 1);
+                                                   player->guild_query_scratch.Length() +
+                                                       1);
                 player->guild_query_scratch.Insert(
                     mySQLdb::Db_GetString(server->mysql_controls, "name"),
                     player->guild_query_scratch.Length() + 1);
                 player->guild_query_scratch.Insert(EO_GetBreakByte(server, EO_BREAK_BYTE),
-                                          player->guild_query_scratch.Length() + 1);
+                                                   player->guild_query_scratch.Length() +
+                                                       1);
                 mySQLdb::NextResultRecord(server->mysql_controls);
             }
         }
-        Client_SendEncoded(
-            server, player, PacketAction_Report, PacketFamily_Guild, player->guild_query_scratch);
+        Client_SendEncoded(server,
+                           player,
+                           PacketAction_Report,
+                           PacketFamily_Guild,
+                           player->guild_query_scratch);
         return;
     }
     if (query_result->query_id == 0x50)
@@ -9607,8 +9627,8 @@ bool Server_HandleInit(Packets *server, Player *player, String data)
                     return false;
                 }
             }
-            int session =
-                EO_DeriveSessionKey((int)server, EO_DecodeNumber(server, data.SubString(3, 3)));
+            int session = EO_DeriveSessionKey(
+                (int)server, EO_DecodeNumber(server, data.SubString(3, 3)));
             int patch = EO_DecodeNumber(server, data[6]);
             int minor = EO_DecodeNumber(server, data[7]);
             int major = EO_DecodeNumber(server, data[8]);

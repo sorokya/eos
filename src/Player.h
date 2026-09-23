@@ -34,7 +34,7 @@ class Player
     int player_id;                       // +0x008
     int account_ident;                   // +0x00c
     int query_id;                        // +0x010
-    String guild_query_scratch;                   // +0x014
+    String guild_query_scratch;          // +0x014
     String signup;                       // +0x018
     int server_encryption_multiple;      // +0x01c
     int client_encryption_multiple;      // +0x020
@@ -42,12 +42,12 @@ class Player
     int account_create_cooldown;         // +0x028
     int field_0x2c;                      // +0x02c
     int session_id;                      // +0x030
-    int client_session_key;                      // +0x034
+    int client_session_key;              // +0x034
     String receive_buffer;               // +0x038
     String hdid;                         // +0x03c
     String remote_ip;                    // +0x040
     String account_name;                 // +0x044
-    String account_type;                   // +0x048
+    String account_type;                 // +0x048
     int packet_count;                    // +0x04c
     int remove_timer;                    // +0x050
     bool arena_queued;                   // +0x054
@@ -62,14 +62,14 @@ class Player
     int class_id;                        // +0x064
     int account_id;                      // +0x068
     int guild_rank_id;                   // +0x06c
-    int party_invite_id;                        // +0x070
-    int trade_partner_id;                        // +0x074
+    int party_invite_id;                 // +0x070
+    int trade_partner_id;                // +0x074
     int read_break;                      // +0x078
     int npc_index;                       // +0x07c
-    int pending_quest_rule;                      // +0x080
+    int pending_quest_rule;              // +0x080
     int session_token;                   // +0x084
     int guild_inviter_id;                // +0x088
-    String guild_inviter_name;                   // +0x08c
+    String guild_inviter_name;           // +0x08c
     bool trade_accepted;                 // +0x090
     char pad_0x91[3];                    // +0x091
     int trade_value;                     // +0x094
@@ -224,8 +224,8 @@ class Player
     int attack_token_ticks;             // +0x36c
     int queued_spell_id;                // +0x370
     int expected_cast_timestamp;        // +0x374
-    int world_chat_tokens;                    // +0x378
-    int say_chat_tokens;                    // +0x37c
+    int world_chat_tokens;              // +0x378
+    int say_chat_tokens;                // +0x37c
     int drop_counter;                   // +0x380
     int walk_tick;                      // +0x384
     int field_0x388;                    // +0x388
@@ -235,7 +235,7 @@ class Player
     char pad_0x3ae[2];                  // +0x3ae
     TCustomWinSocket *socket;           // +0x3b0 (socket object pointer)
     char pad_0x3b4[12];                 // +0x3b4
-    String reserved_name;                 // +0x3c0
+    String reserved_name;               // +0x3c0
     int item_change_id;                 // +0x3c4
     int item_change_count;              // +0x3c8
     int item_change_remaining;          // +0x3cc

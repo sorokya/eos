@@ -32,11 +32,11 @@ class Asocketban
 class Banned
 {
   public:
-    mySQLdb *db_handle;      // +0x00
-    TList *ban_list;         // +0x04
-    int minutes_remaining;   // +0x08
-    unsigned char ban_type;  // +0x0c
-    char pad_0xd[3];         // +0x0d
+    mySQLdb *db_handle;     // +0x00
+    TList *ban_list;        // +0x04
+    int minutes_remaining;  // +0x08
+    unsigned char ban_type; // +0x0c
+    char pad_0xd[3];        // +0x0d
 
     Banned(mySQLdb *db_handle);
     ~Banned();

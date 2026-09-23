@@ -36,7 +36,10 @@
 
 TGUI *GUI;
 
-String Mainform_ComputeRegName(TGUI *self, String key_base, String display_code, String unlock_code);
+String Mainform_ComputeRegName(TGUI *self,
+                               String key_base,
+                               String display_code,
+                               String unlock_code);
 
 __fastcall TGUI::TGUI(TComponent *Owner) : TForm(Owner)
 {
@@ -257,9 +260,9 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
         if (Players::Players_GetActiveCount(players) > 1)
         {
             String expected = Mainform_ComputeRegName(this,
-                                           SerialKey::GetKeyBaseCopy(serial),
-                                           SerialKey::GetDisplayCode(serial),
-                                           SerialKey::GetUnlockCode(serial));
+                                                      SerialKey::GetKeyBaseCopy(serial),
+                                                      SerialKey::GetDisplayCode(serial),
+                                                      SerialKey::GetUnlockCode(serial));
             if (SerialKey::GetRegName(serial) != expected)
                 server->Active = false;
         }
@@ -267,7 +270,10 @@ void __fastcall TGUI::timerTimer(TObject *Sender)
     }
 }
 
-String Mainform_ComputeRegName(TGUI *self, String key_base, String display_code, String unlock_code)
+String Mainform_ComputeRegName(TGUI *self,
+                               String key_base,
+                               String display_code,
+                               String unlock_code)
 {
     if (key_base.Length() < 1 || display_code.Length() < 1 || unlock_code.Length() < 1)
         return "";

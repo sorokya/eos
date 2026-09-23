@@ -45,7 +45,7 @@
     {                                                                                    \
         player->equip_result = result;                                                   \
         player->slot = item_id;                                                          \
-        player->graphic = ItemValues::GetDollGraphic(GUI->item_values, item_id);       \
+        player->graphic = ItemValues::GetDollGraphic(GUI->item_values, item_id);         \
     }
 
 #define EQUIP_SLOT_ID(itype, slot, graphic, result)                                      \

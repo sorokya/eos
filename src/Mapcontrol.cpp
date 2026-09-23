@@ -31,9 +31,9 @@ MapCoord
 Mapcontrol_GetNpcCoordsByIndex(MapContainer *self, int map_id, unsigned int npc_index);
 char Mapcontrol_IsDropTileClear(MapContainer *self, int map_id, int x, int y);
 int Mapcontrol_CountWalkableNeighbors(MapContainer *self,
-                                     int map_id,
-                                     unsigned int x,
-                                     unsigned int y);
+                                      int map_id,
+                                      unsigned int x,
+                                      unsigned int y);
 void Mapcontrol_ResetMap(MapContainer *self, int map_id);
 String Mapcontrol_ReadRawFile(MapContainer *self, int map_id);
 char Mapcontrol_ReloadMap(MapContainer *self, int map_id);
@@ -634,9 +634,9 @@ bool MapContainer::Mapcontrol_IsTileWalkable(MapContainer *self, int map_id, int
 }
 
 int Mapcontrol_CountWalkableNeighbors(MapContainer *self,
-                                     int map_id,
-                                     unsigned int x,
-                                     unsigned int y)
+                                      int map_id,
+                                      unsigned int x,
+                                      unsigned int y)
 {
     int result = 0;
     if (MapContainer::Mapcontrol_GetWalkableStatus(self, map_id, x - 1, y, 1) == 0)

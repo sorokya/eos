@@ -136,9 +136,9 @@ unsigned int Mapcontrol_GetTileSpecValueAt(MapContainer *self,
                                            unsigned int x,
                                            unsigned int y);
 int Mapcontrol_CountWalkableNeighbors(MapContainer *self,
-                                     int map_id,
-                                     unsigned int x,
-                                     unsigned int y);
+                                      int map_id,
+                                      unsigned int x,
+                                      unsigned int y);
 bool Mapcontrol_CanDropItemAt(
     MapContainer *self, int map_id, int x, int y, int player_id);
 GroundItemInfo

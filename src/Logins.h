@@ -15,14 +15,14 @@
 // String+int one.
 struct Asocketvip
 {
-    String name;  // +0x00
-    String ip; // +0x04
+    String name; // +0x00
+    String ip;   // +0x04
 };
 
 struct Asocketblock
 {
-    String address; // +0x00
-    int ticks_remaining;      // +0x04
+    String address;      // +0x00
+    int ticks_remaining; // +0x04
 };
 
 class Logins

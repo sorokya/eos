@@ -336,8 +336,7 @@ String MsgBoardController::ReadToken(MsgBoardController *self)
             {
                 if (self->misc_text[self->decode_pos] != self->decode_delimiter)
                 {
-                    result.Insert(self->misc_text[self->decode_pos],
-                                  result.Length() + 1);
+                    result.Insert(self->misc_text[self->decode_pos], result.Length() + 1);
                 }
                 else
                 {

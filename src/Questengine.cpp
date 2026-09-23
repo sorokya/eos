@@ -302,7 +302,7 @@ void QuestContainer::ParseToken(QuestContainer *self, Quest *quest, String token
             {
                 self->current_action = new QuestAction(self->current_action_type);
                 self->current_state->actions.insert(self->current_state->actions.end(),
-                                                 self->current_action);
+                                                    self->current_action);
                 self->in_action_args = 1;
                 return;
             }
@@ -353,13 +353,14 @@ void QuestContainer::ParseToken(QuestContainer *self, Quest *quest, String token
                      self->current_rule_type == 9 || self->current_rule_type == 10 ||
                      self->current_rule_type == 11))
                 {
-                    self->current_state->fast_dispatch_condition_type = self->current_rule_type;
+                    self->current_state->fast_dispatch_condition_type =
+                        self->current_rule_type;
                     self->current_state->fast_dispatch_rule_index =
                         self->current_state->rules.size();
                 }
                 self->current_rule = new QuestRule(self->current_rule_type);
                 self->current_state->rules.insert(self->current_state->rules.end(),
-                                               self->current_rule);
+                                                  self->current_rule);
                 self->in_rule_args = 1;
                 self->rule_goto_seen = 0;
                 self->rule_closed = 0;

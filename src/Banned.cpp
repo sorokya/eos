@@ -38,11 +38,8 @@ Banned::~Banned()
 {
 }
 
-void Banned::AddBan(Banned *self,
-                    String ip,
-                    String serial,
-                    bool permanent,
-                    int duration_secs)
+void Banned::AddBan(
+    Banned *self, String ip, String serial, bool permanent, int duration_secs)
 {
     try
     {
@@ -81,11 +78,8 @@ void Banned::AddBan(Banned *self,
     }
 }
 
-void Banned::AddBan(Banned *self,
-                    String ip,
-                    String hdid,
-                    char ban_type,
-                    int duration_secs)
+void Banned::AddBan(
+    Banned *self, String ip, String hdid, char ban_type, int duration_secs)
 {
     try
     {
