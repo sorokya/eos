@@ -17,6 +17,29 @@ reproduces the exact machine code. No hand-written assembly is used.
 The detailed roadmap lives in [PLAN.md](PLAN.md). Working instructions for
 contributors and AI agents live in [AGENTS.md](AGENTS.md).
 
+## Legal status and licensing
+
+This repository is an independent reverse-engineering effort. Its purpose is
+interoperability, preservation and study: it documents and reconstructs the
+behaviour of a legacy version of the [Endless Online](https://www.endless-online.com)
+v28 game server -- originally authored by Vult-r (<https://vult-r.com/>) -- so
+that compatible, original software can be written against it. It is not
+affiliated with, authorised by, or endorsed by Vult-r or Endless Online, and
+any trademarks remain the property of their owners.
+
+**Nothing proprietary is distributed here.** The reference `GameServer.exe`,
+the Borland C++Builder 5 toolchain, and the resources extracted from the
+reference (`forms/`, `res/`) are all gitignored. The build requires the user to
+supply their own copy of the reference binary; no assets, executables, or
+game data are included in this repository or its releases.
+
+**Licensing.** The reconstruction harness — `scripts/`, the build files and
+this documentation — is original work and is offered under the MIT licence
+(see [LICENSE](LICENSE)). The reconstructed translation units in `src/` are
+derivative works of the proprietary reference and are **not** licensed by this
+project; no rights in the original program are claimed or granted. Do not use
+this repository to distribute the reference binary or any of its assets.
+
 ## Target fingerprint
 
 | Property              | Value                                                              |
